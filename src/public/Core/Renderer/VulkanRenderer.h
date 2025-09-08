@@ -5,6 +5,7 @@
 #include "Core/Renderer/Renderer.h"
 #include <spdlog/spdlog.h>
 #include <vector>
+#include <cstring>
 
 #ifndef NDEBUG
 #define ENABLE_VALIDATION_LAYERS 1
@@ -25,5 +26,13 @@ private:
 	
 	void CreateInstance();
 
+	static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(
+		VkDebugUtilsMessageSeverityFlagBitsEXT msgSeverity,
+		VkDebugUtilsMessageTypeFlagsEXT msgType,
+		const VkDebugUtilsMessengerCallbackDataEXT* pCbData,
+		void* pvUserData
+	);
+
 	std::vector<const char*> GetRequiredExtensions();
+	bool CheckValidationLayersSupport();
 };

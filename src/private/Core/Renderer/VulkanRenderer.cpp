@@ -1,5 +1,9 @@
 #include "Core/Renderer/VulkanRenderer.h"
 
+std::vector<const char*> validationLayers = {
+	"VK_LAYER_KHRONOS_validation"
+};
+
 VulkanRenderer::VulkanRenderer() : Renderer::Renderer() {
 	m_bEnableValidationLayers = ENABLE_VALIDATION_LAYERS;
 }
@@ -12,6 +16,12 @@ void VulkanRenderer::Init() {
 
 void VulkanRenderer::CreateInstance() {
 	spdlog::debug("Instance creation started");
+
+	if (this->m_bEnableValidationLayers && !this->CheckValidationLayersSupport()) {
+		spdlog::error("Validation layers required but not available");
+		throw std::runtime_error("Validation layers required but not available");
+		return;
+	}
 
 	VkApplicationInfo appInfo = { };
 	appInfo.apiVersion = VK_API_VERSION_1_0;
@@ -31,7 +41,14 @@ void VulkanRenderer::CreateInstance() {
 	createInfo.pApplicationInfo = &appInfo;
 	createInfo.enabledExtensionCount = nExtensionCount;
 	createInfo.ppEnabledExtensionNames = extensions.data();
+
+	if (vkCreateInstance(&createInfo, nullptr, &this->m_vkInstance) != VK_SUCCESS) {
+		spdlog::error("Failed creating Vulkan instance");
+		throw std::runtime_error("Failed creating Vulkan instance");
+		return;
+	}
 	
+	spdlog::debug("Vulkan instance created");
 }
 
 std::vector<const char*> VulkanRenderer::GetRequiredExtensions() {
@@ -47,6 +64,54 @@ std::vector<const char*> VulkanRenderer::GetRequiredExtensions() {
 	}
 
 	return extensions;
+}
+
+bool VulkanRenderer::CheckValidationLayersSupport() {
+	/* Enumerate instance layer properties */
+	uint32_t nLayerCount;
+	vkEnumerateInstanceLayerProperties(&nLayerCount, nullptr);
+
+	/* Store instance layer properties on a vector */
+	std::vector<VkLayerProperties> availableLayers(nLayerCount);
+	vkEnumerateInstanceLayerProperties(&nLayerCount, availableLayers.data());
+
+	/* Check if validation layer is available */
+	for (const char* layerName : validationLayers) {
+		bool bLayerFound = false;
+		
+		for (const VkLayerProperties& layerProperties : availableLayers) {
+			if (strcmp(layerName, layerProperties.layerName) == 0) {
+				bLayerFound = true;
+				break;
+			}
+		}
+
+		if (!bLayerFound)
+			return false;
+	}
+
+	return true;
+}
+
+VKAPI_ATTR VkBool32 VKAPI_CALL VulkanRenderer::DebugCallback(
+	VkDebugUtilsMessageSeverityFlagBitsEXT msgSeverity,
+	VkDebugUtilsMessageTypeFlagsEXT msgType,
+	const VkDebugUtilsMessengerCallbackDataEXT* pCbData,
+	void* pvUserData
+) {
+	switch (msgSeverity) {
+	case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
+		spdlog::debug("Validation layer {}", pCbData->pMessage);
+		break;
+	case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
+		spdlog::warn("Validation layer {}", pCbData->pMessage);
+		break;
+	case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
+		spdlog::warn("Validation layer {}", pCbData->pMessage);
+		break;
+	}
+
+	return VK_FALSE;
 }
 
 void VulkanRenderer::Update() {
