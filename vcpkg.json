@@ -1,0 +1,10 @@
+{
+  "name": "aetherion",
+  "version": "0.0.1",
+  "description": "A Vulkan game engine made by Preciado",
+  "builtin-baseline": "b1e15efef6758eaa0beb0a8732cfa66f6a68a81d",
+  "dependencies": [
+    "glfw3",
+    "spdlog"
+  ]
+}
