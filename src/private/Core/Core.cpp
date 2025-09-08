@@ -4,6 +4,7 @@ Core* Core::m_instance;
 
 Core::Core() {
     this->m_pWindow = nullptr;
+    this->m_renderer = nullptr;
 }
 
 void Core::Init() {
@@ -22,11 +23,17 @@ void Core::Init() {
         throw std::runtime_error("Window not initialized");
         return;
     }
+
+
+    this->m_renderer = new VulkanRenderer();
+
+    this->m_renderer->Init();
 }
 
 void Core::Update() {
     while (!glfwWindowShouldClose(this->m_pWindow)) {
         glfwPollEvents();
+        this->m_renderer->Update();
     }
 }
 

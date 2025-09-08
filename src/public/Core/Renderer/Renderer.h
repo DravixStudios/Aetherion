@@ -3,6 +3,6 @@
 class Renderer {
 public:
     Renderer();
-    void Init();
-    void Update();
+    virtual void Init();
+    virtual void Update();
 };

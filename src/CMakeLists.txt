@@ -6,7 +6,7 @@
 add_executable ("Aetherion" "main.cpp" "public/Core/Core.h" "private/Core/Core.cpp"
         public/Core/Renderer/Renderer.h
         private/Core/Renderer/Renderer.cpp
-        public/Core/Renderer/VulkanRenderer.h)
+        public/Core/Renderer/VulkanRenderer.h "private/Core/Renderer/VulkanRenderer.cpp")
 
 if (CMAKE_VERSION VERSION_GREATER 3.12)
   set_property(TARGET Aetherion PROPERTY CXX_STANDARD 20)
