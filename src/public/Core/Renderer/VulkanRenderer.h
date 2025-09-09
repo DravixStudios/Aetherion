@@ -36,12 +36,16 @@ private:
 	VkInstance m_vkInstance;
 	VkSurfaceKHR m_surface;
 	VkPhysicalDevice m_physicalDevice;
+	VkDevice m_device;
+	VkQueue m_graphicsQueue;
+	VkQueue m_presentQueue;
 	
 	/* Main methods */
 	void CreateInstance();
 	void SetupDebugMessenger();
 	void CreateSurface();
 	void PickPhysicalDevice();
+	void CreateLogicalDevice();
 
 	/* Physical device methods */
 	bool IsDeviceSuitable(VkPhysicalDevice device);

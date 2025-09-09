@@ -6,7 +6,7 @@ std::vector<const char*> validationLayers = {
 };
 
 /* Device extensions (hard-coded) */
-std::vector<std::string> deviceExtensions = {
+std::vector<const char*> deviceExtensions = {
 	VK_KHR_SWAPCHAIN_EXTENSION_NAME
 };
 
@@ -34,6 +34,9 @@ VulkanRenderer::VulkanRenderer() : Renderer::Renderer() {
 	this->m_debugMessenger = nullptr;
 	this->m_physicalDevice = nullptr;
 	this->m_surface = nullptr;
+	this->m_device = nullptr;
+	this->m_graphicsQueue = nullptr;
+	this->m_presentQueue = nullptr;
 }
 
 /* Renderer init method */
@@ -44,6 +47,7 @@ void VulkanRenderer::Init() {
 	this->SetupDebugMessenger();
 	this->CreateSurface();
 	this->PickPhysicalDevice();
+	this->CreateLogicalDevice();
 }
 
 /* Initialize our Vulkan instance */
@@ -144,7 +148,6 @@ void VulkanRenderer::PickPhysicalDevice() {
 	vkEnumeratePhysicalDevices(this->m_vkInstance, &nPhysicalDeviceCount, physicalDevices.data());
 
 	spdlog::debug("Available physical devices: {0}", nPhysicalDeviceCount);
-
 	
 	for (const VkPhysicalDevice& physicalDevice : physicalDevices) {
 		if (this->IsDeviceSuitable(physicalDevice)) {
@@ -164,6 +167,66 @@ void VulkanRenderer::PickPhysicalDevice() {
 	vkGetPhysicalDeviceProperties(this->m_physicalDevice, &deviceProperties);
 
 	spdlog::debug("Selected physical device: {0}", deviceProperties.deviceName);
+}
+
+/* Create our logical device */
+void VulkanRenderer::CreateLogicalDevice() {
+	QueueFamilyIndices indices = this->FindQueueFamilies(this->m_physicalDevice);
+
+	/* If queue family indices are not complete, throw error */
+	if (!indices.IsComplete()) {
+		spdlog::error("CreateLogicalDevice: Queue family indices not complete");
+		throw std::runtime_error("CreateLogicalDevice: Queue family indices not complete");
+		return;
+	}
+
+	float fQueuePriority = 1.f;
+
+	/* Store all the queue families on a single set. We use a set because it can only store unique values. */
+	std::set<uint32_t> queueFamilies = { indices.graphicsFamily.value(), indices.presentFamily.value() };
+
+	std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
+
+	/* If in same family, will only add one queue create info */
+	for (uint32_t queueFamily : queueFamilies) {
+		/* Device queue create info */
+		VkDeviceQueueCreateInfo queueInfo = { };
+		queueInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+		queueInfo.queueFamilyIndex = queueFamily;
+		queueInfo.queueCount = 1;
+		queueInfo.pQueuePriorities = &fQueuePriority;
+		queueCreateInfos.push_back(queueInfo);
+	}
+
+	/* Logical device create info */
+	VkDeviceCreateInfo createInfo = { };
+	createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+	createInfo.enabledExtensionCount = deviceExtensions.size();
+	createInfo.ppEnabledExtensionNames = deviceExtensions.data();
+	createInfo.pQueueCreateInfos = queueCreateInfos.data();
+	createInfo.queueCreateInfoCount = queueCreateInfos.size();
+
+	if (this->m_bEnableValidationLayers) {
+		createInfo.enabledLayerCount = validationLayers.size();
+		createInfo.ppEnabledLayerNames = validationLayers.data();
+	}
+	else {
+		createInfo.enabledLayerCount = 0;
+		createInfo.ppEnabledLayerNames = nullptr;
+	}
+
+	/* Logical device creation */
+	if (vkCreateDevice(this->m_physicalDevice, &createInfo, nullptr, &this->m_device) != VK_SUCCESS) {
+		spdlog::error("CrateLogicalDevice: Couldn't create logical device");
+		throw std::runtime_error("CrateLogicalDevice: Couldn't create logical device");
+		return;
+	}
+
+	spdlog::debug("Logical device created");
+
+	/* Store our graphics and present queues on it's respective class members */
+	vkGetDeviceQueue(this->m_device, indices.graphicsFamily.value(), 0, &this->m_graphicsQueue);
+	vkGetDeviceQueue(this->m_device, indices.presentFamily.value(), 0, &this->m_presentQueue);
 }
 
 /* Check if the physical device is suitable */
