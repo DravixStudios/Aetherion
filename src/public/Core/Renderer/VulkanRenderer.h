@@ -20,19 +20,41 @@ public:
 	void Init() override;
 	void Update() override;
 private:
+	/* Debug messenger members */
 	bool m_bEnableValidationLayers;
+	VkDebugUtilsMessengerEXT m_debugMessenger;
 
 	VkInstance m_vkInstance;
 	
+	/* Main methods */
 	void CreateInstance();
-
+	void SetupDebugMessenger();
+	
+	/* Debug messenger */
 	static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(
 		VkDebugUtilsMessageSeverityFlagBitsEXT msgSeverity,
 		VkDebugUtilsMessageTypeFlagsEXT msgType,
 		const VkDebugUtilsMessengerCallbackDataEXT* pCbData,
 		void* pvUserData
 	);
+	VkResult CreateDebugUtilsMessengerEXT(
+		VkInstance instance, 
+		const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, 
+		VkAllocationCallbacks* pAllocator, 
+		VkDebugUtilsMessengerEXT* pDebugMessenger
+	);
 
-	std::vector<const char*> GetRequiredExtensions();
+	void DestroyDebugUtilsMessengerEXT(
+		VkInstance instance,
+		VkDebugUtilsMessengerEXT debugMessenger,
+		const VkAllocationCallbacks* pAllocator
+	);
+	
+	void PopulateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
+
 	bool CheckValidationLayersSupport();
+
+	/* Extensions */
+	std::vector<const char*> GetRequiredExtensions();
+	
 };
