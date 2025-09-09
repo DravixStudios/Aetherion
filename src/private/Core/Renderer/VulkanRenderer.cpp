@@ -5,6 +5,21 @@ std::vector<const char*> validationLayers = {
 	"VK_LAYER_KHRONOS_validation"
 };
 
+/* Device extensions (hard-coded) */
+std::vector<const char*> deviceExtensions = {
+	VK_KHR_SWAPCHAIN_EXTENSION_NAME
+};
+
+/* Queue family indices helper struct */
+struct QueueFamilyIndices {
+	std::optional<uint32_t> graphicsFamily;
+	std::optional<uint32_t> presentFamily;
+
+	bool IsComplete() {
+		return graphicsFamily.has_value() && presentFamily.has_value();
+	}
+};
+
 /* Constructor */
 VulkanRenderer::VulkanRenderer() : Renderer::Renderer() {
 	this->m_bEnableValidationLayers = ENABLE_VALIDATION_LAYERS;
@@ -18,6 +33,7 @@ void VulkanRenderer::Init() {
 	this->CreateInstance();
 	this->SetupDebugMessenger();
 	this->CreateSurface();
+	this->PickPhysicalDevice();
 }
 
 /* Initialize our Vulkan instance */
@@ -105,6 +121,68 @@ void VulkanRenderer::CreateSurface() {
 	}
 
 	spdlog::debug("GLFW: Window surface created");
+}
+
+/* Pick the most suitable physical device */
+void VulkanRenderer::PickPhysicalDevice() {
+	/* Enumerate the amount of physical devices */
+	uint32_t nPhysicalDeviceCount = 0;
+	vkEnumeratePhysicalDevices(this->m_vkInstance, &nPhysicalDeviceCount, nullptr);
+
+	/* Store all the physical devices on a vector */
+	std::vector<VkPhysicalDevice> physicalDevices(nPhysicalDeviceCount);
+	vkEnumeratePhysicalDevices(this->m_vkInstance, &nPhysicalDeviceCount, physicalDevices.data());
+
+	spdlog::debug("Available physical devices: {0}", nPhysicalDeviceCount);
+
+	
+	for (const VkPhysicalDevice& physicalDevice : physicalDevices) {
+
+	}
+}
+
+/* Check if the physical device is suitable */
+bool VulkanRenderer::IsDeviceSuitable(VkPhysicalDevice device, const std::vector<const char*>& deviceExtensions) {
+	QueueFamilyIndices indices = this->FindQueueFamilies(device); /* Fetch queue family indices */
+
+
+}
+
+/* Find queue families for physical device */
+QueueFamilyIndices VulkanRenderer::FindQueueFamilies(VkPhysicalDevice device) {
+	QueueFamilyIndices indices;
+
+	/* Enumerate physical device queue family properties */
+	uint32_t nQueueFamilyCount = 0;
+	vkGetPhysicalDeviceQueueFamilyProperties(device, &nQueueFamilyCount, nullptr);
+
+	/* Store physical device queue family properties on a vector */
+	std::vector<VkQueueFamilyProperties> queueFamilies(nQueueFamilyCount);
+	vkGetPhysicalDeviceQueueFamilyProperties(device, &nQueueFamilyCount, queueFamilies.data());
+
+	int i = 0;
+	for (const VkQueueFamilyProperties& queueFamily : queueFamilies) {
+		/* Check if queue family supports graphics commands  */
+		if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+			indices.graphicsFamily = i;
+		}
+
+		/* Check if queue family supports presentation to the surface  */
+		VkBool32 bPresentSupport = false;
+		vkGetPhysicalDeviceSurfaceSupportKHR(device, i, this->m_surface, &bPresentSupport);
+
+		if (bPresentSupport) {
+			indices.presentFamily = i;
+		}
+
+		/* If indices is complete, break the cycle */
+		if (indices.IsComplete()) {
+			break;
+		}
+		i++;
+	}
+
+	return indices;
 }
 
 /* Get required extensions */

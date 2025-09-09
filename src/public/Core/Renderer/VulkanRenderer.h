@@ -1,17 +1,23 @@
 #pragma once
 #include <iostream>
+#include <cstring>
+#include <vector>
+#include <optional>
+
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
-#include "Core/Renderer/Renderer.h"
 #include <spdlog/spdlog.h>
-#include <vector>
-#include <cstring>
+
+#include "Core/Renderer/Renderer.h"
 
 #ifndef NDEBUG
 #define ENABLE_VALIDATION_LAYERS 1
 #else
 #define ENABLE_VALIDATION_LAYERS 0
 #endif // NDEBUG
+
+/* Forward declarations */
+struct QueueFamilyIndices;
 
 class VulkanRenderer : public Renderer {
 public:
@@ -32,6 +38,11 @@ private:
 	void CreateInstance();
 	void SetupDebugMessenger();
 	void CreateSurface();
+	void PickPhysicalDevice();
+
+	/* Physical device methods */
+	bool IsDeviceSuitable(VkPhysicalDevice device, const std::vector<const char*>& deviceExtensions);
+	QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice device);
 	
 	/* Debug messenger */
 	static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(
