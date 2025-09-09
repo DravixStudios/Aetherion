@@ -24,11 +24,14 @@ private:
 	bool m_bEnableValidationLayers;
 	VkDebugUtilsMessengerEXT m_debugMessenger;
 
+	/* Main Vulkan members */
 	VkInstance m_vkInstance;
+	VkSurfaceKHR m_surface;
 	
 	/* Main methods */
 	void CreateInstance();
 	void SetupDebugMessenger();
+	void CreateSurface();
 	
 	/* Debug messenger */
 	static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(

@@ -17,6 +17,7 @@ void VulkanRenderer::Init() {
 
 	this->CreateInstance();
 	this->SetupDebugMessenger();
+	this->CreateSurface();
 }
 
 /* Initialize our Vulkan instance */
@@ -79,6 +80,33 @@ void VulkanRenderer::CreateInstance() {
 	spdlog::debug("Vulkan instance created");
 }
 
+/* Set up of our debug messenger */
+void VulkanRenderer::SetupDebugMessenger() {
+	if (!this->m_bEnableValidationLayers) return;
+
+	VkDebugUtilsMessengerCreateInfoEXT createInfo = { };
+	this->PopulateDebugMessengerCreateInfo(createInfo);
+
+	if (this->CreateDebugUtilsMessengerEXT(this->m_vkInstance, &createInfo, nullptr, &this->m_debugMessenger) != VK_SUCCESS) {
+		spdlog::error("Failed to setup Vulkan debug messenger");
+	}
+}
+
+/* Window surface creation */
+void VulkanRenderer::CreateSurface() {
+	if (!this->m_pWindow) {
+		spdlog::error("CreateSurface: No window provided");
+		throw std::runtime_error("CreateSurface: No window provided");
+		return;
+	}
+	if (glfwCreateWindowSurface(this->m_vkInstance, this->m_pWindow, nullptr, &this->m_surface) != VK_SUCCESS) {
+		spdlog::error("CreateSurface: Couldn't create a window");
+		throw std::runtime_error("CreateSurface: Couldn't create a window");
+	}
+
+	spdlog::debug("GLFW: Window surface created");
+}
+
 /* Get required extensions */
 std::vector<const char*> VulkanRenderer::GetRequiredExtensions() {
 	/* Enum GLFW extensions */
@@ -95,17 +123,6 @@ std::vector<const char*> VulkanRenderer::GetRequiredExtensions() {
 	return extensions;
 }
 
-/* Set up of our debug messenger */
-void VulkanRenderer::SetupDebugMessenger() {
-	if (!this->m_bEnableValidationLayers) return;
-
-	VkDebugUtilsMessengerCreateInfoEXT createInfo = { };
-	this->PopulateDebugMessengerCreateInfo(createInfo);
-
-	if (this->CreateDebugUtilsMessengerEXT(this->m_vkInstance, &createInfo, nullptr, &this->m_debugMessenger) != VK_SUCCESS) {
-		spdlog::error("Failed to setup Vulkan debug messenger");
-	}
-}
 
 /* Populates a create info for our debug messenger */
 void VulkanRenderer::PopulateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo) {
@@ -160,13 +177,13 @@ VKAPI_ATTR VkBool32 VKAPI_CALL VulkanRenderer::DebugCallback(
 ) {
 	switch (msgSeverity) {
 	case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
-		spdlog::debug("Validation layer {}", pCbData->pMessage);
+		spdlog::debug("Validation layer: {}", pCbData->pMessage);
 		break;
 	case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
-		spdlog::warn("Validation layer {}", pCbData->pMessage);
+		spdlog::warn("Validation layer: {}", pCbData->pMessage);
 		break;
 	case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
-		spdlog::warn("Validation layer {}", pCbData->pMessage);
+		spdlog::warn("Validation layer: {}", pCbData->pMessage);
 		break;
 	}
 

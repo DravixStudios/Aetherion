@@ -27,6 +27,7 @@ void Core::Init() {
 
     this->m_renderer = new VulkanRenderer();
 
+    this->m_renderer->SetWindow(this->m_pWindow);
     this->m_renderer->Init();
 }
 
