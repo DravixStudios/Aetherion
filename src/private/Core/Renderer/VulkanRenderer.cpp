@@ -30,7 +30,10 @@ struct SwapChainSupportDetails {
 /* Constructor */
 VulkanRenderer::VulkanRenderer() : Renderer::Renderer() {
 	this->m_bEnableValidationLayers = ENABLE_VALIDATION_LAYERS;
+	this->m_vkInstance = nullptr;
 	this->m_debugMessenger = nullptr;
+	this->m_physicalDevice = nullptr;
+	this->m_surface = nullptr;
 }
 
 /* Renderer init method */
@@ -144,12 +147,27 @@ void VulkanRenderer::PickPhysicalDevice() {
 
 	
 	for (const VkPhysicalDevice& physicalDevice : physicalDevices) {
-
+		if (this->IsDeviceSuitable(physicalDevice)) {
+			this->m_physicalDevice = physicalDevice;
+			break;
+		}
 	}
+
+	if (this->m_physicalDevice == nullptr) {
+		spdlog::error("PickPhysicalDevice: Failed to find a suitable GPU.");
+		throw std::runtime_error("PickPhysicalDevice: Failed to find a suitable GPU.");
+		return;
+	}
+
+	/* Get physical device properties */
+	VkPhysicalDeviceProperties deviceProperties;
+	vkGetPhysicalDeviceProperties(this->m_physicalDevice, &deviceProperties);
+
+	spdlog::debug("Selected physical device: {0}", deviceProperties.deviceName);
 }
 
 /* Check if the physical device is suitable */
-bool VulkanRenderer::IsDeviceSuitable(VkPhysicalDevice device, const std::vector<const char*>& deviceExtensions) {
+bool VulkanRenderer::IsDeviceSuitable(VkPhysicalDevice device) {
 	QueueFamilyIndices indices = this->FindQueueFamilies(device); /* Fetch queue family indices */
 
 	bool bExtensionsSupported = this->CheckDeviceExtensionSupport(device); /* Check if device extensions are supported and store it */

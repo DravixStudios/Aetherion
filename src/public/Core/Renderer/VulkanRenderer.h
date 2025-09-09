@@ -35,6 +35,7 @@ private:
 	/* Main Vulkan members */
 	VkInstance m_vkInstance;
 	VkSurfaceKHR m_surface;
+	VkPhysicalDevice m_physicalDevice;
 	
 	/* Main methods */
 	void CreateInstance();
@@ -43,7 +44,7 @@ private:
 	void PickPhysicalDevice();
 
 	/* Physical device methods */
-	bool IsDeviceSuitable(VkPhysicalDevice device, const std::vector<const char*>& deviceExtensions);
+	bool IsDeviceSuitable(VkPhysicalDevice device);
 	QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice device);
 	bool CheckDeviceExtensionSupport(VkPhysicalDevice device);
 	SwapChainSupportDetails QuerySwapChainSupport(VkPhysicalDevice device);
