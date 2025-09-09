@@ -3,6 +3,7 @@
 #include <cstring>
 #include <vector>
 #include <optional>
+#include <set>
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
@@ -18,6 +19,7 @@
 
 /* Forward declarations */
 struct QueueFamilyIndices;
+struct SwapChainSupportDetails;
 
 class VulkanRenderer : public Renderer {
 public:
@@ -43,6 +45,8 @@ private:
 	/* Physical device methods */
 	bool IsDeviceSuitable(VkPhysicalDevice device, const std::vector<const char*>& deviceExtensions);
 	QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice device);
+	bool CheckDeviceExtensionSupport(VkPhysicalDevice device);
+	SwapChainSupportDetails QuerySwapChainSupport(VkPhysicalDevice device);
 	
 	/* Debug messenger */
 	static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(

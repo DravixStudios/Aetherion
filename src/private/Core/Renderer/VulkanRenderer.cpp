@@ -6,7 +6,7 @@ std::vector<const char*> validationLayers = {
 };
 
 /* Device extensions (hard-coded) */
-std::vector<const char*> deviceExtensions = {
+std::vector<std::string> deviceExtensions = {
 	VK_KHR_SWAPCHAIN_EXTENSION_NAME
 };
 
@@ -18,6 +18,13 @@ struct QueueFamilyIndices {
 	bool IsComplete() {
 		return graphicsFamily.has_value() && presentFamily.has_value();
 	}
+};
+
+/* Swap chain support details helper struct */
+struct SwapChainSupportDetails {
+	VkSurfaceCapabilitiesKHR capabilities;
+	std::vector<VkSurfaceFormatKHR> formats;
+	std::vector<VkPresentModeKHR> presentModes;
 };
 
 /* Constructor */
@@ -145,7 +152,16 @@ void VulkanRenderer::PickPhysicalDevice() {
 bool VulkanRenderer::IsDeviceSuitable(VkPhysicalDevice device, const std::vector<const char*>& deviceExtensions) {
 	QueueFamilyIndices indices = this->FindQueueFamilies(device); /* Fetch queue family indices */
 
+	bool bExtensionsSupported = this->CheckDeviceExtensionSupport(device); /* Check if device extensions are supported and store it */
 
+	bool bSwapChainAdequate = false;
+	if (bExtensionsSupported) {
+		// If formats or present modes are empty, then, will be false.
+		SwapChainSupportDetails swapChainSupport = this->QuerySwapChainSupport(device);	
+		bSwapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
+	}
+
+	return indices.IsComplete() && bExtensionsSupported && bSwapChainAdequate;
 }
 
 /* Find queue families for physical device */
@@ -183,6 +199,60 @@ QueueFamilyIndices VulkanRenderer::FindQueueFamilies(VkPhysicalDevice device) {
 	}
 
 	return indices;
+}
+
+/* Check if physical device supports device extensions */
+bool VulkanRenderer::CheckDeviceExtensionSupport(VkPhysicalDevice device) {
+	/* Enumerate device extensions */
+	uint32_t nExtensionCount = 0;
+	vkEnumerateDeviceExtensionProperties(device, nullptr, &nExtensionCount, nullptr);
+
+	/* Store device extensions to a vector */
+	std::vector<VkExtensionProperties> extensions(nExtensionCount);
+	vkEnumerateDeviceExtensionProperties(device, nullptr, &nExtensionCount, extensions.data());
+
+	/* Make a copy of the 'deviceExtensions' vector to a set */
+	std::set<std::string> requiredExtensions(deviceExtensions.begin(), deviceExtensions.end());
+
+	/* 
+		If extension is on required extensions list, remove it.
+		Required extensions set is empty? Then, all the extensions are supported.
+	*/
+	for (const VkExtensionProperties& extension : extensions) {
+		requiredExtensions.erase(extension.extensionName);
+	}
+
+	return requiredExtensions.empty();
+}
+
+/* Check if device supports swap chain */
+SwapChainSupportDetails VulkanRenderer::QuerySwapChainSupport(VkPhysicalDevice device) {
+	SwapChainSupportDetails details;
+
+	/* Get physical device surface capabilities and store at swap chain support details' capabilities field */
+	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, this->m_surface, &details.capabilities);
+
+	/* Enumerate physical device surface formats */
+	uint32_t nFormatCount = 0;
+	vkGetPhysicalDeviceSurfaceFormatsKHR(device, this->m_surface, &nFormatCount, nullptr);
+
+	/* If format count not zero, store on the formats field from swap chain support details */
+	if (nFormatCount != 0) {
+		details.formats.resize(nFormatCount);
+		vkGetPhysicalDeviceSurfaceFormatsKHR(device, this->m_surface, &nFormatCount, details.formats.data());
+	}
+
+	/* Enumerate physical device surface present modes */
+	uint32_t nPresentModeCount = 0;
+	vkGetPhysicalDeviceSurfacePresentModesKHR(device, this->m_surface, &nPresentModeCount, nullptr);
+	
+	/* If present mode count not zero, store on the present modes field from swap chain support details */
+	if (nPresentModeCount != 0) {
+		details.presentModes.resize(nPresentModeCount);
+		vkGetPhysicalDeviceSurfacePresentModesKHR(device, this->m_surface, &nPresentModeCount, details.presentModes.data());
+	}
+
+	return details;
 }
 
 /* Get required extensions */
