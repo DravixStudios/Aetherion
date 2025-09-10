@@ -4,6 +4,7 @@
 #include <vector>
 #include <optional>
 #include <set>
+#include <algorithm>
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
@@ -39,6 +40,8 @@ private:
 	VkDevice m_device;
 	VkQueue m_graphicsQueue;
 	VkQueue m_presentQueue;
+
+	VkSurfaceFormatKHR m_format;
 	
 	/* Main methods */
 	void CreateInstance();
@@ -46,6 +49,10 @@ private:
 	void CreateSurface();
 	void PickPhysicalDevice();
 	void CreateLogicalDevice();
+	void CreateSwapChain();
+	VkSurfaceFormatKHR ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& formats);
+	VkPresentModeKHR ChooseSwapPresentMode(const std::vector<VkPresentModeKHR>& presentModes);
+	VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
 
 	/* Physical device methods */
 	bool IsDeviceSuitable(VkPhysicalDevice device);

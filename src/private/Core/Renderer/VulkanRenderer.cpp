@@ -48,6 +48,7 @@ void VulkanRenderer::Init() {
 	this->CreateSurface();
 	this->PickPhysicalDevice();
 	this->CreateLogicalDevice();
+	this->CreateSwapChain();
 }
 
 /* Initialize our Vulkan instance */
@@ -227,6 +228,94 @@ void VulkanRenderer::CreateLogicalDevice() {
 	/* Store our graphics and present queues on it's respective class members */
 	vkGetDeviceQueue(this->m_device, indices.graphicsFamily.value(), 0, &this->m_graphicsQueue);
 	vkGetDeviceQueue(this->m_device, indices.presentFamily.value(), 0, &this->m_presentQueue);
+}
+
+/* Create our swap chain */
+void VulkanRenderer::CreateSwapChain() {
+	SwapChainSupportDetails details = this->QuerySwapChainSupport(this->m_physicalDevice);
+
+	/* Image count: Minimum supported image count + 1 (if 2, we'll triple buffer it) */
+	uint32_t nImageCount = details.capabilities.minImageCount + 1;
+
+	/* Query format, present mode and extent */
+	VkSurfaceFormatKHR format = this->ChooseSwapSurfaceFormat(details.formats);
+	VkPresentModeKHR presentMode = this->ChooseSwapPresentMode(details.presentModes);
+	VkExtent2D extent = this->ChooseSwapExtent(details.capabilities);
+
+	/* If maxImageCount is 0, it means that is infinite image count. Then, if has limit, use the limit */
+	if (details.capabilities.maxImageCount > 0 && details.capabilities.maxImageCount > nImageCount) {
+		nImageCount = details.capabilities.maxImageCount;
+	}
+
+	/* Swap chain create info */
+	VkSwapchainCreateInfoKHR createInfo = { };
+	createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+	createInfo.minImageCount = nImageCount;
+	createInfo.imageFormat = format.format;
+	createInfo.imageColorSpace = format.colorSpace;
+	createInfo.imageExtent = extent;
+	createInfo.imageArrayLayers = 1;
+	createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+
+	QueueFamilyIndices indices = this->FindQueueFamilies(this->m_physicalDevice);
+
+	
+	//vkCreateSwapchainKHR()
+}
+
+/* 
+	Choose for the best swap surface format
+
+	If there is a format that is B8G8R8A8_SRGB and its color space is SRGB_NONLINEAR, select that
+*/
+VkSurfaceFormatKHR VulkanRenderer::ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& formats) {
+	for (const VkSurfaceFormatKHR& format : formats) {
+		if (format.format == VK_FORMAT_B8G8R8A8_SRGB && format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
+			return format;
+	}
+
+	return formats[0];
+}
+
+/*
+	Choose the best swap present mode
+
+	If there is a MAILBOX present mode, select it. Else, FIFO_KHR
+*/
+VkPresentModeKHR VulkanRenderer::ChooseSwapPresentMode(const std::vector<VkPresentModeKHR>& presentModes) {
+	for (const VkPresentModeKHR& presentMode : presentModes) {
+		if (presentMode == VK_PRESENT_MODE_MAILBOX_KHR) {
+			return presentMode;
+		}
+	}
+
+	return VK_PRESENT_MODE_FIFO_KHR;
+}
+
+
+/* 
+	Choose swap extent
+		If capabilities extent is not valid, create one.
+		(Inside the limits)
+*/
+VkExtent2D VulkanRenderer::ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities) {
+	if (capabilities.currentExtent.width != (std::numeric_limits<uint32_t>::max)()) {
+		return capabilities.currentExtent;
+	}
+	else {
+		int nWidth, nHeight;
+		glfwGetFramebufferSize(this->m_pWindow, &nWidth, &nHeight);
+
+		VkExtent2D extent = {
+			static_cast<uint32_t>(nWidth),
+			static_cast<uint32_t>(nHeight)
+		};
+
+		extent.width = std::clamp(extent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
+		extent.height = std::clamp(extent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
+
+		return extent;
+	}
 }
 
 /* Check if the physical device is suitable */
