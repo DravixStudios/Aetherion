@@ -256,11 +256,44 @@ void VulkanRenderer::CreateSwapChain() {
 	createInfo.imageExtent = extent;
 	createInfo.imageArrayLayers = 1;
 	createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+	createInfo.surface = this->m_surface;
 
 	QueueFamilyIndices indices = this->FindQueueFamilies(this->m_physicalDevice);
+	uint32_t queueIndices[] = { indices.graphicsFamily.value(), indices.presentFamily.value() };
 
+	/* Check if the queue family is not the same */
+	if (indices.graphicsFamily != indices.presentFamily) {
+		createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
+		createInfo.queueFamilyIndexCount = 2;
+		createInfo.pQueueFamilyIndices = queueIndices;
+	}
+	else {
+		/* If same queue families, use exclusive mode */
+		createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+		createInfo.queueFamilyIndexCount = 0;
+		createInfo.pQueueFamilyIndices = nullptr;
+	}
+
+	createInfo.preTransform = details.capabilities.currentTransform;
+	createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+	createInfo.presentMode = presentMode;
+	createInfo.oldSwapchain = VK_NULL_HANDLE;
 	
-	//vkCreateSwapchainKHR()
+	if (vkCreateSwapchainKHR(this->m_device, &createInfo, nullptr, &this->m_sc) != VK_SUCCESS) {
+		spdlog::error("Failed to create the swap chain");
+		throw std::runtime_error("Failed to create the swap chain");
+		return;
+	}
+
+	spdlog::debug("Swap chain created");
+
+	uint32_t nScImageCount;
+	vkGetSwapchainImagesKHR(this->m_device, this->m_sc, &nScImageCount, nullptr);
+	this->m_scImages.resize(nScImageCount);
+	
+
+	this->m_surfaceFormat = format.format;
+	this->m_scExtent = extent;
 }
 
 /* 

@@ -41,7 +41,10 @@ private:
 	VkQueue m_graphicsQueue;
 	VkQueue m_presentQueue;
 
-	VkSurfaceFormatKHR m_format;
+	VkSwapchainKHR m_sc;
+	VkExtent2D m_scExtent;
+	VkFormat m_surfaceFormat;
+	std::vector<VkImage> m_scImages;
 	
 	/* Main methods */
 	void CreateInstance();
