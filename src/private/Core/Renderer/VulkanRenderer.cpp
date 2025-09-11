@@ -49,6 +49,7 @@ void VulkanRenderer::Init() {
 	this->PickPhysicalDevice();
 	this->CreateLogicalDevice();
 	this->CreateSwapChain();
+	this->CreateImageViews();
 }
 
 /* Initialize our Vulkan instance */
@@ -290,10 +291,46 @@ void VulkanRenderer::CreateSwapChain() {
 	uint32_t nScImageCount;
 	vkGetSwapchainImagesKHR(this->m_device, this->m_sc, &nScImageCount, nullptr);
 	this->m_scImages.resize(nScImageCount);
-	
+	vkGetSwapchainImagesKHR(this->m_device, this->m_sc, &nScImageCount, this->m_scImages.data());	
 
 	this->m_surfaceFormat = format.format;
 	this->m_scExtent = extent;
+}
+
+/* 
+	Creation of our image views 
+*/
+void VulkanRenderer::CreateImageViews() {
+	/* We'll have same amount of image views as swap images */
+	this->m_imageViews.resize(this->m_scImages.size());
+
+	/* Initialize each of the image views */
+	for (int i = 0; i < this->m_imageViews.size(); i++) {
+		VkImageViewCreateInfo createInfo = { };
+		createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+		createInfo.image = this->m_scImages[i];
+		createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+		createInfo.format = this->m_surfaceFormat;
+
+		createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+		createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+		createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+		createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+
+		createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		createInfo.subresourceRange.baseMipLevel = 0;
+		createInfo.subresourceRange.levelCount = 1;
+		createInfo.subresourceRange.baseArrayLayer = 0;
+		createInfo.subresourceRange.layerCount = 1;
+
+		if (vkCreateImageView(this->m_device, &createInfo, nullptr, &this->m_imageViews[i]) != VK_SUCCESS) {
+			spdlog::error("CreateImageViews: Failed to create image view");
+			throw std::runtime_error("CreateImageViews: Failed to create image view");
+			return;
+		}
+	}
+
+	spdlog::debug("CreateImageViews: All image views created");
 }
 
 /* 

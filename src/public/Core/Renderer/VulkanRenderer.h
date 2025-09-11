@@ -45,6 +45,7 @@ private:
 	VkExtent2D m_scExtent;
 	VkFormat m_surfaceFormat;
 	std::vector<VkImage> m_scImages;
+	std::vector<VkImageView> m_imageViews;
 	
 	/* Main methods */
 	void CreateInstance();
@@ -53,6 +54,7 @@ private:
 	void PickPhysicalDevice();
 	void CreateLogicalDevice();
 	void CreateSwapChain();
+	void CreateImageViews();
 	VkSurfaceFormatKHR ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& formats);
 	VkPresentModeKHR ChooseSwapPresentMode(const std::vector<VkPresentModeKHR>& presentModes);
 	VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
