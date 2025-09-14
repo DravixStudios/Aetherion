@@ -66,6 +66,7 @@ void VulkanRenderer::Init() {
 	this->CreateRenderPass();
 	this->CreateFrameBuffers();
 	this->CreateCommandPool();
+	this->CreateCommandBuffer();
 	this->CreateGraphicsPipeline();
 	this->CreateVertexBuffer();
 	this->CreateSyncObjects();
@@ -456,6 +457,22 @@ void VulkanRenderer::CreateCommandPool() {
 	}
 
 	spdlog::debug("CreateCommandPool: Command pool created");
+}
+
+void VulkanRenderer::CreateCommandBuffer() {
+	VkCommandBufferAllocateInfo allocInfo = { };
+	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+	allocInfo.commandPool = this->m_commandPool;
+	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+	allocInfo.commandBufferCount = 1;
+
+	if (vkAllocateCommandBuffers(this->m_device, &allocInfo, &this->m_commandBuffer) != VK_SUCCESS) {
+		spdlog::error("CreateCommandBuffer: Error allocating command buffer");
+		throw std::runtime_error("CreateCommandBuffer: Error allocating command buffer");
+		return;
+	}
+
+	spdlog::debug("CreateCommandBuffer: Command buffer allocated");
 }
 
 /* Creation of our graphics pipeline state */

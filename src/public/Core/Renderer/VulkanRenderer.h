@@ -54,6 +54,7 @@ private:
 	std::vector<VkFramebuffer> m_frameBuffers;
 
 	VkCommandPool m_commandPool;
+	VkCommandBuffer m_commandBuffer;
 
 	VkPipelineLayout m_pipelineLayout;
 	VkPipeline m_pipeline;
@@ -79,6 +80,7 @@ private:
 	void CreateRenderPass();
 	void CreateFrameBuffers();
 	void CreateCommandPool();
+	void CreateCommandBuffer();
 	void CreateGraphicsPipeline();
 	void CreateVertexBuffer();
 	void CreateSyncObjects();
