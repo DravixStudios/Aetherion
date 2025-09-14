@@ -37,6 +37,10 @@ VulkanRenderer::VulkanRenderer() : Renderer::Renderer() {
 	this->m_device = nullptr;
 	this->m_graphicsQueue = nullptr;
 	this->m_presentQueue = nullptr;
+	this->m_renderPass = nullptr;
+	this->m_sc = nullptr;
+	this->m_scExtent = VkExtent2D();
+	this->m_surfaceFormat = VkFormat::VK_FORMAT_UNDEFINED;
 }
 
 /* Renderer init method */
@@ -50,6 +54,8 @@ void VulkanRenderer::Init() {
 	this->CreateLogicalDevice();
 	this->CreateSwapChain();
 	this->CreateImageViews();
+	this->CreateRenderPass();
+	this->CreateFrameBuffers();
 }
 
 /* Initialize our Vulkan instance */
@@ -331,6 +337,66 @@ void VulkanRenderer::CreateImageViews() {
 	}
 
 	spdlog::debug("CreateImageViews: All image views created");
+}
+
+/* 
+	Creation of our render pass with its attachments and subpasses
+*/
+void VulkanRenderer::CreateRenderPass() {
+	/* Our color attachment description */
+	VkAttachmentDescription attachmentDesc = { };
+	attachmentDesc.format = this->m_surfaceFormat;
+	attachmentDesc.samples = VK_SAMPLE_COUNT_1_BIT;
+	attachmentDesc.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	attachmentDesc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+	attachmentDesc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	attachmentDesc.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+	/* A reference to our attachment. (We'll use the 0 because we only have one) */
+	VkAttachmentReference attachReference = { };
+	attachReference.attachment = 0;
+	attachReference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+	/* Our sub-pass description */
+	VkSubpassDescription subPass = { };
+	subPass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+	subPass.colorAttachmentCount = 1;
+	subPass.pColorAttachments = &attachReference;
+	
+	/* Our sub-pass dependency */
+	VkSubpassDependency dependency = { };
+	dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+	dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	dependency.dstSubpass = 0;
+	dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+	/* Store the descriptors on arrays */
+	VkAttachmentDescription attachments[] = { attachmentDesc };
+	VkSubpassDescription subPasses[] = { subPass };
+	VkSubpassDependency dependencies[] = { dependency };
+
+	/* Render pass creation info */
+	VkRenderPassCreateInfo createInfo = { };
+	createInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+	createInfo.attachmentCount = 1;
+	createInfo.dependencyCount = 1;
+	createInfo.subpassCount = 1;
+	createInfo.pAttachments = attachments;
+	createInfo.pDependencies = dependencies;
+	createInfo.pSubpasses = subPasses;
+
+	if (vkCreateRenderPass(this->m_device, &createInfo, nullptr, &this->m_renderPass) != VK_SUCCESS) {
+		spdlog::error("CreateRenderPass: Failed creating the render pass");
+		throw std::runtime_error("CreateRenderPass: Failed creating the render pass");
+		return;
+	}
+
+	spdlog::debug("CreateRenderPass: Render pass created");
+}
+
+void VulkanRenderer::CreateFrameBuffers() {
+
 }
 
 /* 

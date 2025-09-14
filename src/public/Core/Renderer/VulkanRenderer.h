@@ -46,7 +46,9 @@ private:
 	VkFormat m_surfaceFormat;
 	std::vector<VkImage> m_scImages;
 	std::vector<VkImageView> m_imageViews;
-	
+
+	VkRenderPass m_renderPass;
+
 	/* Main methods */
 	void CreateInstance();
 	void SetupDebugMessenger();
@@ -55,6 +57,8 @@ private:
 	void CreateLogicalDevice();
 	void CreateSwapChain();
 	void CreateImageViews();
+	void CreateRenderPass();
+	void CreateFrameBuffers();
 	VkSurfaceFormatKHR ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& formats);
 	VkPresentModeKHR ChooseSwapPresentMode(const std::vector<VkPresentModeKHR>& presentModes);
 	VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
