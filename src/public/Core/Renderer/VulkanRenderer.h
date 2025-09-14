@@ -53,6 +53,8 @@ private:
 	VkRenderPass m_renderPass;
 	std::vector<VkFramebuffer> m_frameBuffers;
 
+	VkCommandPool m_commandPool;
+
 	VkPipelineLayout m_pipelineLayout;
 	VkPipeline m_pipeline;
 
@@ -76,9 +78,11 @@ private:
 	void CreateImageViews();
 	void CreateRenderPass();
 	void CreateFrameBuffers();
+	void CreateCommandPool();
 	void CreateGraphicsPipeline();
 	void CreateVertexBuffer();
 	void CreateSyncObjects();
+	void RecordCommandBuffer(uint32_t nImageIndex);
 	VkSurfaceFormatKHR ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& formats);
 	VkPresentModeKHR ChooseSwapPresentMode(const std::vector<VkPresentModeKHR>& presentModes);
 	VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);

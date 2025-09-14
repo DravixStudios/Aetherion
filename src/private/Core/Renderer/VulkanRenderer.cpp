@@ -41,6 +41,15 @@ VulkanRenderer::VulkanRenderer() : Renderer::Renderer() {
 	this->m_sc = nullptr;
 	this->m_scExtent = VkExtent2D();
 	this->m_surfaceFormat = VkFormat::VK_FORMAT_UNDEFINED;
+	this->m_fence = nullptr;
+	this->m_imageAvailable = nullptr;
+	this->m_renderFinished = nullptr;
+	this->m_pipeline = nullptr;
+	this->m_pipelineLayout = nullptr;
+	this->m_scissor = VkRect2D();
+	this->m_viewport = VkViewport();
+	this->m_vertexMemory = nullptr;
+	this->m_vertexBuffer = nullptr;
 }
 
 /* Renderer init method */
@@ -56,6 +65,7 @@ void VulkanRenderer::Init() {
 	this->CreateImageViews();
 	this->CreateRenderPass();
 	this->CreateFrameBuffers();
+	this->CreateCommandPool();
 	this->CreateGraphicsPipeline();
 	this->CreateVertexBuffer();
 	this->CreateSyncObjects();
@@ -431,6 +441,23 @@ void VulkanRenderer::CreateFrameBuffers() {
 	spdlog::debug("CreateFrameBuffer: Frame buffers created");
 }
 
+/* Command pool creation */
+void VulkanRenderer::CreateCommandPool() {
+	QueueFamilyIndices indices = FindQueueFamilies(this->m_physicalDevice);
+
+	VkCommandPoolCreateInfo createInfo = { };
+	createInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+	createInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+	createInfo.queueFamilyIndex = indices.graphicsFamily.value();
+	if (vkCreateCommandPool(this->m_device, &createInfo, nullptr, &this->m_commandPool) != VK_SUCCESS) {
+		spdlog::error("CreateCommandPool: Error creating command pool");
+		throw std::runtime_error("CreateCommandPool: Error creating command pool");
+		return;
+	}
+
+	spdlog::debug("CreateCommandPool: Command pool created");
+}
+
 /* Creation of our graphics pipeline state */
 void VulkanRenderer::CreateGraphicsPipeline() {
 	/* Shader compiling */
@@ -658,6 +685,7 @@ void VulkanRenderer::CreateVertexBuffer() {
 	spdlog::debug("CreateVertexBuffer: Vertex buffer created");
 }
 
+/* Creation of our sync objects */
 void VulkanRenderer::CreateSyncObjects() {
 	VkSemaphoreCreateInfo semaphoreInfo = { };
 	semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
@@ -675,6 +703,13 @@ void VulkanRenderer::CreateSyncObjects() {
 	}
 
 	spdlog::debug("CreateSyncObjects: Sync objects created");
+}
+
+void VulkanRenderer::RecordCommandBuffer(uint32_t nImageIndex) {
+	VkCommandBufferBeginInfo beginInfo = { };
+	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+
+	//vkBeginCommandBuffer(this->)
 }
 
 /* 
@@ -1026,5 +1061,11 @@ void VulkanRenderer::DestroyDebugUtilsMessengerEXT(
 
 void VulkanRenderer::Update() {
 	Renderer::Update();
+
+	vkWaitForFences(this->m_device, 1, &this->m_fence, VK_TRUE, UINT64_MAX);
+	vkResetFences(this->m_device, 1, &this->m_fence);
+
+	uint32_t nImageIndex;
+	vkAcquireNextImageKHR(this->m_device, this->m_sc, UINT64_MAX, this->m_imageAvailable, VK_NULL_HANDLE, &nImageIndex);
 
 }
