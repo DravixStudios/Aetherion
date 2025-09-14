@@ -64,6 +64,7 @@ private:
 
 	VkSemaphore m_imageAvailable;
 	VkSemaphore m_renderFinished;
+	VkFence m_fence;
 
 	/* Main methods */
 	void CreateInstance();
@@ -77,6 +78,7 @@ private:
 	void CreateFrameBuffers();
 	void CreateGraphicsPipeline();
 	void CreateVertexBuffer();
+	void CreateSyncObjects();
 	VkSurfaceFormatKHR ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& formats);
 	VkPresentModeKHR ChooseSwapPresentMode(const std::vector<VkPresentModeKHR>& presentModes);
 	VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);

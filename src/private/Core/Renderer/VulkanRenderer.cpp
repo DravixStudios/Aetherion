@@ -58,6 +58,7 @@ void VulkanRenderer::Init() {
 	this->CreateFrameBuffers();
 	this->CreateGraphicsPipeline();
 	this->CreateVertexBuffer();
+	this->CreateSyncObjects();
 }
 
 /* Initialize our Vulkan instance */
@@ -655,6 +656,25 @@ void VulkanRenderer::CreateVertexBuffer() {
 	vkBindBufferMemory(this->m_device, this->m_vertexBuffer, this->m_vertexMemory, 0);
 	
 	spdlog::debug("CreateVertexBuffer: Vertex buffer created");
+}
+
+void VulkanRenderer::CreateSyncObjects() {
+	VkSemaphoreCreateInfo semaphoreInfo = { };
+	semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+	VkFenceCreateInfo fenceInfo = { };
+	fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+	fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+	if (vkCreateSemaphore(this->m_device, &semaphoreInfo, nullptr, &this->m_renderFinished) != VK_SUCCESS ||
+		vkCreateSemaphore(this->m_device, &semaphoreInfo, nullptr, &this->m_imageAvailable) != VK_SUCCESS ||
+		vkCreateFence(this->m_device, &fenceInfo, nullptr, &this->m_fence) != VK_SUCCESS) {
+		spdlog::error("CreateSyncObjects: Failed to create sync objects");
+		throw std::runtime_error("CreateSyncObjects: Failed to create sync objects");
+		return;
+	}
+
+	spdlog::debug("CreateSyncObjects: Sync objects created");
 }
 
 /* 
