@@ -264,7 +264,7 @@ void VulkanRenderer::CreateSwapChain() {
 	VkExtent2D extent = this->ChooseSwapExtent(details.capabilities);
 
 	/* If maxImageCount is 0, it means that is infinite image count. Then, if has limit, use the limit */
-	if (details.capabilities.maxImageCount > 0 && details.capabilities.maxImageCount > nImageCount) {
+	if (details.capabilities.maxImageCount > 0 && details.capabilities.maxImageCount < nImageCount) {
 		nImageCount = details.capabilities.maxImageCount;
 	}
 
@@ -723,10 +723,39 @@ void VulkanRenderer::CreateSyncObjects() {
 }
 
 void VulkanRenderer::RecordCommandBuffer(uint32_t nImageIndex) {
+	/* Begin command buffer */
 	VkCommandBufferBeginInfo beginInfo = { };
 	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
-	//vkBeginCommandBuffer(this->)
+	vkBeginCommandBuffer(this->m_commandBuffer, &beginInfo);
+
+	/* Begin render pass */
+	VkClearValue clearColor = { {{0.f, 0.f, 0.f, 1.f}} };
+
+	VkRenderPassBeginInfo renderPassInfo = { };
+	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+	renderPassInfo.renderPass = this->m_renderPass;
+	renderPassInfo.framebuffer = this->m_frameBuffers[nImageIndex];
+	renderPassInfo.renderArea.extent = this->m_scExtent;
+	renderPassInfo.pClearValues = &clearColor;
+	renderPassInfo.clearValueCount = 1;
+	
+	vkCmdBeginRenderPass(this->m_commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+	/* Bind pipeline */
+	vkCmdBindPipeline(this->m_commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->m_pipeline);
+
+	vkCmdSetViewport(this->m_commandBuffer, 0, 1, &this->m_viewport);
+	vkCmdSetScissor(this->m_commandBuffer, 0, 1, &this->m_scissor);
+
+	/* Bind triangle vertex buffer and draw it */
+	VkBuffer vertexBuffers[] = { this->m_vertexBuffer };
+	VkDeviceSize offsets[] = { 0 };
+	vkCmdBindVertexBuffers(this->m_commandBuffer, 0, 1, vertexBuffers, offsets);
+	vkCmdDraw(this->m_commandBuffer, 3, 1, 0, 0);
+
+	vkCmdEndRenderPass(this->m_commandBuffer);
+	vkEndCommandBuffer(this->m_commandBuffer);
 }
 
 /* 
@@ -1085,4 +1114,44 @@ void VulkanRenderer::Update() {
 	uint32_t nImageIndex;
 	vkAcquireNextImageKHR(this->m_device, this->m_sc, UINT64_MAX, this->m_imageAvailable, VK_NULL_HANDLE, &nImageIndex);
 
+	this->RecordCommandBuffer(nImageIndex);
+	
+	VkSemaphore waitSemaphores[] = { this->m_imageAvailable };
+	VkPipelineStageFlags waitStages[] = {
+		VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
+	};
+
+	VkSemaphore signalSemaphores[] = { this->m_renderFinished };
+
+	/* Setup our submit info */
+	VkSubmitInfo submitInfo = { };
+	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	submitInfo.waitSemaphoreCount = 1;
+	submitInfo.pWaitSemaphores = waitSemaphores;
+	submitInfo.pWaitDstStageMask = waitStages;
+	
+	submitInfo.pCommandBuffers = &this->m_commandBuffer;
+	submitInfo.commandBufferCount = 1;
+
+	submitInfo.pSignalSemaphores = signalSemaphores;
+	submitInfo.signalSemaphoreCount = 1;
+
+	if (vkQueueSubmit(this->m_graphicsQueue, 1, &submitInfo, this->m_fence) != VK_SUCCESS) {
+		spdlog::error("Update: Failed to queue submit");
+		throw std::runtime_error("Update: Failed to queue submit");
+		return;
+	}
+	
+	/* Present our image */
+	VkSwapchainKHR swapChains[] = { this->m_sc };
+	
+	VkPresentInfoKHR presentInfo = { };
+	presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+	presentInfo.waitSemaphoreCount = 1;
+	presentInfo.pWaitSemaphores = signalSemaphores;
+	presentInfo.swapchainCount = 1;
+	presentInfo.pSwapchains = swapChains;
+	presentInfo.pImageIndices = &nImageIndex;
+
+	vkQueuePresentKHR(this->m_presentQueue, &presentInfo);
 }
