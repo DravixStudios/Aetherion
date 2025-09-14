@@ -395,8 +395,35 @@ void VulkanRenderer::CreateRenderPass() {
 	spdlog::debug("CreateRenderPass: Render pass created");
 }
 
+/* 
+	Create a frame buffer per each image view
+*/
 void VulkanRenderer::CreateFrameBuffers() {
+	this->m_frameBuffers.resize(this->m_imageViews.size());
 
+	for (uint32_t i = 0; i < this->m_frameBuffers.size(); i++) {
+		VkImageView attachments[] = {
+			this->m_imageViews[i]
+		};
+
+
+		VkFramebufferCreateInfo createInfo = { };
+		createInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+		createInfo.attachmentCount = 1;
+		createInfo.pAttachments = attachments;
+		createInfo.renderPass = this->m_renderPass;
+		createInfo.layers = 1;
+		createInfo.width = this->m_scExtent.width;
+		createInfo.height = this->m_scExtent.height;
+
+		if (vkCreateFramebuffer(this->m_device, &createInfo, nullptr, &this->m_frameBuffers[i]) != VK_SUCCESS) {
+			spdlog::error("CreateFrameBuffer: Error creating frame buffer {0}", i);
+			throw std::runtime_error("CreateFrameBuffer: Error creating frame buffer");
+			return;
+		}
+	}
+
+	spdlog::debug("CreateFrameBuffer: Frame buffers created");
 }
 
 /* 

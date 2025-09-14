@@ -48,6 +48,7 @@ private:
 	std::vector<VkImageView> m_imageViews;
 
 	VkRenderPass m_renderPass;
+	std::vector<VkFramebuffer> m_frameBuffers;
 
 	/* Main methods */
 	void CreateInstance();
