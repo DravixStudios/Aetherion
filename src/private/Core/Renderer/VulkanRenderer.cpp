@@ -57,6 +57,7 @@ void VulkanRenderer::Init() {
 	this->CreateRenderPass();
 	this->CreateFrameBuffers();
 	this->CreateGraphicsPipeline();
+	this->CreateVertexBuffer();
 }
 
 /* Initialize our Vulkan instance */
@@ -429,6 +430,7 @@ void VulkanRenderer::CreateFrameBuffers() {
 	spdlog::debug("CreateFrameBuffer: Frame buffers created");
 }
 
+/* Creation of our graphics pipeline state */
 void VulkanRenderer::CreateGraphicsPipeline() {
 	/* Shader compiling */
 	std::string sVertShader = this->ReadShader("shader.vert");
@@ -599,6 +601,62 @@ void VulkanRenderer::CreateGraphicsPipeline() {
 	vkDestroyShaderModule(this->m_device, fragmentModule, nullptr);
 }
 
+/* Creation of our triangle vertex buffer */
+void VulkanRenderer::CreateVertexBuffer() {
+	/* Define our vertices */
+	std::vector<Vertex> vertices = {
+		{{.0f, -.5f, 0.f}, {1.f, 0.f, 0.f, 1.f}},
+		{{.5f, .5f, 0.f}, {0.f, 1.f, 0.f, 1.f}},
+		{{-.5f, .5f, 0.f}, {0.f, 0.f, 1.f, 1.f}},
+	};
+
+	/* Buffer create info */
+	VkBufferCreateInfo bufferInfo = { };
+	bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+	bufferInfo.size = sizeof(Vertex) * vertices.size();
+	bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+	bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+	if (vkCreateBuffer(this->m_device, &bufferInfo, nullptr, &this->m_vertexBuffer) != VK_SUCCESS) {
+		spdlog::error("CreateVertexBuffer: Failed creating vertex buffer");
+		throw std::runtime_error("CraeteVertexBuffer: Failed creating vertex buffer");
+		return;
+	}
+
+	/* Memory requirements */
+	VkMemoryRequirements requirements;
+	vkGetBufferMemoryRequirements(this->m_device, this->m_vertexBuffer, &requirements);
+
+	/* 
+		Memory allocation 
+		Memory type index property flags: 
+			- VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT: CPU can access directly from memory
+			- VK_MEMORY_PROPERTY_HOST_COHERENT_BIT: GPY can directly access to the data without any extra step
+	*/
+	VkMemoryAllocateInfo allocInfo = { };
+	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+	allocInfo.allocationSize = requirements.size;
+	allocInfo.memoryTypeIndex = FindMemoryType(requirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+	
+
+	if (vkAllocateMemory(this->m_device, &allocInfo, nullptr, &this->m_vertexMemory) != VK_SUCCESS) {
+		spdlog::error("CreateVertexBuffer: Error allocating memory");
+		throw std::runtime_error("CreateVertexBuffer: Error allocating memory");
+		return;
+	}
+
+	/* Map memory and copy vertices */
+	void* pData = nullptr;
+	vkMapMemory(this->m_device, this->m_vertexMemory, 0, bufferInfo.size, 0, &pData);
+	memcpy(pData, vertices.data(), bufferInfo.size);
+	vkUnmapMemory(this->m_device, this->m_vertexMemory);
+
+	/* Bind buffer memory */
+	vkBindBufferMemory(this->m_device, this->m_vertexBuffer, this->m_vertexMemory, 0);
+	
+	spdlog::debug("CreateVertexBuffer: Vertex buffer created");
+}
+
 /* 
 	Choose for the best swap surface format
 
@@ -708,6 +766,24 @@ VkShaderModule VulkanRenderer::CreateShaderModule(std::vector<uint32_t>& shaderC
 	spdlog::debug("CreateShaderModule: Shader module created");
 
 	return shaderModule;
+}
+
+/* Find memory type */
+uint32_t VulkanRenderer::FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) {
+	/* Query physical device memory properties */
+	VkPhysicalDeviceMemoryProperties memProps = { };
+	vkGetPhysicalDeviceMemoryProperties(this->m_physicalDevice, &memProps);
+
+	/* Find for our memory type */
+	for (uint32_t i = 0; i < memProps.memoryTypeCount; i++) {
+		/* If the type is the one that we filter out and it has out property flags, return it */
+		if ((typeFilter & (1 << i)) && (memProps.memoryTypes[i].propertyFlags & properties)) {
+			return i;
+		}
+	}
+
+	spdlog::error("FindMemoryType: Error finding memory type");
+	throw std::runtime_error("FindMemoryType: Error finding memory type");
 }
 
 /* Check if the physical device is suitable */

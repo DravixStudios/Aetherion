@@ -59,6 +59,12 @@ private:
 	VkViewport m_viewport;
 	VkRect2D m_scissor;
 
+	VkBuffer m_vertexBuffer;
+	VkDeviceMemory m_vertexMemory;
+
+	VkSemaphore m_imageAvailable;
+	VkSemaphore m_renderFinished;
+
 	/* Main methods */
 	void CreateInstance();
 	void SetupDebugMessenger();
@@ -70,6 +76,7 @@ private:
 	void CreateRenderPass();
 	void CreateFrameBuffers();
 	void CreateGraphicsPipeline();
+	void CreateVertexBuffer();
 	VkSurfaceFormatKHR ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& formats);
 	VkPresentModeKHR ChooseSwapPresentMode(const std::vector<VkPresentModeKHR>& presentModes);
 	VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
@@ -77,6 +84,9 @@ private:
 	std::string ReadShader(const std::string& sFile);
 	std::vector<uint32_t> CompileShader(std::string shader, std::string filename, shaderc_shader_kind kind);
 	VkShaderModule CreateShaderModule(std::vector<uint32_t>& shaderCode);
+
+	/* Memory methods */
+	uint32_t FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 
 	/* Physical device methods */
 	bool IsDeviceSuitable(VkPhysicalDevice device);
