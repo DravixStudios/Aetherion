@@ -5,12 +5,15 @@
 #include <optional>
 #include <set>
 #include <algorithm>
+#include <fstream>
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 #include <spdlog/spdlog.h>
+#include <shaderc/shaderc.hpp>
 
 #include "Core/Renderer/Renderer.h"
+#include "Utils.h"
 
 #ifndef NDEBUG
 #define ENABLE_VALIDATION_LAYERS 1
@@ -50,6 +53,12 @@ private:
 	VkRenderPass m_renderPass;
 	std::vector<VkFramebuffer> m_frameBuffers;
 
+	VkPipelineLayout m_pipelineLayout;
+	VkPipeline m_pipeline;
+
+	VkViewport m_viewport;
+	VkRect2D m_scissor;
+
 	/* Main methods */
 	void CreateInstance();
 	void SetupDebugMessenger();
@@ -60,9 +69,14 @@ private:
 	void CreateImageViews();
 	void CreateRenderPass();
 	void CreateFrameBuffers();
+	void CreateGraphicsPipeline();
 	VkSurfaceFormatKHR ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& formats);
 	VkPresentModeKHR ChooseSwapPresentMode(const std::vector<VkPresentModeKHR>& presentModes);
 	VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
+
+	std::string ReadShader(const std::string& sFile);
+	std::vector<uint32_t> CompileShader(std::string shader, std::string filename, shaderc_shader_kind kind);
+	VkShaderModule CreateShaderModule(std::vector<uint32_t>& shaderCode);
 
 	/* Physical device methods */
 	bool IsDeviceSuitable(VkPhysicalDevice device);

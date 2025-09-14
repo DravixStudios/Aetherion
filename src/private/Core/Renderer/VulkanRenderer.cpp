@@ -56,6 +56,7 @@ void VulkanRenderer::Init() {
 	this->CreateImageViews();
 	this->CreateRenderPass();
 	this->CreateFrameBuffers();
+	this->CreateGraphicsPipeline();
 }
 
 /* Initialize our Vulkan instance */
@@ -399,14 +400,16 @@ void VulkanRenderer::CreateRenderPass() {
 	Create a frame buffer per each image view
 */
 void VulkanRenderer::CreateFrameBuffers() {
+	/* We'll have same frame buffers as image views */
 	this->m_frameBuffers.resize(this->m_imageViews.size());
 
+	/* For each image view, create a frame buffer */
 	for (uint32_t i = 0; i < this->m_frameBuffers.size(); i++) {
 		VkImageView attachments[] = {
 			this->m_imageViews[i]
 		};
 
-
+		/* Our frame buffer creation info */
 		VkFramebufferCreateInfo createInfo = { };
 		createInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
 		createInfo.attachmentCount = 1;
@@ -424,6 +427,176 @@ void VulkanRenderer::CreateFrameBuffers() {
 	}
 
 	spdlog::debug("CreateFrameBuffer: Frame buffers created");
+}
+
+void VulkanRenderer::CreateGraphicsPipeline() {
+	/* Shader compiling */
+	std::string sVertShader = this->ReadShader("shader.vert");
+	std::vector<uint32_t> vertexShader = this->CompileShader(sVertShader, "shader.vert", shaderc_vertex_shader);
+
+	std::string sFragShader = this->ReadShader("shader.frag");
+	std::vector<uint32_t> fragmentShader = this->CompileShader(sFragShader, "shader.frag", shaderc_fragment_shader);
+
+	VkShaderModule vertexModule = this->CreateShaderModule(vertexShader);
+	VkShaderModule fragmentModule = this->CreateShaderModule(fragmentShader);
+
+	/* Shader stages */
+	VkPipelineShaderStageCreateInfo vertInfo = { };
+	vertInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+	vertInfo.pName = "main";
+	vertInfo.module = vertexModule;
+	vertInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
+
+	VkPipelineShaderStageCreateInfo fragInfo = { };
+	fragInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+	fragInfo.pName = "main";
+	fragInfo.module = fragmentModule;
+	fragInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+	VkPipelineShaderStageCreateInfo shaderStages[] = {
+		vertInfo,
+		fragInfo
+	};
+
+	/* Input binding */
+	VkVertexInputBindingDescription bindingDesc = { };
+	bindingDesc.binding = 0;
+	bindingDesc.stride = sizeof(Vertex);
+	bindingDesc.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+	/* Input attributes */
+	VkVertexInputAttributeDescription attribs[2] = {};
+	attribs[0].binding = 0;
+	attribs[0].location = 0;
+	attribs[0].format = VK_FORMAT_R32G32B32_SFLOAT;
+	attribs[0].offset = offsetof(Vertex, Vertex::position);
+
+	attribs[1].binding = 0;
+	attribs[1].location = 1;
+	attribs[1].format = VK_FORMAT_R32G32B32A32_SFLOAT;
+	attribs[1].offset = offsetof(Vertex, Vertex::color);
+
+	/* 
+		Define our dynamic states 
+		This allow changing our viewport and scissor in runtime
+		With vkCmdSetScissor and vkCmdSetViewport.
+	*/
+	std::vector<VkDynamicState> dynamicStates = {
+		VK_DYNAMIC_STATE_VIEWPORT,
+		VK_DYNAMIC_STATE_SCISSOR
+	};
+
+	VkPipelineDynamicStateCreateInfo dynamicState = { };
+	dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+	dynamicState.pDynamicStates = dynamicStates.data();
+	dynamicState.dynamicStateCount = 2;
+
+	/*
+		Our vertex input state creation info 
+		It defines the format of our vertex attributes
+	*/
+	VkPipelineVertexInputStateCreateInfo vertexInfo = { };
+	vertexInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+	vertexInfo.vertexBindingDescriptionCount = 1;
+	vertexInfo.pVertexBindingDescriptions = &bindingDesc;
+	vertexInfo.vertexAttributeDescriptionCount = 2;
+	vertexInfo.pVertexAttributeDescriptions = attribs;
+
+	/* Our input assembly creation info */
+	VkPipelineInputAssemblyStateCreateInfo inputInfo = { };
+	inputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+	inputInfo.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+
+	/* Defining our viewport and scissor */
+	this->m_viewport = { };
+	this->m_viewport.width = this->m_scExtent.width;
+	this->m_viewport.height = this->m_scExtent.height;
+	this->m_viewport.minDepth = 0.f;
+	this->m_viewport.maxDepth = 1.f;
+
+	this->m_scissor = { };
+	this->m_scissor.extent = this->m_scExtent;
+
+	/* Viewport state create info */
+	VkPipelineViewportStateCreateInfo viewportInfo = { };
+	viewportInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+	viewportInfo.pViewports = &this->m_viewport;
+	viewportInfo.viewportCount = 1;
+	viewportInfo.pScissors = &this->m_scissor;
+	viewportInfo.scissorCount = 1;
+
+	/* Our rasterizer state creation info */
+	VkPipelineRasterizationStateCreateInfo rasterizer = { };
+	rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+	rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
+	rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
+	rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
+	rasterizer.lineWidth = 1.f;
+
+	/* Our multisampling */
+	VkPipelineMultisampleStateCreateInfo multisampling = { };
+	multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+	multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+
+	/* Color blend */
+	VkPipelineColorBlendAttachmentState colorBlend = { };
+	colorBlend.blendEnable = VK_FALSE;
+	colorBlend.colorWriteMask =
+		VK_COLOR_COMPONENT_R_BIT |
+		VK_COLOR_COMPONENT_G_BIT |
+		VK_COLOR_COMPONENT_B_BIT |
+		VK_COLOR_COMPONENT_A_BIT;
+
+	VkPipelineColorBlendStateCreateInfo blendState = { };
+	blendState.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+	blendState.attachmentCount = 1;
+	blendState.pAttachments = &colorBlend;
+	blendState.logicOpEnable = VK_FALSE;
+
+
+	/* Pipeline layout create info */
+	VkPipelineLayoutCreateInfo layoutInfo = { };
+	layoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+	layoutInfo.pSetLayouts = nullptr;
+	layoutInfo.setLayoutCount = 0;
+
+	if (vkCreatePipelineLayout(this->m_device, &layoutInfo, nullptr, &this->m_pipelineLayout) != VK_SUCCESS) {
+		spdlog::error("CreateGraphicsPipeline: Error creating pipeline layout");
+		throw std::runtime_error("CreateGraphicsPipeline: Error creating pipeline layout");
+		return;
+	}
+	
+	spdlog::debug("CreateGraphicsPipeline: Pipeline layout created");
+
+	/* Graphics pipeline creation */
+	VkGraphicsPipelineCreateInfo createInfo = { };
+	createInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+	createInfo.pColorBlendState = &blendState;
+	createInfo.subpass = 0;
+	createInfo.renderPass = this->m_renderPass;
+	createInfo.pMultisampleState = &multisampling;
+	createInfo.pViewportState = &viewportInfo;
+	createInfo.layout = this->m_pipelineLayout;
+	createInfo.pRasterizationState = &rasterizer;
+	createInfo.pInputAssemblyState = &inputInfo;
+	createInfo.pVertexInputState = &vertexInfo;
+	createInfo.pStages = shaderStages;
+	createInfo.stageCount = 2;
+	createInfo.pDynamicState = &dynamicState;
+	createInfo.basePipelineHandle = VK_NULL_HANDLE;
+	createInfo.basePipelineIndex = -1;
+
+	if (vkCreateGraphicsPipelines(this->m_device, nullptr, 1, &createInfo, nullptr, &this->m_pipeline) != VK_SUCCESS) {
+		spdlog::error("CreateGraphicsPipeline: Error creating the pipeline");
+		throw std::runtime_error("CreateGraphicsPipeline: Error creating the pipeline");
+		return;
+	}
+
+	spdlog::debug("CreateGraphicsPipeline: Pipeline created");
+
+	/* Cleanup */
+	vkDestroyShaderModule(this->m_device, vertexModule, nullptr);
+	vkDestroyShaderModule(this->m_device, fragmentModule, nullptr);
 }
 
 /* 
@@ -479,6 +652,62 @@ VkExtent2D VulkanRenderer::ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capa
 
 		return extent;
 	}
+}
+
+/*
+	Read our shader file
+*/
+std::string VulkanRenderer::ReadShader(const std::string& sFile) {
+	std::ifstream file(sFile);
+	if (!file.is_open()) {
+		spdlog::error("Couldn't open shader {0}", sFile);
+		throw std::runtime_error("ReadShader: Couldn't open shader");
+		return "";
+	}
+
+	std::stringstream buff;
+	buff << file.rdbuf();
+	return buff.str();
+}
+
+/*
+	Compile our shader to Spir-V code with https://github.com/google/shaderc
+*/
+std::vector<uint32_t> VulkanRenderer::CompileShader(std::string shader, std::string filename, shaderc_shader_kind kind) {
+	shaderc::Compiler compiler;
+	shaderc::CompileOptions options;
+	shaderc::SpvCompilationResult result = compiler.CompileGlslToSpv(shader, kind, filename.c_str(), options);
+
+	if (result.GetCompilationStatus() != shaderc_compilation_status_success) {
+		spdlog::error("CompileShader: {0}", result.GetErrorMessage());
+		throw std::runtime_error("CompileShader: Error compiling shader");
+		return std::vector<uint32_t>();
+	}
+
+	spdlog::debug("CompileShader: Shader {0} compiled", filename);
+
+	std::vector<uint32_t> shaderCode(result.cbegin(), result.cend());
+	return shaderCode;
+}
+
+/* Create a shader module from our shader code */
+VkShaderModule VulkanRenderer::CreateShaderModule(std::vector<uint32_t>& shaderCode) {
+	VkShaderModuleCreateInfo createInfo = { };
+	createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+	createInfo.codeSize = shaderCode.size() * sizeof(uint32_t);
+	createInfo.pCode = shaderCode.data();
+	
+	VkShaderModule shaderModule;
+	if (vkCreateShaderModule(this->m_device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
+		spdlog::error("CreateShaderModule: Error creating shader module");
+		throw std::runtime_error("CreateShaderModule: Error creating shader module");
+		
+		return nullptr;
+	}
+
+	spdlog::debug("CreateShaderModule: Shader module created");
+
+	return shaderModule;
 }
 
 /* Check if the physical device is suitable */
