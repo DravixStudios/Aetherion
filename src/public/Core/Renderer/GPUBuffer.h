@@ -6,5 +6,5 @@ public:
 	GPUBuffer() {};
 	~GPUBuffer() {};
 
-	virtual size_t GetSize() const = 0;
+	virtual uint32_t GetSize() = 0;
 };

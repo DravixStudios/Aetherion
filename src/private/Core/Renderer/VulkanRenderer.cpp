@@ -48,13 +48,25 @@ VulkanRenderer::VulkanRenderer() : Renderer::Renderer() {
 	this->m_pipelineLayout = nullptr;
 	this->m_scissor = VkRect2D();
 	this->m_viewport = VkViewport();
-	this->m_vertexMemory = nullptr;
-	this->m_vertexBuffer = nullptr;
 }
 
 /* Renderer init method */
 void VulkanRenderer::Init() {
 	Renderer::Init();
+	std::vector<Vertex> vertices = {
+		{
+			{ 0.f, 0.5f, 0.f },
+			{ 1.f, 0.f, 0.f, 1.f }
+		},
+		{
+			{ .5f, -.5f, 0.f },
+			{ 0.f, 1.f, 0.f, 1.f }
+		},
+		{
+			{ -0.5f, -0.5f, 0.f },
+			{ 0.f, 0.f, 1.f, 1.f }
+		},
+	};
 
 	this->CreateInstance();
 	this->SetupDebugMessenger();
@@ -65,10 +77,10 @@ void VulkanRenderer::Init() {
 	this->CreateImageViews();
 	this->CreateRenderPass();
 	this->CreateFrameBuffers();
+	this->m_buffer = this->CreateVertexBuffer(vertices);
 	this->CreateCommandPool();
 	this->CreateCommandBuffer();
 	this->CreateGraphicsPipeline();
-	this->CreateVertexBuffer();
 	this->CreateSyncObjects();
 }
 
@@ -557,7 +569,9 @@ void VulkanRenderer::CreateGraphicsPipeline() {
 	/* Defining our viewport and scissor */
 	this->m_viewport = { };
 	this->m_viewport.width = this->m_scExtent.width;
-	this->m_viewport.height = this->m_scExtent.height;
+	this->m_viewport.height = -static_cast<float>(this->m_scExtent.height); // Flip our fiewport for +Y up 
+	this->m_viewport.x = 0;
+	this->m_viewport.y = static_cast<float>(this->m_scExtent.height);
 	this->m_viewport.minDepth = 0.f;
 	this->m_viewport.maxDepth = 1.f;
 
@@ -646,62 +660,6 @@ void VulkanRenderer::CreateGraphicsPipeline() {
 	vkDestroyShaderModule(this->m_device, fragmentModule, nullptr);
 }
 
-/* Creation of our triangle vertex buffer */
-void VulkanRenderer::CreateVertexBuffer() {
-	/* Define our vertices */
-	std::vector<Vertex> vertices = {
-		{{.0f, -.5f, 0.f}, {1.f, 0.f, 0.f, 1.f}},
-		{{.5f, .5f, 0.f}, {0.f, 1.f, 0.f, 1.f}},
-		{{-.5f, .5f, 0.f}, {0.f, 0.f, 1.f, 1.f}},
-	};
-
-	/* Buffer create info */
-	VkBufferCreateInfo bufferInfo = { };
-	bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-	bufferInfo.size = sizeof(Vertex) * vertices.size();
-	bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-	bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-	if (vkCreateBuffer(this->m_device, &bufferInfo, nullptr, &this->m_vertexBuffer) != VK_SUCCESS) {
-		spdlog::error("CreateVertexBuffer: Failed creating vertex buffer");
-		throw std::runtime_error("CraeteVertexBuffer: Failed creating vertex buffer");
-		return;
-	}
-
-	/* Memory requirements */
-	VkMemoryRequirements requirements;
-	vkGetBufferMemoryRequirements(this->m_device, this->m_vertexBuffer, &requirements);
-
-	/* 
-		Memory allocation 
-		Memory type index property flags: 
-			- VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT: CPU can access directly from memory
-			- VK_MEMORY_PROPERTY_HOST_COHERENT_BIT: GPY can directly access to the data without any extra step
-	*/
-	VkMemoryAllocateInfo allocInfo = { };
-	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-	allocInfo.allocationSize = requirements.size;
-	allocInfo.memoryTypeIndex = FindMemoryType(requirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-	
-
-	if (vkAllocateMemory(this->m_device, &allocInfo, nullptr, &this->m_vertexMemory) != VK_SUCCESS) {
-		spdlog::error("CreateVertexBuffer: Error allocating memory");
-		throw std::runtime_error("CreateVertexBuffer: Error allocating memory");
-		return;
-	}
-
-	/* Map memory and copy vertices */
-	void* pData = nullptr;
-	vkMapMemory(this->m_device, this->m_vertexMemory, 0, bufferInfo.size, 0, &pData);
-	memcpy(pData, vertices.data(), bufferInfo.size);
-	vkUnmapMemory(this->m_device, this->m_vertexMemory);
-
-	/* Bind buffer memory */
-	vkBindBufferMemory(this->m_device, this->m_vertexBuffer, this->m_vertexMemory, 0);
-	
-	spdlog::debug("CreateVertexBuffer: Vertex buffer created");
-}
-
 /* Creation of our sync objects */
 void VulkanRenderer::CreateSyncObjects() {
 	VkSemaphoreCreateInfo semaphoreInfo = { };
@@ -737,6 +695,7 @@ void VulkanRenderer::RecordCommandBuffer(uint32_t nImageIndex) {
 	renderPassInfo.renderPass = this->m_renderPass;
 	renderPassInfo.framebuffer = this->m_frameBuffers[nImageIndex];
 	renderPassInfo.renderArea.extent = this->m_scExtent;
+	renderPassInfo.renderArea.offset = { 0, 0 };
 	renderPassInfo.pClearValues = &clearColor;
 	renderPassInfo.clearValueCount = 1;
 	
@@ -749,10 +708,7 @@ void VulkanRenderer::RecordCommandBuffer(uint32_t nImageIndex) {
 	vkCmdSetScissor(this->m_commandBuffer, 0, 1, &this->m_scissor);
 
 	/* Bind triangle vertex buffer and draw it */
-	VkBuffer vertexBuffers[] = { this->m_vertexBuffer };
-	VkDeviceSize offsets[] = { 0 };
-	vkCmdBindVertexBuffers(this->m_commandBuffer, 0, 1, vertexBuffers, offsets);
-	vkCmdDraw(this->m_commandBuffer, 3, 1, 0, 0);
+	this->DrawVertexBuffer(this->m_buffer);
 
 	vkCmdEndRenderPass(this->m_commandBuffer);
 	vkEndCommandBuffer(this->m_commandBuffer);
@@ -885,6 +841,95 @@ uint32_t VulkanRenderer::FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFla
 
 	spdlog::error("FindMemoryType: Error finding memory type");
 	throw std::runtime_error("FindMemoryType: Error finding memory type");
+}
+
+/* Creation of a vertex buffer */
+GPUBuffer* VulkanRenderer::CreateVertexBuffer(const std::vector<Vertex>& vertices) {
+	/* Buffer create info */
+	VkBufferCreateInfo createInfo = { };
+	createInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+	createInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+	createInfo.size = vertices.size() * sizeof(Vertex);
+	createInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	 
+	/* Creation of our buffer. If fails, throw error and log it */
+	VkBuffer buffer = nullptr;
+	if (vkCreateBuffer(this->m_device, &createInfo, nullptr, &buffer) != VK_SUCCESS) {
+		spdlog::error("CraeteVertexBuffer: Failed creating vertex buffer");
+		throw std::runtime_error("CreateVertexBuffer: Failed creating vertex buffer");
+		return nullptr;
+	}
+
+	spdlog::debug("CreateVertexBuffer: Buffer created for: {0} bytes", vertices.size() * sizeof(Vertex));
+
+	/* Query memory requirements */
+	VkMemoryRequirements memReqs = { };
+	vkGetBufferMemoryRequirements(this->m_device, buffer, &memReqs);
+
+	/* 
+		Define our memory allocation info 
+			VkMemoryPropertyFlagBits ref: https://registry.khronos.org/vulkan/specs/latest/man/html/VkMemoryPropertyFlagBits.html
+
+		We'll be using HOST_VISIBLE and HOST_COHERENT:
+			HOST_VISIBLE: Specifies that this resource is visible from our device
+			HOST_COHERENT: Specifies that the device accesses to this resource are automatically made available and visible
+	*/
+	VkMemoryAllocateInfo allocInfo = { };
+	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+	allocInfo.allocationSize = memReqs.size;
+	allocInfo.memoryTypeIndex = this->FindMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+	/* Creation of our device memory object */
+	VkDeviceMemory memory;
+	if (vkAllocateMemory(this->m_device, &allocInfo, nullptr, &memory) != VK_SUCCESS) {
+		spdlog::error("CreateVertexBuffer: Fialed to allocate our vertex memory");
+		throw std::runtime_error("CreateVertexBuffer: Fialed to allocate our vertex memory");
+		return nullptr;
+	}
+
+	
+	/* Map our memory for copying our vertices */
+	void* pData = nullptr;
+	vkMapMemory(this->m_device, memory, 0, VK_WHOLE_SIZE, 0, &pData);
+	memcpy(pData, vertices.data(), vertices.size() * sizeof(Vertex));
+	vkUnmapMemory(this->m_device, memory);
+
+	/* Bind our buffer to our device memory */
+	if (vkBindBufferMemory(this->m_device, buffer, memory, 0) != VK_SUCCESS) {
+		spdlog::error("CreateVertexBuffer: Failed binding buffer memory");
+		throw std::runtime_error("CreateVertexBuffer: Failed binding buffer memory");
+		return nullptr;
+	}
+
+	spdlog::debug("CreateVertexBuffer: Buffer memory binded");
+
+	VulkanBuffer* retBuff = new VulkanBuffer(this->m_device, this->m_physicalDevice, buffer, memory, vertices.size());
+	return retBuff;
+}
+
+/* Bind our vertex buffer */
+bool VulkanRenderer::DrawVertexBuffer(GPUBuffer* buffer) {
+	/* First of all, check if the specified buffer is a VulkanBuffer */
+	if (dynamic_cast<VulkanBuffer*>(buffer) == nullptr) {
+		spdlog::error("BindVertexBuffer: Specified GPUBuffer is not a Vulkan buffer");
+		throw std::runtime_error("BindVertexBuffer: Specified GPUBuffer is not a Vulkan buffer");
+		return false;
+	}
+
+	VulkanBuffer* vkBuff = dynamic_cast<VulkanBuffer*>(buffer);
+	
+	/* Get our VkBuffer, VkDeviceMemory and our buffer size */
+	VkBuffer buff = vkBuff->GetBuffer();
+	VkDeviceMemory memory = vkBuff->GetMemory();
+	uint32_t nSize = vkBuff->GetSize();
+
+	/* Bind our vertex buffer and draw it */
+	VkBuffer vertexBuffers[] = { buff };
+	VkDeviceSize offsets[] = { 0 };
+	vkCmdBindVertexBuffers(this->m_commandBuffer, 0, 1, vertexBuffers, offsets);
+	vkCmdDraw(this->m_commandBuffer, nSize, 1, 0, 0);
+
+	return true;
 }
 
 /* Check if the physical device is suitable */

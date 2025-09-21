@@ -13,6 +13,7 @@
 #include <shaderc/shaderc.hpp>
 
 #include "Core/Renderer/Renderer.h"
+#include "Core/Renderer/VulkanBuffer.h"
 #include "Utils.h"
 
 #ifndef NDEBUG
@@ -62,9 +63,6 @@ private:
 	VkViewport m_viewport;
 	VkRect2D m_scissor;
 
-	VkBuffer m_vertexBuffer;
-	VkDeviceMemory m_vertexMemory;
-
 	VkSemaphore m_imageAvailable;
 	VkSemaphore m_renderFinished;
 	VkFence m_fence;
@@ -82,7 +80,6 @@ private:
 	void CreateCommandPool();
 	void CreateCommandBuffer();
 	void CreateGraphicsPipeline();
-	void CreateVertexBuffer();
 	void CreateSyncObjects();
 	void RecordCommandBuffer(uint32_t nImageIndex);
 	VkSurfaceFormatKHR ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& formats);
@@ -95,6 +92,9 @@ private:
 
 	/* Memory methods */
 	uint32_t FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
+	GPUBuffer* CreateVertexBuffer(const std::vector<Vertex>& vertices) override;
+	bool DrawVertexBuffer(GPUBuffer* buffer) override;
+	GPUBuffer* m_buffer;
 
 	/* Physical device methods */
 	bool IsDeviceSuitable(VkPhysicalDevice device);
