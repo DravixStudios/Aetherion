@@ -1,0 +1,92 @@
+Copyright (c) 2025 Aaron Garcés del Garro Preciado / Dravix Studios. All Rights Reserved.
+
+SOFTWARE LICENSE AGREEMENT – Aetherion Game Engine
+
+This Software License Agreement (“Agreement”) governs the access, use, study, and viewing of the source code and all associated materials (collectively, the “Software”) of the project Aetherion (also referred to as “Aetherion Game Engine”), developed and owned by Aaron Garcés del Garro Preciado on behalf of Dravix Studios (“Licensor”).
+
+By accessing, viewing, or otherwise making use of this Software, you (“User”) acknowledge and agree to the following terms and conditions in full. If you do not agree, you must immediately cease all access and delete any copies in your possession.
+
+1. DEFINITIONS
+   1.1 “Software” means all source code, object code, scripts, executables, configuration files, documentation, media, and related materials.
+   1.2 “User” means any individual or entity accessing or interacting with the Software under the terms granted herein.
+   1.3 “Licensor” refers to Aaron Garcés del Garro Preciado / Dravix Studios, the exclusive owner of all rights, title, and interest in the Software.
+   1.4 “Confidential Information” means any non-public information disclosed in the Software or otherwise by Licensor, including technical data, designs, algorithms, business plans, or proprietary processes.
+   1.5 “Derivative Works” means any modification, enhancement, translation, compilation, adaptation, or work based upon the Software.
+   1.6 “Engine” means the central set of the Software consisting of its core, native libraries, rendering modules, physics, audio, scripting systems, and compilation/execution tools, which enable the operation and use of the Aetherion Game Engine as a development environment. The term “Engine” expressly excludes any project or game created with it, and refers solely to the underlying technology developed by the Licensor.
+
+2. GRANT OF RIGHTS
+   2.1 Licensor grants the User a limited, non-exclusive, non-transferable, revocable license solely to:
+       (a) View, read, and study the Software for personal, educational, or security auditing purposes.
+       (b) Submit findings, corrections, bug reports, or security suggestions to the Licensor with proper attribution.
+   2.2 The following rights are expressly prohibited:
+       (a) Copying, distributing, publishing, or sharing the Software in whole or in part.
+       (b) Modifying, adapting, translating, compiling, or creating derivative works except for local study or reporting purposes.
+       (c) Use of the Software in commercial, production, networked, or revenue-generating environments.
+       (d) Licensing, renting, selling, sublicensing, or otherwise transferring the Software to any third party.
+   2.3 All rights not explicitly granted herein remain reserved to the Licensor. Any unauthorized use constitutes a violation of copyright and contract law.
+   2.4 Use of the Engine and Game Development:
+       (a) The Software (Aetherion Game Engine) may only be used as a runtime and development environment through its internal scripting systems and packaging tools provided by the engine itself.
+       (b) It is strictly prohibited to modify the engine core, its native C++ libraries, or any part of its source code to compile, build, or link video games or applications directly from the engine.
+       (c) Game or interactive project development must be carried out exclusively through the official mechanisms of the engine (e.g., scripting in C#, bundling, or compilation performed by the engine).
+       (d) No modification to the Software for adding, removing, or altering features may be performed without prior written authorization from the Licensor.
+       (e) Any project, work, or interactive product created with the Engine for commercial purposes (including but not limited to projects generating revenue, sales, subscriptions, or monetization of any kind) must provide clear and visible credit to the Aetherion Game Engine and Dravix Studios in both the software itself (e.g., credits screen) and in associated documentation or promotional material.
+
+3. RESTRICTIONS AND PROHIBITIONS
+   3.1 The User shall not, under any circumstances:
+       (a) Publicly disclose exploits, vulnerabilities, or security issues without prior written consent.
+       (b) Use the Software to attack, exploit, or harm other systems or networks.
+       (c) Remove, alter, or obscure copyright, trademark, or proprietary notices.
+       (d) Represent the Software or any derivatives as their own work.
+       (e) Attempt reverse engineering beyond the scope permitted for security auditing.
+   3.2 Examples of prohibited actions include but are not limited to:
+       - Posting the full source code on public forums or repositories.
+       - Using the Software in a cloud service or SaaS platform.
+       - Integrating parts of the Software into commercial projects.
+   3.3 Restrictions on Compilation and Distribution:
+       - It is prohibited to use the Software as a framework base for creating video games using native code (C++ or other languages) that accesses or modifies the engine core.
+       - The Software may not be redistributed, shared, or published, whether in whole or in part, including source code, libraries, or internal builds.
+       - The Software may not be used in commercial projects without an explicit commercial license granted by the Licensor.
+
+4. INTELLECTUAL PROPERTY
+   4.1 All rights, title, and interest in the Software, including any derivative works, remain the exclusive property of Licensor.
+   4.2 Nothing in this Agreement shall be construed as granting any ownership or intellectual property rights to the User.
+   4.3 All trademarks, logos, and service marks associated with the Software remain the sole property of Licensor.
+
+5. SUBMISSIONS AND ATTRIBUTION
+   5.1 Any corrections, security reports, or suggestions submitted by the User become the property of Licensor.
+   5.2 Licensor may provide attribution to the User in release notes, documentation, or acknowledgements, at Licensor’s discretion.
+
+6. WARRANTIES AND DISCLAIMER
+   6.1 The Software is provided “AS IS” and “AS AVAILABLE” without any warranty, express or implied.
+   6.2 Licensor disclaims all warranties of merchantability, fitness for a particular purpose, and non-infringement.
+   6.3 Licensor makes no guarantee regarding functionality, performance, or suitability of the Software.
+
+7. LIMITATION OF LIABILITY
+   7.1 To the maximum extent permitted by law, Licensor shall not be liable for any damages, including direct, indirect, incidental, special, consequential, or punitive damages, arising from or related to the use or inability to use the Software.
+
+8. TERMINATION
+   8.1 This Agreement is effective immediately upon access to the Software.
+   8.2 Licensor may terminate this Agreement at any time if the User violates any terms herein.
+   8.3 Upon termination, the User must immediately cease all access and delete all copies of the Software in any form.
+
+9. SECURITY AND RESPONSIBLE DISCLOSURE
+   9.1 Users may access the Software locally to perform security research, bug hunting, or code audits.
+   9.2 Any security issues, vulnerabilities, or suggested improvements must be reported privately to Licensor.
+   9.3 Licensor may provide acknowledgement or attribution to Users submitting valid security reports.
+
+10. GOVERNING LAW AND JURISDICTION
+    10.1 This Agreement shall be governed by the laws of Spain without regard to its conflict of law principles.
+    10.2 Any disputes arising under this Agreement shall be subject to the exclusive jurisdiction of the courts located in Madrid, Spain.
+
+11. ENFORCEMENT
+    11.1 Any unauthorized use of the Software may result in civil and criminal legal actions under applicable copyright, contract, and intellectual property law.
+    11.2 Licensor reserves the right to pursue all legal remedies to protect its rights.
+
+12. CONTACT AND LICENSING INQUIRIES
+    12.1 For permissions beyond those granted in this Agreement, or to obtain a commercial license, contact:
+        Aaron Garcés del Garro Preciado / Dravix Studios  
+        Email: contact@preciado.eu  
+        Website: www.preciado.eu
+
+13. ENTIRE AGREEMENT
+    13.1 This Agreement constitutes the entire understanding between the User and Licensor regarding the Software and supersedes all prior agreements, written or oral, relating to the subject matter.
