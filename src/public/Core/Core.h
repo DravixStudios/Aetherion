@@ -4,7 +4,7 @@
 #include <GLFW/glfw3.h>
 #include <spdlog/spdlog.h>
 #include "Renderer/Renderer.h"
-#include "Renderer/VulkanRenderer.h"
+#include "Renderer/Vulkan/VulkanRenderer.h"
 
 class Core {
 public:

@@ -4,9 +4,9 @@
 
 # Agregue un origen al ejecutable de este proyecto.
 add_executable ("Aetherion" "main.cpp" "public/Core/Core.h" "private/Core/Core.cpp"
-        public/Core/Renderer/Renderer.h
-        private/Core/Renderer/Renderer.cpp
-        public/Core/Renderer/VulkanRenderer.h "private/Core/Renderer/VulkanRenderer.cpp" "public/Utils.h" "public/Core/Renderer/GPUBuffer.h" "public/Core/Renderer/VulkanBuffer.h" "private/Core/Renderer/VulkanBuffer.cpp")
+        "public/Core/Renderer/Renderer.h"
+        "private/Core/Renderer/Renderer.cpp"
+        "private/Core/Renderer/Vulkan/VulkanRenderer.cpp" "public/Utils.h" "public/Core/Renderer/GPUBuffer.h" "public/Core/Renderer/Vulkan/VulkanBuffer.h" "private/Core/Renderer/Vulkan/VulkanBuffer.cpp" "public/Core/Scene/Scene.h" "private/Core/Scene/Scene.cpp")
 
 if (CMAKE_VERSION VERSION_GREATER 3.12)
   set_property(TARGET Aetherion PROPERTY CXX_STANDARD 20)
