@@ -24,7 +24,8 @@ void Core::Init() {
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
-    this->m_pWindow = glfwCreateWindow(800, 600, "Aetherion Engine", nullptr, nullptr); // GLFW Window creation
+    /* TODO: Make window resizable */
+    this->m_pWindow = glfwCreateWindow(1280, 720, "Aetherion Engine", nullptr, nullptr); // GLFW Window creation
 
     /* Assert window is not null */
     if (this->m_pWindow == nullptr) {
