@@ -13,7 +13,7 @@
 #include <shaderc/shaderc.hpp>
 
 #include "Core/Renderer/Renderer.h"
-#include "Core/Renderer/VulkanBuffer.h"
+#include "Core/Renderer/Vulkan/VulkanBuffer.h"
 #include "Utils.h"
 
 #ifndef NDEBUG

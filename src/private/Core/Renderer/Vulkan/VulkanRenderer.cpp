@@ -1,4 +1,4 @@
-#include "Core/Renderer/VulkanRenderer.h"
+#include "Core/Renderer/Vulkan/VulkanRenderer.h"
 
 /* Validation layers (hard-coded) */
 std::vector<const char*> validationLayers = {

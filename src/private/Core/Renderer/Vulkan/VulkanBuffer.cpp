@@ -1,4 +1,4 @@
-#include "Core/Renderer/VulkanBuffer.h"
+#include "Core/Renderer/Vulkan/VulkanBuffer.h"
 
 VulkanBuffer::VulkanBuffer(VkDevice& dev, VkPhysicalDevice& physicalDev, VkBuffer& buffer, VkDeviceMemory& memory, uint32_t nSize) : GPUBuffer() {
 	this->m_dev = dev;
