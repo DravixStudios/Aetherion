@@ -8,6 +8,14 @@ Core* g_core = nullptr;
 #define VERSION_MINOR 1
 #define VERSION_PATCH 0
 
+#ifdef _WIN32
+#ifdef NDEBUG
+#pragma comment(linker, "/SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup")
+#else
+#pragma comment(linker, "/SUBSYSTEM:console")
+#endif
+#endif
+
 int main() {
 	g_core = Core::GetInstance();
 
