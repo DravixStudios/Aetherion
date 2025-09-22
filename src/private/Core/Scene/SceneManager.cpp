@@ -36,6 +36,14 @@ Scene* SceneManager::GetCurrentScene() {
 	return this->m_currentScene;
 }
 
+void SceneManager::Start() {
+	this->m_currentScene->Start();
+}
+
+void SceneManager::Update() {
+	this->m_currentScene->Update();
+}
+
 SceneManager* SceneManager::GetInstance() {
 	if (SceneManager::m_instance == nullptr)
 		SceneManager::m_instance = new SceneManager();

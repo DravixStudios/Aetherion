@@ -16,6 +16,9 @@ public:
 
 	Scene* GetCurrentScene();
 
+	void Start();
+	void Update();
+
 	static SceneManager* GetInstance();
 private:
 	Scene* m_currentScene;
