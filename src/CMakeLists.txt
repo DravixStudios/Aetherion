@@ -6,7 +6,7 @@
 add_executable ("Aetherion" "main.cpp" "public/Core/Core.h" "private/Core/Core.cpp"
         "public/Core/Renderer/Renderer.h"
         "private/Core/Renderer/Renderer.cpp"
-        "private/Core/Renderer/Vulkan/VulkanRenderer.cpp" "public/Utils.h" "public/Core/Renderer/GPUBuffer.h" "public/Core/Renderer/Vulkan/VulkanBuffer.h" "private/Core/Renderer/Vulkan/VulkanBuffer.cpp" "public/Core/Scene/Scene.h" "private/Core/Scene/Scene.cpp")
+        "private/Core/Renderer/Vulkan/VulkanRenderer.cpp" "public/Utils.h" "public/Core/Renderer/GPUBuffer.h" "public/Core/Renderer/Vulkan/VulkanBuffer.h" "private/Core/Renderer/Vulkan/VulkanBuffer.cpp" "public/Core/Scene/Scene.h" "private/Core/Scene/Scene.cpp" "public/Core/GameObject/GameObject.h" "private/Core/GameObject/GameObject.cpp" "public/Core/Scene/SceneManager.h" "private/Core/Scene/SceneManager.cpp" "public/Math/Vector3.h" "private/Math/Vector3.cpp" "public/Math/Transform.h" "private/Math/Transform.cpp" "public/Core/GameObject/Components/Component.h" "private/Core/GameObject/Components/Component.cpp" "public/Core/GameObject/Components/Mesh.h")
 
 if (CMAKE_VERSION VERSION_GREATER 3.12)
   set_property(TARGET Aetherion PROPERTY CXX_STANDARD 20)
