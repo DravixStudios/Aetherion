@@ -12,6 +12,9 @@ public:
 
     void Init();
     void Update();
+
+    Renderer* GetRenderer();
+
     static Core* GetInstance();
 private:
     GLFWwindow* m_pWindow;

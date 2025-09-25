@@ -56,7 +56,18 @@ void Core::Update() {
     }
 }
 
-Core *Core::GetInstance() {
+/* Get our renderer instance */
+Renderer* Core::GetRenderer() {
+    if (this->m_renderer == nullptr) {
+        spdlog::error("Core::GetRenderer: Core::m_renderer class member not defined");
+        throw std::runtime_error("Core::GetRenderer: Core::m_renderer class member not defined");
+        return nullptr;
+    }
+
+    return this->m_renderer;
+}
+
+Core* Core::GetInstance() {
     if (Core::m_instance == nullptr)
         Core::m_instance = new Core();
     return Core::m_instance;
