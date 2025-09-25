@@ -7,6 +7,6 @@ public:
 
 	virtual void Start();
 	virtual void Update();
-private:
+protected:
 	std::string m_name;
 };
