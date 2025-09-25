@@ -10,3 +10,10 @@
 
 # LICENSE
 - Read [LICENSE](./LICENSE)
+
+# Third-Party
+- [Assimp](https://github.com/assimp/assimp)
+- [spdlog](https://github.com/gabime/spdlog)
+- [shaderc](https://github.com/google/shaderc)
+- [g-truc/glm](https://github.com/g-truc/glm)
+- [Vulkan](https://www.vulkan.org/)
