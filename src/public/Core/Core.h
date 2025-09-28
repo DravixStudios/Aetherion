@@ -6,6 +6,9 @@
 #include "Renderer/Renderer.h"
 #include "Renderer/Vulkan/VulkanRenderer.h"
 
+/* Forward declarations */
+class SceneManager;
+
 class Core {
 public:
     Core();
@@ -19,6 +22,8 @@ public:
 private:
     GLFWwindow* m_pWindow;
     static Core* m_instance;
+
+    SceneManager* m_sceneMgr;
 
     Renderer* m_renderer;
 };

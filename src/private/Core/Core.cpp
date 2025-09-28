@@ -1,4 +1,5 @@
 #include "Core/Core.h"
+#include "Core/Scene/SceneManager.h"
 
 Core* Core::m_instance;
 
@@ -6,6 +7,7 @@ Core* Core::m_instance;
 Core::Core() {
     this->m_pWindow = nullptr;
     this->m_renderer = nullptr;
+    this->m_sceneMgr = nullptr;
 }
 
 /* Core init method */
@@ -45,6 +47,8 @@ void Core::Init() {
     /* Set our renderer window and init */
     this->m_renderer->SetWindow(this->m_pWindow);
     this->m_renderer->Init();
+    this->m_sceneMgr = SceneManager::GetInstance();
+    this->m_sceneMgr->Start();
 }
 
 /* Our core update method */
@@ -52,6 +56,7 @@ void Core::Update() {
     /* While window should not close */
     while (!glfwWindowShouldClose(this->m_pWindow)) {
         glfwPollEvents(); // Poll GLFW events
+        this->m_sceneMgr->Update();
         this->m_renderer->Update(); // Update our renderer
     }
 }
