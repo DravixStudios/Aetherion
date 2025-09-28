@@ -26,26 +26,28 @@ bool Mesh::LoadModel(std::string filePath) {
 		return false;
 	}
 
+	/* Import our scene */
 	Assimp::Importer importer;
-
 	const aiScene* scene = importer.ReadFile(filePath, NULL);
 	
+	/* If scene is null, get out and return false */
 	if (scene == nullptr) {
 		spdlog::error("Mesh::LoadModel: Scene couldn't be imported. Filename: {0}", filePath.c_str());
 		return false;
 	}
 	
-	uint32_t nNumMeshes = scene->mNumMeshes;
+	uint32_t nNumMeshes = scene->mNumMeshes; // Enumerate our mesh count
 
 	/* Get each mesh from our scene */
 	for (uint32_t i = 0; i < nNumMeshes; i++) {
 		const aiMesh* mesh = scene->mMeshes[i];
-
-		std::vector<Vertex> vertices;
-
+		
 		/* Get the number of vertices */
 		uint32_t nNumVertices = mesh->mNumVertices;
 		spdlog::debug("Mesh::LoadModel: Loading {0} vertices for mesh #{1} in file {2}", nNumVertices, i, filePath);
+
+		std::vector<Vertex> vertices(nNumVertices);
+
 		
 		/*
 			Store a new vertices on our vertices vector. 
@@ -53,15 +55,23 @@ bool Mesh::LoadModel(std::string filePath) {
 		*/
 		for (uint32_t x = 0; x < nNumVertices; x++) {
 			aiVector3D aiVertex = mesh->mVertices[x];
-			aiVector3D texCoords = mesh->mTextureCoords[0][x];
+			aiVector3D texCoords = { 0, 0, 0 };
 			aiVector3D normals = { 0, 0, 0 };
+
+			if (mesh->HasTextureCoords(0)) {
+				texCoords = mesh->mTextureCoords[0][x];
+			}
 
 			if (mesh->HasNormals()) {
 				normals = mesh->mNormals[x];
 			}
 
 			Vertex vertex = { { aiVertex.x, aiVertex.y, aiVertex.z }, { normals.x, normals.y, normals.z }, { texCoords.x, texCoords.y } };
-			vertices.push_back(vertex);
+			vertices[x] = vertex;
 		}
+
+		this->m_vertices[i] = vertices;
 	}
+
+	this->m_bMeshImported = true;
 }
