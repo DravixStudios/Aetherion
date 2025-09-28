@@ -22,7 +22,7 @@ void Mesh::Update() {
 bool Mesh::LoadModel(std::string filePath) {
 	if (this->m_bMeshImported) {
 		spdlog::error("[{0}] Mesh::LoadModel: Mesh already imported on this mesh component", this->m_name.c_str());
-		throw std::runtime_error("Mesg::LoadModel: Mesh already imported on mesh");
+		throw std::runtime_error("Mesh::LoadModel: Mesh already imported on mesh");
 		return false;
 	}
 
@@ -40,5 +40,28 @@ bool Mesh::LoadModel(std::string filePath) {
 	/* Get each mesh from our scene */
 	for (uint32_t i = 0; i < nNumMeshes; i++) {
 		const aiMesh* mesh = scene->mMeshes[i];
+
+		std::vector<Vertex> vertices;
+
+		/* Get the number of vertices */
+		uint32_t nNumVertices = mesh->mNumVertices;
+		spdlog::debug("Mesh::LoadModel: Loading {0} vertices for mesh #{1} in file {2}", nNumVertices, i, filePath);
+		
+		/*
+			Store a new vertices on our vertices vector. 
+				Formatted as specified Vertex struct at Util.h
+		*/
+		for (uint32_t x = 0; x < nNumVertices; x++) {
+			aiVector3D aiVertex = mesh->mVertices[x];
+			aiVector3D texCoords = mesh->mTextureCoords[0][x];
+			aiVector3D normals = { 0, 0, 0 };
+
+			if (mesh->HasNormals()) {
+				normals = mesh->mNormals[x];
+			}
+
+			Vertex vertex = { { aiVertex.x, aiVertex.y, aiVertex.z }, { normals.x, normals.y, normals.z }, { texCoords.x, texCoords.y } };
+			vertices.push_back(vertex);
+		}
 	}
 }

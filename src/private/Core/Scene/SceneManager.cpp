@@ -4,7 +4,9 @@ SceneManager* SceneManager::m_instance;
 
 /* Constructor */
 SceneManager::SceneManager() {
+	GameObject* sampleObj = new GameObject("Sample object");
 	this->m_currentScene = new Scene("SampleScene");
+	this->m_currentScene->AddObject(sampleObj);
 }
 
 /* Add a scene to our scene map */

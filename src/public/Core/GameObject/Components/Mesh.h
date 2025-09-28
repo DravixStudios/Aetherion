@@ -1,5 +1,8 @@
 #pragma once
 #include "Core/GameObject/Components/Component.h"
+#include "Utils.h"
+
+#include <vector>
 
 #include <assimp/scene.h>
 #include <assimp/Importer.hpp>
