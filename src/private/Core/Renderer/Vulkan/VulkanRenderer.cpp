@@ -56,15 +56,18 @@ void VulkanRenderer::Init() {
 	std::vector<Vertex> vertices = {
 		{
 			{ 0.f, 0.5f, 0.f },
-			{ 1.f, 0.f, 0.f, 1.f }
+			{ 0.f, 0.f, 0.f },
+			{ 0.f, 0.f }
 		},
 		{
 			{ .5f, -.5f, 0.f },
-			{ 0.f, 1.f, 0.f, 1.f }
+			{ 0.f, 1.f, 0.f },
+			{ 0.f, 0.f }
 		},
 		{
 			{ -0.5f, -0.5f, 0.f },
-			{ 0.f, 0.f, 1.f, 1.f }
+			{ 0.f, 0.f, 0.f },
+			{ 0.f, 0.f }
 		},
 	};
 
@@ -524,7 +527,7 @@ void VulkanRenderer::CreateGraphicsPipeline() {
 	bindingDesc.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
 	/* Input attributes */
-	VkVertexInputAttributeDescription attribs[2] = {};
+	VkVertexInputAttributeDescription attribs[3] = {};
 	attribs[0].binding = 0;
 	attribs[0].location = 0;
 	attribs[0].format = VK_FORMAT_R32G32B32_SFLOAT;
@@ -532,8 +535,13 @@ void VulkanRenderer::CreateGraphicsPipeline() {
 
 	attribs[1].binding = 0;
 	attribs[1].location = 1;
-	attribs[1].format = VK_FORMAT_R32G32B32A32_SFLOAT;
-	attribs[1].offset = offsetof(Vertex, Vertex::color);
+	attribs[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+	attribs[1].offset = offsetof(Vertex, Vertex::normal);
+
+	attribs[2].binding = 0;
+	attribs[2].location = 2;
+	attribs[2].format = VK_FORMAT_R32G32_SFLOAT;
+	attribs[2].offset = offsetof(Vertex, Vertex::texCoord);
 
 	/* 
 		Define our dynamic states 
