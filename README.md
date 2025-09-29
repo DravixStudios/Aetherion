@@ -17,3 +17,4 @@
 - [shaderc](https://github.com/google/shaderc)
 - [g-truc/glm](https://github.com/g-truc/glm)
 - [Vulkan](https://www.vulkan.org/)
+- [STB](https://github.com/nothings/stb)
