@@ -93,6 +93,7 @@ private:
 	/* Memory methods */
 	uint32_t FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 	GPUBuffer* CreateVertexBuffer(const std::vector<Vertex>& vertices) override;
+	GPUBuffer* CreateStagingBuffer(void* pData, uint32_t nSize) override;
 	bool DrawVertexBuffer(GPUBuffer* buffer) override;
 	GPUBuffer* m_buffer;
 

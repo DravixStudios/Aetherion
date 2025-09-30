@@ -1,11 +1,12 @@
 #include "Core/Renderer/Vulkan/VulkanBuffer.h"
 
-VulkanBuffer::VulkanBuffer(VkDevice& dev, VkPhysicalDevice& physicalDev, VkBuffer& buffer, VkDeviceMemory& memory, uint32_t nSize) : GPUBuffer() {
+VulkanBuffer::VulkanBuffer(VkDevice& dev, VkPhysicalDevice& physicalDev, VkBuffer& buffer, VkDeviceMemory& memory, uint32_t nSize, EBufferType bufferType) : GPUBuffer() {
 	this->m_dev = dev;
 	this->m_physicalDev = physicalDev;
 	this->m_buffer = buffer;
 	this->m_memory = memory;
 	this->m_nSize = nSize;
+	this->m_bufferType = bufferType;
 }
 
 VkDevice VulkanBuffer::GetDevice() {

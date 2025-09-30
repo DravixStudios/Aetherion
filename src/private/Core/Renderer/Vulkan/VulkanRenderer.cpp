@@ -911,7 +911,57 @@ GPUBuffer* VulkanRenderer::CreateVertexBuffer(const std::vector<Vertex>& vertice
 
 	spdlog::debug("CreateVertexBuffer: Buffer memory binded");
 
-	VulkanBuffer* retBuff = new VulkanBuffer(this->m_device, this->m_physicalDevice, buffer, memory, vertices.size());
+	VulkanBuffer* retBuff = new VulkanBuffer(this->m_device, this->m_physicalDevice, buffer, memory, vertices.size(), EBufferType::VERTEX_BUFFER);
+	return retBuff;
+}
+
+/*
+	Create a CPU visible staging buffer and copy the given data to it.
+	This buffer is intended for transferring texture or GPU resource data to GPU memory.
+*/
+GPUBuffer* VulkanRenderer::CreateStagingBuffer(void* pData, uint32_t nSize) {
+	VkBuffer buffer = nullptr;
+	VkDeviceMemory memory = nullptr;
+
+	/* Our staging buffer create info */
+	VkBufferCreateInfo createInfo = { };
+	createInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+	createInfo.size = nSize;
+	createInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT; // Staging (Only copy)
+	createInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+	if (vkCreateBuffer(this->m_device, &createInfo, nullptr, &buffer) != VK_SUCCESS) {
+		spdlog::error("VulkanRenderer::CreateStagingBuffer: Failed creating staging buffer");
+		throw std::runtime_error("VulkanRenderer::CreateStagingBuffer: Failed creating staging buffer");
+		return nullptr;
+	}
+
+	/* Get memory requirements */
+	VkMemoryRequirements memReqs;
+	vkGetBufferMemoryRequirements(this->m_device, buffer, &memReqs);
+
+	/* Memory allocate info */
+	VkMemoryAllocateInfo allocInfo = { };
+	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+	allocInfo.allocationSize = memReqs.size;
+	allocInfo.memoryTypeIndex = this->FindMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+	vkAllocateMemory(this->m_device, &allocInfo, nullptr, &memory);
+
+	/* Map our memory for copying our data */
+	void* pMap = nullptr;
+	vkMapMemory(this->m_device, memory, 0, memReqs.size, 0, &pMap);
+	memcpy(pData, pMap, nSize);
+	vkUnmapMemory(this->m_device, memory);
+
+	/* Bind our buffer to our device memory */
+	if (vkBindBufferMemory(this->m_device, buffer, memory, 0) != VK_SUCCESS) {
+		spdlog::error("VulkanRenderer::CreateStagingBuffer: Failed binding buffer memory");
+		throw std::runtime_error("VulkanRenderer::CreateStagingBuffer: Failed binding buffer memory");
+		return nullptr;
+	}
+
+	VulkanBuffer* retBuff = new VulkanBuffer(this->m_device, this->m_physicalDevice, buffer, memory, nSize, EBufferType::STAGING_BUFFER);
 	return retBuff;
 }
 

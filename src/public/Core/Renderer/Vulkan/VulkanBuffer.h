@@ -7,7 +7,7 @@
 
 class VulkanBuffer : public GPUBuffer {
 public:
-	VulkanBuffer(VkDevice& dev, VkPhysicalDevice& physicalDev, VkBuffer& buffer, VkDeviceMemory& memory, uint32_t nSize);
+	VulkanBuffer(VkDevice& dev, VkPhysicalDevice& physicalDev, VkBuffer& buffer, VkDeviceMemory& memory, uint32_t nSize, EBufferType bufferType);
 
 	VkDevice GetDevice();
 	VkPhysicalDevice GetPhysicalDevice();

@@ -18,5 +18,6 @@ public:
     virtual void SetWindow(GLFWwindow* pWindow);
 
     virtual GPUBuffer* CreateVertexBuffer(const std::vector<Vertex>& vertices);
+    virtual GPUBuffer* CreateStagingBuffer(void* pData, uint32_t nSize);
     virtual bool DrawVertexBuffer(GPUBuffer* buffer);
 };

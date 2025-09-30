@@ -103,6 +103,10 @@ bool Mesh::LoadModel(std::string filePath) {
 					&nChannels, // Pointer to channels
 					4 // Desired channels
 				);
+
+				Renderer* renderer = this->m_core->GetRenderer();
+				GPUBuffer* stagingBuffer = renderer->CreateStagingBuffer(pixelData, (nWidth * nHeight) * 4);
+				
 			}
 			else {
 				/* TODO: Load uncompressed textures */
