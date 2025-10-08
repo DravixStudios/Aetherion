@@ -106,7 +106,7 @@ bool Mesh::LoadModel(std::string filePath) {
 
 				Renderer* renderer = this->m_core->GetRenderer();
 				GPUBuffer* stagingBuffer = renderer->CreateStagingBuffer(pixelData, (nWidth * nHeight) * 4);
-				
+				GPUTexture* gpuTexture = renderer->CreateTexture(stagingBuffer, nWidth, nHeight, GPUFormat::RGBA8_SRGB);
 			}
 			else {
 				/* TODO: Load uncompressed textures */

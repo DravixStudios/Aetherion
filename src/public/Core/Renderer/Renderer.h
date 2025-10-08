@@ -7,6 +7,8 @@
 
 #include "Utils.h"
 #include "Core/Renderer/GPUBuffer.h"
+#include "Core/Renderer/GPUTexture.h"
+#include "Core/Renderer/GPUFormat.h"
 
 class Renderer {
 protected:
@@ -19,5 +21,6 @@ public:
 
     virtual GPUBuffer* CreateVertexBuffer(const std::vector<Vertex>& vertices);
     virtual GPUBuffer* CreateStagingBuffer(void* pData, uint32_t nSize);
+    virtual GPUTexture* CreateTexture(GPUBuffer* pBuffer, uint32_t nWidth, uint32_t nHeight, GPUFormat format);
     virtual bool DrawVertexBuffer(GPUBuffer* buffer);
 };

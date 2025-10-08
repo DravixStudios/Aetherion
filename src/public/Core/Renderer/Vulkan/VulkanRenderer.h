@@ -14,6 +14,8 @@
 
 #include "Core/Renderer/Renderer.h"
 #include "Core/Renderer/Vulkan/VulkanBuffer.h"
+#include "Core/Renderer/Vulkan/VulkanTexture.h"
+#include "Core/Renderer/GPUFormat.h"
 #include "Utils.h"
 
 #ifndef NDEBUG
@@ -94,6 +96,7 @@ private:
 	uint32_t FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 	GPUBuffer* CreateVertexBuffer(const std::vector<Vertex>& vertices) override;
 	GPUBuffer* CreateStagingBuffer(void* pData, uint32_t nSize) override;
+	GPUTexture* CreateTexture(GPUBuffer* pBuffer, uint32_t nWidth, uint32_t nHeight, GPUFormat format) override;
 	bool DrawVertexBuffer(GPUBuffer* buffer) override;
 	GPUBuffer* m_buffer;
 

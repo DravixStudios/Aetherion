@@ -27,6 +27,20 @@ struct SwapChainSupportDetails {
 	std::vector<VkPresentModeKHR> presentModes;
 };
 
+/* Convert from GPUFormat to VkFormat */
+VkFormat ToVkFormat(GPUFormat format) {
+	switch (format) {
+		case GPUFormat::RGBA8_UNORM: return VK_FORMAT_R8G8B8A8_UNORM;
+		case GPUFormat::RGBA8_SRGB: return VK_FORMAT_R8G8B8A8_SRGB;
+		case GPUFormat::RGBA16_FLOAT: return VK_FORMAT_R16G16B16A16_SFLOAT;
+		case GPUFormat::RGBA32_FLOAT: return VK_FORMAT_R32G32B32A32_SFLOAT;
+		case GPUFormat::D24_UNORM_S8_UINT: return VK_FORMAT_D24_UNORM_S8_UINT;
+		case GPUFormat::D32_FLOAT: return VK_FORMAT_D32_SFLOAT;
+		case GPUFormat::D32_FLOAT_S8_UINT: return VK_FORMAT_D32_SFLOAT_S8_UINT;
+		case GPUFormat::R8_UNORM: return VK_FORMAT_R8_UNORM;
+	}
+}
+
 /* Constructor */
 VulkanRenderer::VulkanRenderer() : Renderer::Renderer() {
 	this->m_bEnableValidationLayers = ENABLE_VALIDATION_LAYERS;
@@ -48,6 +62,8 @@ VulkanRenderer::VulkanRenderer() : Renderer::Renderer() {
 	this->m_pipelineLayout = nullptr;
 	this->m_scissor = VkRect2D();
 	this->m_viewport = VkViewport();
+	this->m_commandPool = nullptr;
+	this->m_buffer = nullptr;
 }
 
 /* Renderer init method */
@@ -963,6 +979,56 @@ GPUBuffer* VulkanRenderer::CreateStagingBuffer(void* pData, uint32_t nSize) {
 
 	VulkanBuffer* retBuff = new VulkanBuffer(this->m_device, this->m_physicalDevice, buffer, memory, nSize, EBufferType::STAGING_BUFFER);
 	return retBuff;
+}
+
+/*
+	Create a VkImage from our staging buffer
+*/
+GPUTexture* VulkanRenderer::CreateTexture(GPUBuffer* pBuffer, uint32_t nWidth, uint32_t nHeight, GPUFormat format) {
+	/* Convert our GPUFormat to a VkFormat */
+	VkFormat vkFormat = ToVkFormat(format);
+
+	/* Our image create info */
+	VkImageCreateInfo imageInfo = { };
+	imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+	imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+	imageInfo.imageType = VK_IMAGE_TYPE_2D;
+	imageInfo.extent.width = nWidth;
+	imageInfo.extent.height = nHeight;
+	imageInfo.extent.depth = 1;
+	imageInfo.format = vkFormat;
+	imageInfo.mipLevels = 1;
+	imageInfo.arrayLayers = 1;
+	imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+	imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+	imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+	/* Create our VkImage */
+	VkImage image;
+	if (vkCreateImage(this->m_device, &imageInfo, nullptr, &image) != VK_SUCCESS) {
+		spdlog::error("VulkanRenderer::CreateTexture: Failed creating VkImage");
+		throw std::runtime_error("VulkanRenderer::CreateTexture: Failed creating VkImage");
+		return nullptr;
+	}
+
+	/* Get our image memory requirements */
+	VkMemoryRequirements memReqs;
+	vkGetImageMemoryRequirements(this->m_device, image, &memReqs);
+
+	/* 
+		Memory allocate info
+			Notes:
+			- VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT:
+				Indicates that the memory is located in device local memory,
+				providing the highest performance for GPU access.
+	*/
+	VkMemoryAllocateInfo allocInfo = { };
+	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+	allocInfo.memoryTypeIndex = FindMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+	allocInfo.allocationSize = memReqs.size;
+
+
 }
 
 /* Bind our vertex buffer */

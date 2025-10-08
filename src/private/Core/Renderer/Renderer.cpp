@@ -11,6 +11,8 @@ GPUBuffer* Renderer::CreateVertexBuffer(const std::vector<Vertex>& vertices) { r
 
 GPUBuffer* Renderer::CreateStagingBuffer(void* pData, uint32_t nSize) { return nullptr; }
 
+GPUTexture* Renderer::CreateTexture(GPUBuffer* pBuffer, uint32_t nWidth, uint32_t nHeight, GPUFormat format) { return nullptr; }
+
 bool Renderer::DrawVertexBuffer(GPUBuffer* buffer) { return false; }
 
 void Renderer::SetWindow(GLFWwindow* pWindow) {
