@@ -116,7 +116,7 @@ void VulkanRenderer::CreateInstance() {
 
 	/* Vulkan application info */
 	VkApplicationInfo appInfo = { };
-	appInfo.apiVersion = VK_API_VERSION_1_0;
+	appInfo.apiVersion = VK_API_VERSION_1_1;
 	appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
 	appInfo.pApplicationName = "No name"; /* Actually not making a game lol. We're only setting pEngineName */
 	appInfo.engineVersion = VK_MAKE_VERSION(0, 1, 0);
