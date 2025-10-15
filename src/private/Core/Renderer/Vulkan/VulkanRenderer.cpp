@@ -969,10 +969,12 @@ GPUBuffer* VulkanRenderer::CreateStagingBuffer(void* pData, uint32_t nSize) {
 
 	vkAllocateMemory(this->m_device, &allocInfo, nullptr, &memory);
 
+
+
 	/* Map our memory for copying our data */
 	void* pMap = nullptr;
 	vkMapMemory(this->m_device, memory, 0, memReqs.size, 0, &pMap);
-	memcpy(pData, pMap, nSize);
+	memcpy(pMap, pData, nSize);
 	vkUnmapMemory(this->m_device, memory);
 
 	/* Bind our buffer to our device memory */

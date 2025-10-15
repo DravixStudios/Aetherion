@@ -90,8 +90,11 @@ bool Mesh::LoadModel(std::string filePath) {
 
 			unsigned char* pixelData = nullptr;
 
+			std::string format = texture->achFormatHint;
+
 			/* If height is 0, means that is compressed (Width will be the full size of the image) */
 			if (texture->mHeight == 0) {
+
 				/* Load image from memory with STB_image */
 				spdlog::debug("Mesh::LoadModel: Loading compressed texture {0} from memory", texturePath.C_Str());
 
@@ -103,6 +106,12 @@ bool Mesh::LoadModel(std::string filePath) {
 					&nChannels, // Pointer to channels
 					4 // Desired channels
 				);
+
+				if (pixelData == nullptr) {
+					spdlog::error("Mesh::LoadModel: Failed loading texture");
+					throw std::runtime_error("Mesh::LoadModel: Failed loading texture");
+					return false;
+				}
 
 				Renderer* renderer = this->m_core->GetRenderer();
 				GPUBuffer* stagingBuffer = renderer->CreateStagingBuffer(pixelData, (nWidth * nHeight) * 4);
