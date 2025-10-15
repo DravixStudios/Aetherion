@@ -5,13 +5,17 @@ VulkanTexture::VulkanTexture(
 	VkPhysicalDevice& physicalDev,
 	VkImage& buffer,
 	VkDeviceMemory& memory,
-	uint32_t nSize
+	uint32_t nSize,
+	VkImageView& imageView,
+	VkSampler& sampler
 ) : GPUTexture::GPUTexture() {
 	this->m_dev = dev;
 	this->m_physicalDev = physicalDev;
 	this->m_buffer = buffer;
 	this->m_memory = memory;
 	this->m_nSize = nSize;
+	this->m_imageView = imageView;
+	this->m_sampler = sampler;
 }
 
 VkDevice VulkanTexture::GetDevice() {

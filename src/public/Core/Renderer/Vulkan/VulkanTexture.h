@@ -8,7 +8,15 @@
 
 class VulkanTexture : public GPUTexture {
 public:
-	VulkanTexture(VkDevice& dev, VkPhysicalDevice& physicalDev, VkImage& buffer, VkDeviceMemory& memory, uint32_t nSize);
+	VulkanTexture(
+		VkDevice& dev, 
+		VkPhysicalDevice& physicalDev, 
+		VkImage& buffer, 
+		VkDeviceMemory& memory, 
+		uint32_t nSize, 
+		VkImageView& imageView, 
+		VkSampler& sampler
+	);
 
 	VkDevice GetDevice();
 	VkPhysicalDevice GetPhysicalDevice();
@@ -21,6 +29,8 @@ private:
 	VkPhysicalDevice m_physicalDev;
 	VkImage m_buffer;
 	VkDeviceMemory m_memory;
+	VkImageView m_imageView;
+	VkSampler m_sampler;
 
 	uint32_t m_nSize;
 };

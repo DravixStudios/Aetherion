@@ -97,8 +97,16 @@ private:
 	GPUBuffer* CreateVertexBuffer(const std::vector<Vertex>& vertices) override;
 	GPUBuffer* CreateStagingBuffer(void* pData, uint32_t nSize) override;
 	GPUTexture* CreateTexture(GPUBuffer* pBuffer, uint32_t nWidth, uint32_t nHeight, GPUFormat format) override;
+	VkImageView CreateImageView(VkImage image, VkFormat format);
+	VkSampler CreateSampler();
+	void CopyBufferToImage(VkBuffer buffer, VkImage image, uint32_t nWidth, uint32_t nHeight);
 	bool DrawVertexBuffer(GPUBuffer* buffer) override;
+
 	GPUBuffer* m_buffer;
+
+	void TransitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
+	VkCommandBuffer BeginSingleTimeCommandBuffer();
+	void EndSingleTimeCommandBuffer(VkCommandBuffer commandBuffer);
 
 	/* Physical device methods */
 	bool IsDeviceSuitable(VkPhysicalDevice device);
