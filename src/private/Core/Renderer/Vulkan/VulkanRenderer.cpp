@@ -219,6 +219,20 @@ void VulkanRenderer::PickPhysicalDevice() {
 	VkPhysicalDeviceProperties deviceProperties;
 	vkGetPhysicalDeviceProperties(this->m_physicalDevice, &deviceProperties);
 
+	/* Check if physical device supports Vulkan 1.1 */
+	uint32_t apiMajor = VK_VERSION_MAJOR(deviceProperties.apiVersion);
+	uint32_t apiMinor = VK_VERSION_MINOR(deviceProperties.apiVersion);
+
+	spdlog::debug("Max supported Vulkan version: {}.{}", apiMajor, apiMinor);
+
+	if (apiMajor < 1 || (apiMajor == 1 && apiMinor < 1)) {
+		spdlog::error("PickPhysicalDevice: Selected GPU does not support Vulkan 1.1 minimum (found {}.{})",
+			apiMajor, apiMinor);
+		throw std::runtime_error("PickPhysicalDevice: Vulkan 1.1 required.");
+	}
+
+
+
 	spdlog::debug("Selected physical device: {0}", deviceProperties.deviceName);
 }
 
