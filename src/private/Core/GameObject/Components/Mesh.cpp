@@ -6,6 +6,7 @@
 Mesh::Mesh(std::string name) : Component::Component(name) {
 	this->m_core = Core::GetInstance();
 	this->m_bMeshImported = false;
+	this->m_resourceManager = ResourceManager::GetInstance();
 }
 
 void Mesh::Start() {
@@ -82,6 +83,11 @@ bool Mesh::LoadModel(std::string filePath) {
 		if (material->GetTextureCount(aiTextureType_DIFFUSE) > 0 && material->GetTexture(aiTextureType_DIFFUSE, 0, &texturePath) == AI_SUCCESS) {
 			spdlog::debug("Mesh::LoadModel: Loading texture {0} for mesh #{1}", texturePath.C_Str(), i);
 
+			if (this->m_resourceManager->TextureExists(texturePath.C_Str())) {
+				this->m_textures[i] = this->m_resourceManager->GetTexture(texturePath.C_Str());
+				continue;
+			}
+
 			const aiTexture* texture = scene->GetEmbeddedTexture(texturePath.C_Str());
 			
 			int nWidth = 0;
@@ -116,6 +122,9 @@ bool Mesh::LoadModel(std::string filePath) {
 				Renderer* renderer = this->m_core->GetRenderer();
 				GPUBuffer* stagingBuffer = renderer->CreateStagingBuffer(pixelData, (nWidth * nHeight) * 4);
 				GPUTexture* gpuTexture = renderer->CreateTexture(stagingBuffer, nWidth, nHeight, GPUFormat::RGBA8_SRGB);
+
+				this->m_resourceManager->AddTexture(texturePath.C_Str(), gpuTexture);
+				this->m_textures[i] = gpuTexture;
 			}
 			else {
 				/* TODO: Load uncompressed textures */

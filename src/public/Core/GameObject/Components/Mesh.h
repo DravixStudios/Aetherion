@@ -1,6 +1,7 @@
 #pragma once
 #include "Core/GameObject/Components/Component.h"
 #include "Utils.h"
+#include "Core/Renderer/ResourceManager.h"
 
 #include <vector>
 #include <map>
@@ -25,6 +26,15 @@ public:
 	
 private:
 	bool m_bMeshImported;
+
+	/* 
+		Texture map:
+			Key: The vertex buffer for the texture.
+			Value: The texture (GPUTexture).
+	*/
+	std::map<uint32_t, GPUTexture*> m_textures;
+
+	ResourceManager* m_resourceManager;
 
 	Core* m_core;
 };
