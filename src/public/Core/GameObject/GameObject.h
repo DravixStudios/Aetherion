@@ -13,6 +13,7 @@ public:
 
 	virtual void Start();
 	virtual void Update();
+	std::map<std::string, Component*> GetComponents();
 private:
 	std::string m_name;
 	

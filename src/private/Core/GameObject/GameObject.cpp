@@ -3,9 +3,9 @@
 GameObject::GameObject(std::string name) {
 	this->m_name = name;
 
-	Mesh* mesh = new Mesh("Mesh Component");
+	Mesh* mesh = new Mesh("MeshComponent");
 	mesh->LoadModel("f16.fbx");
-	this->m_components["Mesh Component"] = mesh;
+	this->m_components["MeshComponent"] = mesh;
 }
 
 std::string GameObject::GetName() {
@@ -22,4 +22,8 @@ void GameObject::Update() {
 	for (std::pair<std::string, Component*> component : this->m_components) {
 		component.second->Update();
 	}
+}
+
+std::map<std::string, Component*> GameObject::GetComponents() {
+	return this->m_components;
 }
