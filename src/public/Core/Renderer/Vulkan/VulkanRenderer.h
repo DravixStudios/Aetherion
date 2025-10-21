@@ -76,6 +76,12 @@ private:
 	VkSemaphore m_renderFinished;
 	VkFence m_fence;
 
+	VkSampleCountFlagBits m_multisampleCount;
+	VkImage m_colorImage;
+	VkDeviceMemory m_colorImageMemory;
+	VkImageView m_colorImageView;
+
+
 	/* Main methods */
 	void CreateInstance();
 	void SetupDebugMessenger();
@@ -85,9 +91,10 @@ private:
 	void CreateSwapChain();
 	void CreateImageViews();
 	void CreateRenderPass();
-	void CreateFrameBuffers();
 	void CreateCommandPool();
+	void CreateColorResources();
 	void CreateDepthResources();
+	void CreateFrameBuffers();
 	void CreateCommandBuffer();
 	void CreateGraphicsPipeline();
 	void CreateSyncObjects();
@@ -108,6 +115,7 @@ private:
 		uint32_t nWidth, 
 		uint32_t nHeight, 
 		VkFormat format, 
+		VkSampleCountFlagBits multisampleCount,
 		VkImageTiling tiling, 
 		VkImageUsageFlags usageFlags, 
 		VkMemoryPropertyFlags propertyFlags,
@@ -125,7 +133,7 @@ private:
 	void CopyBufferToImage(VkBuffer buffer, VkImage image, uint32_t nWidth, uint32_t nHeight);
 	bool DrawVertexBuffer(GPUBuffer* buffer) override;
 
-	GPUBuffer* m_buffer;
+	VkSampleCountFlagBits GetMaxUsableSampleCount();
 
 	void TransitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
 	VkCommandBuffer BeginSingleTimeCommandBuffer();

@@ -64,7 +64,6 @@ VulkanRenderer::VulkanRenderer() : Renderer::Renderer() {
 	this->m_scissor = VkRect2D();
 	this->m_viewport = VkViewport();
 	this->m_commandPool = nullptr;
-	this->m_buffer = nullptr;
 	this->m_sceneMgr = nullptr;
 }
 
@@ -97,8 +96,8 @@ void VulkanRenderer::Init() {
 	this->CreateSwapChain();
 	this->CreateImageViews();
 	this->CreateRenderPass();
-	this->m_buffer = this->CreateVertexBuffer(vertices);
 	this->CreateCommandPool();
+	this->CreateColorResources();
 	this->CreateDepthResources();
 	this->CreateFrameBuffers();
 	this->CreateCommandBuffer();
@@ -462,7 +461,106 @@ void VulkanRenderer::CreateRenderPass() {
 	spdlog::debug("CreateRenderPass: Render pass created");
 }
 
+/* Command pool creation */
+void VulkanRenderer::CreateCommandPool() {
+	QueueFamilyIndices indices = FindQueueFamilies(this->m_physicalDevice);
+
+	VkCommandPoolCreateInfo createInfo = { };
+	createInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+	createInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+	createInfo.queueFamilyIndex = indices.graphicsFamily.value();
+	if (vkCreateCommandPool(this->m_device, &createInfo, nullptr, &this->m_commandPool) != VK_SUCCESS) {
+		spdlog::error("CreateCommandPool: Error creating command pool");
+		throw std::runtime_error("CreateCommandPool: Error creating command pool");
+		return;
+	}
+
+	spdlog::debug("CreateCommandPool: Command pool created");
+}
+
 /* 
+	Create an additional image per frame
+		Notes:
+			- We do this because the swapchain doesn't directly support multisampling.
+			  So, we create an additional image and resolve to the final swapchain image.
+*/
+void VulkanRenderer::CreateColorResources() {
+	/* Get multisample count */
+	VkSampleCountFlagBits multisampleCount = this->GetMaxUsableSampleCount();
+	this->m_multisampleCount = multisampleCount;
+	
+	/* Get format  */
+	VkFormat colorFormat = this->m_surfaceFormat;
+
+	spdlog::debug("MSAA Samples available: {0}", static_cast<int>(this->m_multisampleCount));
+	
+	VkImage colorImage = nullptr;
+	VkDeviceMemory imageMemory = nullptr;
+
+	/*
+		Creation of our image
+
+		VkImageUsageFlagBits:
+			- VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT: Specifies that implementations may support
+			  using memory allocations with the VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT to back an image
+			  with this usage.
+			- VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT: Specifies that the image can be used to create a VkImageView
+			  suitable for occupying a VkDescriptorSet slot of type VK_DESCRIPTOR_TYPE_STORAGE_IMAGE
+
+	*/
+	uint32_t nColorImageSize = this->CreateImage(
+		this->m_scExtent.width,
+		this->m_scExtent.height,
+		colorFormat,
+		this->m_multisampleCount,
+		VK_IMAGE_TILING_OPTIMAL,
+		VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+		colorImage,
+		imageMemory
+	);
+
+	/* Creation of our image view */
+	VkImageView imageView = nullptr;
+	this->CreateImageView(colorImage, colorFormat, VK_IMAGE_ASPECT_COLOR_BIT);
+
+	this->m_colorImage = colorImage;
+	this->m_colorImageMemory = imageMemory;
+	this->m_colorImageView = imageView;
+
+	spdlog::debug("VulkanRenderer::CreateColorResources: Color resources created");
+}
+
+/* Depth resources creation */
+void VulkanRenderer::CreateDepthResources() {
+	VkFormat depthFormat = this->FindDepthFormat();
+
+	/* Cretion of our depth image */
+	VkDeviceMemory depthMemory = nullptr;
+	VkImage depthImage = nullptr;
+
+	uint32_t nDepthImageSize = this->CreateImage(
+		this->m_scExtent.width, this->m_scExtent.height,
+		depthFormat,
+		VK_SAMPLE_COUNT_1_BIT,
+		VK_IMAGE_TILING_OPTIMAL,
+		VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+		depthImage,
+		depthMemory
+	);
+
+	/* Creation of our depth image view */
+	VkImageView imageView = this->CreateImageView(depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
+	this->TransitionImageLayout(depthImage, depthFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+
+	this->m_depthImage = depthImage;
+	this->m_depthImageView = imageView;
+
+	spdlog::debug("VulkanRenderer::CreateDepthResources: Depth resources created");
+}
+
+/*
 	Create a frame buffer per each image view
 */
 void VulkanRenderer::CreateFrameBuffers() {
@@ -494,49 +592,6 @@ void VulkanRenderer::CreateFrameBuffers() {
 	}
 
 	spdlog::debug("CreateFrameBuffer: Frame buffers created");
-}
-
-/* Command pool creation */
-void VulkanRenderer::CreateCommandPool() {
-	QueueFamilyIndices indices = FindQueueFamilies(this->m_physicalDevice);
-
-	VkCommandPoolCreateInfo createInfo = { };
-	createInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-	createInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-	createInfo.queueFamilyIndex = indices.graphicsFamily.value();
-	if (vkCreateCommandPool(this->m_device, &createInfo, nullptr, &this->m_commandPool) != VK_SUCCESS) {
-		spdlog::error("CreateCommandPool: Error creating command pool");
-		throw std::runtime_error("CreateCommandPool: Error creating command pool");
-		return;
-	}
-
-	spdlog::debug("CreateCommandPool: Command pool created");
-}
-
-/* Depth resources creation */
-void VulkanRenderer::CreateDepthResources() {
-	VkFormat depthFormat = this->FindDepthFormat();
-
-	/* Cretion of our depth image */
-	VkDeviceMemory depthMemory = nullptr;
-	VkImage depthImage = nullptr;
-
-	uint32_t nDepthImageSize = this->CreateImage(
-		this->m_scExtent.width, this->m_scExtent.height,
-		depthFormat,
-		VK_IMAGE_TILING_OPTIMAL,
-		VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-		depthImage,
-		depthMemory
-	);
-
-	/* Creation of our depth image view */
-	VkImageView imageView = this->CreateImageView(depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
-	this->TransitionImageLayout(depthImage, depthFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
-
-	this->m_depthImage = depthImage;
-	this->m_depthImageView = imageView;
 }
 
 void VulkanRenderer::CreateCommandBuffer() {
@@ -980,6 +1035,7 @@ uint32_t VulkanRenderer::CreateImage(
 	uint32_t nWidth,
 	uint32_t nHeight,
 	VkFormat format,
+	VkSampleCountFlagBits multisampleCount,
 	VkImageTiling tiling,
 	VkImageUsageFlags usageFlags,
 	VkMemoryPropertyFlags propertyFlags,
@@ -996,7 +1052,7 @@ uint32_t VulkanRenderer::CreateImage(
 	createInfo.mipLevels = 1;
 	createInfo.usage = usageFlags;
 	createInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	createInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+	createInfo.samples = multisampleCount;
 	createInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 	createInfo.format = format;
 	createInfo.tiling = tiling;
@@ -1216,6 +1272,7 @@ GPUTexture* VulkanRenderer::CreateTexture(GPUBuffer* pBuffer, uint32_t nWidth, u
 	uint32_t nImageSize = this->CreateImage(
 		nWidth, nHeight,
 		vkFormat,
+		VK_SAMPLE_COUNT_1_BIT,
 		VK_IMAGE_TILING_OPTIMAL,
 		VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
 		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
@@ -1357,6 +1414,28 @@ bool VulkanRenderer::DrawVertexBuffer(GPUBuffer* buffer) {
 	vkCmdDraw(this->m_commandBuffer, nSize, 1, 0, 0);
 
 	return true;
+}
+
+/* Get the max usable sample count depending on the physical device properties */
+VkSampleCountFlagBits VulkanRenderer::GetMaxUsableSampleCount() {
+	/* Get physical device properties */
+	VkPhysicalDeviceProperties devProps;
+	vkGetPhysicalDeviceProperties(this->m_physicalDevice, &devProps);
+
+	/*
+		Determine the supported levels of multisampling simultaneously by color and depth.
+		Vulkan needs that both attachments use the same sample count on the render pass.
+	*/
+	VkSampleCountFlags count = devProps.limits.framebufferColorSampleCounts & devProps.limits.framebufferDepthSampleCounts;
+
+	if (count & VK_SAMPLE_COUNT_64_BIT) return VK_SAMPLE_COUNT_64_BIT;
+	if (count & VK_SAMPLE_COUNT_32_BIT) return VK_SAMPLE_COUNT_32_BIT;
+	if (count & VK_SAMPLE_COUNT_16_BIT) return VK_SAMPLE_COUNT_16_BIT;
+	if (count & VK_SAMPLE_COUNT_8_BIT) return VK_SAMPLE_COUNT_8_BIT;
+	if (count & VK_SAMPLE_COUNT_4_BIT) return VK_SAMPLE_COUNT_4_BIT;
+	if (count & VK_SAMPLE_COUNT_2_BIT) return VK_SAMPLE_COUNT_2_BIT;
+
+	return VK_SAMPLE_COUNT_1_BIT;
 }
 
 /* Transition image layout to a new one */
