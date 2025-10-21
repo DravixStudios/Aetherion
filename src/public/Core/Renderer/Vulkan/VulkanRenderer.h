@@ -28,6 +28,8 @@
 struct QueueFamilyIndices;
 struct SwapChainSupportDetails;
 
+class SceneManager;
+
 class VulkanRenderer : public Renderer {
 public:
 	VulkanRenderer();
@@ -35,6 +37,8 @@ public:
 	void Init() override;
 	void Update() override;
 private:
+	SceneManager* m_sceneMgr;
+
 	/* Debug messenger members */
 	bool m_bEnableValidationLayers;
 	VkDebugUtilsMessengerEXT m_debugMessenger;
@@ -55,6 +59,9 @@ private:
 
 	VkRenderPass m_renderPass;
 	std::vector<VkFramebuffer> m_frameBuffers;
+
+	VkImage m_depthImage;
+	VkImageView m_depthImageView;
 
 	VkCommandPool m_commandPool;
 	VkCommandBuffer m_commandBuffer;
@@ -80,6 +87,7 @@ private:
 	void CreateRenderPass();
 	void CreateFrameBuffers();
 	void CreateCommandPool();
+	void CreateDepthResources();
 	void CreateCommandBuffer();
 	void CreateGraphicsPipeline();
 	void CreateSyncObjects();
@@ -92,12 +100,27 @@ private:
 	std::vector<uint32_t> CompileShader(std::string shader, std::string filename, shaderc_shader_kind kind);
 	VkShaderModule CreateShaderModule(std::vector<uint32_t>& shaderCode);
 
+	VkFormat FindSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags featureFlags);
+	VkFormat FindDepthFormat();
+	bool HasStencilComponent(VkFormat format);
+
+	uint32_t CreateImage(
+		uint32_t nWidth, 
+		uint32_t nHeight, 
+		VkFormat format, 
+		VkImageTiling tiling, 
+		VkImageUsageFlags usageFlags, 
+		VkMemoryPropertyFlags propertyFlags,
+		VkImage& image,
+		VkDeviceMemory& memory
+	);
+
 	/* Memory methods */
 	uint32_t FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 	GPUBuffer* CreateVertexBuffer(const std::vector<Vertex>& vertices) override;
 	GPUBuffer* CreateStagingBuffer(void* pData, uint32_t nSize) override;
 	GPUTexture* CreateTexture(GPUBuffer* pBuffer, uint32_t nWidth, uint32_t nHeight, GPUFormat format) override;
-	VkImageView CreateImageView(VkImage image, VkFormat format);
+	VkImageView CreateImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
 	VkSampler CreateSampler();
 	void CopyBufferToImage(VkBuffer buffer, VkImage image, uint32_t nWidth, uint32_t nHeight);
 	bool DrawVertexBuffer(GPUBuffer* buffer) override;
