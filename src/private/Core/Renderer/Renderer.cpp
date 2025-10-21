@@ -7,6 +7,8 @@ Renderer::Renderer() {
 void Renderer::Init() {}
 void Renderer::Update() {}
 
+GPUBuffer* Renderer::CreateBuffer(const void* pData, uint32_t nSize, EBufferType bufferType) { return nullptr; }
+
 GPUBuffer* Renderer::CreateVertexBuffer(const std::vector<Vertex>& vertices) { return nullptr; }
 
 GPUBuffer* Renderer::CreateStagingBuffer(void* pData, uint32_t nSize) { return nullptr; }

@@ -125,6 +125,7 @@ private:
 
 	/* Memory methods */
 	uint32_t FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
+	GPUBuffer* CreateBuffer(const void* pData, uint32_t nSize, EBufferType bufferType) override;
 	GPUBuffer* CreateVertexBuffer(const std::vector<Vertex>& vertices) override;
 	GPUBuffer* CreateStagingBuffer(void* pData, uint32_t nSize) override;
 	GPUTexture* CreateTexture(GPUBuffer* pBuffer, uint32_t nWidth, uint32_t nHeight, GPUFormat format) override;

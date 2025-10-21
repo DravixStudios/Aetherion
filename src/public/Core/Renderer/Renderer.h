@@ -19,6 +19,7 @@ public:
     virtual void Update();
     virtual void SetWindow(GLFWwindow* pWindow);
 
+    virtual GPUBuffer* CreateBuffer(const void* pData, uint32_t nSize, EBufferType bufferType);
     virtual GPUBuffer* CreateVertexBuffer(const std::vector<Vertex>& vertices);
     virtual GPUBuffer* CreateStagingBuffer(void* pData, uint32_t nSize);
     virtual GPUTexture* CreateTexture(GPUBuffer* pBuffer, uint32_t nWidth, uint32_t nHeight, GPUFormat format);

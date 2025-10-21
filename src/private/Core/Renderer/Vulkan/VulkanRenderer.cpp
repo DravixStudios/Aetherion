@@ -42,6 +42,14 @@ VkFormat ToVkFormat(GPUFormat format) {
 	}
 }
 
+/* Return VkBufferUsageFlagBit depending on the buffer type */
+VkBufferUsageFlagBits ToVkBufferUsage(EBufferType bufferType) {
+	switch (bufferType) {
+		case EBufferType::CONSTANT_BUFFER: return VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+		case EBufferType::VERTEX_BUFFER: return VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+	};
+}
+
 /* Constructor */
 VulkanRenderer::VulkanRenderer() : Renderer::Renderer() {
 	this->m_bEnableValidationLayers = ENABLE_VALIDATION_LAYERS;
@@ -1132,67 +1140,73 @@ uint32_t VulkanRenderer::FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFla
 	throw std::runtime_error("FindMemoryType: Error finding memory type");
 }
 
-/* Creation of a vertex buffer */
-GPUBuffer* VulkanRenderer::CreateVertexBuffer(const std::vector<Vertex>& vertices) {
+/* Create a buffer based on the buffer type */
+GPUBuffer* VulkanRenderer::CreateBuffer(const void* pData, uint32_t nSize, EBufferType bufferType) {
+	VkBufferUsageFlagBits usage = ToVkBufferUsage(bufferType);
+
 	/* Buffer create info */
 	VkBufferCreateInfo createInfo = { };
 	createInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-	createInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-	createInfo.size = vertices.size() * sizeof(Vertex);
+	createInfo.size = nSize;
 	createInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-	 
-	/* Creation of our buffer. If fails, throw error and log it */
+	createInfo.usage = usage;
+
+	/* Create buffer */
 	VkBuffer buffer = nullptr;
 	if (vkCreateBuffer(this->m_device, &createInfo, nullptr, &buffer) != VK_SUCCESS) {
-		spdlog::error("CraeteVertexBuffer: Failed creating vertex buffer");
-		throw std::runtime_error("CreateVertexBuffer: Failed creating vertex buffer");
+		spdlog::error("VulkanRenderer::CreateBuffer: Failed creating buffer");
+		throw std::runtime_error("VulkanRenderer::CreateBuffer: Failed creating buffer");
 		return nullptr;
 	}
 
-	spdlog::debug("CreateVertexBuffer: Buffer created for: {0} bytes", vertices.size() * sizeof(Vertex));
-
-	/* Query memory requirements */
+	/* Get memory requirements */
 	VkMemoryRequirements memReqs = { };
 	vkGetBufferMemoryRequirements(this->m_device, buffer, &memReqs);
 
-	/* 
-		Define our memory allocation info 
+	/*
+		Define our memory allocation info
 			VkMemoryPropertyFlagBits ref: https://registry.khronos.org/vulkan/specs/latest/man/html/VkMemoryPropertyFlagBits.html
 
 		We'll be using HOST_VISIBLE and HOST_COHERENT:
 			HOST_VISIBLE: Specifies that this resource is visible from our device
 			HOST_COHERENT: Specifies that the device accesses to this resource are automatically made available and visible
 	*/
+
 	VkMemoryAllocateInfo allocInfo = { };
 	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 	allocInfo.allocationSize = memReqs.size;
-	allocInfo.memoryTypeIndex = this->FindMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+	allocInfo.memoryTypeIndex = FindMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
-	/* Creation of our device memory object */
-	VkDeviceMemory memory;
+	/* Allocate memory */
+	VkDeviceMemory memory = nullptr;
 	if (vkAllocateMemory(this->m_device, &allocInfo, nullptr, &memory) != VK_SUCCESS) {
-		spdlog::error("CreateVertexBuffer: Fialed to allocate our vertex memory");
-		throw std::runtime_error("CreateVertexBuffer: Fialed to allocate our vertex memory");
+		spdlog::error("VulkanRenderer::CreateBuffer: Failed allocating buffer device memory");
+		throw std::runtime_error("VulkanRenderer::CreateBuffer: Failed allocating buffer device memory");
 		return nullptr;
 	}
 
-	
-	/* Map our memory for copying our vertices */
-	void* pData = nullptr;
-	vkMapMemory(this->m_device, memory, 0, VK_WHOLE_SIZE, 0, &pData);
-	memcpy(pData, vertices.data(), vertices.size() * sizeof(Vertex));
+	/* Map our buffer device memory and copy our data */
+	void* pMapData = nullptr;
+	vkMapMemory(this->m_device, memory, 0, VK_WHOLE_SIZE, 0, &pMapData);
+	memcpy(pMapData, pData, nSize);
 	vkUnmapMemory(this->m_device, memory);
 
 	/* Bind our buffer to our device memory */
 	if (vkBindBufferMemory(this->m_device, buffer, memory, 0) != VK_SUCCESS) {
-		spdlog::error("CreateVertexBuffer: Failed binding buffer memory");
-		throw std::runtime_error("CreateVertexBuffer: Failed binding buffer memory");
+		spdlog::error("VulkanRenderer::CreateBuffer: Failed binding buffer memory");
+		throw std::runtime_error("VulkanRenderer::CreateBuffer: Failed binding buffer memory");
 		return nullptr;
 	}
 
-	spdlog::debug("CreateVertexBuffer: Buffer memory binded");
+	VulkanBuffer* vkBuffer = new VulkanBuffer(this->m_device, this->m_physicalDevice, buffer, memory, nSize, EBufferType::CONSTANT_BUFFER);
+	return vkBuffer;
+}
 
-	VulkanBuffer* retBuff = new VulkanBuffer(this->m_device, this->m_physicalDevice, buffer, memory, vertices.size(), EBufferType::VERTEX_BUFFER);
+/* Creation of a vertex buffer */
+GPUBuffer* VulkanRenderer::CreateVertexBuffer(const std::vector<Vertex>& vertices) {
+	VkBufferUsageFlagBits usage = ToVkBufferUsage(EBufferType::VERTEX_BUFFER);
+
+	GPUBuffer* retBuff = this->CreateBuffer(static_cast<const void*>(vertices.data()), vertices.size() * sizeof(Vertex), EBufferType::VERTEX_BUFFER);
 	return retBuff;
 }
 
