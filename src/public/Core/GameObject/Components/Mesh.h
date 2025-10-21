@@ -22,7 +22,11 @@ public:
 
 	bool LoadModel(std::string filePath);
 
+	std::map<uint32_t, GPUBuffer*>& GetVBOs();
+	std::map<uint32_t, GPUTexture*>& GetTextures();
+
 	std::map<uint32_t, std::vector<Vertex>> m_vertices;
+	std::map<uint32_t, GPUBuffer*> m_VBOs;
 	
 private:
 	bool m_bMeshImported;

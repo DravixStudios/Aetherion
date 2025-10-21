@@ -38,19 +38,20 @@ bool Mesh::LoadModel(std::string filePath) {
 		spdlog::error("Mesh::LoadModel: Scene couldn't be imported. Filename: {0}", filePath.c_str());
 		return false;
 	}
+
+	Renderer* renderer = this->m_core->GetRenderer();
 	
 	uint32_t nNumMeshes = scene->mNumMeshes; // Enumerate our mesh count
 
 	/* Get each mesh from our scene */
 	for (uint32_t i = 0; i < nNumMeshes; i++) {
 		const aiMesh* mesh = scene->mMeshes[i];
-		
+
 		/* Get the number of vertices */
 		uint32_t nNumVertices = mesh->mNumVertices;
 		spdlog::debug("Mesh::LoadModel: Loading {0} vertices for mesh #{1} in file {2}", nNumVertices, i, filePath);
 
 		std::vector<Vertex> vertices(nNumVertices);
-
 		
 		/*
 			Store a new vertices on our vertices vector. 
@@ -75,6 +76,8 @@ bool Mesh::LoadModel(std::string filePath) {
 		}
 
 		this->m_vertices[i] = vertices;
+		GPUBuffer* VBO = renderer->CreateVertexBuffer(vertices);
+		this->m_VBOs[i] = VBO;
 
 		/* Texture loading */
 		const aiMaterial* material =  scene->mMaterials[mesh->mMaterialIndex];
@@ -119,11 +122,11 @@ bool Mesh::LoadModel(std::string filePath) {
 					return false;
 				}
 
-				Renderer* renderer = this->m_core->GetRenderer();
 				GPUBuffer* stagingBuffer = renderer->CreateStagingBuffer(pixelData, (nWidth * nHeight) * 4);
 				GPUTexture* gpuTexture = renderer->CreateTexture(stagingBuffer, nWidth, nHeight, GPUFormat::RGBA8_SRGB);
 
 				this->m_resourceManager->AddTexture(texturePath.C_Str(), gpuTexture);
+				//this->m_VBOs[i] = 
 				this->m_textures[i] = gpuTexture;
 			}
 			else {
@@ -133,4 +136,14 @@ bool Mesh::LoadModel(std::string filePath) {
 	}
 
 	this->m_bMeshImported = true;
+}
+
+/* Returns Mesh::m_VBOs */
+std::map<uint32_t, GPUBuffer*>& Mesh::GetVBOs() {
+	return this->m_VBOs;
+}
+
+/* Returns Mesh::m_textures */
+std::map<uint32_t, GPUTexture*>& Mesh::GetTextures() {
+	return this->m_textures;
 }
