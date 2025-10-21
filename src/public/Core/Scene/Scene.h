@@ -11,9 +11,11 @@ public:
 	Scene(std::string name);
 
 	void AddObject(GameObject* object);
+	std::map<std::string, GameObject*> GetObjects();
 
 	void Start();
 	void Update();
+
 private:
 	std::string m_name;
 

@@ -15,6 +15,10 @@ void Scene::AddObject(GameObject* object) {
 	this->m_gameObjects[objName] = object;
 }
 
+std::map<std::string, GameObject*> Scene::GetObjects() {
+	return this->m_gameObjects;
+}
+
 void Scene::Start() {
 	for (std::pair<std::string, GameObject*> obj : this->m_gameObjects) {
 		obj.second->Start();
