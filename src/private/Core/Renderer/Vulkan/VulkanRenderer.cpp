@@ -108,6 +108,19 @@ void VulkanRenderer::Init() {
 	this->CreateColorResources();
 	this->CreateDepthResources();
 	this->CreateFrameBuffers();
+
+	/* Test uniform */
+	this->m_wvp.World = glm::mat4(1.f);
+	this->m_wvp.View = glm::mat4(1.f);
+	this->m_wvp.View = glm::translate(this->m_wvp.View, { 1.f, 0.f, 0.f });
+	this->m_wvp.Projection = glm::perspectiveFov(glm::radians(90.f), static_cast<float>(this->m_scExtent.width), static_cast<float>(this->m_scExtent.height), .001f, 300.f);
+	
+	this->m_wvpBuff = this->CreateBuffer(&this->m_wvp, sizeof(this->m_wvp), EBufferType::CONSTANT_BUFFER);
+	/* End Test uniform */
+
+	this->CreateDescriptorSetLayout();
+	this->CreateDescriptorPool();
+	this->AllocateAndWriteDescriptorSets();
 	this->CreateCommandBuffer();
 	this->CreateGraphicsPipeline();
 	this->CreateSyncObjects();
@@ -618,6 +631,40 @@ void VulkanRenderer::CreateFrameBuffers() {
 	}
 
 	spdlog::debug("CreateFrameBuffer: Frame buffers created");
+}
+
+/* Create our descriptor set layout */
+void VulkanRenderer::CreateDescriptorSetLayout() {
+	/* World view projection binding */
+	VkDescriptorSetLayoutBinding wvpBinding = { };
+	wvpBinding.binding = 0;
+	wvpBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	wvpBinding.descriptorCount = 1;
+	wvpBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+	wvpBinding.pImmutableSamplers = nullptr;
+
+	/* Descriptor set layout create info */
+	VkDescriptorSetLayoutCreateInfo createInfo = { };
+	createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+	createInfo.pBindings = &wvpBinding;
+	createInfo.bindingCount = 1;
+
+	if (vkCreateDescriptorSetLayout(this->m_device, &createInfo, nullptr, &this->m_decriptorSetLayout) != VK_SUCCESS) {
+		spdlog::error("VulkanRenderer::CreateDescriptorSetLayout: Failed creating descriptor set layout");
+		throw std::runtime_error("VulkanRenderer::CreateDescriptorSetLayout: Failed creating descriptor set layout");
+		return;
+	}
+
+	spdlog::debug("VulkanRenderer::CreateDescriptorSetLayout: Descriptor set layout created");
+}
+
+/* Create our descriptor pool */
+void VulkanRenderer::CreateDescriptorPool() {
+
+}
+
+void VulkanRenderer::AllocateAndWriteDescriptorSets() {
+
 }
 
 void VulkanRenderer::CreateCommandBuffer() {

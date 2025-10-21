@@ -81,6 +81,8 @@ private:
 	VkDeviceMemory m_colorImageMemory;
 	VkImageView m_colorImageView;
 
+	VkDescriptorSetLayout m_decriptorSetLayout;
+
 
 	/* Main methods */
 	void CreateInstance();
@@ -95,6 +97,9 @@ private:
 	void CreateColorResources();
 	void CreateDepthResources();
 	void CreateFrameBuffers();
+	void CreateDescriptorSetLayout();
+	void CreateDescriptorPool();
+	void AllocateAndWriteDescriptorSets();
 	void CreateCommandBuffer();
 	void CreateGraphicsPipeline();
 	void CreateSyncObjects();
@@ -133,6 +138,9 @@ private:
 	VkSampler CreateSampler();
 	void CopyBufferToImage(VkBuffer buffer, VkImage image, uint32_t nWidth, uint32_t nHeight);
 	bool DrawVertexBuffer(GPUBuffer* buffer) override;
+
+	WVP m_wvp;
+	GPUBuffer* m_wvpBuff;
 
 	VkSampleCountFlagBits GetMaxUsableSampleCount();
 
