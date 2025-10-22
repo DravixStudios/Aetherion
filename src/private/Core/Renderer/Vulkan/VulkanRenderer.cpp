@@ -73,28 +73,12 @@ VulkanRenderer::VulkanRenderer() : Renderer::Renderer() {
 	this->m_viewport = VkViewport();
 	this->m_commandPool = nullptr;
 	this->m_sceneMgr = nullptr;
+	this->m_nImageCount = 0;
 }
 
 /* Renderer init method */
 void VulkanRenderer::Init() {
 	Renderer::Init();
-	std::vector<Vertex> vertices = {
-		{
-			{ 0.f, 0.5f, 0.f },
-			{ 0.f, 0.f, 0.f },
-			{ 0.f, 0.f }
-		},
-		{
-			{ .5f, -.5f, 0.f },
-			{ 0.f, 1.f, 0.f },
-			{ 0.f, 0.f }
-		},
-		{
-			{ -0.5f, -0.5f, 0.f },
-			{ 0.f, 0.f, 0.f },
-			{ 0.f, 0.f }
-		},
-	};
 
 	this->CreateInstance();
 	this->SetupDebugMessenger();
@@ -112,9 +96,10 @@ void VulkanRenderer::Init() {
 	/* Test uniform */
 	this->m_wvp.World = glm::mat4(1.f);
 	this->m_wvp.View = glm::mat4(1.f);
-	this->m_wvp.View = glm::translate(this->m_wvp.View, { 1.f, 0.f, 0.f });
+	this->m_wvp.View = glm::translate(this->m_wvp.View, { 0.f, 0.f, 2.f });
+	this->m_wvp.View = glm::affineInverse(this->m_wvp.View);
 	this->m_wvp.Projection = glm::perspectiveFov(glm::radians(90.f), static_cast<float>(this->m_scExtent.width), static_cast<float>(this->m_scExtent.height), .001f, 300.f);
-	
+
 	this->m_wvpBuff = this->CreateBuffer(&this->m_wvp, sizeof(this->m_wvp), EBufferType::CONSTANT_BUFFER);
 	/* End Test uniform */
 
@@ -343,6 +328,8 @@ void VulkanRenderer::CreateSwapChain() {
 	if (details.capabilities.maxImageCount > 0 && details.capabilities.maxImageCount < nImageCount) {
 		nImageCount = details.capabilities.maxImageCount;
 	}
+
+	this->m_nImageCount = nImageCount;
 
 	/* Swap chain create info */
 	VkSwapchainCreateInfoKHR createInfo = { };
@@ -649,7 +636,7 @@ void VulkanRenderer::CreateDescriptorSetLayout() {
 	createInfo.pBindings = &wvpBinding;
 	createInfo.bindingCount = 1;
 
-	if (vkCreateDescriptorSetLayout(this->m_device, &createInfo, nullptr, &this->m_decriptorSetLayout) != VK_SUCCESS) {
+	if (vkCreateDescriptorSetLayout(this->m_device, &createInfo, nullptr, &this->m_descriptorSetLayout) != VK_SUCCESS) {
 		spdlog::error("VulkanRenderer::CreateDescriptorSetLayout: Failed creating descriptor set layout");
 		throw std::runtime_error("VulkanRenderer::CreateDescriptorSetLayout: Failed creating descriptor set layout");
 		return;
@@ -660,11 +647,66 @@ void VulkanRenderer::CreateDescriptorSetLayout() {
 
 /* Create our descriptor pool */
 void VulkanRenderer::CreateDescriptorPool() {
+	/* Define our descriptor pool size */
+	VkDescriptorPoolSize poolSize = { };
+	poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	poolSize.descriptorCount = this->m_nImageCount;
 
+	/* Descriptor pool create info */
+	VkDescriptorPoolCreateInfo createInfo = { };
+	createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+	createInfo.poolSizeCount = 1;
+	createInfo.pPoolSizes = &poolSize;
+	createInfo.maxSets = this->m_nImageCount;
+
+	/* Create our descriptor pool */
+	if (vkCreateDescriptorPool(this->m_device, &createInfo, nullptr, &this->m_descriptorPool) != VK_SUCCESS) {
+		spdlog::error("VulkanRenderer::CreateDescriptorPool: Failed creating descriptor pool");
+		throw std::runtime_error("VulkanRenderer::CreateDescriptorPool: Failed creating descriptor pool");
+		return;
+	}
+
+	spdlog::debug("VulkanRenderer::CreateDescriptorPool: Descriptor pool created");
 }
 
+/* Allocate and write our descriptor sets */
 void VulkanRenderer::AllocateAndWriteDescriptorSets() {
+	/* Initialize vector with m_nImageCount size and copy in each index m_descriptorSetLayout */
+	std::vector<VkDescriptorSetLayout> layouts(this->m_nImageCount, this->m_descriptorSetLayout);
 
+	/* Allocate info */
+	VkDescriptorSetAllocateInfo allocInfo = { };
+	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+	allocInfo.descriptorPool = this->m_descriptorPool;
+	allocInfo.pSetLayouts = layouts.data();
+	allocInfo.descriptorSetCount = this->m_nImageCount;
+
+	/* Allocate our descriptor sets */
+	this->m_descriptorSets.resize(this->m_nImageCount);
+	if (vkAllocateDescriptorSets(this->m_device, &allocInfo, this->m_descriptorSets.data()) != VK_SUCCESS) {
+		spdlog::error("VulkanRenderer::AllocateAndWriteDescriptorSets: Failed allocating descriptor sets");
+		throw std::runtime_error("VulkanRenderer::AllocateAndWriteDescriptorSets: Failed allocating descriptor sets");
+		return;
+	}
+
+	VulkanBuffer* vkBuff = dynamic_cast<VulkanBuffer*>(this->m_wvpBuff);
+
+	/* Write our descriptor sets */
+	for (uint32_t i = 0; i < this->m_nImageCount; i++) {
+		VkDescriptorBufferInfo buffInfo = { };
+		buffInfo.buffer = vkBuff->GetBuffer();
+		buffInfo.offset = 0;
+		buffInfo.range = sizeof(WVP);
+
+		VkWriteDescriptorSet descriptorWrite = { };
+		descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrite.dstSet = this->m_descriptorSets[i];
+		descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		descriptorWrite.descriptorCount = 1;
+		descriptorWrite.pBufferInfo = &buffInfo;
+
+		vkUpdateDescriptorSets(this->m_device, 1, &descriptorWrite, 0, nullptr);
+	}
 }
 
 void VulkanRenderer::CreateCommandBuffer() {
@@ -791,7 +833,7 @@ void VulkanRenderer::CreateGraphicsPipeline() {
 	VkPipelineRasterizationStateCreateInfo rasterizer = { };
 	rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
 	rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
-	rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
+	rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 	rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
 	rasterizer.lineWidth = 1.f;
 
@@ -829,8 +871,8 @@ void VulkanRenderer::CreateGraphicsPipeline() {
 	/* Pipeline layout create info */
 	VkPipelineLayoutCreateInfo layoutInfo = { };
 	layoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-	layoutInfo.pSetLayouts = nullptr;
-	layoutInfo.setLayoutCount = 0;
+	layoutInfo.pSetLayouts = &this->m_descriptorSetLayout;
+	layoutInfo.setLayoutCount = 1;
 
 	if (vkCreatePipelineLayout(this->m_device, &layoutInfo, nullptr, &this->m_pipelineLayout) != VK_SUCCESS) {
 		spdlog::error("CreateGraphicsPipeline: Error creating pipeline layout");
@@ -936,6 +978,15 @@ void VulkanRenderer::RecordCommandBuffer(uint32_t nImageIndex) {
 	Scene* currentScene = this->m_sceneMgr->GetCurrentScene();
 
 	std::map<std::string, GameObject*> objects = currentScene->GetObjects();
+
+	vkCmdBindDescriptorSets(
+		this->m_commandBuffer,
+		VK_PIPELINE_BIND_POINT_GRAPHICS,
+		this->m_pipelineLayout,
+		0, 1,
+		&this->m_descriptorSets[nImageIndex],
+		0, nullptr
+	);
 
 	for (std::pair<std::string, GameObject*> obj : objects) {
 		GameObject* pObj = obj.second;
@@ -1495,7 +1546,7 @@ bool VulkanRenderer::DrawVertexBuffer(GPUBuffer* buffer) {
 	VkBuffer vertexBuffers[] = { buff };
 	VkDeviceSize offsets[] = { 0 };
 	vkCmdBindVertexBuffers(this->m_commandBuffer, 0, 1, vertexBuffers, offsets);
-	vkCmdDraw(this->m_commandBuffer, nSize, 1, 0, 0);
+	vkCmdDraw(this->m_commandBuffer, nSize / sizeof(Vertex), 1, 0, 0);
 
 	return true;
 }

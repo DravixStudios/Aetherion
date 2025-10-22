@@ -56,6 +56,7 @@ private:
 	VkFormat m_surfaceFormat;
 	std::vector<VkImage> m_scImages;
 	std::vector<VkImageView> m_imageViews;
+	uint32_t m_nImageCount;
 
 	VkRenderPass m_renderPass;
 	std::vector<VkFramebuffer> m_frameBuffers;
@@ -81,8 +82,9 @@ private:
 	VkDeviceMemory m_colorImageMemory;
 	VkImageView m_colorImageView;
 
-	VkDescriptorSetLayout m_decriptorSetLayout;
-
+	std::vector<VkDescriptorSet> m_descriptorSets;
+	VkDescriptorSetLayout m_descriptorSetLayout;
+	VkDescriptorPool m_descriptorPool;
 
 	/* Main methods */
 	void CreateInstance();
