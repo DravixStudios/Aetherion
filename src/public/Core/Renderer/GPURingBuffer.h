@@ -12,7 +12,8 @@ public:
 
     virtual void Init(uint32_t nBufferSize, uint32_t nAlignment, uint32_t nFramesInFlight);
     virtual void* Allocate(uint32_t nDataSize, uint64_t& outOffset);
-    virtual void Reset();
+    virtual uint32_t Align(uint32_t nValue, uint32_t nAlignment);
+    virtual void Reset(uint32_t nImageIndex);
 
     virtual uint64_t GetSize();
 protected:
