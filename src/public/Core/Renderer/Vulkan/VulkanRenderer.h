@@ -87,6 +87,10 @@ private:
 	VkDescriptorSetLayout m_descriptorSetLayout;
 	VkDescriptorPool m_descriptorPool;
 
+	uint32_t m_nMaxDescriptorSetSamplers;
+	uint32_t m_nMaxPerStageDescriptorSamplers;
+	uint32_t m_nMaxTextures;
+
 	/* Main methods */
 	void CreateInstance();
 	void SetupDebugMessenger();

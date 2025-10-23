@@ -75,6 +75,9 @@ VulkanRenderer::VulkanRenderer() : Renderer::Renderer() {
 	this->m_commandPool = nullptr;
 	this->m_sceneMgr = nullptr;
 	this->m_nImageCount = 0;
+	this->m_nMaxDescriptorSetSamplers = 0;
+	this->m_nMaxPerStageDescriptorSamplers = 0;
+	this->m_nMaxTextures = 0;
 }
 
 /* Renderer init method */
@@ -251,12 +254,97 @@ void VulkanRenderer::PickPhysicalDevice() {
 	spdlog::debug("Selected physical device: {0}", deviceProperties.deviceName);
 }
 
+/* Check if device supports decriptor indexing */
 void VulkanRenderer::CheckDescriptorIndexingSupport() {
+	/* Query number of available extensions */
+	uint32_t nExtensionCount;
+	vkEnumerateDeviceExtensionProperties(this->m_physicalDevice, nullptr, &nExtensionCount, nullptr);
 
+	/* Query available extensions */
+	std::vector<VkExtensionProperties> availableExtensions(nExtensionCount);
+	vkEnumerateDeviceExtensionProperties(this->m_physicalDevice, nullptr, &nExtensionCount, availableExtensions.data());
+
+	/* Check if descriptor indexing extension is available */
+	bool bDescriptorIndexingSupported = false;
+ 
+	for (const VkExtensionProperties extension : availableExtensions) {
+		if (strcmp(extension.extensionName, VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME) == 0) {
+			bDescriptorIndexingSupported = true;
+			break;
+		}
+	}
+
+	if (!bDescriptorIndexingSupported) {
+		spdlog::error("VulkanRenderer::CheckDescriptorIndexingSupport: Descriptor indexing is not supported");
+		return;
+	}
+
+	spdlog::debug("VulkanRenderer::CheckDescriptorIndexSupport: Descriptor indexing supported");
+
+	/* Verify specific features */
+	VkPhysicalDeviceDescriptorIndexingFeatures indexingFeatures = { };
+	indexingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES;
+
+	VkPhysicalDeviceFeatures2 features2 = { };
+	features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+	features2.pNext = &indexingFeatures;
+
+	vkGetPhysicalDeviceFeatures2(this->m_physicalDevice, &features2);
+
+	spdlog::debug("=== Descriptor indexing features ===");
+	spdlog::debug("Descriptor binding partially bound: {0}", indexingFeatures.descriptorBindingPartiallyBound ? "Yes" : "No");
+	spdlog::debug("Descriptor binding update after bind: {0}", indexingFeatures.descriptorBindingUpdateUnusedWhilePending ? "Yes" : "No");
+	spdlog::debug("Descriptor binding varialble descriptor count: {0}", indexingFeatures.descriptorBindingVariableDescriptorCount ? "Yes" : "No");
+	spdlog::debug("Runtime descriptor array: {0}", indexingFeatures.runtimeDescriptorArray ? "Yes" : "No");
+	spdlog::debug("=== End descriptor indexing features ===");
+
+	if (!indexingFeatures.descriptorBindingPartiallyBound || !indexingFeatures.runtimeDescriptorArray) {
+		spdlog::error("VulkanRenderer::CheckDescriptorIndexingSupport: Required descriptor indexing features not available");
+	}
 }
 
+/* Get GPU limits */
 void VulkanRenderer::QueryDeviceLimits() {
+	/* Get physical device properties */
+	VkPhysicalDeviceProperties devProps;
+	vkGetPhysicalDeviceProperties(this->m_physicalDevice, &devProps);
 
+	VkPhysicalDeviceLimits limits = devProps.limits;
+
+	VkPhysicalDeviceDescriptorIndexingProperties indexingProps = { };
+	indexingProps.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_PROPERTIES;
+
+	VkPhysicalDeviceProperties2 props2 = { };
+	props2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
+	props2.pNext = &indexingProps;
+
+	vkGetPhysicalDeviceProperties2(this->m_physicalDevice, &props2);
+
+	spdlog::debug("=== GPU Limits ===");
+	spdlog::debug("Max sampler allocation count: {0}", limits.maxSamplerAllocationCount);
+	spdlog::debug("Max per-stage descriptor samplers: {0}", limits.maxPerStageDescriptorSamplers);
+	spdlog::debug("Max descriptor set samplers: {0}", limits.maxDescriptorSetSamplers);
+	spdlog::debug("Max descriptor set update after bind samplers: {0}", indexingProps.maxDescriptorSetUpdateAfterBindSamplers);
+	spdlog::debug("Max per-stage descriptor update after bind samplers: {0}", indexingProps.maxPerStageDescriptorUpdateAfterBindSamplers);
+	spdlog::debug("Max per-stage update after bind resources: {0}", indexingProps.maxPerStageUpdateAfterBindResources);
+	spdlog::debug("=== End GPU Limits ===");
+
+	this->m_nMaxDescriptorSetSamplers = std::min(
+		limits.maxDescriptorSetSamplers,
+		indexingProps.maxDescriptorSetUpdateAfterBindSamplers
+	);
+
+	this->m_nMaxPerStageDescriptorSamplers = std::min(
+		limits.maxPerStageDescriptorSamplers,
+		indexingProps.maxPerStageDescriptorUpdateAfterBindSamplers
+	);
+
+	this->m_nMaxTextures = std::min(
+		this->m_nMaxDescriptorSetSamplers,
+		static_cast<uint32_t>(32768)
+	);
+
+	spdlog::debug("VulkanRenderer::QueryDeviceLimits: Max textures: {0}", this->m_nMaxTextures);
 }
 
 /* Create our logical device */
@@ -1042,6 +1130,8 @@ void VulkanRenderer::RecordCommandBuffer(uint32_t nImageIndex) {
 	Scene* currentScene = this->m_sceneMgr->GetCurrentScene();
 
 	std::map<std::string, GameObject*> objects = currentScene->GetObjects();
+
+	this->m_wvp.World = glm::rotate(this->m_wvp.World, glm::radians(.1f), glm::vec3(0.f, 1.f, 0.f));
 
 	uint32_t dynamicOffset = 0;
 	this->m_wvpBuff->Reset(nImageIndex);
