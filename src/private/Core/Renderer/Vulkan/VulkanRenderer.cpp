@@ -113,7 +113,8 @@ void VulkanRenderer::Init() {
 
 	this->CreateDescriptorSetLayout();
 	this->CreateDescriptorPool();
-	this->AllocateAndWriteDescriptorSets();
+	this->AllocateDescriptorSets();
+	this->WriteDescriptorSets();
 	this->CreateCommandBuffer();
 	this->CreateGraphicsPipeline();
 	this->CreateSyncObjects();
@@ -384,6 +385,10 @@ void VulkanRenderer::CreateLogicalDevice() {
 	indexingFeatures.descriptorBindingVariableDescriptorCount = VK_TRUE;
 	indexingFeatures.runtimeDescriptorArray = VK_TRUE;
 	indexingFeatures.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
+	indexingFeatures.descriptorBindingSampledImageUpdateAfterBind = VK_TRUE;
+	indexingFeatures.descriptorBindingStorageImageUpdateAfterBind = VK_TRUE;
+	indexingFeatures.descriptorBindingStorageBufferUpdateAfterBind = VK_TRUE;
+	indexingFeatures.descriptorBindingUniformBufferUpdateAfterBind = VK_TRUE;
 
 	/* Physical device features */
 	VkPhysicalDeviceFeatures deviceFeatures = { };
@@ -744,34 +749,63 @@ void VulkanRenderer::CreateDescriptorSetLayout() {
 	wvpBinding.descriptorCount = 1;
 	wvpBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 	wvpBinding.pImmutableSamplers = nullptr;
-
-	/* Texture sampler binding */
-	VkDescriptorSetLayoutBinding samplerBinding = { };
-	samplerBinding.binding = 1;
-	samplerBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	samplerBinding.descriptorCount = 1;
-	samplerBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-	samplerBinding.pImmutableSamplers = nullptr;
-
-	VkDescriptorSetLayoutBinding bindings[] = {
-		wvpBinding,
-		samplerBinding
-	};
-
+	
 	/* Descriptor set layout create info */
 	VkDescriptorSetLayoutCreateInfo createInfo = { };
 	createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-	createInfo.pBindings = bindings;
-	createInfo.bindingCount = 2;
-
+	createInfo.pBindings = &wvpBinding;
+	createInfo.bindingCount = 1;
+	
 	/* Create our descriptor set layout */
-	if (vkCreateDescriptorSetLayout(this->m_device, &createInfo, nullptr, &this->m_descriptorSetLayout) != VK_SUCCESS) {
-		spdlog::error("VulkanRenderer::CreateDescriptorSetLayout: Failed creating descriptor set layout");
+	if (vkCreateDescriptorSetLayout(this->m_device, &createInfo, nullptr, &this->m_wvpDescriptorSetLayout) != VK_SUCCESS) {
+		spdlog::error("VulkanRenderer::CreateDescriptorSetLayout: Failed creating WVP descriptor set layout");
 		throw std::runtime_error("VulkanRenderer::CreateDescriptorSetLayout: Failed creating descriptor set layout");
 		return;
 	}
 
-	spdlog::debug("VulkanRenderer::CreateDescriptorSetLayout: Descriptor set layout created");
+	spdlog::debug("VulkanRenderer::CreateDescriptorSetLayout: WVP Descriptor set layout created");
+
+	/* Texture sampler binding */
+	VkDescriptorSetLayoutBinding samplerBinding = { };
+	samplerBinding.binding = 0; // In this layout, binding 0 (independent from the other layout)
+	samplerBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	samplerBinding.descriptorCount = this->m_nMaxTextures;
+	samplerBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+	samplerBinding.pImmutableSamplers = nullptr;
+
+	/* 
+		Bindless descriptor indexing flags
+		
+		Specification: http://registry.khronos.org/VulkanSC/specs/1.0-extensions/man/html/VkDescriptorBindingFlags.html
+		Flag bits specification: https://registry.khronos.org/VulkanSC/specs/1.0-extensions/man/html/VkDescriptorBindingFlagBits.html
+	*/
+
+	VkDescriptorBindingFlags bindingFlags =
+		VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT |
+		VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT;
+
+	/* Descriptor set layout binding flags create info */
+	VkDescriptorSetLayoutBindingFlagsCreateInfo bindingFlagsInfo = { };
+	bindingFlagsInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO;
+	bindingFlagsInfo.pBindingFlags = &bindingFlags;
+	bindingFlagsInfo.bindingCount = 1;
+
+	/* Descriptor set layout create info */
+	VkDescriptorSetLayoutCreateInfo textureCreateInfo = { };
+	textureCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+	textureCreateInfo.pBindings = &samplerBinding;
+	textureCreateInfo.bindingCount = 1;
+	textureCreateInfo.pNext = &bindingFlagsInfo;
+	textureCreateInfo.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
+
+	/* Create our texture descriptor set layout */
+	if (vkCreateDescriptorSetLayout(this->m_device, &textureCreateInfo, nullptr, &this->m_textureDescriptorSetLayout) != VK_SUCCESS) {
+		spdlog::error("VulkanRenderer::CreateDescriptorSetLayout: Failed creating WVP descriptor set layout");
+		throw std::runtime_error("VulkanRenderer::CreateDescriptorSetLayout: Failed creating descriptor set layout");
+		return;
+	}
+
+	spdlog::debug("VulkanRenderer::CreateDescriptorSetLayout: Texture Descriptor set layout created (bindless)");
 }
 
 /* Create our descriptor pool */
@@ -781,35 +815,53 @@ void VulkanRenderer::CreateDescriptorPool() {
 	wvpPoolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
 	wvpPoolSize.descriptorCount = this->m_nImageCount;
 
-	/* Store pool sizes on a array */
-	VkDescriptorPoolSize poolSizes[] = {
-		wvpPoolSize
-	};
 
 	/* Descriptor pool create info */
 	VkDescriptorPoolCreateInfo createInfo = { };
 	createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
 	createInfo.poolSizeCount = 1;
-	createInfo.pPoolSizes = poolSizes;
+	createInfo.pPoolSizes = &wvpPoolSize;
 	createInfo.maxSets = this->m_nImageCount;
 
 	/* Create our descriptor pool */
-	if (vkCreateDescriptorPool(this->m_device, &createInfo, nullptr, &this->m_descriptorPool) != VK_SUCCESS) {
-		spdlog::error("VulkanRenderer::CreateDescriptorPool: Failed creating descriptor pool");
+	if (vkCreateDescriptorPool(this->m_device, &createInfo, nullptr, &this->m_wvpDescriptorPool) != VK_SUCCESS) {
+		spdlog::error("VulkanRenderer::CreateDescriptorPool: Failed creating WVP descriptor pool");
 		throw std::runtime_error("VulkanRenderer::CreateDescriptorPool: Failed creating descriptor pool");
 		return;
 	}
 
-	spdlog::debug("VulkanRenderer::CreateDescriptorPool: Descriptor pool created");
+	spdlog::debug("VulkanRenderer::CreateDescriptorPool: WVP descriptor pool created");
+
+	/* Texture pool size */
+	VkDescriptorPoolSize texturePoolSize = { };
+	texturePoolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	texturePoolSize.descriptorCount = this->m_nMaxTextures;
+
+	VkDescriptorPoolCreateInfo textureCreateInfo = { };
+	textureCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+	textureCreateInfo.poolSizeCount = 1;
+	textureCreateInfo.pPoolSizes = &texturePoolSize;
+	textureCreateInfo.maxSets = 1; // Only one global set
+	textureCreateInfo.flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
+
+	if (vkCreateDescriptorPool(this->m_device, &textureCreateInfo, nullptr, &this->m_textureDescriptorPool) != VK_SUCCESS) {
+		spdlog::error("VulkanRenderer::CreateDescriptorPool: Failed creating texture descriptor pool");
+		throw std::runtime_error("VulkanRenderer::CreateDescriptorPool: Failed creating descriptor pool");
+		return;
+	}
+
+	spdlog::debug("VulkanRenderer::CreateDescriptorPool: Texture descriptor pool created");
+
 }
 
-/* Allocate and write our descriptor sets */
-void VulkanRenderer::AllocateAndWriteDescriptorSets() {
+
+/* Allocate our descriptor sets */
+void VulkanRenderer::AllocateDescriptorSets() {
 	/* 
 		Initialize vector with m_nImageCount size and copy in each index m_descriptorSetLayout 
 		We do this because we are going to have a descriptor set per frame in flight
 	*/
-	std::vector<VkDescriptorSetLayout> layouts(this->m_nImageCount, this->m_descriptorSetLayout);
+	std::vector<VkDescriptorSetLayout> wvpLayouts(this->m_nImageCount, this->m_wvpDescriptorSetLayout);
 
 	/* 
 		Allocate info
@@ -821,18 +873,38 @@ void VulkanRenderer::AllocateAndWriteDescriptorSets() {
 	*/
 	VkDescriptorSetAllocateInfo allocInfo = { };
 	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-	allocInfo.descriptorPool = this->m_descriptorPool;
- 	allocInfo.pSetLayouts = layouts.data();
+	allocInfo.descriptorPool = this->m_wvpDescriptorPool;
+ 	allocInfo.pSetLayouts = wvpLayouts.data();
 	allocInfo.descriptorSetCount = this->m_nImageCount;
 
 	/* Allocate our descriptor sets */
 	this->m_descriptorSets.resize(this->m_nImageCount);
 	if (vkAllocateDescriptorSets(this->m_device, &allocInfo, this->m_descriptorSets.data()) != VK_SUCCESS) {
-		spdlog::error("VulkanRenderer::AllocateAndWriteDescriptorSets: Failed allocating descriptor sets");
-		throw std::runtime_error("VulkanRenderer::AllocateAndWriteDescriptorSets: Failed allocating descriptor sets");
+		spdlog::error("VulkanRenderer::AllocateDescriptorSets: Failed allocating WVP descriptor sets");
+		throw std::runtime_error("VulkanRenderer::AllocateDescriptorSets: Failed allocating descriptor sets");
 		return;
 	}
 
+	spdlog::debug("VulkanRenderer::AllocateDescriptorSets: WVP Descriptor sets allocated");
+
+	/* Allocate global texture descriptor set */
+	VkDescriptorSetAllocateInfo textureAllocInfo = { };
+	textureAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+	textureAllocInfo.descriptorPool = this->m_textureDescriptorPool;
+	textureAllocInfo.pSetLayouts = &this->m_textureDescriptorSetLayout;
+	textureAllocInfo.descriptorSetCount = 1;
+
+	if (vkAllocateDescriptorSets(this->m_device, &textureAllocInfo, &this->m_globalTextureDescriptorSet) != VK_SUCCESS) {
+		spdlog::error("VulkanRenderer::AllocateDescriptorSets: Failed allocating global texture descriptor set");
+		throw std::runtime_error("VulkanRenderer::AllocateDescriptorSets: Failed allocating descriptor sets");
+		return;
+	}
+
+	spdlog::debug("VulkanRenderer::AllocateDescriptorSets: Global texture descriptor set allocated");
+}
+
+/* Writes our descriptor sets */
+void VulkanRenderer::WriteDescriptorSets() {
 	/* Get our World View Projection Ring Buffer */
 	VulkanRingBuffer* ringBuffer = dynamic_cast<VulkanRingBuffer*>(this->m_wvpBuff);
 	if (ringBuffer == nullptr) {
@@ -841,7 +913,7 @@ void VulkanRenderer::AllocateAndWriteDescriptorSets() {
 		return;
 	}
 
-	/* Write each of our descriptor sets */
+	/* Write each of our WVP descriptor sets */
 	for (uint32_t i = 0; i < this->m_nImageCount; i++) {
 		/* WVP Ring Buffer info */
 		VkDescriptorBufferInfo buffInfo = { };
@@ -859,6 +931,8 @@ void VulkanRenderer::AllocateAndWriteDescriptorSets() {
 
 		vkUpdateDescriptorSets(this->m_device, 1, &descriptorWrite, 0, nullptr);
 	}
+
+	spdlog::debug("VulkanRenderer::WriteDescriptorSets: WVP descriptor sets written");
 }
 
 void VulkanRenderer::CreateCommandBuffer() {
@@ -1023,7 +1097,7 @@ void VulkanRenderer::CreateGraphicsPipeline() {
 	/* Pipeline layout create info */
 	VkPipelineLayoutCreateInfo layoutInfo = { };
 	layoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-	layoutInfo.pSetLayouts = &this->m_descriptorSetLayout;
+	layoutInfo.pSetLayouts = &this->m_wvpDescriptorSetLayout;
 	layoutInfo.setLayoutCount = 1;
 
 	if (vkCreatePipelineLayout(this->m_device, &layoutInfo, nullptr, &this->m_pipelineLayout) != VK_SUCCESS) {

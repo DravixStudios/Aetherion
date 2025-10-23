@@ -83,9 +83,13 @@ private:
 	VkDeviceMemory m_colorImageMemory;
 	VkImageView m_colorImageView;
 
-	std::vector<VkDescriptorSet> m_descriptorSets;
-	VkDescriptorSetLayout m_descriptorSetLayout;
-	VkDescriptorPool m_descriptorPool;
+	/* Descriptor sets */
+	std::vector<VkDescriptorSet> m_descriptorSets; // One per frame
+	VkDescriptorSetLayout m_wvpDescriptorSetLayout; // For WVP (dynamic)
+	VkDescriptorSetLayout m_textureDescriptorSetLayout; // For textures (bindless)
+	VkDescriptorPool m_wvpDescriptorPool; 
+	VkDescriptorPool m_textureDescriptorPool;
+	VkDescriptorSet m_globalTextureDescriptorSet; // Global for all the textures
 
 	uint32_t m_nMaxDescriptorSetSamplers;
 	uint32_t m_nMaxPerStageDescriptorSamplers;
@@ -108,7 +112,8 @@ private:
 	void CreateFrameBuffers();
 	void CreateDescriptorSetLayout();
 	void CreateDescriptorPool();
-	void AllocateAndWriteDescriptorSets();
+	void AllocateDescriptorSets();
+	void WriteDescriptorSets();
 	void CreateCommandBuffer();
 	void CreateGraphicsPipeline();
 	void CreateSyncObjects();
