@@ -8,7 +8,8 @@ std::vector<const char*> validationLayers = {
 
 /* Device extensions (hard-coded) */
 std::vector<const char*> deviceExtensions = {
-	VK_KHR_SWAPCHAIN_EXTENSION_NAME
+	VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+	VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME
 };
 
 /* Queue family indices helper struct */
@@ -84,6 +85,8 @@ void VulkanRenderer::Init() {
 	this->SetupDebugMessenger();
 	this->CreateSurface();
 	this->PickPhysicalDevice();
+	this->CheckDescriptorIndexingSupport();
+	this->QueryDeviceLimits();
 	this->CreateLogicalDevice();
 	this->CreateSwapChain();
 	this->CreateImageViews();
@@ -248,6 +251,14 @@ void VulkanRenderer::PickPhysicalDevice() {
 	spdlog::debug("Selected physical device: {0}", deviceProperties.deviceName);
 }
 
+void VulkanRenderer::CheckDescriptorIndexingSupport() {
+
+}
+
+void VulkanRenderer::QueryDeviceLimits() {
+
+}
+
 /* Create our logical device */
 void VulkanRenderer::CreateLogicalDevice() {
 	QueueFamilyIndices indices = this->FindQueueFamilies(this->m_physicalDevice);
@@ -277,10 +288,24 @@ void VulkanRenderer::CreateLogicalDevice() {
 		queueCreateInfos.push_back(queueInfo);
 	}
 
+	/* Enable descriptor indexing */
+	VkPhysicalDeviceDescriptorIndexingFeatures indexingFeatures = { };
+	indexingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES;
+	indexingFeatures.descriptorBindingPartiallyBound = VK_TRUE;
+	indexingFeatures.descriptorBindingUpdateUnusedWhilePending = VK_TRUE;
+	indexingFeatures.descriptorBindingVariableDescriptorCount = VK_TRUE;
+	indexingFeatures.runtimeDescriptorArray = VK_TRUE;
+	indexingFeatures.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
+
 	/* Physical device features */
 	VkPhysicalDeviceFeatures deviceFeatures = { };
 	deviceFeatures.samplerAnisotropy = VK_TRUE;
 	deviceFeatures.sampleRateShading = VK_TRUE;
+
+	VkPhysicalDeviceFeatures2 features2 = { };
+	features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+	features2.features = deviceFeatures;
+	features2.pNext = &indexingFeatures;
 
 	/* Logical device create info */
 	VkDeviceCreateInfo createInfo = { };
@@ -289,7 +314,7 @@ void VulkanRenderer::CreateLogicalDevice() {
 	createInfo.ppEnabledExtensionNames = deviceExtensions.data();
 	createInfo.pQueueCreateInfos = queueCreateInfos.data();
 	createInfo.queueCreateInfoCount = queueCreateInfos.size();
-	createInfo.pEnabledFeatures = &deviceFeatures;
+	createInfo.pNext = &features2;
 
 	if (this->m_bEnableValidationLayers) {
 		createInfo.enabledLayerCount = validationLayers.size();
@@ -632,11 +657,24 @@ void VulkanRenderer::CreateDescriptorSetLayout() {
 	wvpBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 	wvpBinding.pImmutableSamplers = nullptr;
 
+	/* Texture sampler binding */
+	VkDescriptorSetLayoutBinding samplerBinding = { };
+	samplerBinding.binding = 1;
+	samplerBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	samplerBinding.descriptorCount = 1;
+	samplerBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+	samplerBinding.pImmutableSamplers = nullptr;
+
+	VkDescriptorSetLayoutBinding bindings[] = {
+		wvpBinding,
+		samplerBinding
+	};
+
 	/* Descriptor set layout create info */
 	VkDescriptorSetLayoutCreateInfo createInfo = { };
 	createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-	createInfo.pBindings = &wvpBinding;
-	createInfo.bindingCount = 1;
+	createInfo.pBindings = bindings;
+	createInfo.bindingCount = 2;
 
 	/* Create our descriptor set layout */
 	if (vkCreateDescriptorSetLayout(this->m_device, &createInfo, nullptr, &this->m_descriptorSetLayout) != VK_SUCCESS) {

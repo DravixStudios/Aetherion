@@ -92,6 +92,8 @@ private:
 	void SetupDebugMessenger();
 	void CreateSurface();
 	void PickPhysicalDevice();
+	void CheckDescriptorIndexingSupport();
+	void QueryDeviceLimits();
 	void CreateLogicalDevice();
 	void CreateSwapChain();
 	void CreateImageViews();
