@@ -128,7 +128,7 @@ void VulkanRenderer::CreateInstance() {
 
 	/* Vulkan application info */
 	VkApplicationInfo appInfo = { };
-	appInfo.apiVersion = VK_API_VERSION_1_1;
+	appInfo.apiVersion = VK_API_VERSION_1_2;
 	appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
 	appInfo.pApplicationName = "No name"; /* Actually not making a game lol. We're only setting pEngineName */
 	appInfo.engineVersion = VK_MAKE_VERSION(0, 1, 0);
@@ -237,10 +237,10 @@ void VulkanRenderer::PickPhysicalDevice() {
 
 	spdlog::debug("Max supported Vulkan version: {}.{}", apiMajor, apiMinor);
 
-	if (apiMajor < 1 || (apiMajor == 1 && apiMinor < 1)) {
-		spdlog::error("PickPhysicalDevice: Selected GPU does not support Vulkan 1.1 minimum (found {}.{})",
+	if (apiMajor < 1 || (apiMajor == 1 && apiMinor < 2)) {
+		spdlog::error("PickPhysicalDevice: Selected GPU does not support Vulkan 1.2 minimum (found {}.{})",
 			apiMajor, apiMinor);
-		throw std::runtime_error("PickPhysicalDevice: Vulkan 1.1 required.");
+		throw std::runtime_error("PickPhysicalDevice: Vulkan 1.2 required.");
 	}
 
 
@@ -1036,6 +1036,7 @@ void VulkanRenderer::RecordCommandBuffer(uint32_t nImageIndex) {
 		}
 
 		std::map<uint32_t, GPUBuffer*> vertices = mesh->GetVBOs();
+		std::map<uint32_t, GPUTexture*> textures = mesh->GetTextures();
 
 		for (std::pair<uint32_t, GPUBuffer*> vertex : vertices) {
 			this->DrawVertexBuffer(vertex.second);
