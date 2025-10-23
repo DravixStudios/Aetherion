@@ -13,9 +13,11 @@ public:
 	VulkanRingBuffer(VkDevice& device, VkPhysicalDevice& physicalDevice);
 
 	void Init(uint32_t nBufferSize, uint32_t nAlignment, uint32_t nFramesInFlight) override;
-	void* Allocate(uint32_t nDataSize, uint64_t& outOffset) override;
+	void* Allocate(uint32_t nDataSize, uint32_t& outOffset) override;
 	uint32_t Align(uint32_t nValue, uint32_t nAlignment) override;
 	void Reset(uint32_t nImageIndex) override;
+
+	VkBuffer GetBuffer();
 
 private:
 	VkDevice m_device;

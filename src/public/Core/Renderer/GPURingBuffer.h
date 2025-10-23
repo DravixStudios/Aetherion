@@ -11,7 +11,7 @@ public:
 	~GPURingBuffer() = default;
 
     virtual void Init(uint32_t nBufferSize, uint32_t nAlignment, uint32_t nFramesInFlight);
-    virtual void* Allocate(uint32_t nDataSize, uint64_t& outOffset);
+    virtual void* Allocate(uint32_t nDataSize, uint32_t& outOffset);
     virtual uint32_t Align(uint32_t nValue, uint32_t nAlignment);
     virtual void Reset(uint32_t nImageIndex);
 

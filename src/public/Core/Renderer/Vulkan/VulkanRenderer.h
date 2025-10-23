@@ -15,6 +15,7 @@
 #include "Core/Renderer/Renderer.h"
 #include "Core/Renderer/Vulkan/VulkanBuffer.h"
 #include "Core/Renderer/Vulkan/VulkanTexture.h"
+#include "Core/Renderer/Vulkan/VulkanRingBuffer.h"
 #include "Core/Renderer/GPUFormat.h"
 #include "Utils.h"
 
@@ -130,6 +131,7 @@ private:
 		VkDeviceMemory& memory
 	);
 
+public:
 	/* Memory methods */
 	uint32_t FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 	GPUBuffer* CreateBuffer(const void* pData, uint32_t nSize, EBufferType bufferType) override;
@@ -138,11 +140,12 @@ private:
 	GPUTexture* CreateTexture(GPUBuffer* pBuffer, uint32_t nWidth, uint32_t nHeight, GPUFormat format) override;
 	VkImageView CreateImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
 	VkSampler CreateSampler();
+private:
 	void CopyBufferToImage(VkBuffer buffer, VkImage image, uint32_t nWidth, uint32_t nHeight);
 	bool DrawVertexBuffer(GPUBuffer* buffer) override;
 
 	WVP m_wvp;
-	GPUBuffer* m_wvpBuff;
+	GPURingBuffer* m_wvpBuff;
 
 	VkSampleCountFlagBits GetMaxUsableSampleCount();
 

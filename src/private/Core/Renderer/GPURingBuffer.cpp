@@ -15,7 +15,9 @@ void GPURingBuffer::Init(uint32_t nBufferSize, uint32_t nAlignment, uint32_t nFr
 	this->m_nFramesInFlight = nFramesInFlight;
 }
 
-void* GPURingBuffer::Allocate(uint32_t nDataSize, uint64_t& outOffset) { return nullptr; }
+void* GPURingBuffer::Allocate(uint32_t nDataSize, uint32_t& outOffset) { return nullptr; }
+
+uint32_t GPURingBuffer::Align(uint32_t nValue, uint32_t nAlignment) { return 0; }
 
 void GPURingBuffer::Reset(uint32_t nImageIndex) { }
 

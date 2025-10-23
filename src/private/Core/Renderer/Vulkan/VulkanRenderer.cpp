@@ -100,7 +100,9 @@ void VulkanRenderer::Init() {
 	this->m_wvp.View = glm::affineInverse(this->m_wvp.View);
 	this->m_wvp.Projection = glm::perspectiveFov(glm::radians(90.f), static_cast<float>(this->m_scExtent.width), static_cast<float>(this->m_scExtent.height), .001f, 300.f);
 
-	this->m_wvpBuff = this->CreateBuffer(&this->m_wvp, sizeof(this->m_wvp), EBufferType::CONSTANT_BUFFER);
+	VulkanRingBuffer* pUrb = new VulkanRingBuffer(this->m_device, this->m_physicalDevice);
+	pUrb->Init(2 * 1024 * 1024, 256, this->m_nImageCount);
+	this->m_wvpBuff = pUrb;
 	/* End Test uniform */
 
 	this->CreateDescriptorSetLayout();
@@ -625,7 +627,7 @@ void VulkanRenderer::CreateDescriptorSetLayout() {
 	/* World view projection binding */
 	VkDescriptorSetLayoutBinding wvpBinding = { };
 	wvpBinding.binding = 0;
-	wvpBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	wvpBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
 	wvpBinding.descriptorCount = 1;
 	wvpBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 	wvpBinding.pImmutableSamplers = nullptr;
@@ -636,6 +638,7 @@ void VulkanRenderer::CreateDescriptorSetLayout() {
 	createInfo.pBindings = &wvpBinding;
 	createInfo.bindingCount = 1;
 
+	/* Create our descriptor set layout */
 	if (vkCreateDescriptorSetLayout(this->m_device, &createInfo, nullptr, &this->m_descriptorSetLayout) != VK_SUCCESS) {
 		spdlog::error("VulkanRenderer::CreateDescriptorSetLayout: Failed creating descriptor set layout");
 		throw std::runtime_error("VulkanRenderer::CreateDescriptorSetLayout: Failed creating descriptor set layout");
@@ -647,16 +650,21 @@ void VulkanRenderer::CreateDescriptorSetLayout() {
 
 /* Create our descriptor pool */
 void VulkanRenderer::CreateDescriptorPool() {
-	/* Define our descriptor pool size */
-	VkDescriptorPoolSize poolSize = { };
-	poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	poolSize.descriptorCount = this->m_nImageCount;
+	/* Define our uniform descriptor pool size */
+	VkDescriptorPoolSize wvpPoolSize = { };
+	wvpPoolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+	wvpPoolSize.descriptorCount = this->m_nImageCount;
+
+	/* Store pool sizes on a array */
+	VkDescriptorPoolSize poolSizes[] = {
+		wvpPoolSize
+	};
 
 	/* Descriptor pool create info */
 	VkDescriptorPoolCreateInfo createInfo = { };
 	createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
 	createInfo.poolSizeCount = 1;
-	createInfo.pPoolSizes = &poolSize;
+	createInfo.pPoolSizes = poolSizes;
 	createInfo.maxSets = this->m_nImageCount;
 
 	/* Create our descriptor pool */
@@ -671,14 +679,24 @@ void VulkanRenderer::CreateDescriptorPool() {
 
 /* Allocate and write our descriptor sets */
 void VulkanRenderer::AllocateAndWriteDescriptorSets() {
-	/* Initialize vector with m_nImageCount size and copy in each index m_descriptorSetLayout */
+	/* 
+		Initialize vector with m_nImageCount size and copy in each index m_descriptorSetLayout 
+		We do this because we are going to have a descriptor set per frame in flight
+	*/
 	std::vector<VkDescriptorSetLayout> layouts(this->m_nImageCount, this->m_descriptorSetLayout);
 
-	/* Allocate info */
+	/* 
+		Allocate info
+
+		VkDescriptorSetAllocateInfo:	
+			- descriptorPool: Reference to our descriptor pool
+			- descriptorSetCount: Our frames in flight count
+			- pSetLayouts: Our decriptor set layouts
+	*/
 	VkDescriptorSetAllocateInfo allocInfo = { };
 	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 	allocInfo.descriptorPool = this->m_descriptorPool;
-	allocInfo.pSetLayouts = layouts.data();
+ 	allocInfo.pSetLayouts = layouts.data();
 	allocInfo.descriptorSetCount = this->m_nImageCount;
 
 	/* Allocate our descriptor sets */
@@ -689,19 +707,27 @@ void VulkanRenderer::AllocateAndWriteDescriptorSets() {
 		return;
 	}
 
-	VulkanBuffer* vkBuff = dynamic_cast<VulkanBuffer*>(this->m_wvpBuff);
+	/* Get our World View Projection Ring Buffer */
+	VulkanRingBuffer* ringBuffer = dynamic_cast<VulkanRingBuffer*>(this->m_wvpBuff);
+	if (ringBuffer == nullptr) {
+		spdlog::error("VulkanRenderer::AllocateAndWriteDescriptorSets: Selected ring buffer is not a vulkan ring buffer");
+		throw std::runtime_error("VulkanRenderer::AllocateAndWriteDescriptorSets: Selected ring buffer is not a vulkan ring buffer");
+		return;
+	}
 
-	/* Write our descriptor sets */
+	/* Write each of our descriptor sets */
 	for (uint32_t i = 0; i < this->m_nImageCount; i++) {
+		/* WVP Ring Buffer info */
 		VkDescriptorBufferInfo buffInfo = { };
-		buffInfo.buffer = vkBuff->GetBuffer();
-		buffInfo.offset = 0;
+		buffInfo.buffer = ringBuffer->GetBuffer(); // Our VkBuffer
+		buffInfo.offset = 0; // 0 because we are going to use dynamic offsets
 		buffInfo.range = sizeof(WVP);
 
+		/* Write to descriptor set */
 		VkWriteDescriptorSet descriptorWrite = { };
 		descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 		descriptorWrite.dstSet = this->m_descriptorSets[i];
-		descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
 		descriptorWrite.descriptorCount = 1;
 		descriptorWrite.pBufferInfo = &buffInfo;
 
@@ -979,13 +1005,18 @@ void VulkanRenderer::RecordCommandBuffer(uint32_t nImageIndex) {
 
 	std::map<std::string, GameObject*> objects = currentScene->GetObjects();
 
+	uint32_t dynamicOffset = 0;
+	this->m_wvpBuff->Reset(nImageIndex);
+	void* pMap = this->m_wvpBuff->Allocate(sizeof(this->m_wvp), dynamicOffset);
+	memcpy(pMap, &this->m_wvp, sizeof(this->m_wvp));
+
 	vkCmdBindDescriptorSets(
 		this->m_commandBuffer,
 		VK_PIPELINE_BIND_POINT_GRAPHICS,
 		this->m_pipelineLayout,
 		0, 1,
 		&this->m_descriptorSets[nImageIndex],
-		0, nullptr
+		1, &dynamicOffset
 	);
 
 	for (std::pair<std::string, GameObject*> obj : objects) {
@@ -1284,10 +1315,12 @@ GPUBuffer* VulkanRenderer::CreateBuffer(const void* pData, uint32_t nSize, EBuff
 	}
 
 	/* Map our buffer device memory and copy our data */
-	void* pMapData = nullptr;
-	vkMapMemory(this->m_device, memory, 0, VK_WHOLE_SIZE, 0, &pMapData);
-	memcpy(pMapData, pData, nSize);
-	vkUnmapMemory(this->m_device, memory);
+	if (pData != nullptr) {
+		void* pMapData = nullptr;
+		vkMapMemory(this->m_device, memory, 0, VK_WHOLE_SIZE, 0, &pMapData);
+		memcpy(pMapData, pData, nSize);
+		vkUnmapMemory(this->m_device, memory);
+	}
 
 	/* Bind our buffer to our device memory */
 	if (vkBindBufferMemory(this->m_device, buffer, memory, 0) != VK_SUCCESS) {
