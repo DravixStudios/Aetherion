@@ -50,6 +50,14 @@ VkDeviceMemory VulkanTexture::GetMemory() {
 	return this->m_memory;
 }
 
+VkImageView VulkanTexture::GetImageView() {
+	return this->m_imageView;
+}
+
+VkSampler VulkanTexture::GetSampler() {
+	return this->m_sampler;
+}
+
 uint32_t VulkanTexture::GetSize() {
 	if (this->m_nSize <= 0) {
 		spdlog::error("VulkanTexture::GetSize: Buffer size is 0");

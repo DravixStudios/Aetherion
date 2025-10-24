@@ -1094,11 +1094,23 @@ void VulkanRenderer::CreateGraphicsPipeline() {
 	depthStencil.depthBoundsTestEnable = VK_FALSE;
 	depthStencil.stencilTestEnable = VK_FALSE;
 
+	VkDescriptorSetLayout setLayouts[] = {
+		this->m_wvpDescriptorSetLayout,
+		this->m_textureDescriptorSetLayout
+	};
+
+	VkPushConstantRange pushRange = { };
+	pushRange.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+	pushRange.offset = 0;
+	pushRange.size = sizeof(uint32_t);
+
 	/* Pipeline layout create info */
 	VkPipelineLayoutCreateInfo layoutInfo = { };
 	layoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-	layoutInfo.pSetLayouts = &this->m_wvpDescriptorSetLayout;
-	layoutInfo.setLayoutCount = 1;
+	layoutInfo.pSetLayouts = setLayouts;
+	layoutInfo.setLayoutCount = 2;
+	layoutInfo.pPushConstantRanges = &pushRange;
+	layoutInfo.pushConstantRangeCount = 1;
 
 	if (vkCreatePipelineLayout(this->m_device, &layoutInfo, nullptr, &this->m_pipelineLayout) != VK_SUCCESS) {
 		spdlog::error("CreateGraphicsPipeline: Error creating pipeline layout");
@@ -1198,15 +1210,19 @@ void VulkanRenderer::RecordCommandBuffer(uint32_t nImageIndex) {
 	vkCmdSetViewport(this->m_commandBuffer, 0, 1, &this->m_viewport);
 	vkCmdSetScissor(this->m_commandBuffer, 0, 1, &this->m_scissor);
 
-	/* Bind triangle vertex buffer and draw it */
-	//this->DrawVertexBuffer(this->m_buffer);
-
+	/* Get the current scene from the Scene manager singleton */
 	Scene* currentScene = this->m_sceneMgr->GetCurrentScene();
 
+	/* Get all the scene objects */
 	std::map<std::string, GameObject*> objects = currentScene->GetObjects();
 
+	/* Rotation test */
 	this->m_wvp.World = glm::rotate(this->m_wvp.World, glm::radians(.1f), glm::vec3(0.f, 1.f, 0.f));
+	/* End Rotation test */
 
+	/* Bind descriptor sets */
+
+	/* Update WVP Ring buffer */
 	uint32_t dynamicOffset = 0;
 	this->m_wvpBuff->Reset(nImageIndex);
 	void* pMap = this->m_wvpBuff->Allocate(sizeof(this->m_wvp), dynamicOffset);
@@ -1216,9 +1232,22 @@ void VulkanRenderer::RecordCommandBuffer(uint32_t nImageIndex) {
 		this->m_commandBuffer,
 		VK_PIPELINE_BIND_POINT_GRAPHICS,
 		this->m_pipelineLayout,
-		0, 1,
-		&this->m_descriptorSets[nImageIndex],
-		1, &dynamicOffset
+		0,
+		1, // Descriptor set count
+		&this->m_descriptorSets[nImageIndex], // Descriptor set
+		1, // Dynamic offset count 
+		&dynamicOffset // Dynamic offsets
+	);
+
+	vkCmdBindDescriptorSets(
+		this->m_commandBuffer,
+		VK_PIPELINE_BIND_POINT_GRAPHICS,
+		this->m_pipelineLayout,
+		1,
+		1, // Descriptor set count
+		&this->m_globalTextureDescriptorSet, // Descriptor set
+		0, // Dynamic offset count 
+		nullptr // Dynamic offsets
 	);
 
 	for (std::pair<std::string, GameObject*> obj : objects) {
@@ -1239,8 +1268,11 @@ void VulkanRenderer::RecordCommandBuffer(uint32_t nImageIndex) {
 
 		std::map<uint32_t, GPUBuffer*> vertices = mesh->GetVBOs();
 		std::map<uint32_t, GPUTexture*> textures = mesh->GetTextures();
+		std::map<uint32_t, uint32_t> textureIndices = mesh->GetTextureIndices();
 
 		for (std::pair<uint32_t, GPUBuffer*> vertex : vertices) {
+			uint32_t nTextureIndex = textureIndices[vertex.first];
+			vkCmdPushConstants(this->m_commandBuffer, this->m_pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(uint32_t), &nTextureIndex);
 			this->DrawVertexBuffer(vertex.second);
 		}
 	}
@@ -1326,6 +1358,17 @@ std::string VulkanRenderer::ReadShader(const std::string& sFile) {
 std::vector<uint32_t> VulkanRenderer::CompileShader(std::string shader, std::string filename, shaderc_shader_kind kind) {
 	shaderc::Compiler compiler;
 	shaderc::CompileOptions options;
+
+	options.SetTargetEnvironment(shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_2);
+	options.SetForcedVersionProfile(450, shaderc_profile_none);
+	options.SetTargetSpirv(shaderc_spirv_version_1_5);
+
+	shaderc::CompilationResult preprocessedResult = compiler.PreprocessGlsl(shader, kind, filename.c_str(), options);
+	if (preprocessedResult.GetCompilationStatus() != shaderc_compilation_status_success) {
+		spdlog::error("Shader Preprocess Error: {}", preprocessedResult.GetErrorMessage());
+		throw std::runtime_error("Shader preprocessor error");
+	}
+
 	shaderc::SpvCompilationResult result = compiler.CompileGlslToSpv(shader, kind, filename.c_str(), options);
 
 	if (result.GetCompilationStatus() != shaderc_compilation_status_success) {
@@ -1733,6 +1776,63 @@ VkSampler VulkanRenderer::CreateSampler() {
 	}
 
 	return sampler;
+}
+
+/* Checks if texture is registered and returns the index */
+uint32_t VulkanRenderer::GetTextureIndex(std::string& textureName) {
+	if (this->m_textureIndices.count(textureName) <= 0) {
+		spdlog::error("VulkanRenderer::GetTextureIndex: Texture {0} not found. Make sure it is registered", textureName);
+		return 0;
+	}
+
+	return this->m_textureIndices[textureName];
+}
+
+/* 
+	Registers a new texture on our texture indices 
+	and loaded textures vector and writes to the 
+	global texture descriptor set 
+*/
+uint32_t VulkanRenderer::RegisterTexture(const std::string& textureName, GPUTexture* pTexture) {
+	VulkanTexture* texture = dynamic_cast<VulkanTexture*>(pTexture);
+	if (texture == nullptr) {
+		spdlog::error("VulkanRenderer::RegisterTexture: Specified GPUTexture is not a Vulkan texture");
+		throw std::runtime_error("VulkanRenderer::RegisterTexture: Specified GPUTexture is not a Vulkan texture");
+		return UINT32_MAX;
+	}
+
+	if (this->m_textureIndices.count(textureName) > 0) {
+		return this->m_textureIndices[textureName];
+	}
+
+	uint32_t nTextureIndex = this->m_loadedTextures.size();
+
+	if (nTextureIndex >= this->m_nMaxTextures) {
+		spdlog::error("VulkanRenderer::RegisterTexture: Max texture count reached");
+		return UINT32_MAX;
+	}
+
+	this->m_loadedTextures.push_back(pTexture);
+	this->m_textureIndices[textureName] = nTextureIndex;
+
+	/* Update descriptor set */
+	VkDescriptorImageInfo imageInfo = { };
+	imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	imageInfo.imageView = texture->GetImageView();
+	imageInfo.sampler = texture->GetSampler();
+
+	VkWriteDescriptorSet descriptorWrite = { };
+	descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	descriptorWrite.dstSet = this->m_globalTextureDescriptorSet;
+	descriptorWrite.dstBinding = 0;
+	descriptorWrite.dstArrayElement = nTextureIndex;
+	descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	descriptorWrite.descriptorCount = 1;
+	descriptorWrite.pImageInfo = &imageInfo;
+
+	vkUpdateDescriptorSets(this->m_device, 1, &descriptorWrite, 0, nullptr);
+
+	return nTextureIndex;
 }
 
 /* Copy our buffer to a VkImage */

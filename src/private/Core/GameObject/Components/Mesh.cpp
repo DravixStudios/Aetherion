@@ -125,8 +125,18 @@ bool Mesh::LoadModel(std::string filePath) {
 				GPUBuffer* stagingBuffer = renderer->CreateStagingBuffer(pixelData, (nWidth * nHeight) * 4);
 				GPUTexture* gpuTexture = renderer->CreateTexture(stagingBuffer, nWidth, nHeight, GPUFormat::RGBA8_SRGB);
 
+				if(VulkanRenderer* vkRenderer = dynamic_cast<VulkanRenderer*>(renderer)) {
+					spdlog::debug("Mesh::LoadModel: Vulkan renderer registering texture {0}", texturePath.C_Str());
+					uint32_t nTextureIndex = vkRenderer->RegisterTexture(texturePath.C_Str(), gpuTexture);
+					
+					if (nTextureIndex == UINT32_MAX) {
+						spdlog::error("Mesh::LoadModel: Vulkan renderer couldn't register texture {0}", texturePath.C_Str());
+					}
+					this->m_textureIndices[i] = nTextureIndex;
+					spdlog::debug("Mesh::LoadModel: Texture {0} registered at Vulkan renderer index {1}", texturePath.C_Str(), nTextureIndex);
+				}
+
 				this->m_resourceManager->AddTexture(texturePath.C_Str(), gpuTexture);
-				//this->m_VBOs[i] = 
 				this->m_textures[i] = gpuTexture;
 			}
 			else {
@@ -146,4 +156,9 @@ std::map<uint32_t, GPUBuffer*>& Mesh::GetVBOs() {
 /* Returns Mesh::m_textures */
 std::map<uint32_t, GPUTexture*>& Mesh::GetTextures() {
 	return this->m_textures;
+}
+
+/* Returns Mesh::m_textureIndices */
+std::map<uint32_t, uint32_t>& Mesh::GetTextureIndices() {
+	return this->m_textureIndices;
 }

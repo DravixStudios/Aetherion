@@ -22,6 +22,8 @@ public:
 	VkPhysicalDevice GetPhysicalDevice();
 	VkImage GetBuffer();
 	VkDeviceMemory GetMemory();
+	VkImageView GetImageView();
+	VkSampler GetSampler();
 
 	uint32_t GetSize() override;
 private:

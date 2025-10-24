@@ -24,9 +24,11 @@ public:
 
 	std::map<uint32_t, GPUBuffer*>& GetVBOs();
 	std::map<uint32_t, GPUTexture*>& GetTextures();
+	std::map<uint32_t, uint32_t>& GetTextureIndices();
 
 	std::map<uint32_t, std::vector<Vertex>> m_vertices;
 	std::map<uint32_t, GPUBuffer*> m_VBOs;
+	std::map<uint32_t, uint32_t> m_textureIndices;
 	
 private:
 	bool m_bMeshImported;

@@ -4,6 +4,7 @@
 #include <vector>
 #include <optional>
 #include <set>
+#include <map>
 #include <algorithm>
 #include <fstream>
 
@@ -151,7 +152,13 @@ public:
 	GPUTexture* CreateTexture(GPUBuffer* pBuffer, uint32_t nWidth, uint32_t nHeight, GPUFormat format) override;
 	VkImageView CreateImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
 	VkSampler CreateSampler();
+
+	uint32_t GetTextureIndex(std::string& textureName);
+	uint32_t RegisterTexture(const std::string& textureName, GPUTexture* pTexture);
 private:
+	std::vector<GPUTexture*> m_loadedTextures;
+	std::map<std::string, uint32_t> m_textureIndices;
+
 	void CopyBufferToImage(VkBuffer buffer, VkImage image, uint32_t nWidth, uint32_t nHeight);
 	bool DrawVertexBuffer(GPUBuffer* buffer) override;
 
