@@ -65,9 +65,6 @@ VulkanRenderer::VulkanRenderer() : Renderer::Renderer() {
 	this->m_sc = nullptr;
 	this->m_scExtent = VkExtent2D();
 	this->m_surfaceFormat = VkFormat::VK_FORMAT_UNDEFINED;
-	this->m_fence = nullptr;
-	this->m_imageAvailable = nullptr;
-	this->m_renderFinished = nullptr;
 	this->m_pipeline = nullptr;
 	this->m_pipelineLayout = nullptr;
 	this->m_scissor = VkRect2D();
@@ -78,6 +75,7 @@ VulkanRenderer::VulkanRenderer() : Renderer::Renderer() {
 	this->m_nMaxDescriptorSetSamplers = 0;
 	this->m_nMaxPerStageDescriptorSamplers = 0;
 	this->m_nMaxTextures = 0;
+	this->m_nCurrentFrameIndex = 0;
 }
 
 /* Renderer init method */
@@ -93,6 +91,7 @@ void VulkanRenderer::Init() {
 	this->CreateLogicalDevice();
 	this->CreateSwapChain();
 	this->CreateImageViews();
+	this->CreateGeometryRenderPass();
 	this->CreateRenderPass();
 	this->CreateCommandPool();
 	this->CreateColorResources();
@@ -517,6 +516,24 @@ void VulkanRenderer::CreateImageViews() {
 }
 
 /* 
+	Create our geometry render pass 
+*/
+void VulkanRenderer::CreateGeometryRenderPass() {
+	/* Attachment 0: Base color - BGRA8_UNORM */
+	VkAttachmentDescription colorAttachment = { };
+	colorAttachment.format = VK_FORMAT_B8G8R8A8_UNORM;
+	colorAttachment.samples = this->m_multisampleCount;
+	colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	colorAttachment.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+	colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+
+
+}
+
+/* 
 	Creation of our render pass with its attachments and subpasses
 */
 void VulkanRenderer::CreateRenderPass() {
@@ -936,13 +953,16 @@ void VulkanRenderer::WriteDescriptorSets() {
 }
 
 void VulkanRenderer::CreateCommandBuffer() {
+	this->m_commandBuffers.resize(this->m_nImageCount);
+
 	VkCommandBufferAllocateInfo allocInfo = { };
 	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 	allocInfo.commandPool = this->m_commandPool;
 	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 	allocInfo.commandBufferCount = 1;
+	allocInfo.commandBufferCount = this->m_nImageCount;
 
-	if (vkAllocateCommandBuffers(this->m_device, &allocInfo, &this->m_commandBuffer) != VK_SUCCESS) {
+	if (vkAllocateCommandBuffers(this->m_device, &allocInfo, this->m_commandBuffers.data()) != VK_SUCCESS) {
 		spdlog::error("CreateCommandBuffer: Error allocating command buffer");
 		throw std::runtime_error("CreateCommandBuffer: Error allocating command buffer");
 		return;
@@ -1154,6 +1174,10 @@ void VulkanRenderer::CreateGraphicsPipeline() {
 
 /* Creation of our sync objects */
 void VulkanRenderer::CreateSyncObjects() {
+	this->m_imageAvailableSemaphores.resize(this->m_nImageCount);
+	this->m_renderFinishedSemaphores.resize(this->m_nImageCount);
+	this->m_inFlightFences.resize(this->m_nImageCount);
+
 	VkSemaphoreCreateInfo semaphoreInfo = { };
 	semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
@@ -1161,13 +1185,16 @@ void VulkanRenderer::CreateSyncObjects() {
 	fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 	fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
-	if (vkCreateSemaphore(this->m_device, &semaphoreInfo, nullptr, &this->m_renderFinished) != VK_SUCCESS ||
-		vkCreateSemaphore(this->m_device, &semaphoreInfo, nullptr, &this->m_imageAvailable) != VK_SUCCESS ||
-		vkCreateFence(this->m_device, &fenceInfo, nullptr, &this->m_fence) != VK_SUCCESS) {
-		spdlog::error("CreateSyncObjects: Failed to create sync objects");
-		throw std::runtime_error("CreateSyncObjects: Failed to create sync objects");
-		return;
+	for(uint32_t i = 0; i < this->m_nImageCount; i++) {
+		if (vkCreateSemaphore(this->m_device, &semaphoreInfo, nullptr, &this->m_renderFinishedSemaphores[i]) != VK_SUCCESS ||
+			vkCreateSemaphore(this->m_device, &semaphoreInfo, nullptr, &this->m_imageAvailableSemaphores[i]) != VK_SUCCESS ||
+			vkCreateFence(this->m_device, &fenceInfo, nullptr, &this->m_inFlightFences[i]) != VK_SUCCESS) {
+			spdlog::error("CreateSyncObjects: Failed to create sync objects");
+			throw std::runtime_error("CreateSyncObjects: Failed to create sync objects");
+			return;
+		}
 	}
+
 
 	spdlog::debug("CreateSyncObjects: Sync objects created");
 }
@@ -1177,7 +1204,9 @@ void VulkanRenderer::RecordCommandBuffer(uint32_t nImageIndex) {
 	VkCommandBufferBeginInfo beginInfo = { };
 	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
-	vkBeginCommandBuffer(this->m_commandBuffer, &beginInfo);
+	VkCommandBuffer commandBuffer = this->m_commandBuffers[this->m_nCurrentFrameIndex];
+
+	vkBeginCommandBuffer(commandBuffer, &beginInfo);
 
 	/* Begin render pass */
 
@@ -1202,13 +1231,13 @@ void VulkanRenderer::RecordCommandBuffer(uint32_t nImageIndex) {
 	renderPassInfo.pClearValues = clearValues;
 	renderPassInfo.clearValueCount = 3;
 	
-	vkCmdBeginRenderPass(this->m_commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+	vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
 	/* Bind pipeline */
-	vkCmdBindPipeline(this->m_commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->m_pipeline);
+	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->m_pipeline);
 
-	vkCmdSetViewport(this->m_commandBuffer, 0, 1, &this->m_viewport);
-	vkCmdSetScissor(this->m_commandBuffer, 0, 1, &this->m_scissor);
+	vkCmdSetViewport(commandBuffer, 0, 1, &this->m_viewport);
+	vkCmdSetScissor(commandBuffer, 0, 1, &this->m_scissor);
 
 	/* Get the current scene from the Scene manager singleton */
 	Scene* currentScene = this->m_sceneMgr->GetCurrentScene();
@@ -1217,7 +1246,7 @@ void VulkanRenderer::RecordCommandBuffer(uint32_t nImageIndex) {
 	std::map<std::string, GameObject*> objects = currentScene->GetObjects();
 
 	/* Rotation test */
-	this->m_wvp.World = glm::rotate(this->m_wvp.World, glm::radians(.1f), glm::vec3(0.f, 1.f, 0.f));
+	this->m_wvp.World = glm::rotate(this->m_wvp.World, glm::radians(.01f), glm::vec3(0.f, 1.f, 0.f));
 	/* End Rotation test */
 
 	/* Bind descriptor sets */
@@ -1229,7 +1258,7 @@ void VulkanRenderer::RecordCommandBuffer(uint32_t nImageIndex) {
 	memcpy(pMap, &this->m_wvp, sizeof(this->m_wvp));
 
 	vkCmdBindDescriptorSets(
-		this->m_commandBuffer,
+		commandBuffer,
 		VK_PIPELINE_BIND_POINT_GRAPHICS,
 		this->m_pipelineLayout,
 		0,
@@ -1240,7 +1269,7 @@ void VulkanRenderer::RecordCommandBuffer(uint32_t nImageIndex) {
 	);
 
 	vkCmdBindDescriptorSets(
-		this->m_commandBuffer,
+		commandBuffer,
 		VK_PIPELINE_BIND_POINT_GRAPHICS,
 		this->m_pipelineLayout,
 		1,
@@ -1272,13 +1301,13 @@ void VulkanRenderer::RecordCommandBuffer(uint32_t nImageIndex) {
 
 		for (std::pair<uint32_t, GPUBuffer*> vertex : vertices) {
 			uint32_t nTextureIndex = textureIndices[vertex.first];
-			vkCmdPushConstants(this->m_commandBuffer, this->m_pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(uint32_t), &nTextureIndex);
+			vkCmdPushConstants(commandBuffer, this->m_pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(uint32_t), &nTextureIndex);
 			this->DrawVertexBuffer(vertex.second);
 		}
 	}
 
-	vkCmdEndRenderPass(this->m_commandBuffer);
-	vkEndCommandBuffer(this->m_commandBuffer);
+	vkCmdEndRenderPass(commandBuffer);
+	vkEndCommandBuffer(commandBuffer);
 }
 
 /* 
@@ -1871,6 +1900,8 @@ bool VulkanRenderer::DrawVertexBuffer(GPUBuffer* buffer) {
 		return false;
 	}
 
+	VkCommandBuffer commandBuffer = this->m_commandBuffers[this->m_nCurrentFrameIndex];
+
 	VulkanBuffer* vkBuff = dynamic_cast<VulkanBuffer*>(buffer);
 	
 	/* Get our VkBuffer, VkDeviceMemory and our buffer size */
@@ -1881,8 +1912,8 @@ bool VulkanRenderer::DrawVertexBuffer(GPUBuffer* buffer) {
 	/* Bind our vertex buffer and draw it */
 	VkBuffer vertexBuffers[] = { buff };
 	VkDeviceSize offsets[] = { 0 };
-	vkCmdBindVertexBuffers(this->m_commandBuffer, 0, 1, vertexBuffers, offsets);
-	vkCmdDraw(this->m_commandBuffer, nSize / sizeof(Vertex), 1, 0, 0);
+	vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+	vkCmdDraw(commandBuffer, nSize / sizeof(Vertex), 1, 0, 0);
 
 	return true;
 }
@@ -2256,20 +2287,21 @@ void VulkanRenderer::DestroyDebugUtilsMessengerEXT(
 void VulkanRenderer::Update() {
 	Renderer::Update();
 
-	vkWaitForFences(this->m_device, 1, &this->m_fence, VK_TRUE, UINT64_MAX);
-	vkResetFences(this->m_device, 1, &this->m_fence);
+	vkWaitForFences(this->m_device, 1, &this->m_inFlightFences[this->m_nCurrentFrameIndex], VK_TRUE, UINT64_MAX);
+	vkResetFences(this->m_device, 1, &this->m_inFlightFences[this->m_nCurrentFrameIndex]);
 
 	uint32_t nImageIndex;
-	vkAcquireNextImageKHR(this->m_device, this->m_sc, UINT64_MAX, this->m_imageAvailable, VK_NULL_HANDLE, &nImageIndex);
+	vkAcquireNextImageKHR(this->m_device, this->m_sc, UINT64_MAX, this->m_imageAvailableSemaphores[this->m_nCurrentFrameIndex], VK_NULL_HANDLE, &nImageIndex);
 
+	vkResetCommandBuffer(this->m_commandBuffers[this->m_nCurrentFrameIndex], 0);
 	this->RecordCommandBuffer(nImageIndex);
-	
-	VkSemaphore waitSemaphores[] = { this->m_imageAvailable };
+
+	VkSemaphore waitSemaphores[] = { this->m_imageAvailableSemaphores[this->m_nCurrentFrameIndex] };
 	VkPipelineStageFlags waitStages[] = {
 		VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
 	};
 
-	VkSemaphore signalSemaphores[] = { this->m_renderFinished };
+	VkSemaphore signalSemaphores[] = { this->m_renderFinishedSemaphores[this->m_nCurrentFrameIndex] };
 
 	/* Setup our submit info */
 	VkSubmitInfo submitInfo = { };
@@ -2277,22 +2309,22 @@ void VulkanRenderer::Update() {
 	submitInfo.waitSemaphoreCount = 1;
 	submitInfo.pWaitSemaphores = waitSemaphores;
 	submitInfo.pWaitDstStageMask = waitStages;
-	
-	submitInfo.pCommandBuffers = &this->m_commandBuffer;
+
+	submitInfo.pCommandBuffers = &this->m_commandBuffers[this->m_nCurrentFrameIndex];
 	submitInfo.commandBufferCount = 1;
 
 	submitInfo.pSignalSemaphores = signalSemaphores;
 	submitInfo.signalSemaphoreCount = 1;
 
-	if (vkQueueSubmit(this->m_graphicsQueue, 1, &submitInfo, this->m_fence) != VK_SUCCESS) {
+	if (vkQueueSubmit(this->m_graphicsQueue, 1, &submitInfo, this->m_inFlightFences[this->m_nCurrentFrameIndex]) != VK_SUCCESS) {
 		spdlog::error("Update: Failed to queue submit");
 		throw std::runtime_error("Update: Failed to queue submit");
 		return;
 	}
-	
+
 	/* Present our image */
 	VkSwapchainKHR swapChains[] = { this->m_sc };
-	
+
 	VkPresentInfoKHR presentInfo = { };
 	presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 	presentInfo.waitSemaphoreCount = 1;
@@ -2302,4 +2334,5 @@ void VulkanRenderer::Update() {
 	presentInfo.pImageIndices = &nImageIndex;
 
 	vkQueuePresentKHR(this->m_presentQueue, &presentInfo);
+	this->m_nCurrentFrameIndex = (nImageIndex + 1) % this->m_nImageCount;
 }

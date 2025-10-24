@@ -67,7 +67,7 @@ private:
 	VkImageView m_depthImageView;
 
 	VkCommandPool m_commandPool;
-	VkCommandBuffer m_commandBuffer;
+	std::vector<VkCommandBuffer> m_commandBuffers;
 
 	VkPipelineLayout m_pipelineLayout;
 	VkPipeline m_pipeline;
@@ -75,9 +75,11 @@ private:
 	VkViewport m_viewport;
 	VkRect2D m_scissor;
 
-	VkSemaphore m_imageAvailable;
-	VkSemaphore m_renderFinished;
-	VkFence m_fence;
+	std::vector<VkSemaphore> m_imageAvailableSemaphores;
+	std::vector<VkSemaphore> m_renderFinishedSemaphores;
+	std::vector<VkFence> m_inFlightFences;
+
+	uint32_t m_nCurrentFrameIndex;
 
 	VkSampleCountFlagBits m_multisampleCount;
 	VkImage m_colorImage;
@@ -106,6 +108,7 @@ private:
 	void CreateLogicalDevice();
 	void CreateSwapChain();
 	void CreateImageViews();
+	void CreateGeometryRenderPass();
 	void CreateRenderPass();
 	void CreateCommandPool();
 	void CreateColorResources();
