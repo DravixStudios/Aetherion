@@ -530,7 +530,58 @@ void VulkanRenderer::CreateGeometryRenderPass() {
 	colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 	colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 
+	/* Attachment 1: Normal - RGBA16_SFLOAT */
+	VkAttachmentDescription normalAttachment = { };
+	normalAttachment.format = VK_FORMAT_R16G16B16A16_SFLOAT;
+	normalAttachment.samples = this->m_multisampleCount;
+	normalAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	normalAttachment.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	normalAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	normalAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+	normalAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	normalAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 
+	/* Attachment 2: Position - RGBA16_SFLOAT */
+	VkAttachmentDescription positionAttachment = { };
+	positionAttachment.format = VK_FORMAT_R16G16B16A16_SFLOAT;
+	positionAttachment.samples = this->m_multisampleCount;
+	positionAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	positionAttachment.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	positionAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	positionAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+	positionAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	positionAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+
+	/* Attachment 3: Depth */
+	VkAttachmentDescription depthAttachment = { };
+	depthAttachment.format = this->FindDepthFormat();
+	depthAttachment.samples = this->m_multisampleCount;
+	depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+	depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+	depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+
+	/* Base color attachment reference */
+	VkAttachmentReference colorRef = { };
+	colorRef.attachment = 0;
+	colorRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+	/* Normal attachment reference */
+	VkAttachmentReference normalRef = { };
+	normalRef.attachment = 1;
+	normalRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+	/* Position attachment reference */
+	VkAttachmentReference positionRef = { };
+	positionRef.attachment = 2;
+	positionRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+	/* Depth attachment reference */
+	VkAttachmentReference depthRef = { };
+	depthRef.attachment = 3;
+	depthRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 }
 
 /* 
