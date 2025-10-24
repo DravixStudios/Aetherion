@@ -63,6 +63,8 @@ private:
 	VkRenderPass m_renderPass;
 	std::vector<VkFramebuffer> m_frameBuffers;
 
+	VkRenderPass m_geometryRenderPass;
+
 	VkImage m_depthImage;
 	VkImageView m_depthImageView;
 

@@ -519,6 +519,10 @@ void VulkanRenderer::CreateImageViews() {
 	Create our geometry render pass 
 */
 void VulkanRenderer::CreateGeometryRenderPass() {
+	/* Get multisample count */
+	VkSampleCountFlagBits multisampleCount = this->GetMaxUsableSampleCount();
+	this->m_multisampleCount = multisampleCount;
+
 	/* Attachment 0: Base color - BGRA8_UNORM */
 	VkAttachmentDescription colorAttachment = { };
 	colorAttachment.format = VK_FORMAT_B8G8R8A8_UNORM;
@@ -563,6 +567,39 @@ void VulkanRenderer::CreateGeometryRenderPass() {
 	depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 	depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 
+	/* Attachment 4: Base color Resolve - BGRA8_UNORM */
+	VkAttachmentDescription colorResolveAttachment = { };
+	colorResolveAttachment.format = VK_FORMAT_B8G8R8A8_UNORM;
+	colorResolveAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+	colorResolveAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	colorResolveAttachment.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	colorResolveAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	colorResolveAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+	colorResolveAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	colorResolveAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+
+	/* Attachment 5: Normal Resolve - RGBA16_SFLOAT */
+	VkAttachmentDescription normalResolveAttachment = { };
+	normalResolveAttachment.format = VK_FORMAT_R16G16B16A16_SFLOAT;
+	normalResolveAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+	normalResolveAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	normalResolveAttachment.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	normalResolveAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	normalResolveAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+	normalResolveAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	normalResolveAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+
+	/* Attachment 6: Position Resolve - RGBA16_SFLOAT */
+	VkAttachmentDescription positionResolveAttachment = { };
+	positionResolveAttachment.format = VK_FORMAT_R16G16B16A16_SFLOAT;
+	positionResolveAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+	positionResolveAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	positionResolveAttachment.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	positionResolveAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	positionResolveAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+	positionResolveAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	positionResolveAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+
 	/* Base color attachment reference */
 	VkAttachmentReference colorRef = { };
 	colorRef.attachment = 0;
@@ -582,16 +619,77 @@ void VulkanRenderer::CreateGeometryRenderPass() {
 	VkAttachmentReference depthRef = { };
 	depthRef.attachment = 3;
 	depthRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+	/* Base color resolve attachment reference */
+	VkAttachmentReference colorResolveRef = { };
+	colorResolveRef.attachment = 4;
+	colorResolveRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+	/* Normal resolve attachment reference */
+	VkAttachmentReference normalResolveRef = { };
+	normalResolveRef.attachment = 5;
+	normalResolveRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+	/* Position resolve attachment reference */
+	VkAttachmentReference positionResolveRef = { };
+	positionResolveRef.attachment = 6;
+	positionResolveRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+	VkAttachmentReference colorRefs[] = { colorRef, normalRef, positionRef };
+	VkAttachmentReference resolveRefs[] = { colorResolveRef, normalResolveRef, positionResolveRef };
+	
+	VkAttachmentDescription attachments[] = {
+		colorAttachment,
+		normalAttachment,
+		positionAttachment,
+		depthAttachment,
+		colorResolveAttachment,
+		normalResolveAttachment,
+		positionResolveAttachment
+	};
+
+
+	/* Subpass description */
+	VkSubpassDescription subpass = { };
+	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+	subpass.colorAttachmentCount = 3;
+	subpass.pColorAttachments = colorRefs;
+	subpass.pDepthStencilAttachment = &depthRef;
+	subpass.pResolveAttachments = resolveRefs;
+
+	/* Subpass dependency */
+	VkSubpassDependency dependency = { };
+	dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+	dependency.dstSubpass = 0;
+	dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+	dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+	dependency.srcAccessMask = 0;
+	dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+
+	/* Render pass create info */
+	VkRenderPassCreateInfo createInfo = { };
+	createInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+	createInfo.attachmentCount = 7;
+	createInfo.pAttachments = attachments;
+	createInfo.dependencyCount = 1;
+	createInfo.pDependencies = &dependency;
+	createInfo.subpassCount = 1;
+	createInfo.pSubpasses = &subpass;
+
+	/* Create render pass */
+	if (vkCreateRenderPass(this->m_device, &createInfo, nullptr, &this->m_geometryRenderPass) != VK_SUCCESS) {
+		spdlog::error("VulkanRenderer::CreateGeometryRenderPass: Failed creating geometry render pass");
+		throw std::runtime_error("VulkanRenderer::CreateGeometryRenderPass: Failed creating geometry render pass");
+		return;
+	}
+
+	spdlog::debug("VulkanRenderer::CreateGeometryRenderPass: Geometry render pass created");
 }
 
 /* 
 	Creation of our render pass with its attachments and subpasses
 */
 void VulkanRenderer::CreateRenderPass() {
-	/* Get multisample count */
-	VkSampleCountFlagBits multisampleCount = this->GetMaxUsableSampleCount();
-	this->m_multisampleCount = multisampleCount;
-
 	/* Color attachment description */
 	VkAttachmentDescription colorDesc = { };
 	colorDesc.format = this->m_surfaceFormat;
