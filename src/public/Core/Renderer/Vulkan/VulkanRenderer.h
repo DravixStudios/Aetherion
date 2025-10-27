@@ -64,6 +64,7 @@ private:
 	std::vector<VkFramebuffer> m_frameBuffers;
 
 	VkRenderPass m_geometryRenderPass;
+	VkRenderPass m_lightingRenderPass;
 
 	VkImage m_depthImage;
 	VkImageView m_depthImageView;
@@ -88,6 +89,24 @@ private:
 	VkDeviceMemory m_colorImageMemory;
 	VkImageView m_colorImageView;
 
+	/* G-Buffers */
+	VkImage m_colorBuffer;
+	VkImage m_normalBuffer;
+	VkImage m_positionBuffer;
+	VkImage m_colorResolveBuffer;
+	VkImage m_normalResolveBuffer;
+	VkImage m_positionResolveBuffer;
+
+	/* G-Buffer image view */
+	VkImageView m_colorBuffView;
+	VkImageView m_normalBuffView;
+	VkImageView m_positionBuffView;
+	VkImageView m_colorResolveBuffView;
+	VkImageView m_normalResolveBuffView;
+	VkImageView m_positionResolveBuffView;
+
+	VkFramebuffer m_gbufferFramebuffer;
+
 	/* Descriptor sets */
 	std::vector<VkDescriptorSet> m_descriptorSets; // One per frame
 	VkDescriptorSetLayout m_wvpDescriptorSetLayout; // For WVP (dynamic)
@@ -95,6 +114,10 @@ private:
 	VkDescriptorPool m_wvpDescriptorPool; 
 	VkDescriptorPool m_textureDescriptorPool;
 	VkDescriptorSet m_globalTextureDescriptorSet; // Global for all the textures
+
+	VkDescriptorSetLayout m_lightingDescriptorSetLayout;
+	VkDescriptorPool m_lightingDescriptorPool;
+	VkDescriptorSet m_lightingDescriptorSet;
 
 	uint32_t m_nMaxDescriptorSetSamplers;
 	uint32_t m_nMaxPerStageDescriptorSamplers;
@@ -111,12 +134,16 @@ private:
 	void CreateSwapChain();
 	void CreateImageViews();
 	void CreateGeometryRenderPass();
+	void CreateLightingRenderPass();
 	void CreateRenderPass();
 	void CreateCommandPool();
+	void CreateGBufferResources();
 	void CreateColorResources();
 	void CreateDepthResources();
+	void CreateGBufferFrameBuffer();
 	void CreateFrameBuffers();
 	void CreateDescriptorSetLayout();
+	void CreateLightingDescriptorSetLayout();
 	void CreateDescriptorPool();
 	void AllocateDescriptorSets();
 	void WriteDescriptorSets();

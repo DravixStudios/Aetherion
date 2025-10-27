@@ -92,10 +92,13 @@ void VulkanRenderer::Init() {
 	this->CreateSwapChain();
 	this->CreateImageViews();
 	this->CreateGeometryRenderPass();
+	this->CreateLightingRenderPass();
 	this->CreateRenderPass();
 	this->CreateCommandPool();
+	this->CreateGBufferResources();
 	this->CreateColorResources();
 	this->CreateDepthResources();
+	this->CreateGBufferFrameBuffer();
 	this->CreateFrameBuffers();
 
 	/* Test uniform */
@@ -111,6 +114,7 @@ void VulkanRenderer::Init() {
 	/* End Test uniform */
 
 	this->CreateDescriptorSetLayout();
+	this->CreateLightingDescriptorSetLayout();
 	this->CreateDescriptorPool();
 	this->AllocateDescriptorSets();
 	this->WriteDescriptorSets();
@@ -686,6 +690,61 @@ void VulkanRenderer::CreateGeometryRenderPass() {
 	spdlog::debug("VulkanRenderer::CreateGeometryRenderPass: Geometry render pass created");
 }
 
+/*
+	Creation of our lighting render pass (Screen Quad)
+*/
+void VulkanRenderer::CreateLightingRenderPass() {
+	/* Attachment 0: Final color output */
+	VkAttachmentDescription colorAttachment = { };
+	colorAttachment.format = this->m_surfaceFormat;
+	colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+	colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+	colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+	colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+
+	/* Final color attachment reference */
+	VkAttachmentReference colorRef = { };
+	colorRef.attachment = 0;
+	colorRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+	/* Subpass */
+	VkSubpassDescription subpass = { };
+	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+	subpass.colorAttachmentCount = 1;
+	subpass.pColorAttachments = &colorRef;
+
+	/* Subpass dependency */
+	VkSubpassDependency dependency = { };
+	dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+	dependency.dstSubpass = 0;
+	dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	dependency.srcAccessMask = 0;
+	dependency.dstAccessMask = 0;
+
+	/* Render pass create info */
+	VkRenderPassCreateInfo createInfo = { };
+	createInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+	createInfo.attachmentCount = 1;
+	createInfo.pAttachments = &colorAttachment;
+	createInfo.subpassCount = 1;
+	createInfo.pSubpasses = &subpass;
+	createInfo.pDependencies = &dependency;
+	createInfo.dependencyCount = 1;
+
+	/* Create our render pass */
+	if (vkCreateRenderPass(this->m_device, &createInfo, nullptr, &this->m_lightingRenderPass) != VK_SUCCESS) {
+		spdlog::error("VulkanRenderer::CreateLightingRenderPass: Failed creating lighting render pass");
+		throw std::runtime_error("VulkanRenderer::CreateLightingRenderPass: Failed creating lighting render pass");
+		return;
+	}
+
+	spdlog::debug("VulkanRenderer::CreateLightingRenderPass: Lighting render pass created");
+}
+
 /* 
 	Creation of our render pass with its attachments and subpasses
 */
@@ -792,6 +851,112 @@ void VulkanRenderer::CreateCommandPool() {
 	spdlog::debug("CreateCommandPool: Command pool created");
 }
 
+/*
+	Create our G-Buffer resources
+*/
+void VulkanRenderer::CreateGBufferResources() {
+	VkDeviceMemory colorMemory, normalMemory, positionMemory = nullptr;
+	VkDeviceMemory colorResolveMemory, normalResolveMemory, positionResolveMemory = nullptr;
+
+	/* Base color G-Buffer (BGRA8_UNORM) */
+	this->CreateImage(
+		this->m_scExtent.width,
+		this->m_scExtent.height,
+		VK_FORMAT_B8G8R8A8_UNORM,
+		this->m_multisampleCount,
+		VK_IMAGE_TILING_OPTIMAL,
+		VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+		this->m_colorBuffer,
+		colorMemory
+	);
+
+	/* Normal G-Buffer (RGBA16_SFLOAT) */
+	this->CreateImage(
+		this->m_scExtent.width,
+		this->m_scExtent.height,
+		VK_FORMAT_R16G16B16A16_SFLOAT,
+		this->m_multisampleCount,
+		VK_IMAGE_TILING_OPTIMAL,
+		VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+		this->m_normalBuffer,
+		normalMemory
+	);
+
+	/* Position G-Buffer (RGBA16_SFLOAT) */
+	this->CreateImage(
+		this->m_scExtent.width,
+		this->m_scExtent.height,
+		VK_FORMAT_R16G16B16A16_SFLOAT,
+		this->m_multisampleCount,
+		VK_IMAGE_TILING_OPTIMAL,
+		VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+		this->m_positionBuffer,
+		positionMemory
+	);
+
+	/* Base color G-Buffer resolve (BGRA8_UNORM) */
+	this->CreateImage(
+		this->m_scExtent.width,
+		this->m_scExtent.height,
+		VK_FORMAT_B8G8R8A8_UNORM,
+		VK_SAMPLE_COUNT_1_BIT,
+		VK_IMAGE_TILING_OPTIMAL,
+		VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+		this->m_colorResolveBuffer,
+		colorMemory
+	);
+
+	/* Normal G-Buffer resolve (RGBA16_SFLOAT) */
+	this->CreateImage(
+		this->m_scExtent.width,
+		this->m_scExtent.height,
+		VK_FORMAT_R16G16B16A16_SFLOAT,
+		VK_SAMPLE_COUNT_1_BIT,
+		VK_IMAGE_TILING_OPTIMAL,
+		VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+		this->m_normalResolveBuffer,
+		normalMemory
+	);
+
+	/* Position G-Buffer resolve (RGBA16_SFLOAT) */
+	this->CreateImage(
+		this->m_scExtent.width,
+		this->m_scExtent.height,
+		VK_FORMAT_R16G16B16A16_SFLOAT,
+		VK_SAMPLE_COUNT_1_BIT,
+		VK_IMAGE_TILING_OPTIMAL,
+		VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+		this->m_positionResolveBuffer,
+		positionMemory
+	);
+
+	/* Create our G-Buffer image views */
+	this->m_colorBuffView = this->CreateImageView(this->m_colorBuffer, VK_FORMAT_B8G8R8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT);
+	this->m_normalBuffView = this->CreateImageView(this->m_normalBuffer, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
+	this->m_positionBuffView = this->CreateImageView(this->m_positionBuffer, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
+
+	this->m_colorResolveBuffView = this->CreateImageView(this->m_colorResolveBuffer, VK_FORMAT_B8G8R8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT);
+	this->m_normalResolveBuffView = this->CreateImageView(this->m_normalResolveBuffer, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
+	this->m_positionResolveBuffView = this->CreateImageView(this->m_positionResolveBuffer, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
+
+	/* Transition our G-Buffer images */
+	this->TransitionImageLayout(this->m_colorBuffer, VK_FORMAT_B8G8R8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+	this->TransitionImageLayout(this->m_normalBuffer, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+	this->TransitionImageLayout(this->m_positionBuffer, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+
+	this->TransitionImageLayout(this->m_colorResolveBuffer, VK_FORMAT_B8G8R8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+	this->TransitionImageLayout(this->m_normalResolveBuffer, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+	this->TransitionImageLayout(this->m_positionResolveBuffer, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+
+	spdlog::debug("VulkanRenderer::CreateGBufferResources: G-Buffers created");
+}
+
 /* 
 	Create an additional image per frame
 		Notes:
@@ -869,6 +1034,39 @@ void VulkanRenderer::CreateDepthResources() {
 	this->m_depthImageView = imageView;
 
 	spdlog::debug("VulkanRenderer::CreateDepthResources: Depth resources created");
+}
+
+/*
+	Create a frame buffer per each G-Buffer
+*/
+void VulkanRenderer::CreateGBufferFrameBuffer() {
+	VkImageView attachments[] = {
+		this->m_colorBuffView,
+		this->m_normalBuffView,
+		this->m_positionBuffView,
+		this->m_depthImageView,
+		this->m_colorResolveBuffView,
+		this->m_normalResolveBuffView,
+		this->m_positionResolveBuffView
+	};
+
+	/* Our frame buffer create info */
+	VkFramebufferCreateInfo createInfo = { };
+	createInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+	createInfo.renderPass = this->m_geometryRenderPass;
+	createInfo.width = this->m_scExtent.width;
+	createInfo.height = this->m_scExtent.height;
+	createInfo.layers = 1;
+	createInfo.attachmentCount = 7;
+	createInfo.pAttachments = attachments;
+
+	if (vkCreateFramebuffer(this->m_device, &createInfo, nullptr, &this->m_gbufferFramebuffer) != VK_SUCCESS) {
+		spdlog::error("VulkanRenderer::CreateGBufferFrameBuffer: Failed creating G-Buffer frame buffer");
+		throw std::runtime_error("VulkanRenderer::CreateGBufferFrameBuffer: Failed creating G-Buffer frame buffer");
+		return;
+	}
+	
+	spdlog::debug("VulkanRenderer::CreateGBufferFrameBuffer: G-Buffer frame buffer created");
 }
 
 /*
@@ -972,6 +1170,35 @@ void VulkanRenderer::CreateDescriptorSetLayout() {
 	}
 
 	spdlog::debug("VulkanRenderer::CreateDescriptorSetLayout: Texture Descriptor set layout created (bindless)");
+}
+
+/*
+	Creates our descriptor set layout for our lighting pass
+*/
+void VulkanRenderer::CreateLightingDescriptorSetLayout() {
+	/* Texture sampler binding */
+	VkDescriptorSetLayoutBinding samplerBinding = { };
+	samplerBinding.binding = 0;
+	samplerBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	samplerBinding.descriptorCount = 3;
+	samplerBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+	samplerBinding.pImmutableSamplers = nullptr;
+
+	VkDescriptorSetLayoutBinding bindings[] = { samplerBinding };
+
+	/* Descriptor set layout create info */
+	VkDescriptorSetLayoutCreateInfo createInfo = { };
+	createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+	createInfo.pBindings = bindings;
+	createInfo.bindingCount = 1;
+	
+	if (vkCreateDescriptorSetLayout(this->m_device, &createInfo, nullptr, &this->m_lightingDescriptorSetLayout) != VK_SUCCESS) {
+		spdlog::error("VulkanRenderer::CreateLightingDescriptorSetLayout: Failed creating lighting descriptor set layout");
+		throw std::runtime_error("VulkanRenderer::CreateLightingDescriptorSetLayout: Failed creating lighting descriptor set layout");
+		return;
+	}
+
+	spdlog::debug("VulkanRenderer::CreateLightingDescriptorSetLayout: Lighting descriptor set layout created");
 }
 
 /* Create our descriptor pool */
