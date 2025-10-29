@@ -116,8 +116,11 @@ void VulkanRenderer::Init() {
 	this->CreateDescriptorSetLayout();
 	this->CreateLightingDescriptorSetLayout();
 	this->CreateDescriptorPool();
+	this->CreateLightingDescriptorPool();
 	this->AllocateDescriptorSets();
+	this->AllocateLightingDescriptorSets();
 	this->WriteDescriptorSets();
+	this->WriteLightDescriptorSets();
 	this->CreateCommandBuffer();
 	this->CreateGraphicsPipeline();
 	this->CreateSyncObjects();
@@ -945,6 +948,11 @@ void VulkanRenderer::CreateGBufferResources() {
 	this->m_normalResolveBuffView = this->CreateImageView(this->m_normalResolveBuffer, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
 	this->m_positionResolveBuffView = this->CreateImageView(this->m_positionResolveBuffer, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
 
+	/* Create our G-Buffer samplers */
+	this->m_baseColorSampler = this->CreateSampler();
+	this->m_normalSampler = this->CreateSampler();
+	this->m_positionSampler = this->CreateSampler();
+
 	/* Transition our G-Buffer images */
 	this->TransitionImageLayout(this->m_colorBuffer, VK_FORMAT_B8G8R8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 	this->TransitionImageLayout(this->m_normalBuffer, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
@@ -1247,6 +1255,29 @@ void VulkanRenderer::CreateDescriptorPool() {
 
 }
 
+/* Create a descriptor pool for our lighting pass */
+void VulkanRenderer::CreateLightingDescriptorPool() {
+	/* Define our descriptor pool size */
+	VkDescriptorPoolSize poolSize = { };
+	poolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	poolSize.descriptorCount = 3 * this->m_nImageCount; // 3 samplers (base color, normal, position) per frame
+
+	/* Descriptor pool create info */
+	VkDescriptorPoolCreateInfo createInfo = { };
+	createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+	createInfo.poolSizeCount = 1;
+	createInfo.pPoolSizes = &poolSize;
+	createInfo.maxSets = this->m_nImageCount; // One per frame
+
+	/* Create our descriptor pool */
+	if (vkCreateDescriptorPool(this->m_device, &createInfo, nullptr, &this->m_lightingDescriptorPool) != VK_SUCCESS) {
+		spdlog::error("VulkanRenderer::CreateLightingDescriptorPool: Failed creating lighting descriptor pool");
+		throw std::runtime_error("VulkanRenderer::CreateLightingDescriptorPool: Failed creating lighting descriptor pool");
+		return;
+	}
+
+	spdlog::debug("VulkanRenderer::CreateLightingDescriptorPool: Lighting descriptor pool created");
+}
 
 /* Allocate our descriptor sets */
 void VulkanRenderer::AllocateDescriptorSets() {
@@ -1296,13 +1327,34 @@ void VulkanRenderer::AllocateDescriptorSets() {
 	spdlog::debug("VulkanRenderer::AllocateDescriptorSets: Global texture descriptor set allocated");
 }
 
+/* Allocate descriptor sets for our lighting pass */
+void VulkanRenderer::AllocateLightingDescriptorSets() {
+	std::vector<VkDescriptorSetLayout> layouts(this->m_nImageCount, this->m_lightingDescriptorSetLayout);
+
+	/* Descriptor set allocate info */
+	VkDescriptorSetAllocateInfo allocInfo = { };
+	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+	allocInfo.descriptorPool = this->m_lightingDescriptorPool;
+	allocInfo.descriptorSetCount = this->m_nImageCount;
+	allocInfo.pSetLayouts = layouts.data();
+
+	this->m_lightingDescriptorSets.resize(this->m_nImageCount);
+	if (vkAllocateDescriptorSets(this->m_device, &allocInfo, this->m_lightingDescriptorSets.data()) != VK_SUCCESS) {
+		spdlog::error("VulkanRenderer::AllocateLightingDescriptorSets: Failed allocating lighting descriptor sets");
+		throw std::runtime_error("VulkanRenderer::AllocateLightingDescriptorSets: Failed allocating lighting descriptor sets");
+		return;
+	}
+
+	spdlog::debug("VulkanRenderer::AllocateLightingDescriptorSets: Lighting descriptor sets allocated");
+}
+
 /* Writes our descriptor sets */
 void VulkanRenderer::WriteDescriptorSets() {
 	/* Get our World View Projection Ring Buffer */
 	VulkanRingBuffer* ringBuffer = dynamic_cast<VulkanRingBuffer*>(this->m_wvpBuff);
 	if (ringBuffer == nullptr) {
-		spdlog::error("VulkanRenderer::AllocateAndWriteDescriptorSets: Selected ring buffer is not a vulkan ring buffer");
-		throw std::runtime_error("VulkanRenderer::AllocateAndWriteDescriptorSets: Selected ring buffer is not a vulkan ring buffer");
+		spdlog::error("VulkanRenderer::WriteDescriptorSets: Selected ring buffer is not a vulkan ring buffer");
+		throw std::runtime_error("VulkanRenderer::WriteDescriptorSets: Selected ring buffer is not a vulkan ring buffer");
 		return;
 	}
 
@@ -1326,6 +1378,55 @@ void VulkanRenderer::WriteDescriptorSets() {
 	}
 
 	spdlog::debug("VulkanRenderer::WriteDescriptorSets: WVP descriptor sets written");
+}
+
+void VulkanRenderer::WriteLightDescriptorSets() {
+	VkDescriptorImageInfo colorInfo = { };
+	colorInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	colorInfo.imageView = this->m_colorBuffView;
+	colorInfo.sampler = this->m_baseColorSampler;
+
+	VkDescriptorImageInfo normalInfo = { };
+	normalInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	normalInfo.imageView = this->m_normalBuffView;
+	normalInfo.sampler = this->m_normalSampler;
+
+	VkDescriptorImageInfo positionInfo = { };
+	positionInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	positionInfo.imageView = this->m_positionBuffView;
+	positionInfo.sampler = this->m_positionSampler;
+
+	for (uint32_t i = 0; i < this->m_lightingDescriptorSets.size(); i++) {
+		VkWriteDescriptorSet descriptorWrites[3] = { };
+
+		descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrites[0].dstSet = this->m_lightingDescriptorSets[i];
+		descriptorWrites[0].dstBinding = 0;
+		descriptorWrites[0].dstArrayElement = 0;
+		descriptorWrites[0].pImageInfo = &colorInfo;
+		descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		descriptorWrites[0].descriptorCount = 1;
+
+		descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrites[1].dstSet = this->m_lightingDescriptorSets[i];
+		descriptorWrites[1].dstBinding = 0;
+		descriptorWrites[1].dstArrayElement = 1;
+		descriptorWrites[1].pImageInfo = &normalInfo;
+		descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		descriptorWrites[1].descriptorCount = 1;
+
+		descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrites[2].dstSet = this->m_lightingDescriptorSets[i];
+		descriptorWrites[2].dstBinding = 0;
+		descriptorWrites[2].dstArrayElement = 2;
+		descriptorWrites[2].pImageInfo = &positionInfo;
+		descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		descriptorWrites[2].descriptorCount = 1;
+
+		vkUpdateDescriptorSets(this->m_device, 3, descriptorWrites, 0, nullptr);
+	}
+
+	spdlog::debug("VulkanRenderer::WriteLightDescriptorSets: Lighting descriptor sets written");
 }
 
 void VulkanRenderer::CreateCommandBuffer() {

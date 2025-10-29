@@ -104,6 +104,11 @@ private:
 	VkImageView m_colorResolveBuffView;
 	VkImageView m_normalResolveBuffView;
 	VkImageView m_positionResolveBuffView;
+	
+	/* G-Buffer samplers */
+	VkSampler m_baseColorSampler;
+	VkSampler m_normalSampler;
+	VkSampler m_positionSampler;
 
 	VkFramebuffer m_gbufferFramebuffer;
 
@@ -117,7 +122,7 @@ private:
 
 	VkDescriptorSetLayout m_lightingDescriptorSetLayout;
 	VkDescriptorPool m_lightingDescriptorPool;
-	VkDescriptorSet m_lightingDescriptorSet;
+	std::vector<VkDescriptorSet> m_lightingDescriptorSets;
 
 	uint32_t m_nMaxDescriptorSetSamplers;
 	uint32_t m_nMaxPerStageDescriptorSamplers;
@@ -145,8 +150,11 @@ private:
 	void CreateDescriptorSetLayout();
 	void CreateLightingDescriptorSetLayout();
 	void CreateDescriptorPool();
+	void CreateLightingDescriptorPool();
 	void AllocateDescriptorSets();
+	void AllocateLightingDescriptorSets();
 	void WriteDescriptorSets();
+	void WriteLightDescriptorSets();
 	void CreateCommandBuffer();
 	void CreateGraphicsPipeline();
 	void CreateSyncObjects();
