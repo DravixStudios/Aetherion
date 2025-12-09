@@ -34,7 +34,7 @@ bool Mesh::LoadModel(std::string filePath) {
 
 	/* Import our scene */
 	Assimp::Importer importer;
-	const aiScene* scene = importer.ReadFile(fullFilePath, NULL);
+	const aiScene* scene = importer.ReadFile(fullFilePath.string().c_str(), NULL);
 	
 	/* If scene is null, get out and return false */
 	if (scene == nullptr) {
@@ -128,6 +128,7 @@ bool Mesh::LoadModel(std::string filePath) {
 				GPUBuffer* stagingBuffer = renderer->CreateStagingBuffer(pixelData, (nWidth * nHeight) * 4);
 				GPUTexture* gpuTexture = renderer->CreateTexture(stagingBuffer, nWidth, nHeight, GPUFormat::RGBA8_SRGB);
 
+				/* Only for Vulkan, register texture */
 				if(VulkanRenderer* vkRenderer = dynamic_cast<VulkanRenderer*>(renderer)) {
 					spdlog::debug("Mesh::LoadModel: Vulkan renderer registering texture {0}", texturePath.C_Str());
 					uint32_t nTextureIndex = vkRenderer->RegisterTexture(texturePath.C_Str(), gpuTexture);
