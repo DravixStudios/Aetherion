@@ -150,6 +150,10 @@ void VulkanRenderer::CreateInstance() {
 
 	/* Fetch required extensions and size */
 	std::vector<const char*> extensions = this->GetRequiredExtensions();
+#ifdef __APPLE__
+	extensions.push_back(VK_MVK_MACOS_SURFACE_EXTENSION_NAME);
+	extensions.push_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
+#endif
 	size_t nExtensionCount = extensions.size();
 
 	spdlog::debug("Required extension count: {0}", nExtensionCount);
@@ -160,6 +164,7 @@ void VulkanRenderer::CreateInstance() {
 	createInfo.pApplicationInfo = &appInfo;
 	createInfo.enabledExtensionCount = nExtensionCount;
 	createInfo.ppEnabledExtensionNames = extensions.data();
+	createInfo.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
 
 	/* If debug layers enabled, use them */
 	if (this->m_bEnableValidationLayers) {

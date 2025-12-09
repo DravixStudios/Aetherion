@@ -25,6 +25,11 @@ if(NOT WIN32)
 
 endif()
 
+if(APPLE)
+  message(STATUS "Configuring Vulkan/MoltenVK for macOS")
+  target_link_libraries(Aetherion PRIVATE "$ENV{VULKAN_SDK}/lib/libMoltenVK.dylib")
+endif()
+
 set("PRIVATE_INCLUDES" "${CMAKE_CURRENT_SOURCE_DIR}/public")
 set("PUBLIC_INCLUDES" "${CMAKE_CURRENT_SOURCE_DIR}/../include" )
 
