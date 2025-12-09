@@ -2,6 +2,16 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/matrix_inverse.hpp>
+#include <string>
+#include <filesystem>
+#if defined(_WIN32)
+    #include <windows.h>
+#elif defined(__APPLE__)
+    #include <mach-o/dyld.h>
+#elif defined(__linux__)
+    #include <unistd.h>
+#endif
+
 
 struct Vertex {
 	glm::vec3 position;
@@ -14,3 +24,33 @@ struct WVP {
 	glm::mat4 View;
 	glm::mat4 Projection;
 };
+
+inline std::string GetExecutableDir() {
+    char buffer[4096];
+
+#if defined(_WIN32)
+    GetModuleFileNameA(NULL, buffer, sizeof(buffer));
+    std::filesystem::path exePath(buffer);
+    return exePath.parent_path().string();
+
+#elif defined(__APPLE__)
+    uint32_t size = sizeof(buffer);
+    _NSGetExecutablePath(buffer, &size);
+    std::filesystem::path exePath = std::filesystem::canonical(buffer);
+    return exePath.parent_path().string();
+
+#elif defined(__linux__)
+    ssize_t count = readlink("/proc/self/exe", buffer, sizeof(buffer) - 1);
+    if (count != -1) {
+        buffer[count] = '\0';
+        std::filesystem::path exePath(buffer);
+        return exePath.parent_path().string();
+    }
+	spdlog::error("GetExecutableDir: Couldn't determine executable path on Linux");
+    throw std::runtime_error("GetExecutableDir: Couldn't determine executable path on Linux");
+
+#else
+	spdlog::error("GetExecutableDir: Unsupported platform");
+    throw std::runtime_error("GetExecutableDir: Unsupported platform");
+#endif
+}
