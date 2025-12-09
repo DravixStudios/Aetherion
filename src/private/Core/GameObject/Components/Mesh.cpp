@@ -1,7 +1,7 @@
 #include "Core/GameObject/Components/Mesh.h"
 #include "Core/Core.h"
 
-#include <stb_image.h>
+#include <stb/stb_image.h>
 
 Mesh::Mesh(std::string name) : Component::Component(name) {
 	this->m_core = Core::GetInstance();
@@ -29,9 +29,12 @@ bool Mesh::LoadModel(std::string filePath) {
 		return false;
 	}
 
+	std::string exePath = GetExecutableDir();
+	std::filesystem::path fullFilePath = std::filesystem::path(exePath) / filePath;
+
 	/* Import our scene */
 	Assimp::Importer importer;
-	const aiScene* scene = importer.ReadFile(filePath, NULL);
+	const aiScene* scene = importer.ReadFile(fullFilePath, NULL);
 	
 	/* If scene is null, get out and return false */
 	if (scene == nullptr) {
