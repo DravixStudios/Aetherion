@@ -1844,7 +1844,7 @@ void VulkanRenderer::CreateGBufferPipeline() {
 	createInfo.basePipelineIndex = -1;
 	createInfo.pDepthStencilState = &depthStencil;
 
-	if (vkCreateGraphicsPipelines(this->m_device, nullptr, 1, &createInfo, nullptr, &this->m_pipeline) != VK_SUCCESS) {
+	if (vkCreateGraphicsPipelines(this->m_device, nullptr, 1, &createInfo, nullptr, &this->m_gbuffPipeline) != VK_SUCCESS) {
 		spdlog::error("CreateGraphicsPipeline: Error creating the pipeline");
 		throw std::runtime_error("CreateGraphicsPipeline: Error creating the pipeline");
 		return;
