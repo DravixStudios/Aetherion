@@ -9,6 +9,9 @@
 #include <fstream>
 
 #define GLFW_INCLUDE_VULKAN
+#ifdef __APPLE__
+#define VK_USE_PLATFORM_MACOS_MVK
+#endif
 #include <GLFW/glfw3.h>
 #include <spdlog/spdlog.h>
 #include <shaderc/shaderc.hpp>
@@ -74,6 +77,9 @@ private:
 
 	VkPipelineLayout m_pipelineLayout;
 	VkPipeline m_pipeline;
+
+	VkPipelineLayout m_gbuffPipelineLayout;
+	VkPipeline m_gbuffPipeline;
 
 	VkViewport m_viewport;
 	VkRect2D m_scissor;
@@ -157,6 +163,7 @@ private:
 	void WriteLightDescriptorSets();
 	void CreateCommandBuffer();
 	void CreateGraphicsPipeline();
+	void CreateGBufferPipeline();
 	void CreateSyncObjects();
 	void RecordCommandBuffer(uint32_t nImageIndex);
 	VkSurfaceFormatKHR ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& formats);

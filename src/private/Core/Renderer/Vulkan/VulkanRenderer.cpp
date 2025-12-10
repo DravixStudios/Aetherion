@@ -123,6 +123,7 @@ void VulkanRenderer::Init() {
 	this->WriteLightDescriptorSets();
 	this->CreateCommandBuffer();
 	this->CreateGraphicsPipeline();
+	this->CreateGBufferPipeline();
 	this->CreateSyncObjects();
 
 	this->m_sceneMgr = SceneManager::GetInstance();
@@ -1494,17 +1495,17 @@ void VulkanRenderer::CreateGraphicsPipeline() {
 	attribs[0].binding = 0;
 	attribs[0].location = 0;
 	attribs[0].format = VK_FORMAT_R32G32B32_SFLOAT;
-	attribs[0].offset = offsetof(Vertex, Vertex::position);
+	attribs[0].offset = offsetof(Vertex, position);
 
 	attribs[1].binding = 0;
 	attribs[1].location = 1;
 	attribs[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-	attribs[1].offset = offsetof(Vertex, Vertex::normal);
+	attribs[1].offset = offsetof(Vertex, normal);
 
 	attribs[2].binding = 0;
 	attribs[2].location = 2;
 	attribs[2].format = VK_FORMAT_R32G32_SFLOAT;
-	attribs[2].offset = offsetof(Vertex, Vertex::texCoord);
+	attribs[2].offset = offsetof(Vertex, texCoord);
 
 	/* 
 		Define our dynamic states 
@@ -1654,6 +1655,208 @@ void VulkanRenderer::CreateGraphicsPipeline() {
 	vkDestroyShaderModule(this->m_device, fragmentModule, nullptr);
 }
 
+void VulkanRenderer::CreateGBufferPipeline() {
+	/* Shader compiling */
+	std::string sVertShader = this->ReadShader("GBufferPass.vert");
+	std::vector<uint32_t> vertexShader = this->CompileShader(sVertShader, "GBufferPass.vert", shaderc_vertex_shader);
+
+	std::string sFragShader = this->ReadShader("GBufferPass.frag");
+	std::vector<uint32_t> fragmentShader = this->CompileShader(sFragShader, "GBufferPass.frag", shaderc_fragment_shader);
+
+	/* Create our shader modules */
+	VkShaderModule vertexModule = this->CreateShaderModule(vertexShader);
+	VkShaderModule fragmentModule = this->CreateShaderModule(fragmentShader);
+
+	/* Define shader stages */
+	VkPipelineShaderStageCreateInfo vertInfo = { };
+	vertInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+	vertInfo.pName = "main";
+	vertInfo.module = vertexModule;
+	vertInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
+
+	VkPipelineShaderStageCreateInfo fragInfo = { };
+	fragInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+	fragInfo.pName = "main";
+	fragInfo.module = fragmentModule;
+	fragInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+	/* Store our pipeline shader stages in array */
+	VkPipelineShaderStageCreateInfo shaderStages[] = {
+		vertInfo,
+		fragInfo
+	};
+
+	/* Input binding */
+	VkVertexInputBindingDescription bindingDesc = { };
+	bindingDesc.binding = 0;
+	bindingDesc.stride = sizeof(Vertex);
+	bindingDesc.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+	/* Input attributes */
+	VkVertexInputAttributeDescription attribs[3] = {};
+	attribs[0].binding = 0;
+	attribs[0].location = 0;
+	attribs[0].format = VK_FORMAT_R32G32B32_SFLOAT;
+	attribs[0].offset = offsetof(Vertex, position);
+
+	attribs[1].binding = 0;
+	attribs[1].location = 1;
+	attribs[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+	attribs[1].offset = offsetof(Vertex, normal);
+
+	attribs[2].binding = 0;
+	attribs[2].location = 2;
+	attribs[2].format = VK_FORMAT_R32G32_SFLOAT;
+	attribs[2].offset = offsetof(Vertex, texCoord);
+
+	/*
+		Define our dynamic states
+		This allows changing our viewport and scissor in runtime
+		With vkCmdSetScissor and vkCmdSetViewport.
+	*/
+	std::vector<VkDynamicState> dynamicStates = {
+		VK_DYNAMIC_STATE_VIEWPORT,
+		VK_DYNAMIC_STATE_SCISSOR
+	};
+
+	VkPipelineDynamicStateCreateInfo dynamicState = { };
+	dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+	dynamicState.pDynamicStates = dynamicStates.data();
+	dynamicState.dynamicStateCount = 2;
+
+	/*
+		Our vertex input state creation info
+		It defines the format of our vertex attributes
+	*/
+	VkPipelineVertexInputStateCreateInfo vertexInfo = { };
+	vertexInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+	vertexInfo.vertexBindingDescriptionCount = 1;
+	vertexInfo.pVertexBindingDescriptions = &bindingDesc;
+	vertexInfo.vertexAttributeDescriptionCount = 3;
+	vertexInfo.pVertexAttributeDescriptions = attribs;
+
+	/* Our input assembly creation info */
+	VkPipelineInputAssemblyStateCreateInfo inputInfo = { };
+	inputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+	inputInfo.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+
+	/* Defining our viewport and scissor */
+	this->m_viewport = { };
+	this->m_viewport.width = this->m_scExtent.width;
+	this->m_viewport.height = -static_cast<float>(this->m_scExtent.height); // Flip our fiewport for +Y up 
+	this->m_viewport.x = 0;
+	this->m_viewport.y = static_cast<float>(this->m_scExtent.height);
+	this->m_viewport.minDepth = 0.f;
+	this->m_viewport.maxDepth = 1.f;
+
+	this->m_scissor = { };
+	this->m_scissor.extent = this->m_scExtent;
+
+	/* Viewport state create info */
+	VkPipelineViewportStateCreateInfo viewportInfo = { };
+	viewportInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+	viewportInfo.pViewports = &this->m_viewport;
+	viewportInfo.viewportCount = 1;
+	viewportInfo.pScissors = &this->m_scissor;
+	viewportInfo.scissorCount = 1;
+
+	/* Our rasterizer state creation info */
+	VkPipelineRasterizationStateCreateInfo rasterizer = { };
+	rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+	rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
+	rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+	rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
+	rasterizer.lineWidth = 1.f;
+
+	/* Our multisampling */
+	VkPipelineMultisampleStateCreateInfo multisampling = { };
+	multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+	multisampling.rasterizationSamples = this->m_multisampleCount;
+	multisampling.sampleShadingEnable = VK_TRUE; // Improves the quality 
+	multisampling.minSampleShading = .2f; // Minimum 20% shading per frame
+
+	/* Color blend */
+	VkPipelineColorBlendAttachmentState colorBlend = { };
+	colorBlend.blendEnable = VK_FALSE;
+	colorBlend.colorWriteMask =
+		VK_COLOR_COMPONENT_R_BIT |
+		VK_COLOR_COMPONENT_G_BIT |
+		VK_COLOR_COMPONENT_B_BIT |
+		VK_COLOR_COMPONENT_A_BIT;
+
+	VkPipelineColorBlendStateCreateInfo blendState = { };
+	blendState.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+	blendState.attachmentCount = 1;
+	blendState.pAttachments = &colorBlend;
+	blendState.logicOpEnable = VK_FALSE;
+
+	/* Pipeline depth stencil state create info */
+	VkPipelineDepthStencilStateCreateInfo depthStencil = { };
+	depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+	depthStencil.depthTestEnable = VK_TRUE;
+	depthStencil.depthWriteEnable = VK_TRUE;
+	depthStencil.depthCompareOp = VK_COMPARE_OP_LESS;
+	depthStencil.depthBoundsTestEnable = VK_FALSE;
+	depthStencil.stencilTestEnable = VK_FALSE;
+
+	VkDescriptorSetLayout setLayouts[] = {
+		this->m_wvpDescriptorSetLayout,
+		this->m_textureDescriptorSetLayout
+	};
+
+	VkPushConstantRange pushRange = { };
+	pushRange.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+	pushRange.offset = 0;
+	pushRange.size = sizeof(uint32_t);
+
+	/* Pipeline layout create info */
+	VkPipelineLayoutCreateInfo layoutInfo = { };
+	layoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+	layoutInfo.pSetLayouts = setLayouts;
+	layoutInfo.setLayoutCount = 2;
+	layoutInfo.pPushConstantRanges = &pushRange;
+	layoutInfo.pushConstantRangeCount = 1;
+
+	if (vkCreatePipelineLayout(this->m_device, &layoutInfo, nullptr, &this->m_gbuffPipelineLayout) != VK_SUCCESS) {
+		spdlog::error("CreateGBufferPipeline: Error creating G-Buffer pipeline layout");
+		throw std::runtime_error("CreateGBufferPipeline: Error creating G-Buffer pipeline layout");
+		return;
+	}
+
+	spdlog::debug("CreateGBufferPipeline: G-Buffer pipeline layout created");
+
+	/* Graphics pipeline creation */
+	VkGraphicsPipelineCreateInfo createInfo = { };
+	createInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+	createInfo.pColorBlendState = &blendState;
+	createInfo.subpass = 0;
+	createInfo.renderPass = this->m_renderPass;
+	createInfo.pMultisampleState = &multisampling;
+	createInfo.pViewportState = &viewportInfo;
+	createInfo.layout = this->m_gbuffPipelineLayout;
+	createInfo.pRasterizationState = &rasterizer;
+	createInfo.pInputAssemblyState = &inputInfo;
+	createInfo.pVertexInputState = &vertexInfo;
+	createInfo.pStages = shaderStages;
+	createInfo.stageCount = 2;
+	createInfo.pDynamicState = &dynamicState;
+	createInfo.basePipelineHandle = VK_NULL_HANDLE;
+	createInfo.basePipelineIndex = -1;
+	createInfo.pDepthStencilState = &depthStencil;
+
+	if (vkCreateGraphicsPipelines(this->m_device, nullptr, 1, &createInfo, nullptr, &this->m_pipeline) != VK_SUCCESS) {
+		spdlog::error("CreateGraphicsPipeline: Error creating the pipeline");
+		throw std::runtime_error("CreateGraphicsPipeline: Error creating the pipeline");
+		return;
+	}
+
+	spdlog::debug("CreateGBufferPipeline: G-Buffer pipeline created");
+
+	/* Cleanup */
+	vkDestroyShaderModule(this->m_device, vertexModule, nullptr);
+	vkDestroyShaderModule(this->m_device, fragmentModule, nullptr);
+}
+
 /* Creation of our sync objects */
 void VulkanRenderer::CreateSyncObjects() {
 	this->m_imageAvailableSemaphores.resize(this->m_nImageCount);
@@ -1728,7 +1931,7 @@ void VulkanRenderer::RecordCommandBuffer(uint32_t nImageIndex) {
 	std::map<std::string, GameObject*> objects = currentScene->GetObjects();
 
 	/* Rotation test */
-	this->m_wvp.World = glm::rotate(this->m_wvp.World, glm::radians(.01f), glm::vec3(0.f, 1.f, 0.f));
+	this->m_wvp.World = glm::rotate(this->m_wvp.World, glm::radians(1.f), glm::vec3(0.f, 1.f, 0.f));
 	/* End Rotation test */
 
 	/* Bind descriptor sets */
@@ -1851,9 +2054,15 @@ VkExtent2D VulkanRenderer::ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capa
 	Read our shader file
 */
 std::string VulkanRenderer::ReadShader(const std::string& sFile) {
-	std::ifstream file(sFile);
+	std::filesystem::path path = sFile;
+	if(!path.is_absolute()) {
+		std::string executableDir = GetExecutableDir();
+		path = std::filesystem::path(executableDir) / sFile;
+	}
+
+	std::ifstream file(path);
 	if (!file.is_open()) {
-		spdlog::error("Couldn't open shader {0}", sFile);
+		spdlog::error("Couldn't open shader {0}", path.string());
 		throw std::runtime_error("ReadShader: Couldn't open shader");
 		return "";
 	}
