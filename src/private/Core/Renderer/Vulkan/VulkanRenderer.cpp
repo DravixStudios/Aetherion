@@ -1704,7 +1704,7 @@ void VulkanRenderer::CreateGBufferPipeline() {
 	attribs[1].format = VK_FORMAT_R32G32B32_SFLOAT;
 	attribs[1].offset = offsetof(Vertex, normal);
 
-	attribs[2].binding = 0;
+	attribs[2].binding = 0; 
 	attribs[2].location = 2;
 	attribs[2].format = VK_FORMAT_R32G32_SFLOAT;
 	attribs[2].offset = offsetof(Vertex, texCoord);
@@ -1775,19 +1775,25 @@ void VulkanRenderer::CreateGBufferPipeline() {
 	multisampling.sampleShadingEnable = VK_TRUE; // Improves the quality 
 	multisampling.minSampleShading = .2f; // Minimum 20% shading per frame
 
-	/* Color blend */
-	VkPipelineColorBlendAttachmentState colorBlend = { };
-	colorBlend.blendEnable = VK_FALSE;
-	colorBlend.colorWriteMask =
-		VK_COLOR_COMPONENT_R_BIT |
-		VK_COLOR_COMPONENT_G_BIT |
-		VK_COLOR_COMPONENT_B_BIT |
-		VK_COLOR_COMPONENT_A_BIT;
+	/* Color blend (we have 3: albedo, normal, position) */
+	VkPipelineColorBlendAttachmentState colorBlends[3] = { };
+
+	/* For each attachment we disable blending and enable the write mask in all RGBA channels */
+	for (uint32_t i = 0; i < 3; i++) {
+		colorBlends[i].blendEnable = VK_FALSE;
+		colorBlends[i].colorWriteMask =
+			VK_COLOR_COMPONENT_R_BIT |
+			VK_COLOR_COMPONENT_G_BIT |
+			VK_COLOR_COMPONENT_B_BIT |
+			VK_COLOR_COMPONENT_A_BIT;
+
+	}
+	
 
 	VkPipelineColorBlendStateCreateInfo blendState = { };
 	blendState.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-	blendState.attachmentCount = 1;
-	blendState.pAttachments = &colorBlend;
+	blendState.attachmentCount = 3;
+	blendState.pAttachments = colorBlends;
 	blendState.logicOpEnable = VK_FALSE;
 
 	/* Pipeline depth stencil state create info */
@@ -1830,7 +1836,7 @@ void VulkanRenderer::CreateGBufferPipeline() {
 	createInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
 	createInfo.pColorBlendState = &blendState;
 	createInfo.subpass = 0;
-	createInfo.renderPass = this->m_renderPass;
+	createInfo.renderPass = this->m_geometryRenderPass;
 	createInfo.pMultisampleState = &multisampling;
 	createInfo.pViewportState = &viewportInfo;
 	createInfo.layout = this->m_gbuffPipelineLayout;

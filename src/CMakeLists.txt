@@ -34,6 +34,9 @@ endif()
 set("PRIVATE_INCLUDES" "${CMAKE_CURRENT_SOURCE_DIR}/public")
 set("PUBLIC_INCLUDES" "${CMAKE_CURRENT_SOURCE_DIR}/../include" )
 
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/shaders
+     DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+
 target_include_directories(Aetherion PRIVATE "${PRIVATE_INCLUDES}")
 target_include_directories(Aetherion PUBLIC "${PUBLIC_INCLUDES}")
 include_directories("$ENV{VULKAN_SDK}/Include")
