@@ -1901,101 +1901,46 @@ void VulkanRenderer::RecordCommandBuffer(uint32_t nImageIndex) {
 
 	/* Begin render pass */
 
-	/* Color clear value */
-	VkClearValue colorClear = { {{0.f, 0.f, 0.f, 1.f}} };
+	/* G-Buffer pass */
+	/* G-Buffer clear values */
+	VkClearValue albedoClear = { { { 0.f, 0.f, 0.f, 1.f } } };
+	VkClearValue normalClear = { { { 0.f, 0.f, 0.f, 1.f } } };
+	VkClearValue positionClear = { { { 0.f, 0.f, 0.f, 1.f } } };
+	VkClearValue albedoResolveClear = { { { 0.f, 0.f, 0.f, 1.f } } };
+	VkClearValue normalResolveClear = { { { 0.f, 0.f, 0.f, 1.f } } };
+	VkClearValue positionResolveClear = { { { 0.f, 0.f, 0.f, 1.f } } };
 
 	/* Depth clear value */
 	VkClearValue depthClear = { };
-	depthClear.depthStencil = { 1.f, 0 }; 
-	
-	/* Back buffer clear value */
-	VkClearValue backBufferClear = { {{0.f, 0.f, 0.f, 1.f}} };
+	depthClear.depthStencil = { 1.f, 0 };
 
-	VkClearValue clearValues[] = { colorClear, depthClear, backBufferClear };
+	VkClearValue gbuffClears[] = { 
+		albedoClear, 
+		normalClear,
+		positionClear, 
+		depthClear, 
+		albedoResolveClear,
+		normalResolveClear,
+		positionResolveClear
+	};
 
-	VkRenderPassBeginInfo renderPassInfo = { };
-	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-	renderPassInfo.renderPass = this->m_renderPass;
-	renderPassInfo.framebuffer = this->m_frameBuffers[nImageIndex];
-	renderPassInfo.renderArea.extent = this->m_scExtent;
-	renderPassInfo.renderArea.offset = { 0, 0 };
-	renderPassInfo.pClearValues = clearValues;
-	renderPassInfo.clearValueCount = 3;
-	
-	vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+	VkRenderPassBeginInfo geometryPassInfo = { };
+	geometryPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+	geometryPassInfo.clearValueCount = 7;
+	geometryPassInfo.pClearValues = gbuffClears;
+	geometryPassInfo.renderArea.extent = this->m_scExtent;
+	geometryPassInfo.renderArea.offset = { 0, 0 };
+	geometryPassInfo.renderPass = this->m_geometryRenderPass;
+	geometryPassInfo.framebuffer = this->m_gbufferFramebuffer;
 
-	/* Bind pipeline */
-	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->m_pipeline);
+	vkCmdBeginRenderPass(commandBuffer, &geometryPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
+	/* Bind G-Buffer pipeline */
+	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->m_gbuffPipeline);
 	vkCmdSetViewport(commandBuffer, 0, 1, &this->m_viewport);
 	vkCmdSetScissor(commandBuffer, 0, 1, &this->m_scissor);
 
-	/* Get the current scene from the Scene manager singleton */
-	Scene* currentScene = this->m_sceneMgr->GetCurrentScene();
-
-	/* Get all the scene objects */
-	std::map<std::string, GameObject*> objects = currentScene->GetObjects();
-
-	/* Rotation test */
-	this->m_wvp.World = glm::rotate(this->m_wvp.World, glm::radians(1.f), glm::vec3(0.f, 1.f, 0.f));
-	/* End Rotation test */
-
-	/* Bind descriptor sets */
-
-	/* Update WVP Ring buffer */
-	uint32_t dynamicOffset = 0;
-	this->m_wvpBuff->Reset(nImageIndex);
-	void* pMap = this->m_wvpBuff->Allocate(sizeof(this->m_wvp), dynamicOffset);
-	memcpy(pMap, &this->m_wvp, sizeof(this->m_wvp));
-
-	vkCmdBindDescriptorSets(
-		commandBuffer,
-		VK_PIPELINE_BIND_POINT_GRAPHICS,
-		this->m_pipelineLayout,
-		0,
-		1, // Descriptor set count
-		&this->m_descriptorSets[nImageIndex], // Descriptor set
-		1, // Dynamic offset count 
-		&dynamicOffset // Dynamic offsets
-	);
-
-	vkCmdBindDescriptorSets(
-		commandBuffer,
-		VK_PIPELINE_BIND_POINT_GRAPHICS,
-		this->m_pipelineLayout,
-		1,
-		1, // Descriptor set count
-		&this->m_globalTextureDescriptorSet, // Descriptor set
-		0, // Dynamic offset count 
-		nullptr // Dynamic offsets
-	);
-
-	for (std::pair<std::string, GameObject*> obj : objects) {
-		GameObject* pObj = obj.second;
-
-		std::map<std::string, Component*> components = pObj->GetComponents();
-
-		if (components.count("MeshComponent") <= 0) {
-			continue;
-		}
-
-		Component* meshComponent = components["MeshComponent"];
-		Mesh* mesh = dynamic_cast<Mesh*>(meshComponent);
-
-		if (!mesh) {
-			continue;
-		}
-
-		std::map<uint32_t, GPUBuffer*> vertices = mesh->GetVBOs();
-		std::map<uint32_t, GPUTexture*> textures = mesh->GetTextures();
-		std::map<uint32_t, uint32_t> textureIndices = mesh->GetTextureIndices();
-
-		for (std::pair<uint32_t, GPUBuffer*> vertex : vertices) {
-			uint32_t nTextureIndex = textureIndices[vertex.first];
-			vkCmdPushConstants(commandBuffer, this->m_pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(uint32_t), &nTextureIndex);
-			this->DrawVertexBuffer(vertex.second);
-		}
-	}
+	
 
 	vkCmdEndRenderPass(commandBuffer);
 	vkEndCommandBuffer(commandBuffer);
