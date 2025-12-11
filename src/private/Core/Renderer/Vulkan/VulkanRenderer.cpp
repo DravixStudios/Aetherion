@@ -1454,7 +1454,22 @@ void VulkanRenderer::CreateCommandBuffer() {
 	spdlog::debug("CreateCommandBuffer: Command buffer allocated");
 }
 
-/* Creation of our graphics pipeline state */
+/* 
+	Create a graphics pipeline.
+	Parameters:
+		- vertPath & pixelPath: Path to Vertex and Pixel shaders
+		- renderPass: Render pass
+		- setLayouts: Pointer to our Descriptor set layout list
+		- nSetLayerCount: The ammount of descriptor set layouts
+		- vertexInfo: The input state of our vertex shader
+		- rasterizer: Our rasterizer info
+		- multisampling: Our multisampler state info
+		- depthStencil: Our depth stencil state info
+		- colorBlend: Our color blend information
+		- pLayout: A pointer to the 
+
+	Return value: The created pipeline.
+*/
 VkPipeline VulkanRenderer::CreateGraphicsPipeline(
 	const std::string& vertPath,
 	const std::string& pixelPath,
@@ -1682,6 +1697,7 @@ void VulkanRenderer::CreateGBufferPipeline() {
 
 	spdlog::debug("CreateGBufferPipeline: G-Buffer pipeline layout created");
 
+	/* Create G-Buffer pipeline with CreateGraphicsPipeline method */
 	this->m_gbuffPipeline = this->CreateGraphicsPipeline(
 		"GBufferPass.vert", "GBufferPass.frag",
 		this->m_geometryRenderPass, 
