@@ -162,7 +162,19 @@ private:
 	void WriteDescriptorSets();
 	void WriteLightDescriptorSets();
 	void CreateCommandBuffer();
-	void CreateGraphicsPipeline();
+	VkPipeline CreateGraphicsPipeline(
+		const std::string& vertPath,
+		const std::string& pixelPath,
+		VkRenderPass renderPass,
+		VkDescriptorSetLayout* setLayouts,
+		uint32_t nSetLayoutCount,
+		VkPipelineVertexInputStateCreateInfo vertexInfo,
+		VkPipelineRasterizationStateCreateInfo rasterizer,
+		VkPipelineMultisampleStateCreateInfo multisampling,
+		VkPipelineDepthStencilStateCreateInfo depthStencil,
+		VkPipelineColorBlendStateCreateInfo colorBlend,
+		VkPipelineLayout* pLayout
+	);
 	void CreateGBufferPipeline();
 	void CreateSyncObjects();
 	void RecordCommandBuffer(uint32_t nImageIndex);
