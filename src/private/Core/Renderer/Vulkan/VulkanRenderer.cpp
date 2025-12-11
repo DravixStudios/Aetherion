@@ -1940,7 +1940,86 @@ void VulkanRenderer::RecordCommandBuffer(uint32_t nImageIndex) {
 	vkCmdSetViewport(commandBuffer, 0, 1, &this->m_viewport);
 	vkCmdSetScissor(commandBuffer, 0, 1, &this->m_scissor);
 
-	
+	/* Get current Scene */
+	Scene* currentScene = this->m_sceneMgr->GetCurrentScene();
+	std::map<std::string, GameObject*> objects = currentScene->GetObjects();
+
+	/* TODO: Change the WVP allocation to 'per-object' data */
+	uint32_t nDynamicOffset = 0;
+	this->m_wvpBuff->Reset(nImageIndex); // Reset our World View Projection ring buffer
+	void* pMap = this->m_wvpBuff->Allocate(sizeof(this->m_wvp), nDynamicOffset); // Allocate a new uniform WVP
+	memcpy(pMap, &this->m_wvp, sizeof(this->m_wvp)); // Copy data to buffer
+
+	/* Bind descriptor sets */
+
+	/* 
+		World view projection:
+		Will bind at set 0
+		We'll use the corresponding descriptor set to the current image
+		We'll use dynamic offsets (given by our ring buffer)
+	*/
+	vkCmdBindDescriptorSets(
+		commandBuffer,
+		VK_PIPELINE_BIND_POINT_GRAPHICS,
+		this->m_gbuffPipelineLayout,
+		0,
+		1,
+		&this->m_descriptorSets[nImageIndex],
+		1,
+		&nDynamicOffset
+	);
+
+	/*
+		Global texture descriptor set binding (bindless textures)
+		We'll bind it at set 1
+		We'll use 0 dynamic offsets
+	*/
+	vkCmdBindDescriptorSets(
+		commandBuffer,
+		VK_PIPELINE_BIND_POINT_GRAPHICS,
+		this->m_gbuffPipelineLayout,
+		1,
+		1,
+		&this->m_globalTextureDescriptorSet,
+		0,
+		nullptr
+	);
+
+	/* Per object loop */
+	for (std::pair<std::string, GameObject*> obj : objects) {
+		/* Get only the GameObject pointer, we actually don't care the object name */
+		GameObject* pObj = obj.second;
+
+		/* Get all the components from de object */
+		std::map<std::string, Component*> components = pObj->GetComponents();
+		
+		/*
+			Find the mesh component(s) and draw it
+
+			TODO: Cache all the mesh components and reference to 
+			their corresponding object and draw them.
+		*/
+		if (components.count("MeshComponent") <= 0) {
+			continue; // Oh, you have no mesh components? NEXT.
+		}
+
+		Component* meshComponent = components["MeshComponent"];
+		Mesh* mesh = dynamic_cast<Mesh*>(meshComponent);
+
+		if (!mesh) {
+			spdlog::error("VulkanRenderer::RecordCommandBuffer: Tried to cast type Component to MeshComponent and failed. GameObject: {0}", obj.first);
+			continue;
+		}
+
+		std::map<uint32_t, GPUBuffer*> vertices = mesh->GetVBOs();
+		std::map<uint32_t, uint32_t> textureIndices = mesh->GetTextureIndices();
+
+		for (std::pair<uint32_t, GPUBuffer*> vertex : vertices) {
+			uint32_t nTextureIndex = textureIndices[vertex.first];
+			vkCmdPushConstants(commandBuffer, this->m_gbuffPipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(uint32_t), &nTextureIndex);
+			this->DrawVertexBuffer(vertex.second);
+		}
+	}
 
 	vkCmdEndRenderPass(commandBuffer);
 	vkEndCommandBuffer(commandBuffer);
