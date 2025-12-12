@@ -232,6 +232,7 @@ private:
 
 	void CopyBufferToImage(VkBuffer buffer, VkImage image, uint32_t nWidth, uint32_t nHeight);
 	bool DrawVertexBuffer(GPUBuffer* buffer) override;
+	bool DrawIndexBuffer(GPUBuffer* vbo, GPUBuffer* ibo) override;
 
 	WVP m_wvp;
 	GPURingBuffer* m_wvpBuff;

@@ -38,4 +38,5 @@ public:
     virtual GPUBuffer* CreateStagingBuffer(void* pData, uint32_t nSize);
     virtual GPUTexture* CreateTexture(GPUBuffer* pBuffer, uint32_t nWidth, uint32_t nHeight, GPUFormat format);
     virtual bool DrawVertexBuffer(GPUBuffer* buffer);
+    virtual bool DrawIndexBuffer(GPUBuffer* vbo, GPUBuffer* ibo);
 };

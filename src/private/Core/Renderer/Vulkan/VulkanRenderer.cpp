@@ -2619,7 +2619,6 @@ bool VulkanRenderer::DrawVertexBuffer(GPUBuffer* buffer) {
 	
 	/* Get our VkBuffer, VkDeviceMemory and our buffer size */
 	VkBuffer buff = vkBuff->GetBuffer();
-	VkDeviceMemory memory = vkBuff->GetMemory();
 	uint32_t nSize = vkBuff->GetSize();
 
 	/* Bind our vertex buffer and draw it */
@@ -2627,6 +2626,37 @@ bool VulkanRenderer::DrawVertexBuffer(GPUBuffer* buffer) {
 	VkDeviceSize offsets[] = { 0 };
 	vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
 	vkCmdDraw(commandBuffer, nSize / sizeof(Vertex), 1, 0, 0);
+
+	return true;
+}
+
+/* Bind and draw index buffer */
+bool VulkanRenderer::DrawIndexBuffer(GPUBuffer* vbo, GPUBuffer* ibo) {
+	if (dynamic_cast<VulkanBuffer*>(vbo) == nullptr || dynamic_cast<VulkanBuffer*>(ibo) == nullptr) {
+		spdlog::error("VulkanRenderer::DrawIndexBuffer: Specified VBO or IBO is not a Vulkan buffer");
+		throw std::runtime_error("VulkanRenderer::DrawIndexBuffer: Specified VBO or IBO is not a Vulkan buffer");
+		return false;
+	}
+
+	VkCommandBuffer commandBuffer = this->m_commandBuffers[this->m_nCurrentFrameIndex];
+
+	VulkanBuffer* vkVBO = dynamic_cast<VulkanBuffer*>(vbo);
+	VulkanBuffer* vkIBO = dynamic_cast<VulkanBuffer*>(ibo);
+
+	if (vkVBO->m_bufferType != EBufferType::VERTEX_BUFFER || vkIBO->m_bufferType != EBufferType::INDEX_BUFFER) {
+		spdlog::error("VulkanRenderer::DrawIndexBuffer: Specified VBO or IBO is not of the required type");
+		throw std::runtime_error("VulkanRenderer::DrawIndexBuffer: Specified VBO or IBO is not of the required type");
+		return false;
+	}
+
+	VkBuffer vertexBuffers[] = { vkVBO->GetBuffer() };
+	VkDeviceSize offsets[] = { 0 };
+	vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+	vkCmdBindIndexBuffer(commandBuffer, vkIBO->GetBuffer(), 0, VK_INDEX_TYPE_UINT16);
+
+	uint32_t nIndexCount = static_cast<uint32_t>(vkIBO->GetSize() / sizeof(uint16_t));
+	
+	vkCmdDrawIndexed(commandBuffer, nIndexCount, 1, 0, 0, 0);
 
 	return true;
 }

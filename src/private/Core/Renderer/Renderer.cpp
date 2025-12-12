@@ -21,6 +21,8 @@ GPUTexture* Renderer::CreateTexture(GPUBuffer* pBuffer, uint32_t nWidth, uint32_
 
 bool Renderer::DrawVertexBuffer(GPUBuffer* buffer) { return false; }
 
+bool Renderer::DrawIndexBuffer(GPUBuffer* vbo, GPUBuffer* ibo) { return false; }
+
 void Renderer::SetWindow(GLFWwindow* pWindow) {
 	this->m_pWindow = pWindow;
 	return;

@@ -10,6 +10,8 @@ enum EBufferType {
 };
 
 class GPUBuffer {
+	friend class Renderer;
+	friend class VulkanRenderer;
 public:
 	GPUBuffer() {};
 	~GPUBuffer() {};
