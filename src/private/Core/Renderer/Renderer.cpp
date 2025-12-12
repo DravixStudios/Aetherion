@@ -9,7 +9,11 @@ void Renderer::Update() {}
 
 GPUBuffer* Renderer::CreateBuffer(const void* pData, uint32_t nSize, EBufferType bufferType) { return nullptr; }
 
-GPUBuffer* Renderer::CreateVertexBuffer(const std::vector<Vertex>& vertices) { return nullptr; }
+GPUBuffer* Renderer::CreateVertexBufferRaw(const void* pData, uint32_t nCount, uint32_t nStride) { 
+	return this->CreateBuffer(pData, nCount * nStride, EBufferType::VERTEX_BUFFER);
+}
+
+GPUBuffer* Renderer::CreateIndexBuffer(const std::vector<uint16_t>& indices) { return nullptr; }
 
 GPUBuffer* Renderer::CreateStagingBuffer(void* pData, uint32_t nSize) { return nullptr; }
 

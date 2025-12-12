@@ -20,7 +20,21 @@ public:
     virtual void SetWindow(GLFWwindow* pWindow);
 
     virtual GPUBuffer* CreateBuffer(const void* pData, uint32_t nSize, EBufferType bufferType);
-    virtual GPUBuffer* CreateVertexBuffer(const std::vector<Vertex>& vertices);
+
+    template<typename T>
+    GPUBuffer* CreateVertexBuffer(const std::vector<T>& vertices) {
+        return this->CreateVertexBufferRaw(
+            vertices.data(),
+            static_cast<uint32_t>(vertices.size()),
+            sizeof(T)
+        );
+    }
+
+protected:
+    virtual GPUBuffer* CreateVertexBufferRaw(const void* pData, uint32_t nCount, uint32_t nStride);
+
+public:
+    virtual GPUBuffer* CreateIndexBuffer(const std::vector<uint16_t>& indices);
     virtual GPUBuffer* CreateStagingBuffer(void* pData, uint32_t nSize);
     virtual GPUTexture* CreateTexture(GPUBuffer* pBuffer, uint32_t nWidth, uint32_t nHeight, GPUFormat format);
     virtual bool DrawVertexBuffer(GPUBuffer* buffer);
