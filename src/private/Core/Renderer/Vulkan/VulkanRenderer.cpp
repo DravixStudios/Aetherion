@@ -101,6 +101,7 @@ void VulkanRenderer::Init() {
 	this->CreateDepthResources();
 	this->CreateLightingResources();
 	this->CreateGBufferFrameBuffer();
+	this->CreateLightingFrameBuffer();
 	this->CreateFrameBuffers();
 
 	/* Test uniform */
@@ -125,7 +126,7 @@ void VulkanRenderer::Init() {
 	this->WriteLightDescriptorSets();
 	this->CreateCommandBuffer();
 	this->CreateGBufferPipeline();
-	//this->CreateLightingPipeline();
+	this->CreateLightingPipeline();
 	this->CreateSyncObjects();
 
 	this->m_sceneMgr = SceneManager::GetInstance();
@@ -1090,6 +1091,9 @@ void VulkanRenderer::CreateLightingResources() {
 	spdlog::debug("VulkanRenderer::CreateLightingResources: ScreenQuad image created");
 
 	this->m_sqImageView = this->CreateImageView(this->m_sqImage, this->m_surfaceFormat, VK_IMAGE_ASPECT_COLOR_BIT);
+
+	this->TransitionImageLayout(this->m_sqImage, this->m_surfaceFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+
 	spdlog::debug("VulkanRenderer::CreateLightingResources: ScreenQuad image view created");
 }
 
@@ -1124,6 +1128,32 @@ void VulkanRenderer::CreateGBufferFrameBuffer() {
 	}
 	
 	spdlog::debug("VulkanRenderer::CreateGBufferFrameBuffer: G-Buffer frame buffer created");
+}
+
+/*
+	Create a frame buffer for drawing our screen quad
+*/
+void VulkanRenderer::CreateLightingFrameBuffer() {
+	VkImageView attachments[] = {
+		this->m_sqImageView
+	};
+
+	VkFramebufferCreateInfo createInfo = { };
+	createInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+	createInfo.renderPass = this->m_lightingRenderPass;
+	createInfo.width = this->m_scExtent.width;
+	createInfo.height = this->m_scExtent.height;
+	createInfo.layers = 1;
+	createInfo.attachmentCount = 1;
+	createInfo.pAttachments = attachments;
+
+	if (vkCreateFramebuffer(this->m_device, &createInfo, nullptr, &this->m_lightingFramebuffer) != VK_SUCCESS) {
+		spdlog::error("VulkanRenderer::CreateLightingFrameBuffer: Failed creating lighting frame buffer");
+		throw std::runtime_error("VulkanRenderer::CreateLightingFrameBuffer: Failed creating lighting frame buffer");
+		return;
+	}
+
+	spdlog::debug("VulkanRenderer::CreateLightingFrameBuffer: Lighting frame buffer created");
 }
 
 /*
@@ -1524,7 +1554,9 @@ VkPipeline VulkanRenderer::CreateGraphicsPipeline(
 	VkPipelineMultisampleStateCreateInfo multisampling,
 	VkPipelineDepthStencilStateCreateInfo depthStencil,
 	VkPipelineColorBlendStateCreateInfo colorBlend,
-	VkPipelineLayout* pLayout
+	VkPipelineLayout* pLayout,
+	VkPushConstantRange* pPushConstantRanges,
+	uint32_t nPushConstantCount
 ) {
 	/* Shader compiling */
 	std::vector<uint32_t> vertexShader = this->CompileShader(this->ReadShader(vertPath), "shader.vert", shaderc_vertex_shader);
@@ -1556,6 +1588,8 @@ VkPipeline VulkanRenderer::CreateGraphicsPipeline(
 	layoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 	layoutInfo.pSetLayouts = setLayouts;
 	layoutInfo.setLayoutCount = nSetLayoutCount;
+	layoutInfo.pPushConstantRanges = pPushConstantRanges,
+	layoutInfo.pushConstantRangeCount = nPushConstantCount;
 
 	/* Create pipeline layout */
 	if (vkCreatePipelineLayout(this->m_device, &layoutInfo, nullptr, pLayout) != VK_SUCCESS) {
@@ -1723,23 +1757,7 @@ void VulkanRenderer::CreateGBufferPipeline() {
 	pushRange.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 	pushRange.offset = 0;
 	pushRange.size = sizeof(uint32_t);
-
-	/* Pipeline layout create info */
-	VkPipelineLayoutCreateInfo layoutInfo = { };
-	layoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-	layoutInfo.pSetLayouts = setLayouts;
-	layoutInfo.setLayoutCount = 2;
-	layoutInfo.pPushConstantRanges = &pushRange;
-	layoutInfo.pushConstantRangeCount = 1;
-
-	if (vkCreatePipelineLayout(this->m_device, &layoutInfo, nullptr, &this->m_gbuffPipelineLayout) != VK_SUCCESS) {
-		spdlog::error("CreateGBufferPipeline: Error creating G-Buffer pipeline layout");
-		throw std::runtime_error("CreateGBufferPipeline: Error creating G-Buffer pipeline layout");
-		return;
-	}
-
-	spdlog::debug("CreateGBufferPipeline: G-Buffer pipeline layout created");
-
+	
 	/* Create G-Buffer pipeline with CreateGraphicsPipeline method */
 	this->m_gbuffPipeline = this->CreateGraphicsPipeline(
 		"GBufferPass.vert", "GBufferPass.frag",
@@ -1750,9 +1768,11 @@ void VulkanRenderer::CreateGBufferPipeline() {
 		multisampling,
 		depthStencil, 
 		blendState, 
-		&this->m_gbuffPipelineLayout
+		&this->m_gbuffPipelineLayout,
+		&pushRange,
+		1
 	);
-
+	
 	spdlog::debug("CreateGBufferPipeline: G-Buffer pipeline created");
 }
 
@@ -1847,7 +1867,7 @@ void VulkanRenderer::CreateLightingPipeline() {
 		"LightingPass.vert",
 		"LightingPass.frag",
 		this->m_lightingRenderPass,
-		setLayouts, 2,
+		setLayouts, 1,
 		vertexInfo,
 		rasterizer,
 		multisampling,
@@ -2016,6 +2036,43 @@ void VulkanRenderer::RecordCommandBuffer(uint32_t nImageIndex) {
 	}
 
 	vkCmdEndRenderPass(commandBuffer);
+
+	/* Lighting pass */
+
+	VkClearValue sqClear = { { { 0.f, 0.f, 0.f, 1.f } } };
+
+	VkRenderPassBeginInfo lightingPassInfo = { };
+	lightingPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+	lightingPassInfo.clearValueCount = 1;
+	lightingPassInfo.pClearValues = &sqClear;
+	lightingPassInfo.renderArea.extent = this->m_scExtent;
+	lightingPassInfo.renderArea.offset = { 0, 0 };
+	lightingPassInfo.renderPass = this->m_lightingRenderPass;
+	lightingPassInfo.framebuffer = this->m_lightingFramebuffer;
+
+	vkCmdBeginRenderPass(commandBuffer, &lightingPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+	vkCmdBindDescriptorSets(
+		commandBuffer,
+		VK_PIPELINE_BIND_POINT_GRAPHICS,
+		this->m_lightingPipelineLayout,
+		0,
+		1,
+		&this->m_lightingDescriptorSets[nImageIndex],
+		0,
+		nullptr
+	);
+	
+	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->m_lightingPipeline);
+	if(!this->DrawIndexBuffer(this->m_sqVBO, this->m_sqIBO)) {
+		spdlog::error("VulkanRenderer::RecordCommandBuffer: Failed drawing ScreenQuad VBO/IBO");
+		throw std::runtime_error("VulkanRenderer::RecordCommandBuffer: Failed drawing ScreenQuad VBO/IBO");
+		return;
+	}
+	
+	vkCmdEndRenderPass(commandBuffer);
+
+
 	vkEndCommandBuffer(commandBuffer);
 }
 
@@ -2319,7 +2376,7 @@ GPUBuffer* VulkanRenderer::CreateBuffer(const void* pData, uint32_t nSize, EBuff
 		return nullptr;
 	}
 
-	VulkanBuffer* vkBuffer = new VulkanBuffer(this->m_device, this->m_physicalDevice, buffer, memory, nSize, EBufferType::CONSTANT_BUFFER);
+	VulkanBuffer* vkBuffer = new VulkanBuffer(this->m_device, this->m_physicalDevice, buffer, memory, nSize, bufferType);
 	return vkBuffer;
 }
 

@@ -127,6 +127,7 @@ private:
 	VkSampler m_positionSampler;
 
 	VkFramebuffer m_gbufferFramebuffer;
+	VkFramebuffer m_lightingFramebuffer;
 
 	/* Descriptor sets */
 	std::vector<VkDescriptorSet> m_descriptorSets; // One per frame
@@ -164,6 +165,7 @@ private:
 	void CreateLightingResources();
 	void CreateGBufferFrameBuffer();
 	void CreateFrameBuffers();
+	void CreateLightingFrameBuffer();
 	void CreateDescriptorSetLayout();
 	void CreateLightingDescriptorSetLayout();
 	void CreateDescriptorPool();
@@ -184,7 +186,9 @@ private:
 		VkPipelineMultisampleStateCreateInfo multisampling,
 		VkPipelineDepthStencilStateCreateInfo depthStencil,
 		VkPipelineColorBlendStateCreateInfo colorBlend,
-		VkPipelineLayout* pLayout
+		VkPipelineLayout* pLayout,
+		VkPushConstantRange* pPushConstantRanges = nullptr,
+		uint32_t nPushConstantCount = 0
 	);
 	void CreateGBufferPipeline();
 	void CreateLightingPipeline();
