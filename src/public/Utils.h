@@ -19,6 +19,11 @@ struct Vertex {
 	glm::vec2 texCoord;
 };
 
+struct ScreenQuadVertex {
+    glm::vec3 position;
+    glm::vec2 texCoord;
+};
+
 struct WVP {
 	glm::mat4 World;
 	glm::mat4 View;
