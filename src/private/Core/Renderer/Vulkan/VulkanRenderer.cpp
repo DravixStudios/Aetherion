@@ -1073,6 +1073,9 @@ void VulkanRenderer::CreateLightingResources() {
 	GPUBuffer* ibo = this->CreateIndexBuffer(indices);
 	spdlog::debug("VulkanRenderer::CreateLightingResources: ScreenQuad Index Buffer object created");
 
+	this->m_sqVBO = vbo;
+	this->m_sqIBO = ibo;
+
 	uint32_t nImageSize = this->CreateImage(
 		this->m_scExtent.width, this->m_scExtent.height,
 		this->m_surfaceFormat,

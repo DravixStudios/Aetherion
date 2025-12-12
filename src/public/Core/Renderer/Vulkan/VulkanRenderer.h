@@ -76,6 +76,9 @@ private:
 	VkImageView m_sqImageView;
 	VkDeviceMemory m_sqMemory;
 
+	GPUBuffer* m_sqVBO;
+	GPUBuffer* m_sqIBO;
+
 	VkCommandPool m_commandPool;
 	std::vector<VkCommandBuffer> m_commandBuffers;
 
