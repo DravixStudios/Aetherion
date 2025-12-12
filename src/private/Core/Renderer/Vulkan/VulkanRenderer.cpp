@@ -48,6 +48,7 @@ VkBufferUsageFlagBits ToVkBufferUsage(EBufferType bufferType) {
 	switch (bufferType) {
 		case EBufferType::CONSTANT_BUFFER: return VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
 		case EBufferType::VERTEX_BUFFER: return VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+		case EBufferType::INDEX_BUFFER: return VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
 	};
 }
 
@@ -2281,11 +2282,9 @@ GPUBuffer* VulkanRenderer::CreateBuffer(const void* pData, uint32_t nSize, EBuff
 	return vkBuffer;
 }
 
-/* Creation of a vertex buffer */
-GPUBuffer* VulkanRenderer::CreateVertexBuffer(const std::vector<Vertex>& vertices) {
-	VkBufferUsageFlagBits usage = ToVkBufferUsage(EBufferType::VERTEX_BUFFER);
-
-	GPUBuffer* retBuff = this->CreateBuffer(static_cast<const void*>(vertices.data()), vertices.size() * sizeof(Vertex), EBufferType::VERTEX_BUFFER);
+/* Creation of a index buffer */
+GPUBuffer* VulkanRenderer::CreateIndexBuffer(const std::vector<uint16_t>& indices) {
+	GPUBuffer* retBuff = this->CreateBuffer(static_cast<const void*>(indices.data()), indices.size() * sizeof(uint16_t), EBufferType::INDEX_BUFFER);
 	return retBuff;
 }
 
