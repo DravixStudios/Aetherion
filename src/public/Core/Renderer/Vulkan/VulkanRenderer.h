@@ -63,18 +63,13 @@ private:
 	std::vector<VkImageView> m_imageViews;
 	uint32_t m_nImageCount;
 
-	VkRenderPass m_renderPass;
-	std::vector<VkFramebuffer> m_frameBuffers;
+	std::vector<VkFramebuffer> m_scFrameBuffers;
 
 	VkRenderPass m_geometryRenderPass;
 	VkRenderPass m_lightingRenderPass;
 
 	VkImage m_depthImage;
 	VkImageView m_depthImageView;
-
-	VkImage m_sqImage;
-	VkImageView m_sqImageView;
-	VkDeviceMemory m_sqMemory;
 
 	GPUBuffer* m_sqVBO;
 	GPUBuffer* m_sqIBO;
@@ -101,9 +96,6 @@ private:
 	uint32_t m_nCurrentFrameIndex;
 
 	VkSampleCountFlagBits m_multisampleCount;
-	VkImage m_colorImage;
-	VkDeviceMemory m_colorImageMemory;
-	VkImageView m_colorImageView;
 
 	/* G-Buffers */
 	VkImage m_colorBuffer;
@@ -157,14 +149,11 @@ private:
 	void CreateImageViews();
 	void CreateGeometryRenderPass();
 	void CreateLightingRenderPass();
-	void CreateRenderPass();
 	void CreateCommandPool();
 	void CreateGBufferResources();
-	void CreateColorResources();
 	void CreateDepthResources();
 	void CreateLightingResources();
 	void CreateGBufferFrameBuffer();
-	void CreateFrameBuffers();
 	void CreateLightingFrameBuffer();
 	void CreateDescriptorSetLayout();
 	void CreateLightingDescriptorSetLayout();
