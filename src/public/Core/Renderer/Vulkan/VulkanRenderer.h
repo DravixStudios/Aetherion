@@ -72,6 +72,10 @@ private:
 	VkImage m_depthImage;
 	VkImageView m_depthImageView;
 
+	VkImage m_sqImage;
+	VkImageView m_sqImageView;
+	VkDeviceMemory m_sqMemory;
+
 	VkCommandPool m_commandPool;
 	std::vector<VkCommandBuffer> m_commandBuffers;
 
@@ -154,6 +158,7 @@ private:
 	void CreateGBufferResources();
 	void CreateColorResources();
 	void CreateDepthResources();
+	void CreateLightingResources();
 	void CreateGBufferFrameBuffer();
 	void CreateFrameBuffers();
 	void CreateDescriptorSetLayout();
@@ -210,7 +215,7 @@ public:
 	/* Memory methods */
 	uint32_t FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 	GPUBuffer* CreateBuffer(const void* pData, uint32_t nSize, EBufferType bufferType) override;
-	GPUBuffer* CreateVertexBuffer(const std::vector<Vertex>& vertices) override;
+	GPUBuffer* CreateIndexBuffer(const std::vector<uint16_t>& indices) override;
 	GPUBuffer* CreateStagingBuffer(void* pData, uint32_t nSize) override;
 	GPUTexture* CreateTexture(GPUBuffer* pBuffer, uint32_t nWidth, uint32_t nHeight, GPUFormat format) override;
 	VkImageView CreateImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);

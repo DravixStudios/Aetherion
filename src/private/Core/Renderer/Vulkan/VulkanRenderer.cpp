@@ -99,6 +99,7 @@ void VulkanRenderer::Init() {
 	this->CreateGBufferResources();
 	this->CreateColorResources();
 	this->CreateDepthResources();
+	this->CreateLightingResources();
 	this->CreateGBufferFrameBuffer();
 	this->CreateFrameBuffers();
 
@@ -123,9 +124,8 @@ void VulkanRenderer::Init() {
 	this->WriteDescriptorSets();
 	this->WriteLightDescriptorSets();
 	this->CreateCommandBuffer();
-	//this->CreateGraphicsPipeline();
 	this->CreateGBufferPipeline();
-	this->CreateLightingPipeline();
+	//this->CreateLightingPipeline();
 	this->CreateSyncObjects();
 
 	this->m_sceneMgr = SceneManager::GetInstance();
@@ -1050,6 +1050,44 @@ void VulkanRenderer::CreateDepthResources() {
 	this->m_depthImageView = imageView;
 
 	spdlog::debug("VulkanRenderer::CreateDepthResources: Depth resources created");
+}
+
+/* Create lighting resources */
+void VulkanRenderer::CreateLightingResources() {
+	/* Screen quad vertices */
+	std::vector<ScreenQuadVertex> vertices = {
+		{ { -1.f, -1.f, 0.f }, { 0.f, 0.f } }, // 0 BL
+		{ { -1.f, 1.f, 0.f }, { 0.f, 1.f } }, // 1 TL
+		{ { 1.f, 1.f, 0.f }, { 1.f, 1.f } }, // 2 TR
+		{ { 1.f, -1.f, 0.f }, { 1.f, 0.f } } // 3 BR
+	};
+
+	/* Screen quad indices */
+	std::vector<uint16_t> indices = {
+		0, 1, 2,
+		2, 3, 0
+	};
+
+	GPUBuffer* vbo = this->CreateVertexBuffer(vertices);
+	spdlog::debug("VulkanRenderer::CreateLightingResources: ScreenQuad Vertex Buffer object created");
+	GPUBuffer* ibo = this->CreateIndexBuffer(indices);
+	spdlog::debug("VulkanRenderer::CreateLightingResources: ScreenQuad Index Buffer object created");
+
+	uint32_t nImageSize = this->CreateImage(
+		this->m_scExtent.width, this->m_scExtent.height,
+		this->m_surfaceFormat,
+		VK_SAMPLE_COUNT_1_BIT,
+		VK_IMAGE_TILING_OPTIMAL,
+		VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+		this->m_sqImage,
+		this->m_sqMemory
+	);
+
+	spdlog::debug("VulkanRenderer::CreateLightingResources: ScreenQuad image created");
+
+	this->m_sqImageView = this->CreateImageView(this->m_sqImage, this->m_surfaceFormat, VK_IMAGE_ASPECT_COLOR_BIT);
+	spdlog::debug("VulkanRenderer::CreateLightingResources: ScreenQuad image view created");
 }
 
 /*
