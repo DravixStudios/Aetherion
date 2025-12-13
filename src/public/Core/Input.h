@@ -43,6 +43,8 @@ public:
 	static void KeyCallback(GLFWwindow* pWindow, int nKey, int nScancode, int nAction, int nMods);
 	static void MouseButtonCallback(GLFWwindow* pWindow, int nButton, int nAction, int nMods);
 
+	void Close();
+
 	static Input* GetInstance();
 private:
 	float deltaX;

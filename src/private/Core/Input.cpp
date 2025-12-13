@@ -68,7 +68,7 @@ void Input::SetButtonUp(EMouseButton btn) {
 	this->SetButton(btn, EInputState::RELEASED);
 }
 
-void Input::Callback(EInputType nEventType, int nKeyOrButton = 0, int nAction = 0, float posX = 0.f, float posY = 0.f) {
+void Input::Callback(EInputType nEventType, int nKeyOrButton, int nAction, float posX, float posY) {
 	switch (nEventType) {
 	case EInputType::KEYBOARD:
 		if (nAction == GLFW_PRESS) 
@@ -104,6 +104,29 @@ void Input::KeyCallback(GLFWwindow* pWindow, int nKey, int nScancode, int nActio
 
 void Input::MouseButtonCallback(GLFWwindow* pWindow, int nButton, int nAction, int nMods) {
 	Input::GetInstance()->Callback(EInputType::MOUSE_BUTTON, nButton, nAction);
+}
+
+void Input::Close() {
+	std::vector<char> keysToRemove;
+	for (std::pair<char, EInputState> key : this->m_keys) {
+		if (key.second == EInputState::RELEASED)
+			keysToRemove.push_back(key.first);
+	}
+
+	std::vector<EMouseButton> buttonsToRemove;
+	for (std::pair<EMouseButton, EInputState> button : this->m_buttons) {
+		if (button.second == EInputState::RELEASED)
+			buttonsToRemove.push_back(button.first);
+	}
+
+	for (char key : keysToRemove)
+		this->m_keys.erase(key);
+
+	for (EMouseButton button : buttonsToRemove)
+		this->m_buttons.erase(button);
+
+	this->deltaX = 0.f;
+	this->deltaY = 0.f;
 }
 
 Input* Input::GetInstance() {
