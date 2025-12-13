@@ -5,6 +5,11 @@ SceneManager* SceneManager::m_instance;
 /* Constructor */
 SceneManager::SceneManager() {
 	GameObject* sampleObj = new GameObject("Sample object");
+
+	Mesh* mesh = new Mesh("MeshComponent");
+	mesh->LoadModel("DamagedHelmet.glb");
+	sampleObj->AddComponent("MeshComponent", mesh);
+
 	this->m_currentScene = new Scene("SampleScene");
 	this->m_currentScene->AddObject(sampleObj);
 }
