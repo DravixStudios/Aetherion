@@ -104,6 +104,14 @@ bool Input::GetButtonUp(EMouseButton btn) {
 	return this->GetButton(btn, EInputState::RELEASED);
 }
 
+float Input::GetDeltaX() {
+	return this->deltaX;
+}
+
+float Input::GetDeltaY() {
+	return this->deltaY;
+}
+
 void Input::Callback(EInputType nEventType, int nKeyOrButton, int nAction, float posX, float posY) {
 	switch (nEventType) {
 	case EInputType::KEYBOARD:

@@ -47,6 +47,8 @@ public:
 	bool GetButton(EMouseButton btn, EInputState state);
 	bool GetButtonDown(EMouseButton btn);
 	bool GetButtonUp(EMouseButton btn);
+	float GetDeltaX();
+	float GetDeltaY();
 
 	/* GLFW Callbacks */
 	void Callback(EInputType nEventType, int nKeyOrButton = 0, int nAction = 0, float posX = 0.f, float posY = 0.f);
