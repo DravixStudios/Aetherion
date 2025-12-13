@@ -210,6 +210,55 @@ bool Mesh::LoadModel(std::string filePath) {
 				/* TODO: Load uncompressed textures */
 			}
 		}
+
+		/* 
+			Load emissive
+			TODO: Load emissive if it has, otherways, mark as no emissive.
+		*/
+		aiString emissivePath;
+		if (material->GetTextureCount(aiTextureType_EMISSIVE) > 0 && material->GetTexture(aiTextureType_EMISSIVE, 0, &emissivePath) == AI_SUCCESS) {
+			const aiTexture* emissiveTexture = scene->GetEmbeddedTexture(emissivePath.C_Str());
+			spdlog::debug("Mesh::LoadModel: Loading emissive texture {0} for mesh #{1}", emissivePath.C_Str(), i);
+
+			unsigned char* pixelData = nullptr;
+			if (emissiveTexture->mHeight == 0) {
+				spdlog::debug("Mesh::LoadMesh: Loading compressed texture {0} from memory", emissivePath.C_Str());
+
+				int nWidth = 0;
+				int nHeight = 0;
+				int nChannels = 0;
+
+				pixelData = stbi_load_from_memory(
+					reinterpret_cast<const unsigned char*>(emissiveTexture->pcData), // Buffer
+					emissiveTexture->mWidth,  // Size of the file
+					&nWidth, // Pointer to width
+					&nHeight, // Pointer to height
+					&nChannels, // Pointer to channels
+					4 // Desired channels
+				);
+
+				GPUBuffer* stagingBuffer = renderer->CreateStagingBuffer(pixelData, (nWidth * nHeight) * 4);
+				GPUTexture* gpuTexture = renderer->CreateTexture(stagingBuffer, nWidth, nHeight, GPUFormat::RGBA8_SRGB);
+
+				/* Only for Vulkan, register texture */
+				if (VulkanRenderer* vkRenderer = dynamic_cast<VulkanRenderer*>(renderer)) {
+					spdlog::debug("Mesh::LoadModel: Vulkan renderer registering emissive texture {0}", emissivePath.C_Str());
+					uint32_t nTextureIndex = vkRenderer->RegisterTexture(emissivePath.C_Str(), gpuTexture);
+
+					if (nTextureIndex == UINT32_MAX) {
+						spdlog::error("Mesh::LoadModel: Vulkan renderer couldn't register ORM texture {0}", emissivePath.C_Str());
+					}
+					this->m_emissiveIndices[i] = nTextureIndex;
+					spdlog::debug("Mesh::LoadModel: Texture {0} registered at Vulkan renderer index {1}", emissivePath.C_Str(), nTextureIndex);
+				}
+
+				this->m_resourceManager->AddTexture(emissivePath.C_Str(), gpuTexture);
+				this->m_ormTextures[i] = gpuTexture;
+			}
+			else {
+				/* TODO: Load uncompressed textures */
+			}
+		}
 	}
 
 	this->m_bMeshImported = true;
@@ -242,4 +291,9 @@ std::map<uint32_t, uint32_t>& Mesh::GetTextureIndices() {
 /* Returns Mesh::m_ormIndices */
 std::map<uint32_t, uint32_t>& Mesh::GetORMIndices() {
 	return this->m_ormIndices;
+}
+
+/* Returns Mesh::m_emissiveIndices */
+std::map<uint32_t, uint32_t>& Mesh::GetEmissiveIndices() {
+	return this->m_emissiveIndices;
 }
