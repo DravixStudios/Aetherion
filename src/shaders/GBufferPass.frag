@@ -7,17 +7,20 @@ layout(location = 2) in vec3 fragPos;
 
 layout(push_constant) uniform PushConstants {
     uint nTextureIndex;
+    uint nOrmIndex;
 } pc; // Get our push constants
 
 layout(set = 1, binding = 0) uniform sampler2D g_textures[]; // Get our binless textures array.
 
 layout(location = 0) out vec4 outBaseColor;
 layout(location = 1) out vec4 outNormals;
-layout(location = 2) out vec4 outPosition;
+layout(location = 2) out vec4 outORM;
+layout(location = 3) out vec4 outPosition;
 
 void main() {
     outBaseColor = texture(g_textures[nonuniformEXT(pc.nTextureIndex)], vec2(inUVs.x, 1 - inUVs.y));
     vec3 normals = inNormals * 0.5 + 0.5;
     outNormals = vec4(normals.xyz, 1.0);
+    outORM =  texture(g_textures[nonuniformEXT(pc.nOrmIndex)], vec2(inUVs.x, 1 - inUVs.y));
     outPosition = vec4(fragPos.xyz, 1.0);
 }
