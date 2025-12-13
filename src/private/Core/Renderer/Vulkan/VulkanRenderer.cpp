@@ -108,7 +108,7 @@ void VulkanRenderer::Init() {
 	this->m_wvp.View = glm::mat4(1.f);
 	this->m_wvp.View = glm::translate(this->m_wvp.View, { 0.f, 0.f, 2.f });
 	this->m_wvp.View = glm::affineInverse(this->m_wvp.View);
-	this->m_wvp.Projection = glm::perspectiveFov(glm::radians(90.f), static_cast<float>(this->m_scExtent.width), static_cast<float>(this->m_scExtent.height), .001f, 300.f);
+	this->m_wvp.Projection = glm::perspectiveFovRH(glm::radians(70.f), static_cast<float>(this->m_scExtent.width), static_cast<float>(this->m_scExtent.height), .001f, 300.f);
 
 	VulkanRingBuffer* pUrb = new VulkanRingBuffer(this->m_device, this->m_physicalDevice);
 	pUrb->Init(2 * 1024 * 1024, 256, this->m_nImageCount);
@@ -1741,11 +1741,11 @@ void VulkanRenderer::RecordCommandBuffer(uint32_t nImageIndex) {
 	VkClearValue depthClear = { };
 	depthClear.depthStencil = { 1.f, 0 };
 
-	VkClearValue gbuffClears[] = { 
-		albedoClear, 
+	VkClearValue gbuffClears[] = {
+		albedoClear,
 		normalClear,
-		positionClear, 
-		depthClear, 
+		positionClear,
+		depthClear,
 		albedoResolveClear,
 		normalResolveClear,
 		positionResolveClear
