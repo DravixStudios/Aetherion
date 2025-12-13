@@ -4,6 +4,8 @@
 #include <spdlog/spdlog.h>
 
 #include "Core/GameObject/GameObject.h"
+#include "Core/Camera/Camera.h"
+#include "Core/Camera/EditorCamera.h"
 
 class Scene {
 	friend class SceneManager;
@@ -20,4 +22,7 @@ private:
 	std::string m_name;
 
 	std::map<std::string, GameObject*> m_gameObjects;
+
+	Camera* currentCamera;
+	std::map<std::string, Camera*> m_cameras;
 };

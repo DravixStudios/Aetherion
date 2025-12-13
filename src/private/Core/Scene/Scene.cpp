@@ -2,6 +2,7 @@
 
 Scene::Scene(std::string name) {
 	this->m_name = name;
+	this->currentCamera = new EditorCamera("EditorCamera");
 }
 
 void Scene::AddObject(GameObject* object) {
@@ -23,10 +24,12 @@ void Scene::Start() {
 	for (std::pair<std::string, GameObject*> obj : this->m_gameObjects) {
 		obj.second->Start();
 	}
+	this->currentCamera->Start();
 }
 
 void Scene::Update() {
 	for (std::pair<std::string, GameObject*> obj : this->m_gameObjects) {
 		obj.second->Update();
 	}
+	this->currentCamera->Update();
 }
