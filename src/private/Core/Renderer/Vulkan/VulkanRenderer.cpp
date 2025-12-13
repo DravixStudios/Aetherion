@@ -1461,8 +1461,8 @@ VkPipeline VulkanRenderer::CreateGraphicsPipeline(
 	uint32_t nPushConstantCount
 ) {
 	/* Shader compiling */
-	std::vector<uint32_t> vertexShader = this->CompileShader(this->ReadShader(vertPath), "shader.vert", shaderc_vertex_shader);
-	std::vector<uint32_t> fragmentShader = this->CompileShader(this->ReadShader(pixelPath), "shader.frag", shaderc_fragment_shader);
+	std::vector<uint32_t> vertexShader = this->CompileShader(this->ReadShader(vertPath), vertPath, shaderc_vertex_shader);
+	std::vector<uint32_t> fragmentShader = this->CompileShader(this->ReadShader(pixelPath), pixelPath, shaderc_fragment_shader);
 
 	VkShaderModule vertexModule = this->CreateShaderModule(vertexShader);
 	VkShaderModule fragmentModule = this->CreateShaderModule(fragmentShader);
