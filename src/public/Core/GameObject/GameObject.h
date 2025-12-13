@@ -14,6 +14,7 @@ public:
 	virtual void Start();
 	virtual void Update();
 	std::map<std::string, Component*> GetComponents();
+	void AddComponent(std::string name, Component* component);
 private:
 	std::string m_name;
 	

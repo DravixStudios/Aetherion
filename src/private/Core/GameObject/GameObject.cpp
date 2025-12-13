@@ -2,10 +2,6 @@
 
 GameObject::GameObject(std::string name) {
 	this->m_name = name;
-
-	Mesh* mesh = new Mesh("MeshComponent");
-	mesh->LoadModel("DamagedHelmet.glb");
-	this->m_components["MeshComponent"] = mesh;
 }
 
 std::string GameObject::GetName() {
@@ -26,4 +22,8 @@ void GameObject::Update() {
 
 std::map<std::string, Component*> GameObject::GetComponents() {
 	return this->m_components;
+}
+
+void GameObject::AddComponent(std::string name, Component* component) {
+	this->m_components[name] = component;
 }
