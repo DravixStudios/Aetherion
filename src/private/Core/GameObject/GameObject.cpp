@@ -4,7 +4,7 @@ GameObject::GameObject(std::string name) {
 	this->m_name = name;
 
 	Mesh* mesh = new Mesh("MeshComponent");
-	mesh->LoadModel("f16.fbx");
+	mesh->LoadModel("DamagedHelmet.glb");
 	this->m_components["MeshComponent"] = mesh;
 }
 

@@ -1841,10 +1841,21 @@ void VulkanRenderer::RecordCommandBuffer(uint32_t nImageIndex) {
 		std::map<uint32_t, GPUBuffer*> vertices = mesh->GetVBOs();
 		std::map<uint32_t, uint32_t> textureIndices = mesh->GetTextureIndices();
 
+		uint32_t i = 0;
 		for (std::pair<uint32_t, GPUBuffer*> vertex : vertices) {
 			uint32_t nTextureIndex = textureIndices[vertex.first];
 			vkCmdPushConstants(commandBuffer, this->m_gbuffPipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(uint32_t), &nTextureIndex);
-			this->DrawVertexBuffer(vertex.second);
+			
+			if (mesh->HasIndices()) {
+				std::map<uint32_t, GPUBuffer*> indices =  mesh->GetIBOs();
+				GPUBuffer* index = indices[i];
+				this->DrawIndexBuffer(vertex.second, index);
+			}
+			else {
+				this->DrawVertexBuffer(vertex.second);
+			}
+
+			i++;
 		}
 	}
 

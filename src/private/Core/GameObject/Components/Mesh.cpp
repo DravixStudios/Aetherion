@@ -7,6 +7,7 @@ Mesh::Mesh(std::string name) : Component::Component(name) {
 	this->m_core = Core::GetInstance();
 	this->m_bMeshImported = false;
 	this->m_resourceManager = ResourceManager::GetInstance();
+	this->m_bHasIndices = false;
 }
 
 void Mesh::Start() {
@@ -55,6 +56,7 @@ bool Mesh::LoadModel(std::string filePath) {
 		spdlog::debug("Mesh::LoadModel: Loading {0} vertices for mesh #{1} in file {2}", nNumVertices, i, filePath);
 
 		std::vector<Vertex> vertices(nNumVertices);
+		std::vector<uint16_t> indices;
 		
 		/*
 			Store a new vertices on our vertices vector. 
@@ -76,6 +78,20 @@ bool Mesh::LoadModel(std::string filePath) {
 			Vertex vertex = { { aiVertex.x, aiVertex.y, aiVertex.z }, { normals.x, normals.y, normals.z }, { texCoords.x, texCoords.y } };
 			vertices[x] = vertex;
 		
+		}
+
+		if (mesh->HasFaces()) {
+			indices.reserve(mesh->mNumFaces * 3);
+			this->m_bHasIndices = true;
+			for (uint32_t x = 0; x < mesh->mNumFaces; x++) {
+				aiFace& face = mesh->mFaces[x];
+				for (uint32_t j = 0; j < face.mNumIndices; j++) {
+					indices.push_back(face.mIndices[j]);
+				}
+			}
+
+			GPUBuffer* IBO = renderer->CreateIndexBuffer(indices);
+			this->m_IBOs[i] = IBO;
 		}
 
 		this->m_vertices[i] = vertices;
@@ -152,9 +168,18 @@ bool Mesh::LoadModel(std::string filePath) {
 	this->m_bMeshImported = true;
 }
 
+bool Mesh::HasIndices() {
+	return this->m_bHasIndices;
+}
+
 /* Returns Mesh::m_VBOs */
 std::map<uint32_t, GPUBuffer*>& Mesh::GetVBOs() {
 	return this->m_VBOs;
+}
+
+/* Returns Mesh::m_IBOs */
+std::map<uint32_t, GPUBuffer*>& Mesh::GetIBOs() {
+	return this->m_IBOs;
 }
 
 /* Returns Mesh::m_textures */
