@@ -28,12 +28,14 @@ public:
 	std::map<uint32_t, GPUTexture*>& GetTextures();
 	std::map<uint32_t, uint32_t>& GetTextureIndices();
 	std::map<uint32_t, uint32_t>& GetORMIndices();
+	std::map<uint32_t, uint32_t>& GetEmissiveIndices();
 
 	std::map<uint32_t, std::vector<Vertex>> m_vertices;
 	std::map<uint32_t, GPUBuffer*> m_VBOs;
 	std::map<uint32_t, GPUBuffer*> m_IBOs;
 	std::map<uint32_t, uint32_t> m_textureIndices;
 	std::map<uint32_t, uint32_t> m_ormIndices;
+	std::map<uint32_t, uint32_t> m_emissiveIndices;
 	
 private:
 	bool m_bMeshImported;
@@ -46,6 +48,7 @@ private:
 	*/
 	std::map<uint32_t, GPUTexture*> m_textures;
 	std::map<uint32_t, GPUTexture*> m_ormTextures;
+	std::map<uint32_t, GPUTexture*> m_emissiveTextures;
 
 	ResourceManager* m_resourceManager;
 
