@@ -55,6 +55,11 @@ VkBufferUsageFlagBits ToVkBufferUsage(EBufferType bufferType) {
 	};
 }
 
+struct PushConstant {
+	uint32_t nTextureIndex;
+	uint32_t nOrmTextureIndex;
+};
+
 /* Constructor */
 VulkanRenderer::VulkanRenderer() : Renderer::Renderer() {
 	this->m_bEnableValidationLayers = ENABLE_VALIDATION_LAYERS;
@@ -563,7 +568,18 @@ void VulkanRenderer::CreateGeometryRenderPass() {
 	normalAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 	normalAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 
-	/* Attachment 2: Position - RGBA16_SFLOAT */
+	/* Attachment 2: ORM - RGBA16_SFLOAT */
+	VkAttachmentDescription ormAttachment = { };
+	ormAttachment.format = VK_FORMAT_R16G16B16A16_SFLOAT;
+	ormAttachment.samples = this->m_multisampleCount;
+	ormAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	ormAttachment.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	ormAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	ormAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+	ormAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	ormAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+
+	/* Attachment 3: Position - RGBA16_SFLOAT */
 	VkAttachmentDescription positionAttachment = { };
 	positionAttachment.format = VK_FORMAT_R16G16B16A16_SFLOAT;
 	positionAttachment.samples = this->m_multisampleCount;
@@ -574,7 +590,7 @@ void VulkanRenderer::CreateGeometryRenderPass() {
 	positionAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 	positionAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 
-	/* Attachment 3: Depth */
+	/* Attachment 4: Depth */
 	VkAttachmentDescription depthAttachment = { };
 	depthAttachment.format = this->FindDepthFormat();
 	depthAttachment.samples = this->m_multisampleCount;
@@ -585,7 +601,7 @@ void VulkanRenderer::CreateGeometryRenderPass() {
 	depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 	depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 
-	/* Attachment 4: Base color Resolve - BGRA8_UNORM */
+	/* Attachment 5: Base color Resolve - BGRA8_UNORM */
 	VkAttachmentDescription colorResolveAttachment = { };
 	colorResolveAttachment.format = VK_FORMAT_B8G8R8A8_UNORM;
 	colorResolveAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -596,7 +612,7 @@ void VulkanRenderer::CreateGeometryRenderPass() {
 	colorResolveAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 	colorResolveAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 
-	/* Attachment 5: Normal Resolve - RGBA16_SFLOAT */
+	/* Attachment 6: Normal Resolve - RGBA16_SFLOAT */
 	VkAttachmentDescription normalResolveAttachment = { };
 	normalResolveAttachment.format = VK_FORMAT_R16G16B16A16_SFLOAT;
 	normalResolveAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -607,7 +623,18 @@ void VulkanRenderer::CreateGeometryRenderPass() {
 	normalResolveAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 	normalResolveAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 
-	/* Attachment 6: Position Resolve - RGBA16_SFLOAT */
+	/* Attachment 7: ORM Resolve - RGBA16_SFLOAT */
+	VkAttachmentDescription ormResolveAttachment = { };
+	ormResolveAttachment.format = VK_FORMAT_R16G16B16A16_SFLOAT;
+	ormResolveAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+	ormResolveAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	ormResolveAttachment.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	ormResolveAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	ormResolveAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+	ormResolveAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	ormResolveAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+
+	/* Attachment 8: Position Resolve - RGBA16_SFLOAT */
 	VkAttachmentDescription positionResolveAttachment = { };
 	positionResolveAttachment.format = VK_FORMAT_R16G16B16A16_SFLOAT;
 	positionResolveAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -628,41 +655,53 @@ void VulkanRenderer::CreateGeometryRenderPass() {
 	normalRef.attachment = 1;
 	normalRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
+	/* ORM attachment reference */
+	VkAttachmentReference ormRef = { };
+	ormRef.attachment = 2;
+	ormRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
 	/* Position attachment reference */
 	VkAttachmentReference positionRef = { };
-	positionRef.attachment = 2;
+	positionRef.attachment = 3;
 	positionRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
 	/* Depth attachment reference */
 	VkAttachmentReference depthRef = { };
-	depthRef.attachment = 3;
+	depthRef.attachment = 4;
 	depthRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
 	/* Base color resolve attachment reference */
 	VkAttachmentReference colorResolveRef = { };
-	colorResolveRef.attachment = 4;
+	colorResolveRef.attachment = 5;
 	colorResolveRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
 	/* Normal resolve attachment reference */
 	VkAttachmentReference normalResolveRef = { };
-	normalResolveRef.attachment = 5;
+	normalResolveRef.attachment = 6;
 	normalResolveRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+	/* ORM resolve attachment reference */
+	VkAttachmentReference ormResolveRef = { };
+	ormResolveRef.attachment = 7;
+	ormResolveRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
 	/* Position resolve attachment reference */
 	VkAttachmentReference positionResolveRef = { };
-	positionResolveRef.attachment = 6;
+	positionResolveRef.attachment = 8;
 	positionResolveRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-	VkAttachmentReference colorRefs[] = { colorRef, normalRef, positionRef };
-	VkAttachmentReference resolveRefs[] = { colorResolveRef, normalResolveRef, positionResolveRef };
+	VkAttachmentReference colorRefs[] = { colorRef, normalRef, ormRef, positionRef };
+	VkAttachmentReference resolveRefs[] = { colorResolveRef, normalResolveRef, ormResolveRef, positionResolveRef };
 	
 	VkAttachmentDescription attachments[] = {
 		colorAttachment,
 		normalAttachment,
+		ormAttachment,
 		positionAttachment,
 		depthAttachment,
 		colorResolveAttachment,
 		normalResolveAttachment,
+		ormResolveAttachment,
 		positionResolveAttachment
 	};
 
@@ -670,7 +709,7 @@ void VulkanRenderer::CreateGeometryRenderPass() {
 	/* Subpass description */
 	VkSubpassDescription subpass = { };
 	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-	subpass.colorAttachmentCount = 3;
+	subpass.colorAttachmentCount = 4;
 	subpass.pColorAttachments = colorRefs;
 	subpass.pDepthStencilAttachment = &depthRef;
 	subpass.pResolveAttachments = resolveRefs;
@@ -687,7 +726,7 @@ void VulkanRenderer::CreateGeometryRenderPass() {
 	/* Render pass create info */
 	VkRenderPassCreateInfo createInfo = { };
 	createInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-	createInfo.attachmentCount = 7;
+	createInfo.attachmentCount = 9;
 	createInfo.pAttachments = attachments;
 	createInfo.dependencyCount = 1;
 	createInfo.pDependencies = &dependency;
@@ -780,8 +819,8 @@ void VulkanRenderer::CreateCommandPool() {
 	Create our G-Buffer resources
 */
 void VulkanRenderer::CreateGBufferResources() {
-	VkDeviceMemory colorMemory, normalMemory, positionMemory = nullptr;
-	VkDeviceMemory colorResolveMemory, normalResolveMemory, positionResolveMemory = nullptr;
+	VkDeviceMemory colorMemory, normalMemory, ormMemory, positionMemory = nullptr;
+	VkDeviceMemory colorResolveMemory, normalResolveMemory, ormResolveMemory, positionResolveMemory = nullptr;
 
 	/* Base color G-Buffer (BGRA8_UNORM) */
 	this->CreateImage(
@@ -807,6 +846,19 @@ void VulkanRenderer::CreateGBufferResources() {
 		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 		this->m_normalBuffer,
 		normalMemory
+	);
+
+	/* ORM G-Buffer (RGBA16_SFLOAT) */
+	this->CreateImage(
+		this->m_scExtent.width,
+		this->m_scExtent.height,
+		VK_FORMAT_R16G16B16A16_SFLOAT,
+		this->m_multisampleCount,
+		VK_IMAGE_TILING_OPTIMAL,
+		VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+		this->m_ormBuffer,
+		ormMemory
 	);
 
 	/* Position G-Buffer (RGBA16_SFLOAT) */
@@ -848,6 +900,19 @@ void VulkanRenderer::CreateGBufferResources() {
 		normalResolveMemory
 	);
 
+	/* ORM G-Buffer resolve (RGBA16_SFLOAT) */
+	this->CreateImage(
+		this->m_scExtent.width,
+		this->m_scExtent.height,
+		VK_FORMAT_R16G16B16A16_SFLOAT,
+		VK_SAMPLE_COUNT_1_BIT,
+		VK_IMAGE_TILING_OPTIMAL,
+		VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+		this->m_ormResolveBuffer,
+		ormResolveMemory
+	);
+
 	/* Position G-Buffer resolve (RGBA16_SFLOAT) */
 	this->CreateImage(
 		this->m_scExtent.width,
@@ -864,24 +929,29 @@ void VulkanRenderer::CreateGBufferResources() {
 	/* Create our G-Buffer image views */
 	this->m_colorBuffView = this->CreateImageView(this->m_colorBuffer, VK_FORMAT_B8G8R8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT);
 	this->m_normalBuffView = this->CreateImageView(this->m_normalBuffer, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
+	this->m_ormBuffView = this->CreateImageView(this->m_ormBuffer, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
 	this->m_positionBuffView = this->CreateImageView(this->m_positionBuffer, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
 
 	this->m_colorResolveBuffView = this->CreateImageView(this->m_colorResolveBuffer, VK_FORMAT_B8G8R8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT);
 	this->m_normalResolveBuffView = this->CreateImageView(this->m_normalResolveBuffer, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
+	this->m_ormResolveBuffView = this->CreateImageView(this->m_ormResolveBuffer, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
 	this->m_positionResolveBuffView = this->CreateImageView(this->m_positionResolveBuffer, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
 
 	/* Create our G-Buffer samplers */
 	this->m_baseColorSampler = this->CreateSampler();
 	this->m_normalSampler = this->CreateSampler();
+	this->m_ormSampler = this->CreateSampler();
 	this->m_positionSampler = this->CreateSampler();
 
 	/* Transition our G-Buffer images */
 	this->TransitionImageLayout(this->m_colorBuffer, VK_FORMAT_B8G8R8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 	this->TransitionImageLayout(this->m_normalBuffer, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+	this->TransitionImageLayout(this->m_ormBuffer, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 	this->TransitionImageLayout(this->m_positionBuffer, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 
 	this->TransitionImageLayout(this->m_colorResolveBuffer, VK_FORMAT_B8G8R8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 	this->TransitionImageLayout(this->m_normalResolveBuffer, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+	this->TransitionImageLayout(this->m_ormResolveBuffer, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 	this->TransitionImageLayout(this->m_positionResolveBuffer, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 
 	spdlog::debug("VulkanRenderer::CreateGBufferResources: G-Buffers created");
@@ -948,10 +1018,12 @@ void VulkanRenderer::CreateGBufferFrameBuffer() {
 	VkImageView attachments[] = {
 		this->m_colorBuffView,
 		this->m_normalBuffView,
+		this->m_ormBuffView,
 		this->m_positionBuffView,
 		this->m_depthImageView,
 		this->m_colorResolveBuffView,
 		this->m_normalResolveBuffView,
+		this->m_ormResolveBuffView,
 		this->m_positionResolveBuffView
 	};
 
@@ -962,7 +1034,7 @@ void VulkanRenderer::CreateGBufferFrameBuffer() {
 	createInfo.width = this->m_scExtent.width;
 	createInfo.height = this->m_scExtent.height;
 	createInfo.layers = 1;
-	createInfo.attachmentCount = 7;
+	createInfo.attachmentCount = 9;
 	createInfo.pAttachments = attachments;
 
 	if (vkCreateFramebuffer(this->m_device, &createInfo, nullptr, &this->m_gbufferFramebuffer) != VK_SUCCESS) {
@@ -1080,7 +1152,7 @@ void VulkanRenderer::CreateLightingDescriptorSetLayout() {
 	VkDescriptorSetLayoutBinding samplerBinding = { };
 	samplerBinding.binding = 0;
 	samplerBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	samplerBinding.descriptorCount = 3;
+	samplerBinding.descriptorCount = 4;
 	samplerBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 	samplerBinding.pImmutableSamplers = nullptr;
 
@@ -1152,7 +1224,7 @@ void VulkanRenderer::CreateLightingDescriptorPool() {
 	/* Define our descriptor pool size */
 	VkDescriptorPoolSize poolSize = { };
 	poolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	poolSize.descriptorCount = 3 * this->m_nImageCount; // 3 samplers (base color, normal, position) per frame
+	poolSize.descriptorCount = 4 * this->m_nImageCount; // 4 samplers (base color, normal, ORM, position) per frame
 
 	/* Descriptor pool create info */
 	VkDescriptorPoolCreateInfo createInfo = { };
@@ -1283,13 +1355,18 @@ void VulkanRenderer::WriteLightDescriptorSets() {
 	normalInfo.imageView = this->m_normalResolveBuffView;
 	normalInfo.sampler = this->m_normalSampler;
 
+	VkDescriptorImageInfo ormInfo = { };
+	ormInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	ormInfo.imageView = this->m_ormResolveBuffView;
+	ormInfo.sampler = this->m_ormSampler;
+
 	VkDescriptorImageInfo positionInfo = { };
 	positionInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 	positionInfo.imageView = this->m_positionResolveBuffView;
 	positionInfo.sampler = this->m_positionSampler;
 
 	for (uint32_t i = 0; i < this->m_lightingDescriptorSets.size(); i++) {
-		VkWriteDescriptorSet descriptorWrites[3] = { };
+		VkWriteDescriptorSet descriptorWrites[4] = { };
 
 		descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 		descriptorWrites[0].dstSet = this->m_lightingDescriptorSets[i];
@@ -1306,16 +1383,24 @@ void VulkanRenderer::WriteLightDescriptorSets() {
 		descriptorWrites[1].pImageInfo = &normalInfo;
 		descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 		descriptorWrites[1].descriptorCount = 1;
-
+						 
 		descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 		descriptorWrites[2].dstSet = this->m_lightingDescriptorSets[i];
 		descriptorWrites[2].dstBinding = 0;
 		descriptorWrites[2].dstArrayElement = 2;
-		descriptorWrites[2].pImageInfo = &positionInfo;
+		descriptorWrites[2].pImageInfo = &ormInfo;
 		descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 		descriptorWrites[2].descriptorCount = 1;
 
-		vkUpdateDescriptorSets(this->m_device, 3, descriptorWrites, 0, nullptr);
+		descriptorWrites[3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrites[3].dstSet = this->m_lightingDescriptorSets[i];
+		descriptorWrites[3].dstBinding = 0;
+		descriptorWrites[3].dstArrayElement = 3;
+		descriptorWrites[3].pImageInfo = &positionInfo;
+		descriptorWrites[3].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		descriptorWrites[3].descriptorCount = 1;
+
+		vkUpdateDescriptorSets(this->m_device, 4, descriptorWrites, 0, nullptr);
 	}
 
 	spdlog::debug("VulkanRenderer::WriteLightDescriptorSets: Lighting descriptor sets written");
@@ -1533,11 +1618,11 @@ void VulkanRenderer::CreateGBufferPipeline() {
 	multisampling.sampleShadingEnable = VK_TRUE; // Improves the quality 
 	multisampling.minSampleShading = .2f; // Minimum 20% shading per frame
 
-	/* Color blend (we have 3: albedo, normal, position) */
-	VkPipelineColorBlendAttachmentState colorBlends[3] = { };
+	/* Color blend (we have 4: albedo, normal, ORM, position) */
+	VkPipelineColorBlendAttachmentState colorBlends[4] = { };
 
 	/* For each attachment we disable blending and enable the write mask in all RGBA channels */
-	for (uint32_t i = 0; i < 3; i++) {
+	for (uint32_t i = 0; i < 4; i++) {
 		colorBlends[i].blendEnable = VK_FALSE;
 		colorBlends[i].colorWriteMask =
 			VK_COLOR_COMPONENT_R_BIT |
@@ -1548,7 +1633,7 @@ void VulkanRenderer::CreateGBufferPipeline() {
 
 	VkPipelineColorBlendStateCreateInfo blendState = { };
 	blendState.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-	blendState.attachmentCount = 3;
+	blendState.attachmentCount = 4;
 	blendState.pAttachments = colorBlends;
 	blendState.logicOpEnable = VK_FALSE;
 
@@ -1569,7 +1654,7 @@ void VulkanRenderer::CreateGBufferPipeline() {
 	VkPushConstantRange pushRange = { };
 	pushRange.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 	pushRange.offset = 0;
-	pushRange.size = sizeof(uint32_t);
+	pushRange.size = sizeof(PushConstant);
 	
 	/* Create G-Buffer pipeline with CreateGraphicsPipeline method */
 	this->m_gbuffPipeline = this->CreateGraphicsPipeline(
@@ -1732,9 +1817,11 @@ void VulkanRenderer::RecordCommandBuffer(uint32_t nImageIndex) {
 	/* G-Buffer clear values */
 	VkClearValue albedoClear = { { { 0.f, 0.f, 0.f, 1.f } } };
 	VkClearValue normalClear = { { { 0.f, 0.f, 0.f, 1.f } } };
+	VkClearValue ormClear = { { { 0.f, 0.f, 0.f, 1.f } } };
 	VkClearValue positionClear = { { { 0.f, 0.f, 0.f, 1.f } } };
 	VkClearValue albedoResolveClear = { { { 0.f, 0.f, 0.f, 1.f } } };
 	VkClearValue normalResolveClear = { { { 0.f, 0.f, 0.f, 1.f } } };
+	VkClearValue ormResolveClear = { { { 0.f, 0.f, 0.f, 1.f } } };
 	VkClearValue positionResolveClear = { { { 0.f, 0.f, 0.f, 1.f } } };
 
 	/* Depth clear value */
@@ -1744,16 +1831,18 @@ void VulkanRenderer::RecordCommandBuffer(uint32_t nImageIndex) {
 	VkClearValue gbuffClears[] = {
 		albedoClear,
 		normalClear,
+		ormClear,
 		positionClear,
 		depthClear,
 		albedoResolveClear,
 		normalResolveClear,
+		ormResolveClear,
 		positionResolveClear
 	};
 
 	VkRenderPassBeginInfo geometryPassInfo = { };
 	geometryPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-	geometryPassInfo.clearValueCount = 7;
+	geometryPassInfo.clearValueCount = 9;
 	geometryPassInfo.pClearValues = gbuffClears;
 	geometryPassInfo.renderArea.extent = this->m_scExtent;
 	geometryPassInfo.renderArea.offset = { 0, 0 };
@@ -1853,11 +1942,22 @@ void VulkanRenderer::RecordCommandBuffer(uint32_t nImageIndex) {
 
 		std::map<uint32_t, GPUBuffer*> vertices = mesh->GetVBOs();
 		std::map<uint32_t, uint32_t> textureIndices = mesh->GetTextureIndices();
+		std::map<uint32_t, uint32_t> ormIndices = mesh->GetORMIndices();
 
 		uint32_t i = 0;
 		for (std::pair<uint32_t, GPUBuffer*> vertex : vertices) {
 			uint32_t nTextureIndex = textureIndices[vertex.first];
-			vkCmdPushConstants(commandBuffer, this->m_gbuffPipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(uint32_t), &nTextureIndex);
+			uint32_t nOrmIndex = ormIndices[vertex.first];
+			PushConstant pushConstant = { nTextureIndex, nOrmIndex };
+
+			vkCmdPushConstants(
+				commandBuffer, 
+				this->m_gbuffPipelineLayout, 
+				VK_SHADER_STAGE_FRAGMENT_BIT, 
+				0, 
+				sizeof(PushConstant), 
+				&pushConstant
+			);
 			
 			if (mesh->HasIndices()) {
 				std::map<uint32_t, GPUBuffer*> indices =  mesh->GetIBOs();

@@ -27,11 +27,13 @@ public:
 	std::map<uint32_t, GPUBuffer*>& GetIBOs();
 	std::map<uint32_t, GPUTexture*>& GetTextures();
 	std::map<uint32_t, uint32_t>& GetTextureIndices();
+	std::map<uint32_t, uint32_t>& GetORMIndices();
 
 	std::map<uint32_t, std::vector<Vertex>> m_vertices;
 	std::map<uint32_t, GPUBuffer*> m_VBOs;
 	std::map<uint32_t, GPUBuffer*> m_IBOs;
 	std::map<uint32_t, uint32_t> m_textureIndices;
+	std::map<uint32_t, uint32_t> m_ormIndices;
 	
 private:
 	bool m_bMeshImported;
@@ -43,6 +45,7 @@ private:
 			Value: The texture (GPUTexture).
 	*/
 	std::map<uint32_t, GPUTexture*> m_textures;
+	std::map<uint32_t, GPUTexture*> m_ormTextures;
 
 	ResourceManager* m_resourceManager;
 

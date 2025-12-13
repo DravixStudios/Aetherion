@@ -102,6 +102,7 @@ bool Mesh::LoadModel(std::string filePath) {
 		const aiMaterial* material =  scene->mMaterials[mesh->mMaterialIndex];
 		aiString texturePath;
 
+		/* Load albedo */
 		if (material->GetTextureCount(aiTextureType_DIFFUSE) > 0 && material->GetTexture(aiTextureType_DIFFUSE, 0, &texturePath) == AI_SUCCESS) {
 			spdlog::debug("Mesh::LoadModel: Loading texture {0} for mesh #{1}", texturePath.C_Str(), i);
 
@@ -163,6 +164,52 @@ bool Mesh::LoadModel(std::string filePath) {
 				/* TODO: Load uncompressed textures */
 			}
 		}
+
+		/* Load ORM */
+		aiString metalPath;
+		if (material->GetTextureCount(aiTextureType_METALNESS) > 0 && material->GetTexture(aiTextureType_METALNESS, 0, &metalPath) == AI_SUCCESS) {
+			const aiTexture* ormTex = scene->GetEmbeddedTexture(metalPath.C_Str());
+			spdlog::debug("Mesh::LoadModel: Loading ORM texture {0} for mesh #{1}", metalPath.C_Str(), i);
+
+			unsigned char* pixelData = nullptr;
+			if (ormTex->mHeight == 0) {
+				spdlog::debug("Mesh::LoadMesh: Loading compressed texture {0} from memory", metalPath.C_Str());
+
+				int nWidth = 0;
+				int nHeight = 0;
+				int nChannels = 0;
+
+				pixelData = stbi_load_from_memory(
+					reinterpret_cast<const unsigned char*>(ormTex->pcData), // Buffer
+					ormTex->mWidth,  // Size of the file
+					&nWidth, // Pointer to width
+					&nHeight, // Pointer to height
+					&nChannels, // Pointer to channels
+					4 // Desired channels
+				);
+
+				GPUBuffer* stagingBuffer = renderer->CreateStagingBuffer(pixelData, (nWidth * nHeight) * 4);
+				GPUTexture* gpuTexture = renderer->CreateTexture(stagingBuffer, nWidth, nHeight, GPUFormat::RGBA8_SRGB);
+
+				/* Only for Vulkan, register texture */
+				if (VulkanRenderer* vkRenderer = dynamic_cast<VulkanRenderer*>(renderer)) {
+					spdlog::debug("Mesh::LoadModel: Vulkan renderer registering ORM texture {0}", metalPath.C_Str());
+					uint32_t nTextureIndex = vkRenderer->RegisterTexture(metalPath.C_Str(), gpuTexture);
+
+					if (nTextureIndex == UINT32_MAX) {
+						spdlog::error("Mesh::LoadModel: Vulkan renderer couldn't register ORM texture {0}", metalPath.C_Str());
+					}
+					this->m_ormIndices[i] = nTextureIndex;
+					spdlog::debug("Mesh::LoadModel: Texture {0} registered at Vulkan renderer index {1}", metalPath.C_Str(), nTextureIndex);
+				}
+
+				this->m_resourceManager->AddTexture(metalPath.C_Str(), gpuTexture);
+				this->m_ormTextures[i] = gpuTexture;
+			}
+			else {
+				/* TODO: Load uncompressed textures */
+			}
+		}
 	}
 
 	this->m_bMeshImported = true;
@@ -190,4 +237,9 @@ std::map<uint32_t, GPUTexture*>& Mesh::GetTextures() {
 /* Returns Mesh::m_textureIndices */
 std::map<uint32_t, uint32_t>& Mesh::GetTextureIndices() {
 	return this->m_textureIndices;
+}
+
+/* Returns Mesh::m_ormIndices */
+std::map<uint32_t, uint32_t>& Mesh::GetORMIndices() {
+	return this->m_ormIndices;
 }
