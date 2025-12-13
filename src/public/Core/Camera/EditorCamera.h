@@ -8,6 +8,9 @@ public:
 
 	void Start() override;
 	void Update() override;
+
 private:
+	float m_yaw;
+	float m_pitch;
 	Input* m_input;
 };
