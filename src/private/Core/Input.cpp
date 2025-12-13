@@ -68,6 +68,42 @@ void Input::SetButtonUp(EMouseButton btn) {
 	this->SetButton(btn, EInputState::RELEASED);
 }
 
+bool Input::GetKey(char key, EInputState state) {
+	if (this->m_keys.count(key) < 1)
+		return false;
+
+	if (this->m_keys[key] == state)
+		return true;
+
+	return false;
+}
+
+bool Input::GetKeyDown(char key) {
+	return this->GetKey(key, EInputState::PRESSED);
+}
+
+bool Input::GetKeyUp(char key) {
+	return this->GetKey(key, EInputState::RELEASED);
+}
+
+bool Input::GetButton(EMouseButton btn, EInputState state) {
+	if (this->m_buttons.count(btn) < 1)
+		return false;
+
+	if (this->m_buttons[btn] == state)
+		return true;
+
+	return false;
+}
+
+bool Input::GetButtonDown(EMouseButton btn) {
+	return this->GetButton(btn, EInputState::PRESSED);
+}
+
+bool Input::GetButtonUp(EMouseButton btn) {
+	return this->GetButton(btn, EInputState::RELEASED);
+}
+
 void Input::Callback(EInputType nEventType, int nKeyOrButton, int nAction, float posX, float posY) {
 	switch (nEventType) {
 	case EInputType::KEYBOARD:

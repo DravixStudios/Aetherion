@@ -38,6 +38,16 @@ public:
 	void SetButtonDown(EMouseButton btn);
 	void SetButtonUp(EMouseButton btn);
 
+	/* Key getters */
+	bool GetKey(char key, EInputState state);
+	bool GetKeyDown(char key);
+	bool GetKeyUp(char key);
+
+	/* Button Getters */
+	bool GetButton(EMouseButton btn, EInputState state);
+	bool GetButtonDown(EMouseButton btn);
+	bool GetButtonUp(EMouseButton btn);
+
 	/* GLFW Callbacks */
 	void Callback(EInputType nEventType, int nKeyOrButton = 0, int nAction = 0, float posX = 0.f, float posY = 0.f);
 	static void KeyCallback(GLFWwindow* pWindow, int nKey, int nScancode, int nAction, int nMods);
