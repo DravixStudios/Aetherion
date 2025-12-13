@@ -60,6 +60,10 @@ struct PushConstant {
 	uint32_t nOrmTextureIndex;
 };
 
+struct LightPushConstant {
+	glm::vec3 cameraPosition;
+};
+
 /* Constructor */
 VulkanRenderer::VulkanRenderer() : Renderer::Renderer() {
 	this->m_bEnableValidationLayers = ENABLE_VALIDATION_LAYERS;
@@ -1761,6 +1765,11 @@ void VulkanRenderer::CreateLightingPipeline() {
 
 	spdlog::debug("VulkanRenderer::CreateLightingPipeline: Lighting pipeline layout created");
 
+	VkPushConstantRange pushRange = { };
+	pushRange.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+	pushRange.offset = 0;
+	pushRange.size = sizeof(LightPushConstant);
+
 	this->m_lightingPipeline = this->CreateGraphicsPipeline(
 		"LightingPass.vert",
 		"LightingPass.frag",
@@ -1771,7 +1780,9 @@ void VulkanRenderer::CreateLightingPipeline() {
 		multisampling,
 		depthStencil,
 		blendState,
-		&this->m_lightingPipelineLayout
+		&this->m_lightingPipelineLayout,
+		&pushRange,
+		1
 	);
 }
 
@@ -1987,6 +1998,8 @@ void VulkanRenderer::RecordCommandBuffer(uint32_t nImageIndex) {
 	lightingPassInfo.renderPass = this->m_lightingRenderPass;
 	lightingPassInfo.framebuffer = this->m_scFrameBuffers[nImageIndex];
 
+	LightPushConstant lightPushConstant = { { cameraTransform.location.x, cameraTransform.location.y, cameraTransform.location.z } };
+
 	vkCmdBeginRenderPass(commandBuffer, &lightingPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
 	vkCmdBindDescriptorSets(
@@ -1998,6 +2011,15 @@ void VulkanRenderer::RecordCommandBuffer(uint32_t nImageIndex) {
 		&this->m_lightingDescriptorSets[nImageIndex],
 		0,
 		nullptr
+	);
+
+	vkCmdPushConstants(
+		commandBuffer,
+		this->m_lightingPipelineLayout,
+		VK_SHADER_STAGE_FRAGMENT_BIT,
+		0,
+		sizeof(LightPushConstant),
+		&lightPushConstant
 	);
 	
 	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->m_lightingPipeline);
