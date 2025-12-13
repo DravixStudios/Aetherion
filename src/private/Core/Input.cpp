@@ -7,6 +7,7 @@ Input::Input() {
 	this->deltaY = 0.f;
 	this->centerX = 0.f;
 	this->centerY = 0.f;
+	this->m_pWindow = nullptr;
 }
 
 void Input::ShowCursor(bool bShow) {
@@ -15,20 +16,21 @@ void Input::ShowCursor(bool bShow) {
 		glfwSetInputMode(this->m_pWindow, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
 		/* Get window size */
-		int width, height = 0;
-		glfwGetWindowSize(this->m_pWindow, &width, &height);
+		int nWidth = 0; 
+		int nHeight = 0;;
+		glfwGetWindowSize(this->m_pWindow, &nWidth, &nHeight);
 
 		/* Calculate center position */
-		this->centerX = static_cast<float>(width / 2);
-		this->centerY = static_cast<float>(height / 2);
+		this->centerX = static_cast<float>(nWidth / 2);
+		this->centerY = static_cast<float>(nHeight / 2);
 
 		/* Get actual cursor position */
-		float posX, posY = 0.f;
+		double posX, posY = 0.f;
 		glfwGetCursorPos(this->m_pWindow, &posX, &posY);
 
 		/* Calculate delta */
-		this->deltaX = this->centerX - posX;
-		this->deltaY = this->centerY - posY;
+		this->deltaX = this->centerX - static_cast<float>(posX);
+		this->deltaY = this->centerY - static_cast<float>(posY);
 
 		/* Move cursor to the center */
 		glfwSetCursorPos(this->m_pWindow, this->centerX, this->centerY);
@@ -40,6 +42,68 @@ void Input::ShowCursor(bool bShow) {
 
 void Input::SetWindow(GLFWwindow* pWindow) {
 	this->m_pWindow = pWindow;
+}
+
+void Input::SetKey(char key, EInputState state) {
+	this->m_keys[key] = state;
+}
+
+void Input::SetKeyDown(char key) {
+	this->SetKey(key, EInputState::PRESSED);
+}
+
+void Input::SetKeyUp(char key) {
+	this->SetKey(key, EInputState::RELEASED);
+}
+
+void Input::SetButton(EMouseButton btn, EInputState state) {
+	this->m_buttons[btn] = state;
+}
+
+void Input::SetButtonDown(EMouseButton btn) {
+	this->SetButton(btn, EInputState::PRESSED);
+}
+
+void Input::SetButtonUp(EMouseButton btn) {
+	this->SetButton(btn, EInputState::RELEASED);
+}
+
+void Input::Callback(EInputType nEventType, int nKeyOrButton = 0, int nAction = 0, float posX = 0.f, float posY = 0.f) {
+	switch (nEventType) {
+	case EInputType::KEYBOARD:
+		if (nAction == GLFW_PRESS) 
+			SetKeyDown(static_cast<char>(nKeyOrButton));
+
+		if (nAction == GLFW_RELEASE) 
+			SetKeyUp(static_cast<char>(nKeyOrButton));
+
+		break;
+	case EInputType::MOUSE_BUTTON:
+		if (nKeyOrButton == GLFW_MOUSE_BUTTON_LEFT) {
+			if (nAction == GLFW_PRESS) 
+				this->SetButtonDown(EMouseButton::LEFT);
+
+			if (nAction == GLFW_RELEASE) 
+				this->SetButtonUp(EMouseButton::LEFT);
+		}
+
+		if (nKeyOrButton == GLFW_MOUSE_BUTTON_RIGHT) {
+			if (nAction == GLFW_PRESS)
+				this->SetButtonDown(EMouseButton::RIGHT);
+
+			if (nAction == GLFW_RELEASE)
+				this->SetButtonUp(EMouseButton::RIGHT);
+		}
+		break;
+	}
+}
+
+void Input::KeyCallback(GLFWwindow* pWindow, int nKey, int nScancode, int nAction, int nMods) {
+	Input::GetInstance()->Callback(EInputType::KEYBOARD, nKey, nAction);
+}
+
+void Input::MouseButtonCallback(GLFWwindow* pWindow, int nButton, int nAction, int nMods) {
+	Input::GetInstance()->Callback(EInputType::MOUSE_BUTTON, nButton, nAction);
 }
 
 Input* Input::GetInstance() {
