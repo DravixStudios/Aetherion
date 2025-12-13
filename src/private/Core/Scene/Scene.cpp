@@ -16,6 +16,10 @@ void Scene::AddObject(GameObject* object) {
 	this->m_gameObjects[objName] = object;
 }
 
+Camera* Scene::GetCurrentCamera() {
+	return this->currentCamera;
+}
+
 std::map<std::string, GameObject*> Scene::GetObjects() {
 	return this->m_gameObjects;
 }

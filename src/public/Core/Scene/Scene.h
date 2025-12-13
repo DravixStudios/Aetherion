@@ -15,6 +15,8 @@ public:
 	void AddObject(GameObject* object);
 	std::map<std::string, GameObject*> GetObjects();
 
+	Camera* GetCurrentCamera();
+
 	void Start();
 	void Update();
 
