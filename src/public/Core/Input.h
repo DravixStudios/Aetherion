@@ -43,6 +43,7 @@ public:
 	static void KeyCallback(GLFWwindow* pWindow, int nKey, int nScancode, int nAction, int nMods);
 	static void MouseButtonCallback(GLFWwindow* pWindow, int nButton, int nAction, int nMods);
 
+	static Input* GetInstance();
 private:
 	float deltaX;
 	float deltaY;
@@ -54,7 +55,6 @@ private:
 	std::map<char, EInputState> m_keys;
 	std::map<EMouseButton, EInputState> m_buttons;
 
-	static Input* GetInstance();
 
 	static Input* m_instance;
 };
