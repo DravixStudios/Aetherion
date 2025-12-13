@@ -8,6 +8,7 @@ Core::Core() {
     this->m_pWindow = nullptr;
     this->m_renderer = nullptr;
     this->m_sceneMgr = nullptr;
+    this->m_input = Input::GetInstance();
 }
 
 /* Core init method */
@@ -47,6 +48,11 @@ void Core::Init() {
     /* Set our renderer window and init */
     this->m_renderer->SetWindow(this->m_pWindow);
     this->m_renderer->Init();
+    
+    this->m_input->SetWindow(this->m_pWindow);
+    glfwSetKeyCallback(this->m_pWindow, Input::KeyCallback);
+    glfwSetMouseButtonCallback(this->m_pWindow, Input::MouseButtonCallback);
+
     this->m_sceneMgr = SceneManager::GetInstance();
     this->m_sceneMgr->Start();
 }
@@ -58,6 +64,7 @@ void Core::Update() {
         glfwPollEvents(); // Poll GLFW events
         this->m_sceneMgr->Update();
         this->m_renderer->Update(); // Update our renderer
+        this->m_input->Close();
     }
 }
 

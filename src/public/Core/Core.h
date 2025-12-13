@@ -5,6 +5,7 @@
 #include <spdlog/spdlog.h>
 #include "Renderer/Renderer.h"
 #include "Renderer/Vulkan/VulkanRenderer.h"
+#include "Core/Input.h"
 
 /* Forward declarations */
 class SceneManager;
@@ -22,6 +23,8 @@ public:
 private:
     GLFWwindow* m_pWindow;
     static Core* m_instance;
+
+    Input* m_input;
 
     SceneManager* m_sceneMgr;
 
