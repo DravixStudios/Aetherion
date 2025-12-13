@@ -11,10 +11,30 @@ Input::Input() {
 
 void Input::ShowCursor(bool bShow) {
 	if (!bShow) {
+		/* Disable cursor */
 		glfwSetInputMode(this->m_pWindow, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+
+		/* Get window size */
+		int width, height = 0;
+		glfwGetWindowSize(this->m_pWindow, &width, &height);
+
+		/* Calculate center position */
+		this->centerX = static_cast<float>(width / 2);
+		this->centerY = static_cast<float>(height / 2);
+
+		/* Get actual cursor position */
+		float posX, posY = 0.f;
+		glfwGetCursorPos(this->m_pWindow, &posX, &posY);
+
+		/* Calculate delta */
+		this->deltaX = this->centerX - posX;
+		this->deltaY = this->centerY - posY;
+
+		/* Move cursor to the center */
+		glfwSetCursorPos(this->m_pWindow, this->centerX, this->centerY);
 	}
 	else {
-
+		glfwSetInputMode(this->m_pWindow, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 	}
 }
 
