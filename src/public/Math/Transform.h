@@ -8,4 +8,8 @@ struct Transform {
 	Vector3 scale;
 
 	Transform();
+
+	void Translate(float x, float y, float z);
+	void Translate(float v);
+	void Translate(Vector3& v);
 };
