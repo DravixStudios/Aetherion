@@ -101,26 +101,31 @@ private:
 	VkImage m_colorBuffer;
 	VkImage m_normalBuffer;
 	VkImage m_ormBuffer;
+	VkImage m_emissiveBuffer;
 	VkImage m_positionBuffer;
 	VkImage m_colorResolveBuffer;
 	VkImage m_normalResolveBuffer;
 	VkImage m_ormResolveBuffer;
+	VkImage m_emissiveResolveBuffer;
 	VkImage m_positionResolveBuffer;
 
 	/* G-Buffer image view */
 	VkImageView m_colorBuffView;
 	VkImageView m_normalBuffView;
 	VkImageView m_ormBuffView;
+	VkImageView m_emissiveBuffView;
 	VkImageView m_positionBuffView;
 	VkImageView m_colorResolveBuffView;
 	VkImageView m_normalResolveBuffView;
 	VkImageView m_ormResolveBuffView;
+	VkImageView m_emissiveResolveBuffView;
 	VkImageView m_positionResolveBuffView;
 	
 	/* G-Buffer samplers */
 	VkSampler m_baseColorSampler;
 	VkSampler m_normalSampler;
 	VkSampler m_ormSampler;
+	VkSampler m_emissiveSampler;
 	VkSampler m_positionSampler;
 
 	VkFramebuffer m_gbufferFramebuffer;

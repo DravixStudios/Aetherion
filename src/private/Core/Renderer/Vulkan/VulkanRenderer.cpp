@@ -58,6 +58,7 @@ VkBufferUsageFlagBits ToVkBufferUsage(EBufferType bufferType) {
 struct PushConstant {
 	uint32_t nTextureIndex;
 	uint32_t nOrmTextureIndex;
+	uint32_t nEmissiveTextureIndex;
 };
 
 struct LightPushConstant {
