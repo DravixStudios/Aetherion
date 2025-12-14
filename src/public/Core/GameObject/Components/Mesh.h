@@ -29,7 +29,6 @@ public:
 	std::map<uint32_t, uint32_t>& GetTextureIndices();
 	std::map<uint32_t, uint32_t>& GetORMIndices();
 	std::map<uint32_t, uint32_t>& GetEmissiveIndices();
-	std::map<uint32_t, bool>& GetEmissiveMeshes();
 
 	std::map<uint32_t, std::vector<Vertex>> m_vertices;
 	std::map<uint32_t, GPUBuffer*> m_VBOs;

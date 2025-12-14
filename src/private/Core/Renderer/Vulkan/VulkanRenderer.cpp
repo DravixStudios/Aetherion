@@ -2040,15 +2040,15 @@ void VulkanRenderer::RecordCommandBuffer(uint32_t nImageIndex) {
 		std::map<uint32_t, uint32_t> textureIndices = mesh->GetTextureIndices();
 		std::map<uint32_t, uint32_t> ormIndices = mesh->GetORMIndices();
 		std::map<uint32_t, uint32_t> emissiveIndices = mesh->GetEmissiveIndices();
-		std::map<uint32_t, bool> emissiveMeshes = mesh->GetEmissiveMeshes();
 
 		uint32_t i = 0;
 		for (std::pair<uint32_t, GPUBuffer*> vertex : vertices) {
 			uint32_t nTextureIndex = textureIndices[vertex.first];
 			uint32_t nOrmIndex = ormIndices[vertex.first];
-			uint32_t nEmissiveIndex = 0xFFFFFFFFu;
-			if (emissiveMeshes[i]) {
-				nEmissiveIndex = emissiveIndices[vertex.first];
+			uint32_t nEmissiveIndex = INVALID_INDEX;
+
+			if (std::map<uint32_t, uint32_t>::iterator it = emissiveIndices.find(vertex.first); it != emissiveIndices.end()) {
+				nEmissiveIndex = it->second;
 			}
 
 			PushConstant pushConstant = { nTextureIndex, nOrmIndex, nEmissiveIndex };

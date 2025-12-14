@@ -301,8 +301,3 @@ std::map<uint32_t, uint32_t>& Mesh::GetORMIndices() {
 std::map<uint32_t, uint32_t>& Mesh::GetEmissiveIndices() {
 	return this->m_emissiveIndices;
 }
-
-/* Returns Mesh::m_emissiveMeshes */
-std::map<uint32_t, bool>& Mesh::GetEmissiveMeshes() {
-	return this->m_emissiveMeshes;
-}
