@@ -53,7 +53,6 @@ bool Mesh::LoadModel(std::string filePath) {
 
 		/* Get the number of vertices */
 		uint32_t nNumVertices = mesh->mNumVertices;
-		spdlog::debug("Mesh::LoadModel: Loading {0} vertices for mesh #{1} in file {2}", nNumVertices, i, filePath);
 
 		std::vector<Vertex> vertices(nNumVertices);
 		std::vector<uint16_t> indices;
@@ -104,7 +103,6 @@ bool Mesh::LoadModel(std::string filePath) {
 
 		/* Load albedo */
 		if (material->GetTextureCount(aiTextureType_DIFFUSE) > 0 && material->GetTexture(aiTextureType_DIFFUSE, 0, &texturePath) == AI_SUCCESS) {
-			spdlog::debug("Mesh::LoadModel: Loading texture {0} for mesh #{1}", texturePath.C_Str(), i);
 
 			if (this->m_resourceManager->TextureExists(texturePath.C_Str())) {
 				this->m_textures[i] = this->m_resourceManager->GetTexture(texturePath.C_Str());
@@ -125,8 +123,6 @@ bool Mesh::LoadModel(std::string filePath) {
 			if (texture->mHeight == 0) {
 
 				/* Load image from memory with STB_image */
-				spdlog::debug("Mesh::LoadModel: Loading compressed texture {0} from memory", texturePath.C_Str());
-
 				pixelData = stbi_load_from_memory(
 					reinterpret_cast<const unsigned char*>(texture->pcData), // Buffer
 					texture->mWidth,  // Size of the file
@@ -169,11 +165,9 @@ bool Mesh::LoadModel(std::string filePath) {
 		aiString metalPath;
 		if (material->GetTextureCount(aiTextureType_METALNESS) > 0 && material->GetTexture(aiTextureType_METALNESS, 0, &metalPath) == AI_SUCCESS) {
 			const aiTexture* ormTex = scene->GetEmbeddedTexture(metalPath.C_Str());
-			spdlog::debug("Mesh::LoadModel: Loading ORM texture {0} for mesh #{1}", metalPath.C_Str(), i);
 
 			unsigned char* pixelData = nullptr;
 			if (ormTex->mHeight == 0) {
-				spdlog::debug("Mesh::LoadMesh: Loading compressed texture {0} from memory", metalPath.C_Str());
 
 				int nWidth = 0;
 				int nHeight = 0;
@@ -218,11 +212,9 @@ bool Mesh::LoadModel(std::string filePath) {
 		aiString emissivePath;
 		if (material->GetTextureCount(aiTextureType_EMISSIVE) > 0 && material->GetTexture(aiTextureType_EMISSIVE, 0, &emissivePath) == AI_SUCCESS) {
 			const aiTexture* emissiveTexture = scene->GetEmbeddedTexture(emissivePath.C_Str());
-			spdlog::debug("Mesh::LoadModel: Loading emissive texture {0} for mesh #{1}", emissivePath.C_Str(), i);
 
 			unsigned char* pixelData = nullptr;
 			if (emissiveTexture->mHeight == 0) {
-				spdlog::debug("Mesh::LoadMesh: Loading compressed texture {0} from memory", emissivePath.C_Str());
 
 				int nWidth = 0;
 				int nHeight = 0;
