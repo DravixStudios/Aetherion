@@ -9,6 +9,18 @@ VulkanBuffer::VulkanBuffer(VkDevice& dev, VkPhysicalDevice& physicalDev, VkBuffe
 	this->m_bufferType = bufferType;
 }
 
+VulkanBuffer::~VulkanBuffer() {
+	if (this->m_buffer != VK_NULL_HANDLE) {
+		vkDestroyBuffer(this->m_dev, this->m_buffer, nullptr);
+		this->m_buffer = VK_NULL_HANDLE;
+	}
+
+	if (this->m_memory != VK_NULL_HANDLE) {
+		vkFreeMemory(this->m_dev, this->m_memory, nullptr);
+		this->m_memory = VK_NULL_HANDLE;
+	}
+}
+
 VkDevice VulkanBuffer::GetDevice() {
 	if (this->m_dev == nullptr) {
 		spdlog::error("VulkanBuffer::GetDevice: Device not defined");
