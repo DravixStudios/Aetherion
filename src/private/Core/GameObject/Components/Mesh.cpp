@@ -140,17 +140,23 @@ bool Mesh::LoadModel(std::string filePath) {
 
 				GPUBuffer* stagingBuffer = renderer->CreateStagingBuffer(pixelData, (nWidth * nHeight) * 4);
 				GPUTexture* gpuTexture = renderer->CreateTexture(stagingBuffer, nWidth, nHeight, GPUFormat::RGBA8_SRGB);
+				
+				/* Free image data */
+				stbi_image_free(pixelData);
+				pixelData = nullptr;
+
+				/* Delete staging buffer */
+				delete stagingBuffer;
+				stagingBuffer = nullptr;
 
 				/* Only for Vulkan, register texture */
 				if(VulkanRenderer* vkRenderer = dynamic_cast<VulkanRenderer*>(renderer)) {
-					spdlog::debug("Mesh::LoadModel: Vulkan renderer registering texture {0}", texturePath.C_Str());
 					uint32_t nTextureIndex = vkRenderer->RegisterTexture(texturePath.C_Str(), gpuTexture);
 					
 					if (nTextureIndex == UINT32_MAX) {
 						spdlog::error("Mesh::LoadModel: Vulkan renderer couldn't register texture {0}", texturePath.C_Str());
 					}
 					this->m_textureIndices[i] = nTextureIndex;
-					spdlog::debug("Mesh::LoadModel: Texture {0} registered at Vulkan renderer index {1}", texturePath.C_Str(), nTextureIndex);
 				}
 
 				this->m_resourceManager->AddTexture(texturePath.C_Str(), gpuTexture);
@@ -185,16 +191,22 @@ bool Mesh::LoadModel(std::string filePath) {
 				GPUBuffer* stagingBuffer = renderer->CreateStagingBuffer(pixelData, (nWidth * nHeight) * 4);
 				GPUTexture* gpuTexture = renderer->CreateTexture(stagingBuffer, nWidth, nHeight, GPUFormat::RGBA8_SRGB);
 
+				/* Free image data */
+				stbi_image_free(pixelData);
+				pixelData = nullptr;
+
+				/* Delete staging buffer */
+				delete stagingBuffer;
+				stagingBuffer = nullptr;
+
 				/* Only for Vulkan, register texture */
 				if (VulkanRenderer* vkRenderer = dynamic_cast<VulkanRenderer*>(renderer)) {
-					spdlog::debug("Mesh::LoadModel: Vulkan renderer registering ORM texture {0}", metalPath.C_Str());
 					uint32_t nTextureIndex = vkRenderer->RegisterTexture(metalPath.C_Str(), gpuTexture);
 
 					if (nTextureIndex == UINT32_MAX) {
 						spdlog::error("Mesh::LoadModel: Vulkan renderer couldn't register ORM texture {0}", metalPath.C_Str());
 					}
 					this->m_ormIndices[i] = nTextureIndex;
-					spdlog::debug("Mesh::LoadModel: Texture {0} registered at Vulkan renderer index {1}", metalPath.C_Str(), nTextureIndex);
 				}
 
 				this->m_resourceManager->AddTexture(metalPath.C_Str(), gpuTexture);
@@ -232,16 +244,22 @@ bool Mesh::LoadModel(std::string filePath) {
 				GPUBuffer* stagingBuffer = renderer->CreateStagingBuffer(pixelData, (nWidth * nHeight) * 4);
 				GPUTexture* gpuTexture = renderer->CreateTexture(stagingBuffer, nWidth, nHeight, GPUFormat::RGBA8_SRGB);
 
+				/* Free image data */
+				stbi_image_free(pixelData);
+				pixelData = nullptr;
+
+				/* Delete staging buffer */
+				delete stagingBuffer;
+				stagingBuffer = nullptr;
+
 				/* Only for Vulkan, register texture */
 				if (VulkanRenderer* vkRenderer = dynamic_cast<VulkanRenderer*>(renderer)) {
-					spdlog::debug("Mesh::LoadModel: Vulkan renderer registering emissive texture {0}", emissivePath.C_Str());
 					uint32_t nTextureIndex = vkRenderer->RegisterTexture(emissivePath.C_Str(), gpuTexture);
 
 					if (nTextureIndex == UINT32_MAX) {
 						spdlog::error("Mesh::LoadModel: Vulkan renderer couldn't register ORM texture {0}", emissivePath.C_Str());
 					}
 					this->m_emissiveIndices[i] = nTextureIndex;
-					spdlog::debug("Mesh::LoadModel: Texture {0} registered at Vulkan renderer index {1}", emissivePath.C_Str(), nTextureIndex);
 				}
 
 				this->m_resourceManager->AddTexture(emissivePath.C_Str(), gpuTexture);
