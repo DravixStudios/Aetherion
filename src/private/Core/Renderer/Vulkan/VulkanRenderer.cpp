@@ -1958,9 +1958,6 @@ void VulkanRenderer::RecordCommandBuffer(uint32_t nImageIndex) {
 	Transform cameraTransform = currentCamera->transform;
 	std::map<std::string, GameObject*> objects = currentScene->GetObjects();
 
-	//this->m_wvp.World = glm::mat4(1.f);
-	//this->m_wvp.World = glm::rotate(this->m_wvp.World, glm::radians(90.f), { 1.f, 0.f, 0.f });
-
 	glm::mat4 cameraMatrix = glm::mat4(1.f);
 	cameraMatrix = glm::rotate(cameraMatrix, glm::radians(cameraTransform.rotation.x), glm::vec3(1.f, 0.f, 0.f));
 	cameraMatrix = glm::rotate(cameraMatrix, glm::radians(cameraTransform.rotation.y), glm::vec3(0.f, 1.f, 0.f));

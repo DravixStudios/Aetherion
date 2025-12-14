@@ -7,7 +7,7 @@ SceneManager::SceneManager() {
 	GameObject* sampleObj = new GameObject("Sample object");
 
 	Mesh* mesh = new Mesh("MeshComponent");
-	mesh->LoadModel("DamagedHelmet.glb");
+	mesh->LoadModel("Sponza.glb");
 	sampleObj->AddComponent("MeshComponent", mesh);
 
 	this->m_currentScene = new Scene("SampleScene");
