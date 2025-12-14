@@ -1224,7 +1224,7 @@ void VulkanRenderer::CreateLightingDescriptorSetLayout() {
 	VkDescriptorSetLayoutBinding samplerBinding = { };
 	samplerBinding.binding = 0;
 	samplerBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	samplerBinding.descriptorCount = 4;
+	samplerBinding.descriptorCount = 5;
 	samplerBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 	samplerBinding.pImmutableSamplers = nullptr;
 
@@ -1296,7 +1296,7 @@ void VulkanRenderer::CreateLightingDescriptorPool() {
 	/* Define our descriptor pool size */
 	VkDescriptorPoolSize poolSize = { };
 	poolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	poolSize.descriptorCount = 4 * this->m_nImageCount; // 4 samplers (base color, normal, ORM, position) per frame
+	poolSize.descriptorCount = 5 * this->m_nImageCount; // 5 samplers (base color, normal, ORM, emissive, position) per frame
 
 	/* Descriptor pool create info */
 	VkDescriptorPoolCreateInfo createInfo = { };
@@ -1432,13 +1432,18 @@ void VulkanRenderer::WriteLightDescriptorSets() {
 	ormInfo.imageView = this->m_ormResolveBuffView;
 	ormInfo.sampler = this->m_ormSampler;
 
+	VkDescriptorImageInfo emissiveInfo = { };
+	emissiveInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	emissiveInfo.imageView = this->m_emissiveResolveBuffView;
+	emissiveInfo.sampler = this->m_emissiveSampler;
+
 	VkDescriptorImageInfo positionInfo = { };
 	positionInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 	positionInfo.imageView = this->m_positionResolveBuffView;
 	positionInfo.sampler = this->m_positionSampler;
 
 	for (uint32_t i = 0; i < this->m_lightingDescriptorSets.size(); i++) {
-		VkWriteDescriptorSet descriptorWrites[4] = { };
+		VkWriteDescriptorSet descriptorWrites[5] = { };
 
 		descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 		descriptorWrites[0].dstSet = this->m_lightingDescriptorSets[i];
@@ -1468,11 +1473,19 @@ void VulkanRenderer::WriteLightDescriptorSets() {
 		descriptorWrites[3].dstSet = this->m_lightingDescriptorSets[i];
 		descriptorWrites[3].dstBinding = 0;
 		descriptorWrites[3].dstArrayElement = 3;
-		descriptorWrites[3].pImageInfo = &positionInfo;
+		descriptorWrites[3].pImageInfo = &emissiveInfo;
 		descriptorWrites[3].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 		descriptorWrites[3].descriptorCount = 1;
 
-		vkUpdateDescriptorSets(this->m_device, 4, descriptorWrites, 0, nullptr);
+		descriptorWrites[4].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrites[4].dstSet = this->m_lightingDescriptorSets[i];
+		descriptorWrites[4].dstBinding = 0;
+		descriptorWrites[4].dstArrayElement = 4;
+		descriptorWrites[4].pImageInfo = &positionInfo;
+		descriptorWrites[4].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		descriptorWrites[4].descriptorCount = 1;
+
+		vkUpdateDescriptorSets(this->m_device, 5, descriptorWrites, 0, nullptr);
 	}
 
 	spdlog::debug("VulkanRenderer::WriteLightDescriptorSets: Lighting descriptor sets written");
