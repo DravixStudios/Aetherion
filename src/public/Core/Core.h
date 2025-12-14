@@ -6,6 +6,7 @@
 #include "Renderer/Renderer.h"
 #include "Renderer/Vulkan/VulkanRenderer.h"
 #include "Core/Input.h"
+#include "Core/Time.h"
 
 /* Forward declarations */
 class SceneManager;
@@ -25,6 +26,7 @@ private:
     static Core* m_instance;
 
     Input* m_input;
+    Time* m_time;
 
     SceneManager* m_sceneMgr;
 

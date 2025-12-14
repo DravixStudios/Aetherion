@@ -9,6 +9,7 @@ Core::Core() {
     this->m_renderer = nullptr;
     this->m_sceneMgr = nullptr;
     this->m_input = Input::GetInstance();
+    this->m_time = Time::GetInstance();
 }
 
 /* Core init method */
@@ -61,10 +62,12 @@ void Core::Init() {
 void Core::Update() {
     /* While window should not close */
     while (!glfwWindowShouldClose(this->m_pWindow)) {
+        this->m_time->PreUpdate();
         glfwPollEvents(); // Poll GLFW events
         this->m_sceneMgr->Update();
         this->m_renderer->Update(); // Update our renderer
         this->m_input->Close();
+        this->m_time->PostUpdate();
     }
 }
 

@@ -5,6 +5,7 @@ Camera::Camera(std::string name) {
 	this->transform.location = { 0.f, 0.f, 0.f };
 	this->transform.rotation = { 0.f, 0.f, 0.f };
 	this->transform.scale = { 1.f, 1.f, 1.f };
+	this->m_time = Time::GetInstance();
 }
 
 void Camera::Start() {
