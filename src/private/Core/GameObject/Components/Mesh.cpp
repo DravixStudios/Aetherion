@@ -254,10 +254,14 @@ bool Mesh::LoadModel(std::string filePath) {
 
 				this->m_resourceManager->AddTexture(emissivePath.C_Str(), gpuTexture);
 				this->m_ormTextures[i] = gpuTexture;
+				this->m_emissiveMeshes[i] = true;
 			}
 			else {
 				/* TODO: Load uncompressed textures */
 			}
+		}
+		else {
+			this->m_emissiveMeshes[i] = false;
 		}
 	}
 
@@ -296,4 +300,9 @@ std::map<uint32_t, uint32_t>& Mesh::GetORMIndices() {
 /* Returns Mesh::m_emissiveIndices */
 std::map<uint32_t, uint32_t>& Mesh::GetEmissiveIndices() {
 	return this->m_emissiveIndices;
+}
+
+/* Returns Mesh::m_emissiveMeshes */
+std::map<uint32_t, bool>& Mesh::GetEmissiveMeshes() {
+	return this->m_emissiveMeshes;
 }

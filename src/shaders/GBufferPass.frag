@@ -24,6 +24,10 @@ void main() {
     vec3 normals = inNormals * 0.5 + 0.5;
     outNormals = vec4(normals.xyz, 1.0);
     outORM =  texture(g_textures[nonuniformEXT(pc.nOrmIndex)], vec2(inUVs.x, 1 - inUVs.y));
-    outEmissive =  texture(g_textures[nonuniformEXT(pc.nEmissiveIndex)], vec2(inUVs.x, 1 - inUVs.y));
+    if(pc.nEmissiveIndex != 0xFFFFFFFFu) {
+        outEmissive =  texture(g_textures[nonuniformEXT(pc.nEmissiveIndex)], vec2(inUVs.x, 1 - inUVs.y));
+    } else {
+        outEmissive = vec4(0.0, 0.0, 0.0, 0.0);
+    }
     outPosition = vec4(fragPos.xyz, 1.0);
 }
