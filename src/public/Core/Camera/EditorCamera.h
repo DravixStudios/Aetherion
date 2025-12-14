@@ -12,5 +12,10 @@ public:
 private:
 	float m_yaw;
 	float m_pitch;
+
+	float m_moveSpeed;
+	float m_sensX;
+	float m_sensY;
+
 	Input* m_input;
 };
