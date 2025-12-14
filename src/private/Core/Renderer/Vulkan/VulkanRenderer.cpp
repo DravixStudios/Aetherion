@@ -1690,11 +1690,11 @@ void VulkanRenderer::CreateGBufferPipeline() {
 	multisampling.sampleShadingEnable = VK_TRUE; // Improves the quality 
 	multisampling.minSampleShading = .2f; // Minimum 20% shading per frame
 
-	/* Color blend (we have 4: albedo, normal, ORM, position) */
-	VkPipelineColorBlendAttachmentState colorBlends[4] = { };
+	/* Color blend (we have 5: albedo, normal, ORM, emissive, position) */
+	VkPipelineColorBlendAttachmentState colorBlends[5] = { };
 
 	/* For each attachment we disable blending and enable the write mask in all RGBA channels */
-	for (uint32_t i = 0; i < 4; i++) {
+	for (uint32_t i = 0; i < 5; i++) {
 		colorBlends[i].blendEnable = VK_FALSE;
 		colorBlends[i].colorWriteMask =
 			VK_COLOR_COMPONENT_R_BIT |
@@ -1705,7 +1705,7 @@ void VulkanRenderer::CreateGBufferPipeline() {
 
 	VkPipelineColorBlendStateCreateInfo blendState = { };
 	blendState.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-	blendState.attachmentCount = 4;
+	blendState.attachmentCount = 5;
 	blendState.pAttachments = colorBlends;
 	blendState.logicOpEnable = VK_FALSE;
 
@@ -1897,10 +1897,12 @@ void VulkanRenderer::RecordCommandBuffer(uint32_t nImageIndex) {
 	VkClearValue albedoClear = { { { 0.f, 0.f, 0.f, 1.f } } };
 	VkClearValue normalClear = { { { 0.f, 0.f, 0.f, 1.f } } };
 	VkClearValue ormClear = { { { 0.f, 0.f, 0.f, 1.f } } };
+	VkClearValue emissiveClear = { { { 0.f, 0.f, 0.f, 1.f } } };
 	VkClearValue positionClear = { { { 0.f, 0.f, 0.f, 1.f } } };
 	VkClearValue albedoResolveClear = { { { 0.f, 0.f, 0.f, 1.f } } };
 	VkClearValue normalResolveClear = { { { 0.f, 0.f, 0.f, 1.f } } };
 	VkClearValue ormResolveClear = { { { 0.f, 0.f, 0.f, 1.f } } };
+	VkClearValue emissiveResolveClear = { { { 0.f, 0.f, 0.f, 1.f } } };
 	VkClearValue positionResolveClear = { { { 0.f, 0.f, 0.f, 1.f } } };
 
 	/* Depth clear value */
@@ -1911,17 +1913,19 @@ void VulkanRenderer::RecordCommandBuffer(uint32_t nImageIndex) {
 		albedoClear,
 		normalClear,
 		ormClear,
+		emissiveClear,
 		positionClear,
 		depthClear,
 		albedoResolveClear,
 		normalResolveClear,
 		ormResolveClear,
+		emissiveResolveClear,
 		positionResolveClear
 	};
 
 	VkRenderPassBeginInfo geometryPassInfo = { };
 	geometryPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-	geometryPassInfo.clearValueCount = 9;
+	geometryPassInfo.clearValueCount = 11;
 	geometryPassInfo.pClearValues = gbuffClears;
 	geometryPassInfo.renderArea.extent = this->m_scExtent;
 	geometryPassInfo.renderArea.offset = { 0, 0 };
@@ -2025,12 +2029,15 @@ void VulkanRenderer::RecordCommandBuffer(uint32_t nImageIndex) {
 		std::map<uint32_t, GPUBuffer*> vertices = mesh->GetVBOs();
 		std::map<uint32_t, uint32_t> textureIndices = mesh->GetTextureIndices();
 		std::map<uint32_t, uint32_t> ormIndices = mesh->GetORMIndices();
+		std::map<uint32_t, uint32_t> emissiveIndices = mesh->GetEmissiveIndices();
 
 		uint32_t i = 0;
 		for (std::pair<uint32_t, GPUBuffer*> vertex : vertices) {
 			uint32_t nTextureIndex = textureIndices[vertex.first];
 			uint32_t nOrmIndex = ormIndices[vertex.first];
-			PushConstant pushConstant = { nTextureIndex, nOrmIndex };
+			uint32_t nEmissiveIndex = emissiveIndices[vertex.first];
+
+			PushConstant pushConstant = { nTextureIndex, nOrmIndex, nEmissiveIndex };
 
 			vkCmdPushConstants(
 				commandBuffer, 
