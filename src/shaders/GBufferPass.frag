@@ -1,5 +1,6 @@
 #version 450
 #extension GL_EXT_nonuniform_qualifier : require // Enable bindless textures
+#define INVALID_INDEX 0xFFFFFFFFu
 
 layout(location = 0) in vec3 inNormals;
 layout(location = 1) in vec2 inUVs;
@@ -24,7 +25,7 @@ void main() {
     vec3 normals = inNormals * 0.5 + 0.5;
     outNormals = vec4(normals.xyz, 1.0);
     outORM =  texture(g_textures[nonuniformEXT(pc.nOrmIndex)], vec2(inUVs.x, 1 - inUVs.y));
-    if(pc.nEmissiveIndex != 0xFFFFFFFFu) {
+    if(pc.nEmissiveIndex != INVALID_INDEX) {
         outEmissive =  texture(g_textures[nonuniformEXT(pc.nEmissiveIndex)], vec2(inUVs.x, 1 - inUVs.y));
     } else {
         outEmissive = vec4(0.0, 0.0, 0.0, 0.0);

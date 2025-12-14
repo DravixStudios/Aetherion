@@ -29,6 +29,8 @@
 #define ENABLE_VALIDATION_LAYERS 0
 #endif // NDEBUG
 
+#define INVALID_INDEX 0xFFFFFFFFu
+
 /* Forward declarations */
 struct QueueFamilyIndices;
 struct SwapChainSupportDetails;
