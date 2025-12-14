@@ -858,8 +858,8 @@ void VulkanRenderer::CreateCommandPool() {
 	Create our G-Buffer resources
 */
 void VulkanRenderer::CreateGBufferResources() {
-	VkDeviceMemory colorMemory, normalMemory, ormMemory, positionMemory = nullptr;
-	VkDeviceMemory colorResolveMemory, normalResolveMemory, ormResolveMemory, positionResolveMemory = nullptr;
+	VkDeviceMemory colorMemory, normalMemory, ormMemory, emissiveMemory, positionMemory = nullptr;
+	VkDeviceMemory colorResolveMemory, normalResolveMemory, ormResolveMemory, emissiveResolveMemory, positionResolveMemory = nullptr;
 
 	/* Base color G-Buffer (BGRA8_UNORM) */
 	this->CreateImage(
@@ -898,6 +898,19 @@ void VulkanRenderer::CreateGBufferResources() {
 		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 		this->m_ormBuffer,
 		ormMemory
+	);
+
+	/* Emissive G-Buffer (RGBA16_SFLOAT) */
+	this->CreateImage(
+		this->m_scExtent.width,
+		this->m_scExtent.height,
+		VK_FORMAT_R16G16B16A16_SFLOAT,
+		this->m_multisampleCount,
+		VK_IMAGE_TILING_OPTIMAL,
+		VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+		this->m_emissiveBuffer,
+		emissiveMemory
 	);
 
 	/* Position G-Buffer (RGBA16_SFLOAT) */
@@ -952,6 +965,19 @@ void VulkanRenderer::CreateGBufferResources() {
 		ormResolveMemory
 	);
 
+	/* Emissive G-Buffer resolve (RGBA16_SFLOAT) */
+	this->CreateImage(
+		this->m_scExtent.width,
+		this->m_scExtent.height,
+		VK_FORMAT_R16G16B16A16_SFLOAT,
+		VK_SAMPLE_COUNT_1_BIT,
+		VK_IMAGE_TILING_OPTIMAL,
+		VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+		this->m_emissiveResolveBuffer,
+		emissiveResolveMemory
+	);
+
 	/* Position G-Buffer resolve (RGBA16_SFLOAT) */
 	this->CreateImage(
 		this->m_scExtent.width,
@@ -969,28 +995,33 @@ void VulkanRenderer::CreateGBufferResources() {
 	this->m_colorBuffView = this->CreateImageView(this->m_colorBuffer, VK_FORMAT_B8G8R8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT);
 	this->m_normalBuffView = this->CreateImageView(this->m_normalBuffer, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
 	this->m_ormBuffView = this->CreateImageView(this->m_ormBuffer, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
+	this->m_emissiveBuffView = this->CreateImageView(this->m_emissiveBuffer, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
 	this->m_positionBuffView = this->CreateImageView(this->m_positionBuffer, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
 
 	this->m_colorResolveBuffView = this->CreateImageView(this->m_colorResolveBuffer, VK_FORMAT_B8G8R8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT);
 	this->m_normalResolveBuffView = this->CreateImageView(this->m_normalResolveBuffer, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
 	this->m_ormResolveBuffView = this->CreateImageView(this->m_ormResolveBuffer, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
+	this->m_emissiveResolveBuffView = this->CreateImageView(this->m_emissiveResolveBuffer, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
 	this->m_positionResolveBuffView = this->CreateImageView(this->m_positionResolveBuffer, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
 
 	/* Create our G-Buffer samplers */
 	this->m_baseColorSampler = this->CreateSampler();
 	this->m_normalSampler = this->CreateSampler();
 	this->m_ormSampler = this->CreateSampler();
+	this->m_emissiveSampler = this->CreateSampler();
 	this->m_positionSampler = this->CreateSampler();
 
 	/* Transition our G-Buffer images */
 	this->TransitionImageLayout(this->m_colorBuffer, VK_FORMAT_B8G8R8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 	this->TransitionImageLayout(this->m_normalBuffer, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 	this->TransitionImageLayout(this->m_ormBuffer, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+	this->TransitionImageLayout(this->m_emissiveBuffer, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 	this->TransitionImageLayout(this->m_positionBuffer, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 
 	this->TransitionImageLayout(this->m_colorResolveBuffer, VK_FORMAT_B8G8R8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 	this->TransitionImageLayout(this->m_normalResolveBuffer, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 	this->TransitionImageLayout(this->m_ormResolveBuffer, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+	this->TransitionImageLayout(this->m_emissiveResolveBuffer, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 	this->TransitionImageLayout(this->m_positionResolveBuffer, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 
 	spdlog::debug("VulkanRenderer::CreateGBufferResources: G-Buffers created");
@@ -1058,11 +1089,13 @@ void VulkanRenderer::CreateGBufferFrameBuffer() {
 		this->m_colorBuffView,
 		this->m_normalBuffView,
 		this->m_ormBuffView,
+		this->m_emissiveBuffView,
 		this->m_positionBuffView,
 		this->m_depthImageView,
 		this->m_colorResolveBuffView,
 		this->m_normalResolveBuffView,
 		this->m_ormResolveBuffView,
+		this->m_emissiveResolveBuffView,
 		this->m_positionResolveBuffView
 	};
 
@@ -1073,7 +1106,7 @@ void VulkanRenderer::CreateGBufferFrameBuffer() {
 	createInfo.width = this->m_scExtent.width;
 	createInfo.height = this->m_scExtent.height;
 	createInfo.layers = 1;
-	createInfo.attachmentCount = 9;
+	createInfo.attachmentCount = 11;
 	createInfo.pAttachments = attachments;
 
 	if (vkCreateFramebuffer(this->m_device, &createInfo, nullptr, &this->m_gbufferFramebuffer) != VK_SUCCESS) {
