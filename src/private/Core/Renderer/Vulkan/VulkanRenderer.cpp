@@ -584,7 +584,18 @@ void VulkanRenderer::CreateGeometryRenderPass() {
 	ormAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 	ormAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 
-	/* Attachment 3: Position - RGBA16_SFLOAT */
+	/* Attachment 3: Emissive - RGBA16_SFLOAT */
+	VkAttachmentDescription emissiveAttachment = { };
+	emissiveAttachment.format = VK_FORMAT_R16G16B16A16_SFLOAT;
+	emissiveAttachment.samples = this->m_multisampleCount;
+	emissiveAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	emissiveAttachment.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	emissiveAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	emissiveAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+	emissiveAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	emissiveAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+
+	/* Attachment 4: Position - RGBA16_SFLOAT */
 	VkAttachmentDescription positionAttachment = { };
 	positionAttachment.format = VK_FORMAT_R16G16B16A16_SFLOAT;
 	positionAttachment.samples = this->m_multisampleCount;
@@ -595,7 +606,7 @@ void VulkanRenderer::CreateGeometryRenderPass() {
 	positionAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 	positionAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 
-	/* Attachment 4: Depth */
+	/* Attachment 5: Depth */
 	VkAttachmentDescription depthAttachment = { };
 	depthAttachment.format = this->FindDepthFormat();
 	depthAttachment.samples = this->m_multisampleCount;
@@ -606,7 +617,7 @@ void VulkanRenderer::CreateGeometryRenderPass() {
 	depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 	depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 
-	/* Attachment 5: Base color Resolve - BGRA8_UNORM */
+	/* Attachment 6: Base color Resolve - BGRA8_UNORM */
 	VkAttachmentDescription colorResolveAttachment = { };
 	colorResolveAttachment.format = VK_FORMAT_B8G8R8A8_UNORM;
 	colorResolveAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -617,7 +628,7 @@ void VulkanRenderer::CreateGeometryRenderPass() {
 	colorResolveAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 	colorResolveAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 
-	/* Attachment 6: Normal Resolve - RGBA16_SFLOAT */
+	/* Attachment 7: Normal Resolve - RGBA16_SFLOAT */
 	VkAttachmentDescription normalResolveAttachment = { };
 	normalResolveAttachment.format = VK_FORMAT_R16G16B16A16_SFLOAT;
 	normalResolveAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -628,7 +639,7 @@ void VulkanRenderer::CreateGeometryRenderPass() {
 	normalResolveAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 	normalResolveAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 
-	/* Attachment 7: ORM Resolve - RGBA16_SFLOAT */
+	/* Attachment 8: ORM Resolve - RGBA16_SFLOAT */
 	VkAttachmentDescription ormResolveAttachment = { };
 	ormResolveAttachment.format = VK_FORMAT_R16G16B16A16_SFLOAT;
 	ormResolveAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -639,7 +650,18 @@ void VulkanRenderer::CreateGeometryRenderPass() {
 	ormResolveAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 	ormResolveAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 
-	/* Attachment 8: Position Resolve - RGBA16_SFLOAT */
+	/* Attachment 9: Emissive Resolve - RGBA16_SFLOAT */
+	VkAttachmentDescription emissiveResolveAttachment = { };
+	emissiveResolveAttachment.format = VK_FORMAT_R16G16B16A16_SFLOAT;
+	emissiveResolveAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+	emissiveResolveAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	emissiveResolveAttachment.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	emissiveResolveAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	emissiveResolveAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+	emissiveResolveAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	emissiveResolveAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+
+	/* Attachment 10: Position Resolve - RGBA16_SFLOAT */
 	VkAttachmentDescription positionResolveAttachment = { };
 	positionResolveAttachment.format = VK_FORMAT_R16G16B16A16_SFLOAT;
 	positionResolveAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -665,48 +687,60 @@ void VulkanRenderer::CreateGeometryRenderPass() {
 	ormRef.attachment = 2;
 	ormRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
+	/* Emissive attachment reference */
+	VkAttachmentReference emissiveRef = { };
+	emissiveRef.attachment = 3;
+	emissiveRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
 	/* Position attachment reference */
 	VkAttachmentReference positionRef = { };
-	positionRef.attachment = 3;
+	positionRef.attachment = 4;
 	positionRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
 	/* Depth attachment reference */
 	VkAttachmentReference depthRef = { };
-	depthRef.attachment = 4;
+	depthRef.attachment = 5;
 	depthRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
 	/* Base color resolve attachment reference */
 	VkAttachmentReference colorResolveRef = { };
-	colorResolveRef.attachment = 5;
+	colorResolveRef.attachment = 6;
 	colorResolveRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
 	/* Normal resolve attachment reference */
 	VkAttachmentReference normalResolveRef = { };
-	normalResolveRef.attachment = 6;
+	normalResolveRef.attachment = 7;
 	normalResolveRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
 	/* ORM resolve attachment reference */
 	VkAttachmentReference ormResolveRef = { };
-	ormResolveRef.attachment = 7;
+	ormResolveRef.attachment = 8;
 	ormResolveRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+	/* Emissive resolve attachment reference */
+	VkAttachmentReference emissiveResolveRef = { };
+	emissiveResolveRef.attachment = 9;
+	emissiveResolveRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
 	/* Position resolve attachment reference */
 	VkAttachmentReference positionResolveRef = { };
-	positionResolveRef.attachment = 8;
+	positionResolveRef.attachment = 10;
 	positionResolveRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-	VkAttachmentReference colorRefs[] = { colorRef, normalRef, ormRef, positionRef };
-	VkAttachmentReference resolveRefs[] = { colorResolveRef, normalResolveRef, ormResolveRef, positionResolveRef };
+	VkAttachmentReference colorRefs[] = { colorRef, normalRef, ormRef, emissiveRef, positionRef };
+	VkAttachmentReference resolveRefs[] = { colorResolveRef, normalResolveRef, ormResolveRef, emissiveResolveRef, positionResolveRef };
 	
 	VkAttachmentDescription attachments[] = {
 		colorAttachment,
 		normalAttachment,
 		ormAttachment,
+		emissiveAttachment,
 		positionAttachment,
 		depthAttachment,
 		colorResolveAttachment,
 		normalResolveAttachment,
 		ormResolveAttachment,
+		emissiveResolveAttachment,
 		positionResolveAttachment
 	};
 
@@ -714,7 +748,7 @@ void VulkanRenderer::CreateGeometryRenderPass() {
 	/* Subpass description */
 	VkSubpassDescription subpass = { };
 	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-	subpass.colorAttachmentCount = 4;
+	subpass.colorAttachmentCount = 5;
 	subpass.pColorAttachments = colorRefs;
 	subpass.pDepthStencilAttachment = &depthRef;
 	subpass.pResolveAttachments = resolveRefs;
@@ -731,7 +765,7 @@ void VulkanRenderer::CreateGeometryRenderPass() {
 	/* Render pass create info */
 	VkRenderPassCreateInfo createInfo = { };
 	createInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-	createInfo.attachmentCount = 9;
+	createInfo.attachmentCount = 11;
 	createInfo.pAttachments = attachments;
 	createInfo.dependencyCount = 1;
 	createInfo.pDependencies = &dependency;
