@@ -110,111 +110,53 @@ bool Mesh::LoadModel(std::string filePath) {
 			}
 
 			const aiTexture* texture = scene->GetEmbeddedTexture(texturePath.C_Str());
-			
-			int nWidth = 0;
-			int nHeight = 0;
-			int nChannels = 0;
 
-			unsigned char* pixelData = nullptr;
+			GPUTexture* gpuTexture = this->m_resourceManager->UploadTexture(
+				texturePath.C_Str(), 
+				reinterpret_cast<const unsigned char*>(texture->pcData), 
+				texture->mWidth, 
+				texture->mHeight
+			);
 
-			std::string format = texture->achFormatHint;
+			if (VulkanRenderer* vkRenderer = dynamic_cast<VulkanRenderer*>(renderer)) {
+				uint32_t nTextureIndex = vkRenderer->RegisterTexture(texturePath.C_Str(), gpuTexture);
 
-			/* If height is 0, means that is compressed (Width will be the full size of the image) */
-			if (texture->mHeight == 0) {
-
-				/* Load image from memory with STB_image */
-				pixelData = stbi_load_from_memory(
-					reinterpret_cast<const unsigned char*>(texture->pcData), // Buffer
-					texture->mWidth,  // Size of the file
-					&nWidth, // Pointer to width
-					&nHeight, // Pointer to height
-					&nChannels, // Pointer to channels
-					4 // Desired channels
-				);
-
-				if (pixelData == nullptr) {
-					spdlog::error("Mesh::LoadModel: Failed loading texture");
-					throw std::runtime_error("Mesh::LoadModel: Failed loading texture");
-					return false;
+				if (nTextureIndex == UINT32_MAX) {
+					spdlog::error("Mesh::LoadModel: Vulkan renderer couldn't register texture {0}", texturePath.C_Str());
 				}
-
-				GPUBuffer* stagingBuffer = renderer->CreateStagingBuffer(pixelData, (nWidth * nHeight) * 4);
-				GPUTexture* gpuTexture = renderer->CreateTexture(stagingBuffer, nWidth, nHeight, GPUFormat::RGBA8_SRGB);
-				
-				/* Free image data */
-				stbi_image_free(pixelData);
-				pixelData = nullptr;
-
-				/* Delete staging buffer */
-				delete stagingBuffer;
-				stagingBuffer = nullptr;
-
-				/* Only for Vulkan, register texture */
-				if(VulkanRenderer* vkRenderer = dynamic_cast<VulkanRenderer*>(renderer)) {
-					uint32_t nTextureIndex = vkRenderer->RegisterTexture(texturePath.C_Str(), gpuTexture);
-					
-					if (nTextureIndex == UINT32_MAX) {
-						spdlog::error("Mesh::LoadModel: Vulkan renderer couldn't register texture {0}", texturePath.C_Str());
-					}
-					this->m_textureIndices[i] = nTextureIndex;
-				}
-
-				this->m_resourceManager->AddTexture(texturePath.C_Str(), gpuTexture);
-				this->m_textures[i] = gpuTexture;
+				this->m_textureIndices[i] = nTextureIndex;
 			}
-			else {
-				/* TODO: Load uncompressed textures */
-			}
+
+			this->m_textures[i] = gpuTexture;
 		}
 
 		/* Load ORM */
 		aiString metalPath;
 		if (material->GetTextureCount(aiTextureType_METALNESS) > 0 && material->GetTexture(aiTextureType_METALNESS, 0, &metalPath) == AI_SUCCESS) {
-			const aiTexture* ormTex = scene->GetEmbeddedTexture(metalPath.C_Str());
+			if (this->m_resourceManager->TextureExists(metalPath.C_Str())) {
+				this->m_textures[i] = this->m_resourceManager->GetTexture(metalPath.C_Str());
+				continue;
+			}
 
-			unsigned char* pixelData = nullptr;
-			if (ormTex->mHeight == 0) {
+			const aiTexture* texture = scene->GetEmbeddedTexture(metalPath.C_Str());
 
-				int nWidth = 0;
-				int nHeight = 0;
-				int nChannels = 0;
+			GPUTexture* gpuTexture = this->m_resourceManager->UploadTexture(
+				metalPath.C_Str(),
+				reinterpret_cast<const unsigned char*>(texture->pcData),
+				texture->mWidth,
+				texture->mHeight
+			);
 
-				pixelData = stbi_load_from_memory(
-					reinterpret_cast<const unsigned char*>(ormTex->pcData), // Buffer
-					ormTex->mWidth,  // Size of the file
-					&nWidth, // Pointer to width
-					&nHeight, // Pointer to height
-					&nChannels, // Pointer to channels
-					4 // Desired channels
-				);
+			if (VulkanRenderer* vkRenderer = dynamic_cast<VulkanRenderer*>(renderer)) {
+				uint32_t nTextureIndex = vkRenderer->RegisterTexture(metalPath.C_Str(), gpuTexture);
 
-				GPUBuffer* stagingBuffer = renderer->CreateStagingBuffer(pixelData, (nWidth * nHeight) * 4);
-				GPUTexture* gpuTexture = renderer->CreateTexture(stagingBuffer, nWidth, nHeight, GPUFormat::RGBA8_SRGB);
-
-				/* Free image data */
-				stbi_image_free(pixelData);
-				pixelData = nullptr;
-
-				/* Delete staging buffer */
-				delete stagingBuffer;
-				stagingBuffer = nullptr;
-
-				/* Only for Vulkan, register texture */
-				if (VulkanRenderer* vkRenderer = dynamic_cast<VulkanRenderer*>(renderer)) {
-					uint32_t nTextureIndex = vkRenderer->RegisterTexture(metalPath.C_Str(), gpuTexture);
-
-					if (nTextureIndex == UINT32_MAX) {
-						spdlog::error("Mesh::LoadModel: Vulkan renderer couldn't register ORM texture {0}", metalPath.C_Str());
-					}
-					this->m_ormIndices[i] = nTextureIndex;
+				if (nTextureIndex == UINT32_MAX) {
+					spdlog::error("Mesh::LoadModel: Vulkan renderer couldn't register ORM texture {0}", metalPath.C_Str());
 				}
+				this->m_ormIndices[i] = nTextureIndex;
+			}
 
-				this->m_resourceManager->AddTexture(metalPath.C_Str(), gpuTexture);
-				this->m_ormTextures[i] = gpuTexture;
-			}
-			else {
-				/* TODO: Load uncompressed textures */
-			}
+			this->m_ormTextures[i] = gpuTexture;
 		}
 
 		/* 
@@ -223,55 +165,26 @@ bool Mesh::LoadModel(std::string filePath) {
 		*/
 		aiString emissivePath;
 		if (material->GetTextureCount(aiTextureType_EMISSIVE) > 0 && material->GetTexture(aiTextureType_EMISSIVE, 0, &emissivePath) == AI_SUCCESS) {
-			const aiTexture* emissiveTexture = scene->GetEmbeddedTexture(emissivePath.C_Str());
-
-			unsigned char* pixelData = nullptr;
-			if (emissiveTexture->mHeight == 0) {
-
-				int nWidth = 0;
-				int nHeight = 0;
-				int nChannels = 0;
-
-				pixelData = stbi_load_from_memory(
-					reinterpret_cast<const unsigned char*>(emissiveTexture->pcData), // Buffer
-					emissiveTexture->mWidth,  // Size of the file
-					&nWidth, // Pointer to width
-					&nHeight, // Pointer to height
-					&nChannels, // Pointer to channels
-					4 // Desired channels
-				);
-
-				GPUBuffer* stagingBuffer = renderer->CreateStagingBuffer(pixelData, (nWidth * nHeight) * 4);
-				GPUTexture* gpuTexture = renderer->CreateTexture(stagingBuffer, nWidth, nHeight, GPUFormat::RGBA8_SRGB);
-
-				/* Free image data */
-				stbi_image_free(pixelData);
-				pixelData = nullptr;
-
-				/* Delete staging buffer */
-				delete stagingBuffer;
-				stagingBuffer = nullptr;
-
-				/* Only for Vulkan, register texture */
-				if (VulkanRenderer* vkRenderer = dynamic_cast<VulkanRenderer*>(renderer)) {
-					uint32_t nTextureIndex = vkRenderer->RegisterTexture(emissivePath.C_Str(), gpuTexture);
-
-					if (nTextureIndex == UINT32_MAX) {
-						spdlog::error("Mesh::LoadModel: Vulkan renderer couldn't register ORM texture {0}", emissivePath.C_Str());
-					}
-					this->m_emissiveIndices[i] = nTextureIndex;
-				}
-
-				this->m_resourceManager->AddTexture(emissivePath.C_Str(), gpuTexture);
-				this->m_ormTextures[i] = gpuTexture;
-				this->m_emissiveMeshes[i] = true;
+			if (this->m_resourceManager->TextureExists(emissivePath.C_Str())) {
+				this->m_textures[i] = this->m_resourceManager->GetTexture(emissivePath.C_Str());
+				continue;
 			}
-			else {
-				/* TODO: Load uncompressed textures */
+
+			const aiTexture* texture = scene->GetEmbeddedTexture(emissivePath.C_Str());
+
+			GPUTexture* gpuTexture = this->m_resourceManager->UploadTexture(
+				emissivePath.C_Str(),
+				reinterpret_cast<const unsigned char*>(texture->pcData),
+				texture->mWidth,
+				texture->mHeight
+			);
+
+			if (VulkanRenderer* vkRenderer = dynamic_cast<VulkanRenderer*>(renderer)) {
+				uint32_t nEmissiveIndex = this->RegisterVulkan(vkRenderer, emissivePath.C_Str(), gpuTexture);
+				this->m_emissiveIndices[i] = nEmissiveIndex;
 			}
-		}
-		else {
-			this->m_emissiveMeshes[i] = false;
+
+			this->m_emissiveTextures[i] = gpuTexture;
 		}
 	}
 
@@ -310,4 +223,14 @@ std::map<uint32_t, uint32_t>& Mesh::GetORMIndices() {
 /* Returns Mesh::m_emissiveIndices */
 std::map<uint32_t, uint32_t>& Mesh::GetEmissiveIndices() {
 	return this->m_emissiveIndices;
+}
+
+/* Register a texture on vulkan renderer */
+uint32_t Mesh::RegisterVulkan(VulkanRenderer* pRenderer, std::string textureName, GPUTexture* gpuTexture) {
+	uint32_t nTextureIndex = pRenderer->RegisterTexture(textureName, gpuTexture);
+
+	if (nTextureIndex == UINT32_MAX) {
+		spdlog::error("Mesh::LoadModel: Vulkan renderer couldn't register texture {0}", textureName);
+	}
+	return nTextureIndex;
 }
