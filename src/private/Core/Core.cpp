@@ -1,5 +1,6 @@
 #include "Core/Core.h"
 #include "Core/Scene/SceneManager.h"
+#include "Core/Renderer/ResourceManager.h"
 
 Core* Core::m_instance;
 
@@ -10,6 +11,7 @@ Core::Core() {
     this->m_sceneMgr = nullptr;
     this->m_input = Input::GetInstance();
     this->m_time = Time::GetInstance();
+    this->m_resMgr = ResourceManager::GetInstance();
 }
 
 /* Core init method */
@@ -54,6 +56,7 @@ void Core::Init() {
     glfwSetKeyCallback(this->m_pWindow, Input::KeyCallback);
     glfwSetMouseButtonCallback(this->m_pWindow, Input::MouseButtonCallback);
 
+    this->m_resMgr->SetRenderer(this->m_renderer);
     this->m_sceneMgr = SceneManager::GetInstance();
     this->m_sceneMgr->Start();
 }

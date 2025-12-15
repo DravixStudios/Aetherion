@@ -10,6 +10,7 @@
 
 /* Forward declarations */
 class SceneManager;
+class ResourceManager;
 
 class Core {
 public:
@@ -29,6 +30,7 @@ private:
     Time* m_time;
 
     SceneManager* m_sceneMgr;
+    ResourceManager* m_resMgr;
 
     Renderer* m_renderer;
 };
