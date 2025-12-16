@@ -14,7 +14,7 @@ class GPUBuffer {
 	friend class VulkanRenderer;
 public:
 	GPUBuffer() {};
-	~GPUBuffer() {};
+	virtual ~GPUBuffer() {};
 
 	virtual uint32_t GetSize() = 0;
 protected:
