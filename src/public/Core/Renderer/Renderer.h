@@ -10,6 +10,13 @@
 #include "Core/Renderer/GPUTexture.h"
 #include "Core/Renderer/GPUFormat.h"
 
+enum ECubemapLayout {
+    HORIZONTAL_CROSS, // 4x3
+    VERTICAL_CROSS, // 3x4
+    HORIZONTAL_STRIP, // 6x1
+    VERTICAL_STRIP // 1x6
+};
+
 class Renderer {
 protected:
     GLFWwindow* m_pWindow;
@@ -36,7 +43,22 @@ protected:
 public:
     virtual GPUBuffer* CreateIndexBuffer(const std::vector<uint16_t>& indices);
     virtual GPUBuffer* CreateStagingBuffer(void* pData, uint32_t nSize);
-    virtual GPUTexture* CreateTexture(GPUBuffer* pBuffer, uint32_t nWidth, uint32_t nHeight, GPUFormat format);
+    virtual GPUTexture* CreateTexture(
+        GPUBuffer* pBuffer, 
+        uint32_t nWidth,
+        uint32_t nHeight,
+        GPUFormat format
+    );
+    /*virtual GPUTexture* CreateCubemap(const std::string filePath, ECubemapLayout layout = HORIZONTAL_CROSS);
+    virtual void ExtractCubemapFaces(
+        const float* pcSrcRGBA, 
+        int nSrcWidth, 
+        int nSrcHeight, 
+        float* pDstData, 
+        int nFaceWidth, 
+        int nFaceHeight, 
+        ECubemapLayout layout
+    );*/
     virtual bool DrawVertexBuffer(GPUBuffer* buffer);
     virtual bool DrawIndexBuffer(GPUBuffer* vbo, GPUBuffer* ibo);
 };
