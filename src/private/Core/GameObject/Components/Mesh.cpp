@@ -72,6 +72,7 @@ bool Mesh::LoadModel(std::string filePath) {
 			aiVector3D texCoords = { 0, 0, 0 };
 			aiVector3D normals = { 0, 0, 0 };
 
+
 			if (mesh->HasTextureCoords(0)) {
 				texCoords = mesh->mTextureCoords[0][x];
 			}
@@ -109,7 +110,7 @@ bool Mesh::LoadModel(std::string filePath) {
 
 		/* Load albedo */
 		if (material->GetTextureCount(aiTextureType_DIFFUSE) > 0 && material->GetTexture(aiTextureType_DIFFUSE, 0, &texturePath) == AI_SUCCESS) {
-
+			
 			if (this->m_resourceManager->TextureExists(texturePath.C_Str())) {
 				this->m_textures[i] = this->m_resourceManager->GetTexture(texturePath.C_Str());
 				continue;
