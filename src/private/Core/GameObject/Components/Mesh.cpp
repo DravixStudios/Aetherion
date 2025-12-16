@@ -1,5 +1,6 @@
 #include "Core/GameObject/Components/Mesh.h"
 #include "Core/Core.h"
+#include "Core/Renderer/Vulkan/VulkanRenderer.h"
 
 #include <stb/stb_image.h>
 
@@ -119,12 +120,8 @@ bool Mesh::LoadModel(std::string filePath) {
 			);
 
 			if (VulkanRenderer* vkRenderer = dynamic_cast<VulkanRenderer*>(renderer)) {
-				uint32_t nTextureIndex = vkRenderer->RegisterTexture(texturePath.C_Str(), gpuTexture);
-
-				if (nTextureIndex == UINT32_MAX) {
-					spdlog::error("Mesh::LoadModel: Vulkan renderer couldn't register texture {0}", texturePath.C_Str());
-				}
-				this->m_textureIndices[i] = nTextureIndex;
+				uint32_t nAlbedoIndex = this->RegisterVulkan(vkRenderer, texturePath.C_Str(), gpuTexture);
+				this->m_textureIndices[i] = nAlbedoIndex;
 			}
 
 			this->m_textures[i] = gpuTexture;
@@ -148,12 +145,8 @@ bool Mesh::LoadModel(std::string filePath) {
 			);
 
 			if (VulkanRenderer* vkRenderer = dynamic_cast<VulkanRenderer*>(renderer)) {
-				uint32_t nTextureIndex = vkRenderer->RegisterTexture(metalPath.C_Str(), gpuTexture);
-
-				if (nTextureIndex == UINT32_MAX) {
-					spdlog::error("Mesh::LoadModel: Vulkan renderer couldn't register ORM texture {0}", metalPath.C_Str());
-				}
-				this->m_ormIndices[i] = nTextureIndex;
+				uint32_t nORMIndex = this->RegisterVulkan(vkRenderer, metalPath.C_Str(), gpuTexture);
+				this->m_ormIndices[i] = nORMIndex;
 			}
 
 			this->m_ormTextures[i] = gpuTexture;

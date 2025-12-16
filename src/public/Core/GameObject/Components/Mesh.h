@@ -12,6 +12,7 @@
 
 /* Forward declarations */
 class Core;
+class VulkanRenderer;
 
 class Mesh : public Component {
 public:
