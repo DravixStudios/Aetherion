@@ -225,7 +225,12 @@ public:
 	GPUBuffer* CreateBuffer(const void* pData, uint32_t nSize, EBufferType bufferType) override;
 	GPUBuffer* CreateIndexBuffer(const std::vector<uint16_t>& indices) override;
 	GPUBuffer* CreateStagingBuffer(void* pData, uint32_t nSize) override;
-	GPUTexture* CreateTexture(GPUBuffer* pBuffer, uint32_t nWidth, uint32_t nHeight, GPUFormat format) override;
+	GPUTexture* CreateTexture(
+		GPUBuffer* pBuffer,
+		uint32_t nWidth,
+		uint32_t nHeight, 
+		GPUFormat format
+	) override;
 	VkImageView CreateImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
 	VkSampler CreateSampler();
 
