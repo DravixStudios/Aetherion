@@ -21,12 +21,12 @@ layout(location = 3) out vec4 outEmissive;
 layout(location = 4) out vec4 outPosition;
 
 void main() {
-    outBaseColor = texture(g_textures[nonuniformEXT(pc.nTextureIndex)], vec2(inUVs.x, 1 - inUVs.y));
+    outBaseColor = texture(g_textures[nonuniformEXT(pc.nTextureIndex)], vec2(inUVs.x, inUVs.y));
     vec3 normals = inNormals * 0.5 + 0.5;
     outNormals = vec4(normals.xyz, 1.0);
-    outORM =  texture(g_textures[nonuniformEXT(pc.nOrmIndex)], vec2(inUVs.x, 1 - inUVs.y));
+    outORM =  texture(g_textures[nonuniformEXT(pc.nOrmIndex)], vec2(inUVs.x, inUVs.y));
     if(pc.nEmissiveIndex != INVALID_INDEX) {
-        outEmissive =  texture(g_textures[nonuniformEXT(pc.nEmissiveIndex)], vec2(inUVs.x, 1 - inUVs.y));
+        outEmissive =  texture(g_textures[nonuniformEXT(pc.nEmissiveIndex)], vec2(inUVs.x, inUVs.y));
     } else {
         outEmissive = vec4(0.0, 0.0, 0.0, 0.0);
     }
