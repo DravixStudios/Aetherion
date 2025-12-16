@@ -36,7 +36,12 @@ bool Mesh::LoadModel(std::string filePath) {
 
 	/* Import our scene */
 	Assimp::Importer importer;
-	const aiScene* scene = importer.ReadFile(fullFilePath.string().c_str(), NULL);
+	const aiScene* scene = importer.ReadFile(fullFilePath.string().c_str(),
+		aiProcess_Triangulate |
+    	aiProcess_JoinIdenticalVertices |
+    	aiProcess_GenNormals |
+    	aiProcess_FlipUVs
+	);
 	
 	/* If scene is null, get out and return false */
 	if (scene == nullptr) {
