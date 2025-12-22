@@ -36,7 +36,12 @@ bool Mesh::LoadModel(std::string filePath) {
 
 	/* Import our scene */
 	Assimp::Importer importer;
-	const aiScene* scene = importer.ReadFile(fullFilePath.string().c_str(), NULL);
+	const aiScene* scene = importer.ReadFile(fullFilePath.string().c_str(),
+		aiProcess_Triangulate |
+    	aiProcess_JoinIdenticalVertices |
+    	aiProcess_GenNormals |
+    	aiProcess_FlipUVs
+	);
 	
 	/* If scene is null, get out and return false */
 	if (scene == nullptr) {
@@ -66,6 +71,7 @@ bool Mesh::LoadModel(std::string filePath) {
 			aiVector3D aiVertex = mesh->mVertices[x];
 			aiVector3D texCoords = { 0, 0, 0 };
 			aiVector3D normals = { 0, 0, 0 };
+
 
 			if (mesh->HasTextureCoords(0)) {
 				texCoords = mesh->mTextureCoords[0][x];
@@ -104,7 +110,7 @@ bool Mesh::LoadModel(std::string filePath) {
 
 		/* Load albedo */
 		if (material->GetTextureCount(aiTextureType_DIFFUSE) > 0 && material->GetTexture(aiTextureType_DIFFUSE, 0, &texturePath) == AI_SUCCESS) {
-
+			
 			if (this->m_resourceManager->TextureExists(texturePath.C_Str())) {
 				this->m_textures[i] = this->m_resourceManager->GetTexture(texturePath.C_Str());
 				continue;

@@ -5,6 +5,8 @@
 # Prerequisites
 *.d
 
+
+.DS_Store
 .vscode/
 /build/
 
