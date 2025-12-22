@@ -19,6 +19,18 @@ GPUBuffer* Renderer::CreateStagingBuffer(void* pData, uint32_t nSize) { return n
 
 GPUTexture* Renderer::CreateTexture(GPUBuffer* pBuffer, uint32_t nWidth, uint32_t nHeight, GPUFormat format) { return nullptr; }
 
+GPUTexture* Renderer::CreateCubemap(const std::string filePath, ECubemapLayout layout) { return nullptr; }
+
+void Renderer::ExtractCubemapFaces(
+    const float* pcSrcRGBA,
+    int nSrcWidth,
+    int nSrcHeight,
+    float* pDstData,
+    int nFaceWidth,
+    int nFaceHeight,
+    ECubemapLayout layout
+) {}
+
 bool Renderer::DrawVertexBuffer(GPUBuffer* buffer) { return false; }
 
 bool Renderer::DrawIndexBuffer(GPUBuffer* vbo, GPUBuffer* ibo) { return false; }

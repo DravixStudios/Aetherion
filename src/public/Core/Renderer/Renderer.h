@@ -49,7 +49,7 @@ public:
         uint32_t nHeight,
         GPUFormat format
     );
-    /*virtual GPUTexture* CreateCubemap(const std::string filePath, ECubemapLayout layout = HORIZONTAL_CROSS);
+    virtual GPUTexture* CreateCubemap(const std::string filePath, ECubemapLayout layout = HORIZONTAL_CROSS);
     virtual void ExtractCubemapFaces(
         const float* pcSrcRGBA, 
         int nSrcWidth, 
@@ -58,7 +58,7 @@ public:
         int nFaceWidth, 
         int nFaceHeight, 
         ECubemapLayout layout
-    );*/
+    );
     virtual bool DrawVertexBuffer(GPUBuffer* buffer);
     virtual bool DrawIndexBuffer(GPUBuffer* vbo, GPUBuffer* ibo);
 };
