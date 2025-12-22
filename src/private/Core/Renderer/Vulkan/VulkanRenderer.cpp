@@ -2738,6 +2738,12 @@ void VulkanRenderer::ExtractCubemapFaces(
 		offsets[5] = { nFaceWidth, 3 * nFaceHeight }; // -Z
 
 		break;
+	case ECubemapLayout::HORIZONTAL_STRIP:
+		for (int i = 0; i < 6; i++) offsets[i] = { i * nFaceWidth, 0 };
+		break;
+	case ECubemapLayout::VERTICAL_STRIP:
+		for (int i = 0; i < 6; i++) offsets[i] = { 0, i * nFaceHeight };
+		break;
 	}
 }
 
