@@ -2720,6 +2720,22 @@ void VulkanRenderer::ExtractCubemapFaces(
 		offsets[3] = { nFaceWidth, 2 * nFaceHeight }; // -Y
 		offsets[4] = { nFaceWidth, nFaceHeight }; // +Z
 		offsets[5] = { 3 * nFaceWidth, nFaceHeight }; // -Z
+		
+		break;
+	case ECubemapLayout::VERTICAL_CROSS:
+		/*
+			Layout:
+			[  ][+Y][  ]
+			[-X][+Z][+X]
+			[  ][-Y][  ]
+			[  ][-Z][  ]
+		*/
+		offsets[0] = { 2 * nFaceWidth, nFaceHeight }; // +X
+		offsets[1] = { 0, nFaceHeight }; // -X
+		offsets[2] = { nFaceWidth, 0 }; // +Y
+		offsets[3] = { nFaceWidth, 2 * nFaceHeight }; // -Y
+		offsets[4] = { nFaceWidth, nFaceHeight }; // +Z
+		offsets[5] = { nFaceWidth, 3 * nFaceHeight }; // -Z
 
 		break;
 	}
