@@ -2704,7 +2704,7 @@ void VulkanRenderer::ExtractCubemapFaces(
 	ECubemapLayout layout
 ) {
 	struct FaceOffset { int x, y; };
-	FaceOffset offsets[6];
+	FaceOffset offsets[6] = { };
 
 	switch (layout) {
 	case ECubemapLayout::HORIZONTAL_CROSS:
@@ -2744,6 +2744,24 @@ void VulkanRenderer::ExtractCubemapFaces(
 	case ECubemapLayout::VERTICAL_STRIP:
 		for (int i = 0; i < 6; i++) offsets[i] = { 0, i * nFaceHeight };
 		break;
+	}
+
+	/* Copy each face */
+	for (int nFace = 0; nFace < 6; nFace++) {
+		float* pDstFace = pDstData + (nFace * nFaceWidth * nFaceHeight * 4);
+		
+		for (int y = 0; y < nFaceHeight; y++) {
+			for (int x = 0; x < nFaceWidth; x++) {
+				int nSrcX = offsets[nFace].x + x;
+				int nSrcY = offsets[nFace].y + y;
+				int nSrcIdX = (nSrcY * nSrcWidth + nSrcX) * 4;
+				int nDstIdX = ( y * nFaceWidth + x ) * 4;
+
+				for (int c = 0; c < 4; c++) {
+					pDstFace[nDstIdX + c] = pcSrcRGBA[nSrcIdX + c];
+				}
+			}
+		}
 	}
 }
 
