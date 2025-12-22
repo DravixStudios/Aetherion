@@ -2687,6 +2687,44 @@ uint32_t VulkanRenderer::RegisterTexture(const std::string& textureName, GPUText
 	return nTextureIndex;
 }
 
+GPUTexture* VulkanRenderer::CreateCubemap(const std::string filePath, ECubemapLayout layout) {
+
+}
+
+/*
+	Extract the cubemap faces and copy each of them
+*/
+void VulkanRenderer::ExtractCubemapFaces(
+	const float* pcSrcRGBA,
+	int nSrcWidth,
+	int nSrcHeight,
+	float* pDstData,
+	int nFaceWidth,
+	int nFaceHeight,
+	ECubemapLayout layout
+) {
+	struct FaceOffset { int x, y; };
+	FaceOffset offsets[6];
+
+	switch (layout) {
+	case ECubemapLayout::HORIZONTAL_CROSS:
+		/*
+			Layout:
+				[  ][+Y][  ][  ]
+				[-X][+Z][+X][-Z]
+				[  ][-Y][  ][  ]
+		*/
+		offsets[0] = { 2 * nFaceWidth, nFaceHeight }; // +X
+		offsets[1] = { 0, nFaceHeight }; // -X
+		offsets[2] = { nFaceWidth, 0 }; // +Y
+		offsets[3] = { nFaceWidth, 2 * nFaceHeight }; // -Y
+		offsets[4] = { nFaceWidth, nFaceHeight }; // +Z
+		offsets[5] = { 3 * nFaceWidth, nFaceHeight }; // -Z
+
+		break;
+	}
+}
+
 /* Copy our buffer to a VkImage */
 void VulkanRenderer::CopyBufferToImage(VkBuffer buffer, VkImage image, uint32_t nWidth, uint32_t nHeight) {
 	VkCommandBuffer commandBuffer = this->BeginSingleTimeCommandBuffer();
