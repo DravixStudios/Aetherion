@@ -58,6 +58,7 @@ private:
 	VkQueue m_graphicsQueue;
 	VkQueue m_presentQueue;
 
+	/* Swap chain & Swap chain resources */
 	VkSwapchainKHR m_sc;
 	VkExtent2D m_scExtent;
 	VkFormat m_surfaceFormat;
@@ -65,22 +66,30 @@ private:
 	std::vector<VkImageView> m_imageViews;
 	uint32_t m_nImageCount;
 
+	/* Framebuffers */
+	VkFramebuffer m_gbufferFramebuffer;
+	VkFramebuffer m_lightingFramebuffer;
 	std::vector<VkFramebuffer> m_scFrameBuffers;
 	std::vector<VkFramebuffer> m_skyboxFrameBuffers;
 
+	/* Render passes */
 	VkRenderPass m_geometryRenderPass;
 	VkRenderPass m_lightingRenderPass;
 	VkRenderPass m_skyboxRenderPass;
 
+	/* Depth resources */
 	VkImage m_depthImage;
 	VkImageView m_depthImageView;
 
+	/* ScreenQuad resources */
 	GPUBuffer* m_sqVBO;
 	GPUBuffer* m_sqIBO;
 
+	/* Command pool and buffers */
 	VkCommandPool m_commandPool;
 	std::vector<VkCommandBuffer> m_commandBuffers;
 
+	/* Pipelines */
 	VkPipelineLayout m_pipelineLayout;
 	VkPipeline m_pipeline;
 
@@ -93,6 +102,7 @@ private:
 	VkViewport m_viewport;
 	VkRect2D m_scissor;
 
+	/* Sync objects */
 	std::vector<VkSemaphore> m_imageAvailableSemaphores;
 	std::vector<VkSemaphore> m_renderFinishedSemaphores;
 	std::vector<VkFence> m_inFlightFences;
@@ -131,9 +141,6 @@ private:
 	VkSampler m_ormSampler;
 	VkSampler m_emissiveSampler;
 	VkSampler m_positionSampler;
-
-	VkFramebuffer m_gbufferFramebuffer;
-	VkFramebuffer m_lightingFramebuffer;
 
 	/* Descriptor sets */
 	std::vector<VkDescriptorSet> m_descriptorSets; // One per frame
