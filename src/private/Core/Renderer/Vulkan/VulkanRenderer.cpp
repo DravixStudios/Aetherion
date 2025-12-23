@@ -1182,7 +1182,7 @@ void VulkanRenderer::CreateGBufferFrameBuffer() {
 }
 
 /*
-	Create a frame buffer for drawing our screen quad
+	Create framebuffers for drawing our screen quad
 */
 void VulkanRenderer::CreateLightingFrameBuffer() {
 	this->m_scFrameBuffers.resize(this->m_imageViews.size());
@@ -1209,6 +1209,36 @@ void VulkanRenderer::CreateLightingFrameBuffer() {
 	}
 
 	spdlog::debug("VulkanRenderer::CreateLightingFrameBuffer: Lighting frame buffers created");
+}
+
+/* 
+	Create framebuffers for drawing our skybox
+*/
+void VulkanRenderer::CreateSkyboxFrameBuffer() {
+	this->m_skyboxFrameBuffers.resize(this->m_imageViews.size());
+
+	for (uint32_t i = 0; i < this->m_skyboxFrameBuffers.size(); i++) {
+		VkImageView attachments[] = {
+			this->m_imageViews[i]
+		};
+
+		VkFramebufferCreateInfo createInfo = { };
+		createInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+		createInfo.renderPass = this->m_skyboxRenderPass;
+		createInfo.width = this->m_scExtent.width;
+		createInfo.height = this->m_scExtent.height;
+		createInfo.layers = 1;
+		createInfo.attachmentCount = 1;
+		createInfo.pAttachments = attachments;
+
+		if (vkCreateFramebuffer(this->m_device, &createInfo, nullptr, &this->m_skyboxFrameBuffers[i]) != VK_SUCCESS) {
+			spdlog::error("VulkanRenderer::CreateSkynoxFrameBuffer: Failed creating skybox frame buffer");
+			throw std::runtime_error("VulkanRenderer::CreateSkynoxFrameBuffer: Failed creating skybox frame buffer");
+			return;
+		}
+	}
+
+	spdlog::debug("VulkanRenderer::CreateSkyboxFrameBuffer: Skybox frame buffers created");
 }
 
 /* Create our descriptor set layout */
