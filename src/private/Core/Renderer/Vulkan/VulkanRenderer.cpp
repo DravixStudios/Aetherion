@@ -109,6 +109,7 @@ void VulkanRenderer::Init() {
 	this->CreateImageViews();
 	this->CreateGeometryRenderPass();
 	this->CreateLightingRenderPass();
+	this->CreateSkyboxRenderPass();
 	this->CreateCommandPool();
 	this->CreateGBufferResources();
 	this->CreateDepthResources();
@@ -799,7 +800,7 @@ void VulkanRenderer::CreateLightingRenderPass() {
 	colorAttachment.format = this->m_surfaceFormat;
 	colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
 	colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+	colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 	colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 	colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 	colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
@@ -843,6 +844,60 @@ void VulkanRenderer::CreateLightingRenderPass() {
 	}
 
 	spdlog::debug("VulkanRenderer::CreateLightingRenderPass: Lighting render pass created");
+}
+
+/*
+	Creation of our skybox render pass (Screen Quad over our lighting frame)
+*/
+void VulkanRenderer::CreateSkyboxRenderPass() {
+	/* Attachment 0: Final color output */
+	VkAttachmentDescription colorAttachment = { };
+	colorAttachment.format = this->m_surfaceFormat;
+	colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+	colorAttachment.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+	colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+	colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+	colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+	colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+
+	/* Final color attachment reference */
+	VkAttachmentReference colorRef = { };
+	colorRef.attachment = 0;
+	colorRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+	/* Subpass */
+	VkSubpassDescription subpass = { };
+	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+	subpass.colorAttachmentCount = 1;
+	subpass.pColorAttachments = &colorRef;
+
+	/* Subpass dependency */
+	VkSubpassDependency dependency = { };
+	dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+	dependency.dstSubpass = 0;
+	dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	dependency.srcAccessMask = 0;
+	dependency.dstAccessMask = 0;
+
+	/* Render pass create info */
+	VkRenderPassCreateInfo createInfo = { };
+	createInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+	createInfo.pAttachments = &colorAttachment;
+	createInfo.attachmentCount = 1;
+	createInfo.pSubpasses = &subpass;
+	createInfo.subpassCount = 1;
+	createInfo.pDependencies = &dependency;
+	createInfo.dependencyCount = 1;
+
+	if (vkCreateRenderPass(this->m_device, &createInfo, nullptr, &this->m_skyboxRenderPass) != VK_SUCCESS) {
+		spdlog::error("VulkanRenderer::CreateSkyboxRenderPass: Failed creating skybox render pass");
+		throw std::runtime_error("VulkanRenderer::CreateSkyboxRenderPass: Failed creating skybox render pass");
+		return;
+	}
+
+	spdlog::debug("VulkanRenderer::CreateSkyboxRenderPass: Skybox render pass created");
 }
 
 /* Command pool creation */
