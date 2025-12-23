@@ -154,6 +154,8 @@ private:
 	VkDescriptorPool m_lightingDescriptorPool;
 	std::vector<VkDescriptorSet> m_lightingDescriptorSets;
 
+	VkDescriptorSetLayout m_skyboxDescriptorSetLayout;
+
 	uint32_t m_nMaxDescriptorSetSamplers;
 	uint32_t m_nMaxPerStageDescriptorSamplers;
 	uint32_t m_nMaxTextures;
@@ -180,6 +182,7 @@ private:
 	void CreateSkyboxFrameBuffer();
 	void CreateDescriptorSetLayout(); 
 	void CreateLightingDescriptorSetLayout();
+	void CreateSkyboxDescriptorSetLayout();
 	void CreateDescriptorPool();
 	void CreateLightingDescriptorPool();
 	void AllocateDescriptorSets();
