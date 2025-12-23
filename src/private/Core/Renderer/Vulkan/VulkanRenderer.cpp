@@ -1534,6 +1534,27 @@ void VulkanRenderer::AllocateLightingDescriptorSets() {
 	spdlog::debug("VulkanRenderer::AllocateLightingDescriptorSets: Lighting descriptor sets allocated");
 }
 
+/* Allocate descriptor sets for our skybox pass */
+void VulkanRenderer::AllocateSkyboxDescriptorSets() {
+	std::vector<VkDescriptorSetLayout> layouts(this->m_nImageCount, this->m_skyboxDescriptorSetLayout);
+
+	/* Descriptor set allocate info */
+	VkDescriptorSetAllocateInfo allocInfo = { };
+	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+	allocInfo.descriptorPool = this->m_skyboxDescriptorPool;
+	allocInfo.descriptorSetCount = this->m_nImageCount;
+	allocInfo.pSetLayouts = layouts.data();
+
+	this->m_skyboxDescriptorSets.resize(this->m_nImageCount);
+	if (vkAllocateDescriptorSets(this->m_device, &allocInfo, this->m_skyboxDescriptorSets.data()) != VK_SUCCESS) {
+		spdlog::error("VulkanRenderer::AllocateSkyboxDescriptorSets: Failed allocating skybox descriptor sets");
+		throw std::runtime_error("VulkanRenderer::AllocateSkyboxDescriptorSets: Failed allocating skybox descriptor sets");
+		return;
+	}
+
+	spdlog::debug("VulkanRenderer::AllocateLightingDescriptorSets: Skybox descriptor sets allocated");
+}
+
 /* Writes our descriptor sets */
 void VulkanRenderer::WriteDescriptorSets() {
 	/* Get our World View Projection Ring Buffer */
