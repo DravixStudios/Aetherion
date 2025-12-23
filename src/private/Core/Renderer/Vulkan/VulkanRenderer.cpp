@@ -135,6 +135,7 @@ void VulkanRenderer::Init() {
 	this->CreateSkyboxDescriptorSetLayout();
 	this->CreateDescriptorPool();
 	this->CreateLightingDescriptorPool();
+	this->CreateSkyboxDescriptorPool();
 	this->AllocateDescriptorSets();
 	this->AllocateLightingDescriptorSets();
 	this->WriteDescriptorSets();
@@ -1434,7 +1435,35 @@ void VulkanRenderer::CreateLightingDescriptorPool() {
 	spdlog::debug("VulkanRenderer::CreateLightingDescriptorPool: Lighting descriptor pool created");
 }
 
-/* Allocate our descriptor sets */
+/*
+	Create a descriptor pool for our skybox pass
+*/
+void VulkanRenderer::CreateSkyboxDescriptorPool() {
+	/* Define our descriptor pool size */
+	VkDescriptorPoolSize poolSize = { };
+	poolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	poolSize.descriptorCount = this->m_nImageCount;
+
+	/* Descriptor pool create info */
+	VkDescriptorPoolCreateInfo createInfo = { };
+	createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+	createInfo.poolSizeCount = 1;
+	createInfo.pPoolSizes = &poolSize;
+	createInfo.maxSets = this->m_nImageCount;
+
+	/* Create our descriptor pool */
+	if (vkCreateDescriptorPool(this->m_device, &createInfo, nullptr, &this->m_skyboxDescriptorPool) != VK_SUCCESS) {
+		spdlog::error("VulkanRenderer::CreateSkyboxDescriptorPool: Failed creating skybox descriptor pool");
+		throw std::runtime_error("VulkanRenderer::CreateSkyboxDescriptorPool: Failed creating skybox descriptor pool");
+		return;
+	}
+
+	spdlog::debug("VulkanRenderer::CreateSkyboxDescriptorPool: Skybox descriptor pool created");
+}
+
+/* 
+	Allocate our descriptor sets 
+*/
 void VulkanRenderer::AllocateDescriptorSets() {
 	/* 
 		Initialize vector with m_nImageCount size and copy in each index m_descriptorSetLayout 
