@@ -1411,7 +1411,9 @@ void VulkanRenderer::CreateDescriptorPool() {
 
 }
 
-/* Create a descriptor pool for our lighting pass */
+/*
+	Create a descriptor pool for our lighting pass 
+*/
 void VulkanRenderer::CreateLightingDescriptorPool() {
 	/* Define our descriptor pool size */
 	VkDescriptorPoolSize poolSize = { };
