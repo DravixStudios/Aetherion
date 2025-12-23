@@ -116,6 +116,7 @@ void VulkanRenderer::Init() {
 	this->CreateLightingResources();
 	this->CreateGBufferFrameBuffer();
 	this->CreateLightingFrameBuffer();
+	this->CreateSkyboxFrameBuffer();
 
 	/* Test uniform */
 	this->m_wvp.World = glm::mat4(1.f);
