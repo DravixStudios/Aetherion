@@ -130,13 +130,9 @@ void VulkanRenderer::Init() {
 	this->m_wvpBuff = pUrb;
 	/* End Test uniform */
 
-	/* Test cubemap */
-	this->CreateCubemap("cubemap.exr", ECubemapLayout::HORIZONTAL_CROSS);
-	
-	/* End text cubemap */
-
 	this->CreateDescriptorSetLayout();
 	this->CreateLightingDescriptorSetLayout();
+	this->CreateSkyboxDescriptorSetLayout();
 	this->CreateDescriptorPool();
 	this->CreateLightingDescriptorPool();
 	this->AllocateDescriptorSets();
@@ -1337,6 +1333,35 @@ void VulkanRenderer::CreateLightingDescriptorSetLayout() {
 	}
 
 	spdlog::debug("VulkanRenderer::CreateLightingDescriptorSetLayout: Lighting descriptor set layout created");
+}
+
+/*
+	Creates our descriptor set layout for our skybox pass
+*/
+void VulkanRenderer::CreateSkyboxDescriptorSetLayout() {
+	/* Texture sampler binding */
+	VkDescriptorSetLayoutBinding samplerBinding = { };
+	samplerBinding.binding = 0;
+	samplerBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	samplerBinding.descriptorCount = 1;
+	samplerBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+	samplerBinding.pImmutableSamplers = nullptr;
+
+	VkDescriptorSetLayoutBinding bindings[] = { samplerBinding };
+
+	/* Descriptor set layout create info */
+	VkDescriptorSetLayoutCreateInfo createInfo = { };
+	createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+	createInfo.pBindings = bindings;
+	createInfo.bindingCount = 1;
+
+	if (vkCreateDescriptorSetLayout(this->m_device, &createInfo, nullptr, &this->m_skyboxDescriptorSetLayout) != VK_SUCCESS) {
+		spdlog::error("VulkanRenderer::CreateSkyboxDescriptorSetLayout: Failed creating skybox descriptor set layout");
+		throw std::runtime_error("VulkanRenderer::CreateSkyboxDescriptorSetLayout: Failed creating skybox descriptor set layout");
+		return;
+	}
+
+	spdlog::debug("VulkanRenderer::CreateSkyboxDescriptorSetLayout: Skybox descriptor set layout created");
 }
 
 /* Create our descriptor pool */
