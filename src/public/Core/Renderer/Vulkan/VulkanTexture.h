@@ -15,7 +15,8 @@ public:
 		VkDeviceMemory& memory, 
 		uint32_t nSize, 
 		VkImageView& imageView, 
-		VkSampler& sampler
+		VkSampler& sampler,
+		ETextureType textureType = ETextureType::TEXTURE
 	);
 
 	VkDevice GetDevice();

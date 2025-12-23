@@ -7,8 +7,9 @@ VulkanTexture::VulkanTexture(
 	VkDeviceMemory& memory,
 	uint32_t nSize,
 	VkImageView& imageView,
-	VkSampler& sampler
-) : GPUTexture::GPUTexture() {
+	VkSampler& sampler,
+	ETextureType textureType
+) : GPUTexture::GPUTexture(textureType) {
 	this->m_dev = dev;
 	this->m_physicalDev = physicalDev;
 	this->m_buffer = buffer;
