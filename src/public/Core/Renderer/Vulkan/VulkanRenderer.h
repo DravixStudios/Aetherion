@@ -69,6 +69,7 @@ private:
 
 	VkRenderPass m_geometryRenderPass;
 	VkRenderPass m_lightingRenderPass;
+	VkRenderPass m_skyboxRenderPass;
 
 	VkImage m_depthImage;
 	VkImageView m_depthImageView;
@@ -161,6 +162,7 @@ private:
 	void CreateImageViews();
 	void CreateGeometryRenderPass();
 	void CreateLightingRenderPass();
+	void CreateSkyboxRenderPass();
 	void CreateCommandPool();
 	void CreateGBufferResources();
 	void CreateDepthResources();
