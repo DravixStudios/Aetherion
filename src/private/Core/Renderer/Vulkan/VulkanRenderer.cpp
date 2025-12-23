@@ -138,6 +138,7 @@ void VulkanRenderer::Init() {
 	this->CreateSkyboxDescriptorPool();
 	this->AllocateDescriptorSets();
 	this->AllocateLightingDescriptorSets();
+	this->AllocateSkyboxDescriptorSets();
 	this->WriteDescriptorSets();
 	this->WriteLightDescriptorSets();
 	this->CreateCommandBuffer();
@@ -1552,7 +1553,7 @@ void VulkanRenderer::AllocateSkyboxDescriptorSets() {
 		return;
 	}
 
-	spdlog::debug("VulkanRenderer::AllocateLightingDescriptorSets: Skybox descriptor sets allocated");
+	spdlog::debug("VulkanRenderer::AllocateSkyboxDescriptorSets: Skybox descriptor sets allocated");
 }
 
 /* Writes our descriptor sets */
