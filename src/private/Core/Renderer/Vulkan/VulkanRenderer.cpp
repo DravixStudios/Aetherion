@@ -2690,9 +2690,143 @@ uint32_t VulkanRenderer::RegisterTexture(const std::string& textureName, GPUText
 	return nTextureIndex;
 }
 
+/* 
+	Loads EXR cubemap and creates 
+	a GPUTexture with the Cubemap texture type 
+*/
 GPUTexture* VulkanRenderer::CreateCubemap(const std::string filePath, ECubemapLayout layout) {
+	/* Load EXR with TinyEXR */
+	float* pRGBA = nullptr;
+	int nWidth, nHeight;
+	const char* pcErr = nullptr;
 
-}
+	std::filesystem::path path = filePath;
+	if (!path.is_absolute()) {
+		path = std::filesystem::path(GetExecutableDir()) / filePath;
+	}
+
+	int nRet = LoadEXR(&pRGBA, &nWidth, &nHeight, path.string().c_str(), &pcErr);
+	if (nRet != TINYEXR_SUCCESS) {
+		if (pcErr) {
+			spdlog::error("VulkanRenderer::CreateCubemap: Error loading EXR {0}", pcErr);
+			FreeEXRErrorMessage(pcErr);
+		}
+		return nullptr;
+	}
+
+	/* Calculate each face size */
+	int nFaceWidth, nFaceHeight = 0;
+	switch (layout) {
+		case ECubemapLayout::HORIZONTAL_CROSS: nFaceWidth = nWidth / 4; nFaceHeight = nHeight / 3; break;
+		case ECubemapLayout::VERTICAL_CROSS: nFaceWidth = nWidth / 3; nFaceHeight = nHeight / 4; break;
+		case ECubemapLayout::HORIZONTAL_STRIP: nFaceWidth = nWidth / 6; nFaceHeight; break;
+		case ECubemapLayout::VERTICAL_STRIP: nFaceWidth = nWidth; nFaceHeight = nHeight / 6; break;
+	}
+
+	/* Extract 6 faces on a buffer */
+	uint32_t nFaceSize = nFaceWidth * nFaceHeight * 4 * sizeof(float); // Width * height * 4 channels * size of float.
+	uint32_t nTotalSize = nFaceSize * 6;
+	std::vector<float> extractedData(nTotalSize / sizeof(float));
+
+	this->ExtractCubemapFaces(pRGBA, nWidth, nHeight, extractedData.data(), nFaceWidth, nFaceHeight, layout);
+	free(pRGBA); // We don't need the original EXR.
+
+	/* Create a staging buffer */
+	GPUBuffer* stagingBuffer = this->CreateStagingBuffer(extractedData.data(), nTotalSize);
+	VulkanBuffer* vkStagingBuffer = dynamic_cast<VulkanBuffer*>(stagingBuffer);
+
+	VkBuffer vkBuffer = vkStagingBuffer->GetBuffer();
+
+	VkImage cubemapImage = nullptr;
+	VkDeviceMemory cubemapMemory = nullptr;
+	VkFormat format = VK_FORMAT_R32G32B32A32_SFLOAT;
+
+	/* Image create info with CREATE_CUBE_COMPATIBLE flag */
+	VkImageCreateInfo imageInfo = { };
+	imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+	imageInfo.imageType = VK_IMAGE_TYPE_2D;
+	imageInfo.format = format;
+	imageInfo.extent = { static_cast<uint32_t>(nFaceWidth), static_cast<uint32_t>(nFaceHeight), 1 };
+	imageInfo.mipLevels = 1;
+	imageInfo.arrayLayers = 6; // 6 faces
+	imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+	imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+	imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+	imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	imageInfo.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
+
+	/* Create image */
+	vkCreateImage(this->m_device, &imageInfo, nullptr, &cubemapImage);
+
+	VkMemoryRequirements memReqs;
+	vkGetImageMemoryRequirements(this->m_device, cubemapImage, &memReqs);
+
+	VkMemoryAllocateInfo allocInfo = { };
+	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+	allocInfo.allocationSize = memReqs.size;
+	allocInfo.memoryTypeIndex = this->FindMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+	vkAllocateMemory(this->m_device, &allocInfo, nullptr, &cubemapMemory);
+	vkBindImageMemory(this->m_device, cubemapImage, cubemapMemory, 0);
+	this->TransitionImageLayout(cubemapImage, format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 6);
+	
+	/* Copy from our staging buffer to our image */
+	VkCommandBuffer cmdBuff = this->BeginSingleTimeCommandBuffer();
+
+	std::vector<VkBufferImageCopy> regions(6);
+	for (uint32_t i = 0; i < 6; i++) {
+		regions[i].bufferOffset = i * nFaceSize;
+		regions[i].bufferRowLength = 0;
+		regions[i].bufferImageHeight = 0;
+		regions[i].imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		regions[i].imageSubresource.mipLevel = 0;
+		regions[i].imageSubresource.baseArrayLayer = i;
+		regions[i].imageSubresource.layerCount = 1;
+		regions[i].imageOffset = { 0, 0, 0 };
+		regions[i].imageExtent = { static_cast<uint32_t>(nFaceWidth), static_cast<uint32_t>(nFaceHeight), 1 };
+	}
+
+	vkCmdCopyBufferToImage(cmdBuff, vkBuffer, cubemapImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 6, regions.data());
+
+	this->EndSingleTimeCommandBuffer(cmdBuff);
+
+	this->TransitionImageLayout(cubemapImage, format, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+	delete stagingBuffer;
+	stagingBuffer = nullptr;
+
+	/* Create our cubemap image view */
+	VkImageViewCreateInfo viewInfo = { };
+	viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+	viewInfo.image = cubemapImage;
+	viewInfo.viewType = VK_IMAGE_VIEW_TYPE_CUBE;
+	viewInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+	viewInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+	viewInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+	viewInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+	viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	viewInfo.subresourceRange.baseMipLevel = 0;
+	viewInfo.subresourceRange.levelCount = 1;
+	viewInfo.subresourceRange.baseArrayLayer = 0;
+	viewInfo.subresourceRange.layerCount = 6;
+
+	VkImageView imageView;
+	vkCreateImageView(this->m_device, &viewInfo, nullptr, &imageView);
+
+	VkSampler sampler = this->CreateSampler();
+	VulkanTexture* texture = new VulkanTexture(
+		this->m_device, 
+		this->m_physicalDevice, 
+		cubemapImage, 
+		cubemapMemory, 
+		static_cast<uint32_t>(memReqs.size),
+		imageView, 
+		sampler, 
+		ETextureType::CUBEMAP
+	);
+
+	return texture;
+} 
 
 /*
 	Extract the cubemap faces and copy each of them
@@ -2875,7 +3009,7 @@ VkSampleCountFlagBits VulkanRenderer::GetMaxUsableSampleCount() {
 }
 
 /* Transition image layout to a new one */
-void VulkanRenderer::TransitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout) {
+void VulkanRenderer::TransitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t nLayerCount) {
 	VkCommandBuffer commandBuffer = this->BeginSingleTimeCommandBuffer();
 
 	/* Create our barrier */
@@ -2892,7 +3026,7 @@ void VulkanRenderer::TransitionImageLayout(VkImage image, VkFormat format, VkIma
 	barrier.subresourceRange.baseMipLevel = 0;
 	barrier.subresourceRange.levelCount = 1;
 	barrier.subresourceRange.baseArrayLayer = 0;
-	barrier.subresourceRange.layerCount = 1;
+	barrier.subresourceRange.layerCount = nLayerCount;
 
 	/* 
 		VkPipelineStageFlags is a bitmask type for setting a mask of zero or more VkPipelineStageFlagBits

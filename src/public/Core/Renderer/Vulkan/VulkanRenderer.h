@@ -167,7 +167,7 @@ private:
 	void CreateLightingResources();
 	void CreateGBufferFrameBuffer();
 	void CreateLightingFrameBuffer();
-	void CreateDescriptorSetLayout();
+	void CreateDescriptorSetLayout(); 
 	void CreateLightingDescriptorSetLayout();
 	void CreateDescriptorPool();
 	void CreateLightingDescriptorPool();
@@ -261,7 +261,7 @@ private:
 
 	VkSampleCountFlagBits GetMaxUsableSampleCount();
 
-	void TransitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
+	void TransitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t nLayerCount = 1);
 	VkCommandBuffer BeginSingleTimeCommandBuffer();
 	void EndSingleTimeCommandBuffer(VkCommandBuffer commandBuffer);
 
