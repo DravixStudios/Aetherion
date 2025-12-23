@@ -18,3 +18,5 @@
 - [g-truc/glm](https://github.com/g-truc/glm)
 - [Vulkan](https://www.vulkan.org/)
 - [STB](https://github.com/nothings/stb)
+- [miniz](https://github.com/richgel999/miniz)
+- [tinyexr](https://github.com/syoyo/tinyexr)
