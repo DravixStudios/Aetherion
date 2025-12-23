@@ -254,6 +254,9 @@ private:
 	std::vector<GPUTexture*> m_loadedTextures;
 	std::map<std::string, uint32_t> m_textureIndices;
 
+	/* TODO: Remove this */
+	GPUTexture* m_skybox;
+
 	void CopyBufferToImage(VkBuffer buffer, VkImage image, uint32_t nWidth, uint32_t nHeight);
 
 	WVP m_wvp;

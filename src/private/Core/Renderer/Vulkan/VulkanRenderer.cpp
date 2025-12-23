@@ -128,6 +128,11 @@ void VulkanRenderer::Init() {
 	this->m_wvpBuff = pUrb;
 	/* End Test uniform */
 
+	/* Test cubemap */
+	this->CreateCubemap("cubemap.exr", ECubemapLayout::HORIZONTAL_CROSS);
+	
+	/* End text cubemap */
+
 	this->CreateDescriptorSetLayout();
 	this->CreateLightingDescriptorSetLayout();
 	this->CreateDescriptorPool();
