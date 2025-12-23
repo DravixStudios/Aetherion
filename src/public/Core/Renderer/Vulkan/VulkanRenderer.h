@@ -66,6 +66,7 @@ private:
 	uint32_t m_nImageCount;
 
 	std::vector<VkFramebuffer> m_scFrameBuffers;
+	std::vector<VkFramebuffer> m_skyboxFrameBuffers;
 
 	VkRenderPass m_geometryRenderPass;
 	VkRenderPass m_lightingRenderPass;
@@ -169,6 +170,7 @@ private:
 	void CreateLightingResources();
 	void CreateGBufferFrameBuffer();
 	void CreateLightingFrameBuffer();
+	void CreateSkyboxFrameBuffer();
 	void CreateDescriptorSetLayout(); 
 	void CreateLightingDescriptorSetLayout();
 	void CreateDescriptorPool();
