@@ -1,6 +1,9 @@
 #include "Core/Renderer/Vulkan/VulkanRenderer.h"
 #include "Core/Scene/SceneManager.h"
 
+#define TINYEXR_IMPLEMENTATION
+#include <tinyexr/tinyexr.h>
+
 /* Validation layers (hard-coded) */
 std::vector<const char*> validationLayers = {
 	"VK_LAYER_KHRONOS_validation"
