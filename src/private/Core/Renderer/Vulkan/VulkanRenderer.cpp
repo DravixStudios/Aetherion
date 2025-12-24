@@ -1166,7 +1166,7 @@ void VulkanRenderer::CreateDepthResources() {
 		depthFormat,
 		this->m_multisampleCount,
 		VK_IMAGE_TILING_OPTIMAL,
-		VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+		VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
 		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 		depthImage,
 		depthMemory
@@ -1178,6 +1178,28 @@ void VulkanRenderer::CreateDepthResources() {
 
 	this->m_depthImage = depthImage;
 	this->m_depthImageView = imageView;
+
+	VkDeviceMemory depthResolveMemory = nullptr;
+	VkImage depthResolveImage = nullptr;
+
+	uint32_t nDepthResolveImageSize = this->CreateImage(
+		this->m_scExtent.width, this->m_scExtent.height,
+		depthFormat,
+		VK_SAMPLE_COUNT_1_BIT,
+		VK_IMAGE_TILING_OPTIMAL,
+		VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+		depthResolveImage,
+		depthResolveMemory
+	);
+
+	VkImageView depthResolveImageView = this->CreateImageView(depthResolveImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
+	this->TransitionImageLayout(depthResolveImage, depthFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+
+	this->m_depthResolveImage = depthResolveImage;
+	this->m_depthResolveImageView = depthResolveImageView;
+
+	this->m_depthSampler = this->CreateSampler();
 
 	spdlog::debug("VulkanRenderer::CreateDepthResources: Depth resources created");
 }

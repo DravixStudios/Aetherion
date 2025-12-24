@@ -80,6 +80,10 @@ private:
 	/* Depth resources */
 	VkImage m_depthImage;
 	VkImageView m_depthImageView;
+	VkSampler m_depthSampler;
+
+	VkImage m_depthResolveImage;
+	VkImageView m_depthResolveImageView;
 
 	/* ScreenQuad resources */
 	GPUBuffer* m_sqVBO;
