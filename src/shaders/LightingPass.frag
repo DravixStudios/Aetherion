@@ -6,6 +6,9 @@ layout(location = 0) in vec2 inUVs;
 layout(location = 0) out vec4 finalImage;
 
 layout(set = 0, binding = 0) uniform sampler2D g_gbuffers[5];
+layout(set = 0, binding = 1) uniform samplerCube g_irradianceMap;
+layout(set = 0, binding = 2) uniform samplerCube g_prefilterMap;
+layout(set = 0, binding = 3) uniform sampler2D g_brdfLUT;
 
 layout(push_constant) uniform PushConstants {
     vec3 cameraPosition;
