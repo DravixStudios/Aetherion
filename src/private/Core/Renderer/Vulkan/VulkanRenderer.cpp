@@ -161,6 +161,9 @@ void VulkanRenderer::Init() {
 	this->CreateGBufferPipeline();
 	this->CreateLightingPipeline();
 	this->CreateSkyboxPipeline();
+	this->CreateIrradiancePipeline();
+	this->CreatePrefilterPipeline();
+	this->CreateBRDFPipeline();
 	this->CreateSyncObjects();
 
 	this->m_sceneMgr = SceneManager::GetInstance();
