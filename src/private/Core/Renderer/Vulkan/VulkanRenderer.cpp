@@ -969,12 +969,84 @@ void VulkanRenderer::CreateSkyboxRenderPass() {
 
 /* Create irradiance render pass */
 void VulkanRenderer::CreateIrradianceRenderPass() {
+	/* Attachment 0: Color attachment */
+	VkAttachmentDescription colorAttachment = { };
+	colorAttachment.format = VK_FORMAT_R32G32B32A32_SFLOAT;
+	colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+	colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+	colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+	colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
+	/* Color attachment reference */
+	VkAttachmentReference colorRef = { };
+	colorRef.attachment = 0;
+	colorRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+	/* Subpass description */
+	VkSubpassDescription subpass = { };
+	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+	subpass.colorAttachmentCount = 1;
+	subpass.pColorAttachments = &colorRef;
+
+	/* Render pass create info */
+	VkRenderPassCreateInfo createInfo = { };
+	createInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+	createInfo.attachmentCount = 1;
+	createInfo.pAttachments = &colorAttachment;
+	createInfo.subpassCount = 1;
+	createInfo.pSubpasses = &subpass;
+
+	if (vkCreateRenderPass(this->m_device, &createInfo, nullptr, &this->m_irradianceRenderPass) != VK_SUCCESS) {
+		spdlog::error("VulkanRenderer::CreateIrradianceRenderPass: Failed creating irradiance render pass");
+		throw std::runtime_error("VulkanRenderer::CreateIrradianceRenderPass: Failed creating irradiance render pass");
+		return;
+	}
+
+	spdlog::debug("VulkanRenderer::CreateIrradianceRenderPass: Irradiance render pass created");
 }
 
-/* Create prefilter render pass */
+/* Create prefilter render pass (Same as irradiance) */
 void VulkanRenderer::CreatePrefilterRenderPass() {
+	/* Attachment 0: Color attachment */
+	VkAttachmentDescription colorAttachment = { };
+	colorAttachment.format = VK_FORMAT_R32G32B32A32_SFLOAT;
+	colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+	colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+	colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+	colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
+	/* Color attachment reference */
+	VkAttachmentReference colorRef = { };
+	colorRef.attachment = 0;
+	colorRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+	/* Subpass description */
+	VkSubpassDescription subpass = { };
+	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+	subpass.colorAttachmentCount = 1;
+	subpass.pColorAttachments = &colorRef;
+
+	/* Render pass create info */
+	VkRenderPassCreateInfo createInfo = { };
+	createInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+	createInfo.attachmentCount = 1;
+	createInfo.pAttachments = &colorAttachment;
+	createInfo.subpassCount = 1;
+	createInfo.pSubpasses = &subpass;
+
+	if (vkCreateRenderPass(this->m_device, &createInfo, nullptr, &this->m_prefilterRenderPass) != VK_SUCCESS) {
+		spdlog::error("VulkanRenderer::CreatePrefilterRenderPass: Failed creating prefilter render pass");
+		throw std::runtime_error("VulkanRenderer::CreatePrefilterRenderPass: Failed creating prefilter render pass");
+		return;
+	}
+
+	spdlog::debug("VulkanRenderer::CreatePrefilterRenderPass: Prefilter render pass created");
 }
 
 /* Create BRDF render pass */
