@@ -68,6 +68,12 @@ struct LightPushConstant {
 	glm::vec3 cameraPosition;
 };
 
+struct SkyboxPushConstant {
+	glm::mat4 inverseView;
+	glm::mat4 inverseProjection;
+	glm::vec3 cameraPosition;
+};
+
 /* Constructor */
 VulkanRenderer::VulkanRenderer() : Renderer::Renderer() {
 	this->m_bEnableValidationLayers = ENABLE_VALIDATION_LAYERS;

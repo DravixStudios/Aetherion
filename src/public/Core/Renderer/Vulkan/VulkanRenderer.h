@@ -99,6 +99,9 @@ private:
 	VkPipelineLayout m_lightingPipelineLayout;
 	VkPipeline m_lightingPipeline;
 
+	VkPipelineLayout m_skyboxPipelineLayout;
+	VkPipeline m_skyboxPipeline;
+
 	VkViewport m_viewport;
 	VkRect2D m_scissor;
 
@@ -212,6 +215,7 @@ private:
 	);
 	void CreateGBufferPipeline();
 	void CreateLightingPipeline();
+	void CreateSkyboxPipeline();
 	void CreateSyncObjects();
 	void RecordCommandBuffer(uint32_t nImageIndex);
 	VkSurfaceFormatKHR ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& formats);
