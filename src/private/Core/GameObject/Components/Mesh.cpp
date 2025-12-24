@@ -4,7 +4,7 @@
 
 #include <stb/stb_image.h>
 
-Mesh::Mesh(std::string name) : Component::Component(name) {
+Mesh::Mesh(String name) : Component::Component(name) {
 	this->m_core = Core::GetInstance();
 	this->m_bMeshImported = false;
 	this->m_resourceManager = ResourceManager::GetInstance();
@@ -24,14 +24,14 @@ void Mesh::Update() {
 		NOTES:
 			- If Mesh component already imported any Model, will throw error.
 */
-bool Mesh::LoadModel(std::string filePath) {
+bool Mesh::LoadModel(String filePath) {
 	if (this->m_bMeshImported) {
 		spdlog::error("[{0}] Mesh::LoadModel: Mesh already imported on this mesh component", this->m_name.c_str());
 		throw std::runtime_error("Mesh::LoadModel: Mesh already imported on mesh");
 		return false;
 	}
 
-	std::string exePath = GetExecutableDir();
+	String exePath = GetExecutableDir();
 	std::filesystem::path fullFilePath = std::filesystem::path(exePath) / filePath;
 
 	/* Import our scene */
@@ -60,8 +60,8 @@ bool Mesh::LoadModel(std::string filePath) {
 		/* Get the number of vertices */
 		uint32_t nNumVertices = mesh->mNumVertices;
 
-		std::vector<Vertex> vertices(nNumVertices);
-		std::vector<uint16_t> indices;
+		Vector<Vertex> vertices(nNumVertices);
+		Vector<uint16_t> indices;
 		
 		/*
 			Store a new vertices on our vertices vector. 
@@ -225,7 +225,7 @@ std::map<uint32_t, uint32_t>& Mesh::GetEmissiveIndices() {
 }
 
 /* Register a texture on vulkan renderer */
-uint32_t Mesh::RegisterVulkan(VulkanRenderer* pRenderer, std::string textureName, GPUTexture* gpuTexture) {
+uint32_t Mesh::RegisterVulkan(VulkanRenderer* pRenderer, String textureName, GPUTexture* gpuTexture) {
 	uint32_t nTextureIndex = pRenderer->RegisterTexture(textureName, gpuTexture);
 
 	if (nTextureIndex == UINT32_MAX) {

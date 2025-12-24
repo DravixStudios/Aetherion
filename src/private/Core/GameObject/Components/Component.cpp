@@ -1,6 +1,6 @@
 #include "Core/GameObject/Components/Component.h"
 
-Component::Component(std::string name) {
+Component::Component(String name) {
 	this->m_name = name;
 }
 

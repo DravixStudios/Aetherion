@@ -5,12 +5,12 @@
 #include <tinyexr/tinyexr.h>
 
 /* Validation layers (hard-coded) */
-std::vector<const char*> validationLayers = {
+Vector<const char*> validationLayers = {
 	"VK_LAYER_KHRONOS_validation"
 };
 
 /* Device extensions (hard-coded) */
-std::vector<const char*> deviceExtensions = {
+Vector<const char*> deviceExtensions = {
 	VK_KHR_SWAPCHAIN_EXTENSION_NAME,
 	VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME,
 #ifdef __APPLE__
@@ -31,8 +31,8 @@ struct QueueFamilyIndices {
 /* Swap chain support details helper struct */
 struct SwapChainSupportDetails {
 	VkSurfaceCapabilitiesKHR capabilities;
-	std::vector<VkSurfaceFormatKHR> formats;
-	std::vector<VkPresentModeKHR> presentModes;
+	Vector<VkSurfaceFormatKHR> formats;
+	Vector<VkPresentModeKHR> presentModes;
 };
 
 /* Convert from GPUFormat to VkFormat */
@@ -183,7 +183,7 @@ void VulkanRenderer::CreateInstance() {
 	appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
 
 	/* Fetch required extensions and size */
-	std::vector<const char*> extensions = this->GetRequiredExtensions();
+	Vector<const char*> extensions = this->GetRequiredExtensions();
 #ifdef __APPLE__
 	extensions.push_back(VK_MVK_MACOS_SURFACE_EXTENSION_NAME);
 	extensions.push_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
@@ -264,7 +264,7 @@ void VulkanRenderer::PickPhysicalDevice() {
 	vkEnumeratePhysicalDevices(this->m_vkInstance, &nPhysicalDeviceCount, nullptr);
 
 	/* Store all the physical devices on a vector */
-	std::vector<VkPhysicalDevice> physicalDevices(nPhysicalDeviceCount);
+	Vector<VkPhysicalDevice> physicalDevices(nPhysicalDeviceCount);
 	vkEnumeratePhysicalDevices(this->m_vkInstance, &nPhysicalDeviceCount, physicalDevices.data());
 
 	spdlog::debug("Available physical devices: {0}", nPhysicalDeviceCount);
@@ -310,7 +310,7 @@ void VulkanRenderer::CheckDescriptorIndexingSupport() {
 	vkEnumerateDeviceExtensionProperties(this->m_physicalDevice, nullptr, &nExtensionCount, nullptr);
 
 	/* Query available extensions */
-	std::vector<VkExtensionProperties> availableExtensions(nExtensionCount);
+	Vector<VkExtensionProperties> availableExtensions(nExtensionCount);
 	vkEnumerateDeviceExtensionProperties(this->m_physicalDevice, nullptr, &nExtensionCount, availableExtensions.data());
 
 	/* Check if descriptor indexing extension is available */
@@ -412,7 +412,7 @@ void VulkanRenderer::CreateLogicalDevice() {
 	/* Store all the queue families on a single set. We use a set because it can only store unique values. */
 	std::set<uint32_t> queueFamilies = { indices.graphicsFamily.value(), indices.presentFamily.value() };
 
-	std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
+	Vector<VkDeviceQueueCreateInfo> queueCreateInfos;
 
 	/* If in same family, will only add one queue create info */
 	for (uint32_t queueFamily : queueFamilies) {
@@ -1207,7 +1207,7 @@ void VulkanRenderer::CreateDepthResources() {
 /* Create lighting resources */
 void VulkanRenderer::CreateLightingResources() {
 	/* Screen quad vertices */
-	std::vector<ScreenQuadVertex> vertices = {
+	Vector<ScreenQuadVertex> vertices = {
 		{ { -1.f, -1.f, 0.f }, { 0.f, 0.f  }}, // BL
 		{ { -1.f, 1.f, 0.f }, { 0.f, 1.f  }}, // TL
 		{ { 1.f, 1.f, 0.f }, { 1.f, 1.f  }}, // TR
@@ -1215,7 +1215,7 @@ void VulkanRenderer::CreateLightingResources() {
 	};
 
 	/* Screen quad indices */
-	std::vector<uint16_t> indices = {
+	Vector<uint16_t> indices = {
 		0, 1, 2,
 		0, 2, 3
 	};
@@ -1567,7 +1567,7 @@ void VulkanRenderer::AllocateDescriptorSets() {
 		Initialize vector with m_nImageCount size and copy in each index m_descriptorSetLayout 
 		We do this because we are going to have a descriptor set per frame in flight
 	*/
-	std::vector<VkDescriptorSetLayout> wvpLayouts(this->m_nImageCount, this->m_wvpDescriptorSetLayout);
+	Vector<VkDescriptorSetLayout> wvpLayouts(this->m_nImageCount, this->m_wvpDescriptorSetLayout);
 
 	/* 
 		Allocate info
@@ -1611,7 +1611,7 @@ void VulkanRenderer::AllocateDescriptorSets() {
 
 /* Allocate descriptor sets for our lighting pass */
 void VulkanRenderer::AllocateLightingDescriptorSets() {
-	std::vector<VkDescriptorSetLayout> layouts(this->m_nImageCount, this->m_lightingDescriptorSetLayout);
+	Vector<VkDescriptorSetLayout> layouts(this->m_nImageCount, this->m_lightingDescriptorSetLayout);
 
 	/* Descriptor set allocate info */
 	VkDescriptorSetAllocateInfo allocInfo = { };
@@ -1632,7 +1632,7 @@ void VulkanRenderer::AllocateLightingDescriptorSets() {
 
 /* Allocate descriptor sets for our skybox pass */
 void VulkanRenderer::AllocateSkyboxDescriptorSets() {
-	std::vector<VkDescriptorSetLayout> layouts(this->m_nImageCount, this->m_skyboxDescriptorSetLayout);
+	Vector<VkDescriptorSetLayout> layouts(this->m_nImageCount, this->m_skyboxDescriptorSetLayout);
 
 	/* Descriptor set allocate info */
 	VkDescriptorSetAllocateInfo allocInfo = { };
@@ -1846,8 +1846,8 @@ void VulkanRenderer::CreateCommandBuffer() {
 	Return value: The created pipeline.
 */
 VkPipeline VulkanRenderer::CreateGraphicsPipeline(
-	const std::string& vertPath,
-	const std::string& pixelPath,
+	const String& vertPath,
+	const String& pixelPath,
 	VkRenderPass renderPass,
 	VkDescriptorSetLayout* setLayouts,
 	uint32_t nSetLayoutCount,
@@ -1861,8 +1861,8 @@ VkPipeline VulkanRenderer::CreateGraphicsPipeline(
 	uint32_t nPushConstantCount
 ) {
 	/* Shader compiling */
-	std::vector<uint32_t> vertexShader = this->CompileShader(this->ReadShader(vertPath), vertPath, shaderc_vertex_shader);
-	std::vector<uint32_t> fragmentShader = this->CompileShader(this->ReadShader(pixelPath), pixelPath, shaderc_fragment_shader);
+	Vector<uint32_t> vertexShader = this->CompileShader(this->ReadShader(vertPath), vertPath, shaderc_vertex_shader);
+	Vector<uint32_t> fragmentShader = this->CompileShader(this->ReadShader(pixelPath), pixelPath, shaderc_fragment_shader);
 
 	VkShaderModule vertexModule = this->CreateShaderModule(vertexShader);
 	VkShaderModule fragmentModule = this->CreateShaderModule(fragmentShader);
@@ -2387,7 +2387,7 @@ void VulkanRenderer::RecordCommandBuffer(uint32_t nImageIndex) {
 	Scene* currentScene = this->m_sceneMgr->GetCurrentScene();
 	Camera* currentCamera = currentScene->GetCurrentCamera();
 	Transform cameraTransform = currentCamera->transform;
-	std::map<std::string, GameObject*> objects = currentScene->GetObjects();
+	std::map<String, GameObject*> objects = currentScene->GetObjects();
 
 	glm::mat4 cameraMatrix = glm::mat4(1.f);
 	cameraMatrix = glm::rotate(cameraMatrix, glm::radians(cameraTransform.rotation.x), glm::vec3(1.f, 0.f, 0.f));
@@ -2445,12 +2445,12 @@ void VulkanRenderer::RecordCommandBuffer(uint32_t nImageIndex) {
 	);
 
 	/* Per object loop */
-	for (std::pair<std::string, GameObject*> obj : objects) {
+	for (std::pair<String, GameObject*> obj : objects) {
 		/* Get only the GameObject pointer, we actually don't care the object name */
 		GameObject* pObj = obj.second;
 
 		/* Get all the components from de object */
-		std::map<std::string, Component*> components = pObj->GetComponents();
+		std::map<String, Component*> components = pObj->GetComponents();
 		
 		/*
 			Find the mesh component(s) and draw it
@@ -2612,7 +2612,7 @@ void VulkanRenderer::RecordCommandBuffer(uint32_t nImageIndex) {
 
 	If there is a format that is B8G8R8A8_SRGB and its color space is SRGB_NONLINEAR, select that
 */
-VkSurfaceFormatKHR VulkanRenderer::ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& formats) {
+VkSurfaceFormatKHR VulkanRenderer::ChooseSwapSurfaceFormat(const Vector<VkSurfaceFormatKHR>& formats) {
 	for (const VkSurfaceFormatKHR& format : formats) {
 		if (format.format == VK_FORMAT_B8G8R8A8_SRGB && format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
 			return format;
@@ -2626,7 +2626,7 @@ VkSurfaceFormatKHR VulkanRenderer::ChooseSwapSurfaceFormat(const std::vector<VkS
 
 	If there is a MAILBOX present mode, select it. Else, FIFO_KHR
 */
-VkPresentModeKHR VulkanRenderer::ChooseSwapPresentMode(const std::vector<VkPresentModeKHR>& presentModes) {
+VkPresentModeKHR VulkanRenderer::ChooseSwapPresentMode(const Vector<VkPresentModeKHR>& presentModes) {
 	for (const VkPresentModeKHR& presentMode : presentModes) {
 		if (presentMode == VK_PRESENT_MODE_MAILBOX_KHR) {
 			return presentMode;
@@ -2665,10 +2665,10 @@ VkExtent2D VulkanRenderer::ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capa
 /*
 	Read our shader file
 */
-std::string VulkanRenderer::ReadShader(const std::string& sFile) {
+String VulkanRenderer::ReadShader(const String& sFile) {
 	std::filesystem::path path = sFile;
 	if(!path.is_absolute()) {
-		std::string executableDir = GetExecutableDir();
+		String executableDir = GetExecutableDir();
 		path = std::filesystem::path(executableDir) / sFile;
 	}
 
@@ -2687,7 +2687,7 @@ std::string VulkanRenderer::ReadShader(const std::string& sFile) {
 /*
 	Compile our shader to Spir-V code with https://github.com/google/shaderc
 */
-std::vector<uint32_t> VulkanRenderer::CompileShader(std::string shader, std::string filename, shaderc_shader_kind kind) {
+Vector<uint32_t> VulkanRenderer::CompileShader(String shader, String filename, shaderc_shader_kind kind) {
 	shaderc::Compiler compiler;
 	shaderc::CompileOptions options;
 
@@ -2706,17 +2706,17 @@ std::vector<uint32_t> VulkanRenderer::CompileShader(std::string shader, std::str
 	if (result.GetCompilationStatus() != shaderc_compilation_status_success) {
 		spdlog::error("CompileShader: {0}", result.GetErrorMessage());
 		throw std::runtime_error("CompileShader: Error compiling shader");
-		return std::vector<uint32_t>();
+		return Vector<uint32_t>();
 	}
 
 	spdlog::debug("CompileShader: Shader {0} compiled", filename);
 
-	std::vector<uint32_t> shaderCode(result.cbegin(), result.cend());
+	Vector<uint32_t> shaderCode(result.cbegin(), result.cend());
 	return shaderCode;
 }
 
 /* Create a shader module from our shader code */
-VkShaderModule VulkanRenderer::CreateShaderModule(std::vector<uint32_t>& shaderCode) {
+VkShaderModule VulkanRenderer::CreateShaderModule(Vector<uint32_t>& shaderCode) {
 	VkShaderModuleCreateInfo createInfo = { };
 	createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
 	createInfo.codeSize = shaderCode.size() * sizeof(uint32_t);
@@ -2736,7 +2736,7 @@ VkShaderModule VulkanRenderer::CreateShaderModule(std::vector<uint32_t>& shaderC
 }
 
 /* Find supported format */
-VkFormat VulkanRenderer::FindSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags featureFlags) {
+VkFormat VulkanRenderer::FindSupportedFormat(const Vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags featureFlags) {
 	/* For each candidate */
 	for (VkFormat format : candidates) {
 		/* Query physical device format properties */
@@ -2912,7 +2912,7 @@ GPUBuffer* VulkanRenderer::CreateBuffer(const void* pData, uint32_t nSize, EBuff
 }
 
 /* Creation of a index buffer */
-GPUBuffer* VulkanRenderer::CreateIndexBuffer(const std::vector<uint16_t>& indices) {
+GPUBuffer* VulkanRenderer::CreateIndexBuffer(const Vector<uint16_t>& indices) {
 	GPUBuffer* retBuff = this->CreateBuffer(static_cast<const void*>(indices.data()), indices.size() * sizeof(uint16_t), EBufferType::INDEX_BUFFER);
 	return retBuff;
 }
@@ -3112,7 +3112,7 @@ VkSampler VulkanRenderer::CreateSampler() {
 }
 
 /* Checks if texture is registered and returns the index */
-uint32_t VulkanRenderer::GetTextureIndex(std::string& textureName) {
+uint32_t VulkanRenderer::GetTextureIndex(String& textureName) {
 	if (this->m_textureIndices.count(textureName) <= 0) {
 		spdlog::error("VulkanRenderer::GetTextureIndex: Texture {0} not found. Make sure it is registered", textureName);
 		return 0;
@@ -3126,7 +3126,7 @@ uint32_t VulkanRenderer::GetTextureIndex(std::string& textureName) {
 	and loaded textures vector and writes to the 
 	global texture descriptor set 
 */
-uint32_t VulkanRenderer::RegisterTexture(const std::string& textureName, GPUTexture* pTexture) {
+uint32_t VulkanRenderer::RegisterTexture(const String& textureName, GPUTexture* pTexture) {
 	VulkanTexture* texture = dynamic_cast<VulkanTexture*>(pTexture);
 	if (texture == nullptr) {
 		spdlog::error("VulkanRenderer::RegisterTexture: Specified GPUTexture is not a Vulkan texture");
@@ -3172,7 +3172,7 @@ uint32_t VulkanRenderer::RegisterTexture(const std::string& textureName, GPUText
 	Loads EXR cubemap and creates 
 	a GPUTexture with the Cubemap texture type 
 */
-GPUTexture* VulkanRenderer::CreateCubemap(const std::string filePath, ECubemapLayout layout) {
+GPUTexture* VulkanRenderer::CreateCubemap(const String filePath, ECubemapLayout layout) {
 	/* Load EXR with TinyEXR */
 	float* pRGBA = nullptr;
 	int nWidth, nHeight;
@@ -3204,7 +3204,7 @@ GPUTexture* VulkanRenderer::CreateCubemap(const std::string filePath, ECubemapLa
 	/* Extract 6 faces on a buffer */
 	uint32_t nFaceSize = nFaceWidth * nFaceHeight * 4 * sizeof(float); // Width * height * 4 channels * size of float.
 	uint32_t nTotalSize = nFaceSize * 6;
-	std::vector<float> extractedData(nTotalSize / sizeof(float));
+	Vector<float> extractedData(nTotalSize / sizeof(float));
 
 	this->ExtractCubemapFaces(pRGBA, nWidth, nHeight, extractedData.data(), nFaceWidth, nFaceHeight, layout);
 	free(pRGBA); // We don't need the original EXR.
@@ -3252,7 +3252,7 @@ GPUTexture* VulkanRenderer::CreateCubemap(const std::string filePath, ECubemapLa
 	/* Copy from our staging buffer to our image */
 	VkCommandBuffer cmdBuff = this->BeginSingleTimeCommandBuffer();
 
-	std::vector<VkBufferImageCopy> regions(6);
+	Vector<VkBufferImageCopy> regions(6);
 	for (uint32_t i = 0; i < 6; i++) {
 		regions[i].bufferOffset = i * nFaceSize;
 		regions[i].bufferRowLength = 0;
@@ -3661,7 +3661,7 @@ QueueFamilyIndices VulkanRenderer::FindQueueFamilies(VkPhysicalDevice device) {
 	vkGetPhysicalDeviceQueueFamilyProperties(device, &nQueueFamilyCount, nullptr);
 
 	/* Store physical device queue family properties on a vector */
-	std::vector<VkQueueFamilyProperties> queueFamilies(nQueueFamilyCount);
+	Vector<VkQueueFamilyProperties> queueFamilies(nQueueFamilyCount);
 	vkGetPhysicalDeviceQueueFamilyProperties(device, &nQueueFamilyCount, queueFamilies.data());
 
 	int i = 0;
@@ -3696,11 +3696,11 @@ bool VulkanRenderer::CheckDeviceExtensionSupport(VkPhysicalDevice device) {
 	vkEnumerateDeviceExtensionProperties(device, nullptr, &nExtensionCount, nullptr);
 
 	/* Store device extensions to a vector */
-	std::vector<VkExtensionProperties> extensions(nExtensionCount);
+	Vector<VkExtensionProperties> extensions(nExtensionCount);
 	vkEnumerateDeviceExtensionProperties(device, nullptr, &nExtensionCount, extensions.data());
 
 	/* Make a copy of the 'deviceExtensions' vector to a set */
-	std::set<std::string> requiredExtensions(deviceExtensions.begin(), deviceExtensions.end());
+	std::set<String> requiredExtensions(deviceExtensions.begin(), deviceExtensions.end());
 
 	/* 
 		If extension is on required extensions list, remove it.
@@ -3744,13 +3744,13 @@ SwapChainSupportDetails VulkanRenderer::QuerySwapChainSupport(VkPhysicalDevice d
 }
 
 /* Get required extensions */
-std::vector<const char*> VulkanRenderer::GetRequiredExtensions() {
+Vector<const char*> VulkanRenderer::GetRequiredExtensions() {
 	/* Enum GLFW extensions */
 	uint32_t nGlfwExtensions = 0;
 	const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&nGlfwExtensions);
 
 	/* Store GLFW extensions on a vector */
-	std::vector<const char*> extensions(glfwExtensions, glfwExtensions + nGlfwExtensions);
+	Vector<const char*> extensions(glfwExtensions, glfwExtensions + nGlfwExtensions);
 
 	if (this->m_bEnableValidationLayers) {
 		extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
@@ -3783,7 +3783,7 @@ bool VulkanRenderer::CheckValidationLayersSupport() {
 	vkEnumerateInstanceLayerProperties(&nLayerCount, nullptr);
 
 	/* Store instance layer properties on a vector */
-	std::vector<VkLayerProperties> availableLayers(nLayerCount);
+	Vector<VkLayerProperties> availableLayers(nLayerCount);
 	vkEnumerateInstanceLayerProperties(&nLayerCount, availableLayers.data());
 
 	/* Check if validation layer is available */

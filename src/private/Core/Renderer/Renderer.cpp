@@ -13,13 +13,13 @@ GPUBuffer* Renderer::CreateVertexBufferRaw(const void* pData, uint32_t nCount, u
 	return this->CreateBuffer(pData, nCount * nStride, EBufferType::VERTEX_BUFFER);
 }
 
-GPUBuffer* Renderer::CreateIndexBuffer(const std::vector<uint16_t>& indices) { return nullptr; }
+GPUBuffer* Renderer::CreateIndexBuffer(const Vector<uint16_t>& indices) { return nullptr; }
 
 GPUBuffer* Renderer::CreateStagingBuffer(void* pData, uint32_t nSize) { return nullptr; }
 
 GPUTexture* Renderer::CreateTexture(GPUBuffer* pBuffer, uint32_t nWidth, uint32_t nHeight, GPUFormat format) { return nullptr; }
 
-GPUTexture* Renderer::CreateCubemap(const std::string filePath, ECubemapLayout layout) { return nullptr; }
+GPUTexture* Renderer::CreateCubemap(const String filePath, ECubemapLayout layout) { return nullptr; }
 
 void Renderer::ExtractCubemapFaces(
     const float* pcSrcRGBA,

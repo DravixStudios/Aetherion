@@ -1,6 +1,6 @@
 #include "Core/Camera/Camera.h"
 
-Camera::Camera(std::string name) {
+Camera::Camera(String name) {
 	this->m_name = name;
 	this->transform.location = { 0.f, 0.f, 0.f };
 	this->transform.rotation = { 0.f, 0.f, 0.f };

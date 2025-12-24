@@ -18,7 +18,7 @@ void SceneManager::AddScene(Scene* scene) {
 }
 
 /* Get scene by name */
-Scene* SceneManager::GetScene(std::string name) {
+Scene* SceneManager::GetScene(String name) {
 	if (!this->SceneExists(name)) {
 		spdlog::error("SceneManager::GetScene: Scene with name {0} not found", name);
 		return nullptr;
@@ -28,7 +28,7 @@ Scene* SceneManager::GetScene(std::string name) {
 }
 
 /* Check if the scene actually exists */
-bool SceneManager::SceneExists(std::string name) {
+bool SceneManager::SceneExists(String name) {
 	return this->m_scenes.count(name) > 0;
 }
 

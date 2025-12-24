@@ -1,12 +1,12 @@
 #include "Core/Scene/Scene.h"
 
-Scene::Scene(std::string name) {
+Scene::Scene(String name) {
 	this->m_name = name;
 	this->currentCamera = new EditorCamera("EditorCamera");
 }
 
 void Scene::AddObject(GameObject* object) {
-	std::string objName = object->GetName();
+	String objName = object->GetName();
 
 	if (this->m_gameObjects.count(this->m_name) > 0) {
 		spdlog::error("Scene::AddGameObject: GameObject with name {0} already exists", objName);
@@ -20,19 +20,19 @@ Camera* Scene::GetCurrentCamera() {
 	return this->currentCamera;
 }
 
-std::map<std::string, GameObject*> Scene::GetObjects() {
+std::map<String, GameObject*> Scene::GetObjects() {
 	return this->m_gameObjects;
 }
 
 void Scene::Start() {
-	for (std::pair<std::string, GameObject*> obj : this->m_gameObjects) {
+	for (std::pair<String, GameObject*> obj : this->m_gameObjects) {
 		obj.second->Start();
 	}
 	this->currentCamera->Start();
 }
 
 void Scene::Update() {
-	for (std::pair<std::string, GameObject*> obj : this->m_gameObjects) {
+	for (std::pair<String, GameObject*> obj : this->m_gameObjects) {
 		obj.second->Update();
 	}
 	this->currentCamera->Update();

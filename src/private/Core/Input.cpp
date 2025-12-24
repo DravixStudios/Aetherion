@@ -151,13 +151,13 @@ void Input::MouseButtonCallback(GLFWwindow* pWindow, int nButton, int nAction, i
 }
 
 void Input::Close() {
-	std::vector<char> keysToRemove;
+	Vector<char> keysToRemove;
 	for (std::pair<char, EInputState> key : this->m_keys) {
 		if (key.second == EInputState::RELEASED)
 			keysToRemove.push_back(key.first);
 	}
 
-	std::vector<EMouseButton> buttonsToRemove;
+	Vector<EMouseButton> buttonsToRemove;
 	for (std::pair<EMouseButton, EInputState> button : this->m_buttons) {
 		if (button.second == EInputState::RELEASED)
 			buttonsToRemove.push_back(button.first);

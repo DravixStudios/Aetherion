@@ -1,6 +1,6 @@
 #include "Core/Camera/EditorCamera.h"
 
-EditorCamera::EditorCamera(std::string name) : Camera::Camera(name) {
+EditorCamera::EditorCamera(String name) : Camera::Camera(name) {
 	this->m_input = Input::GetInstance();
 	this->m_pitch = 0.f;
 	this->m_yaw = 0.f;
