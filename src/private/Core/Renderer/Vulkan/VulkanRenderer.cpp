@@ -963,6 +963,21 @@ void VulkanRenderer::CreateSkyboxRenderPass() {
 	spdlog::debug("VulkanRenderer::CreateSkyboxRenderPass: Skybox render pass created");
 }
 
+/* Create irradiance render pass */
+void VulkanRenderer::CreateIrradianceRenderPass() {
+
+}
+
+/* Create prefilter render pass */
+void VulkanRenderer::CreatePrefilterRenderPass() {
+
+}
+
+/* Create BRDF render pass */
+void VulkanRenderer::CreateBRDFRenderPass() {
+
+}
+
 /* Command pool creation */
 void VulkanRenderer::CreateCommandPool() {
 	QueueFamilyIndices indices = FindQueueFamilies(this->m_physicalDevice);
@@ -1227,6 +1242,39 @@ void VulkanRenderer::CreateLightingResources() {
 
 	this->m_sqVBO = vbo;
 	this->m_sqIBO = ibo;
+}
+
+/* Creates a cube mesh for IBL */
+void VulkanRenderer::CreateCubeMesh() {
+	/* Vertices of a centered cube */
+	Vector<glm::vec3> vertices = {
+		// Back face
+		{ -1.f, -1.f, -1.f }, { 1.f, -1.f, -1.f }, { 1.f, 1.f, -1.f }, { -1.f, 1.f, -1.f },
+		// Front face
+		{ -1.f, -1.f, 1.f }, { 1.f, -1.f, 1.f }, { 1.f, 1.f, 1.f }, { -1.f, 1.f, 1.f  },
+		// Left face
+		{ -1.f, -1.f, -1.f }, { -1.f, -1.f, 1.f }, { -1.f, 1.f, 1.f }, { -1.f, 1.f, -1.f },
+		// Right face
+		{ 1.f, -1.f, -1.f }, { 1.f, -1.f, 1.f }, { 1.f, 1.f, 1.f }, { 1.f, 1.f, -1.f },
+		// Bottom face
+		{ -1.f, -1.f, -1.f }, { 1.f, -1.f, -1.f }, { 1.f, -1.f, 1.f }, { -1.f, -1.f, 1.f },
+		// Top Face
+		{ -1.f, 1.f, -1.f }, { 1.f, 0.f, -1.f }, { 1.f, 1.f, 1.f }, { -1.f, 1.f, 1.f }
+	};
+
+	Vector<uint16_t> indices = {
+		0, 1, 2, 2, 3, 0, // Back
+		4, 5, 6, 6, 7, 4, // Front
+		8, 9, 10, 10, 11, 8, // Left
+		12, 13, 14, 14, 15, 12, // Right
+		16, 17, 18, 18, 19, 16, // Bottom
+		20, 21, 22, 22, 23, 20 // Top
+	};
+
+	this->m_cubeVBO = this->CreateVertexBuffer(vertices);
+	this->m_cubeIBO = this->CreateIndexBuffer(indices);
+
+	spdlog::debug("VulkanRenderer::CreateCubeMesh: IBL Cube mesh created");
 }
 
 /*
