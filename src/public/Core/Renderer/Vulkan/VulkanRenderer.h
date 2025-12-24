@@ -89,6 +89,10 @@ private:
 	GPUBuffer* m_sqVBO;
 	GPUBuffer* m_sqIBO;
 
+	/* IBL Resources */
+	GPUBuffer* m_cubeVBO;
+	GPUBuffer* m_cubeIBO;
+
 	/* Command pool and buffers */
 	VkCommandPool m_commandPool;
 	Vector<VkCommandBuffer> m_commandBuffers;
@@ -105,6 +109,19 @@ private:
 
 	VkPipelineLayout m_skyboxPipelineLayout;
 	VkPipeline m_skyboxPipeline;
+
+	/* IBL Generation Pipelines */
+	VkPipelineLayout m_irradiancePipelinelayout;
+	VkPipeline m_irradiancePipeline;
+	VkRenderPass m_irradianceRenderPass;
+
+	VkPipelineLayout m_prefilterPipelineLayout;
+	VkPipeline m_m_prefilterPipeline;
+	VkRenderPass m_prefilterRenderPass;
+
+	VkPipelineLayout m_brdfPipelineLayout;
+	VkPipeline m_brdfPipeline;
+	VkRenderPass m_brdfRenderPass;
 
 	VkViewport m_viewport;
 	VkRect2D m_scissor;
@@ -182,6 +199,10 @@ private:
 	void CreateGeometryRenderPass();
 	void CreateLightingRenderPass();
 	void CreateSkyboxRenderPass();
+	void CreateIrradianceRenderPass();
+	void CreatePrefilterRenderPass();
+	void CreateBRDFRenderPass();
+	void CreateCubeMesh();
 	void CreateCommandPool();
 	void CreateGBufferResources();
 	void CreateDepthResources();
