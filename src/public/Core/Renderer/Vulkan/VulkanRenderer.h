@@ -193,6 +193,7 @@ private:
 	void AllocateSkyboxDescriptorSets();
 	void WriteDescriptorSets();
 	void WriteLightDescriptorSets();
+	void WriteSkyboxDescriptorSets();
 	void CreateCommandBuffer();
 	VkPipeline CreateGraphicsPipeline(
 		const std::string& vertPath,

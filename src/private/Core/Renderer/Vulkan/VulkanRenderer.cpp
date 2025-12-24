@@ -1663,6 +1663,42 @@ void VulkanRenderer::WriteLightDescriptorSets() {
 	spdlog::debug("VulkanRenderer::WriteLightDescriptorSets: Lighting descriptor sets written");
 }
 
+/*
+	Write our skybox descriptor sets
+	
+	TODO: Make this function able to change skyboxes dynamically.
+*/
+void VulkanRenderer::WriteSkyboxDescriptorSets() {
+	/* 
+		Get our skybox VulkanTexture
+		TODO: Select skybox from current scene.
+	*/
+	VulkanTexture* vkSkybox = dynamic_cast<VulkanTexture*>(this->m_skybox);
+	VkImageView skyboxView = vkSkybox->GetImageView();
+	VkSampler skyboxSampler = vkSkybox->GetSampler();
+
+	/* Descriptor image info */
+	VkDescriptorImageInfo skyboxInfo = { };
+	skyboxInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	skyboxInfo.imageView = skyboxView;
+	skyboxInfo.sampler = skyboxSampler;
+	
+	for (uint32_t i = 0; i < this->m_skyboxDescriptorSets.size(); i++) {
+		VkWriteDescriptorSet descriptorWrite = { };
+		descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrite.dstSet = this->m_skyboxDescriptorSets[i];
+		descriptorWrite.dstBinding = 0;
+		descriptorWrite.dstArrayElement = 0;
+		descriptorWrite.pImageInfo = &skyboxInfo;
+		descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		descriptorWrite.descriptorCount = 1;
+
+		vkUpdateDescriptorSets(this->m_device, 1, &descriptorWrite, 0, nullptr);
+	}
+
+	spdlog::debug("VulkanRenderer::WriteSkyboxDescriptorSets: Skybox descriptor sets written");
+}
+
 void VulkanRenderer::CreateCommandBuffer() {
 	this->m_commandBuffers.resize(this->m_nImageCount);
 
