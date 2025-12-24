@@ -2440,6 +2440,287 @@ void VulkanRenderer::CreateSkyboxPipeline() {
 	);
 }
 
+void VulkanRenderer::CreateIrradiancePipeline() {
+	/* Vertex input (only position) */
+	VkVertexInputBindingDescription bindingDesc = { };
+	bindingDesc.binding = 0;
+	bindingDesc.stride = sizeof(glm::vec3);
+	bindingDesc.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+	/* Vertex input attribute */
+	VkVertexInputAttributeDescription attrib = { };
+	attrib.binding = 0;
+	attrib.location = 0;
+	attrib.format = VK_FORMAT_R32G32B32_SFLOAT;
+	attrib.offset = 0;
+
+	/* Vertex input state create info */
+	VkPipelineVertexInputStateCreateInfo vertexInfo = { };
+	vertexInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+	vertexInfo.vertexBindingDescriptionCount = 1;
+	vertexInfo.pVertexBindingDescriptions = &bindingDesc;
+	vertexInfo.vertexAttributeDescriptionCount = 1;
+	vertexInfo.pVertexAttributeDescriptions = &attrib;
+
+	/* Rasterizer */
+	VkPipelineRasterizationStateCreateInfo rasterizer = { };
+	rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+	rasterizer.cullMode = VK_CULL_MODE_NONE;
+	rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+	rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
+	rasterizer.lineWidth = 1.f;
+
+	/* Multisampling */
+	VkPipelineMultisampleStateCreateInfo multisampling = { };
+	multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+	multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+
+	/* Color blend */
+	VkPipelineColorBlendAttachmentState colorBlend = { };
+	colorBlend.blendEnable = VK_FALSE;
+	colorBlend.colorWriteMask =
+		VK_COLOR_COMPONENT_R_BIT |
+		VK_COLOR_COMPONENT_G_BIT |
+		VK_COLOR_COMPONENT_B_BIT |
+		VK_COLOR_COMPONENT_A_BIT;
+
+	VkPipelineColorBlendStateCreateInfo blendState = { };
+	blendState.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+	blendState.attachmentCount = 1;
+	blendState.pAttachments = &colorBlend;
+
+	/* Depth stencil */
+	VkPipelineDepthStencilStateCreateInfo depthStencil = { };
+	depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+	depthStencil.depthTestEnable = VK_FALSE;
+	depthStencil.depthWriteEnable = VK_FALSE;
+	depthStencil.stencilTestEnable = VK_FALSE;
+
+	/* 
+		Descriptor set layout (for skybox cubemap) 
+
+		Note: We create it here because it's unnecessary
+		creating a new method only for initializing this
+		descriptor set layout
+	*/
+	VkDescriptorSetLayoutBinding samplerBinding = { };
+	samplerBinding.binding = 0;
+	samplerBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	samplerBinding.descriptorCount = 1;
+	samplerBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+	VkDescriptorSetLayoutCreateInfo layoutInfo = { };
+	layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+	layoutInfo.bindingCount = 1;
+	layoutInfo.pBindings = &samplerBinding;
+
+	vkCreateDescriptorSetLayout(this->m_device, &layoutInfo, nullptr, &this->m_irradianceDescriptorSetLayout);
+
+	/* Push constants (View + Projection) */
+	VkPushConstantRange pushRange = { };
+	pushRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+	pushRange.offset = 0;
+	pushRange.size = sizeof(glm::mat4) * 2; // View + Projection
+
+	this->m_irradiancePipeline = this->CreateGraphicsPipeline(
+		"IrradianceConvolution.vert",
+		"IrradianceConvolution.frag",
+		this->m_irradianceRenderPass,
+		&this->m_irradianceDescriptorSetLayout, 1,
+		vertexInfo,
+		rasterizer,
+		multisampling,
+		depthStencil,
+		blendState,
+		&this->m_irradiancePipelinelayout,
+		&pushRange, 1
+	);
+
+	spdlog::debug("VulkanRenderer::CreateIrradiancePipeline: Irradiance pipeline created");
+}
+
+/* Create prefilter pipeline (same as irradiance but with bigger push range. View + Projection + Roughness) */
+void VulkanRenderer::CreatePrefilterPipeline() {
+	/* Vertex input (only position) */
+	VkVertexInputBindingDescription bindingDesc = { };
+	bindingDesc.binding = 0;
+	bindingDesc.stride = sizeof(glm::vec3);
+	bindingDesc.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+	/* Vertex input attribute */
+	VkVertexInputAttributeDescription attrib = { };
+	attrib.binding = 0;
+	attrib.location = 0;
+	attrib.format = VK_FORMAT_R32G32B32_SFLOAT;
+	attrib.offset = 0;
+
+	/* Vertex input state create info */
+	VkPipelineVertexInputStateCreateInfo vertexInfo = { };
+	vertexInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+	vertexInfo.vertexBindingDescriptionCount = 1;
+	vertexInfo.pVertexBindingDescriptions = &bindingDesc;
+	vertexInfo.vertexAttributeDescriptionCount = 1;
+	vertexInfo.pVertexAttributeDescriptions = &attrib;
+
+	/* Rasterizer */
+	VkPipelineRasterizationStateCreateInfo rasterizer = { };
+	rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+	rasterizer.cullMode = VK_CULL_MODE_NONE;
+	rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+	rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
+	rasterizer.lineWidth = 1.f;
+
+	/* Multisampling */
+	VkPipelineMultisampleStateCreateInfo multisampling = { };
+	multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+	multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+
+	/* Color blend */
+	VkPipelineColorBlendAttachmentState colorBlend = { };
+	colorBlend.blendEnable = VK_FALSE;
+	colorBlend.colorWriteMask =
+		VK_COLOR_COMPONENT_R_BIT |
+		VK_COLOR_COMPONENT_G_BIT |
+		VK_COLOR_COMPONENT_B_BIT |
+		VK_COLOR_COMPONENT_A_BIT;
+
+	VkPipelineColorBlendStateCreateInfo blendState = { };
+	blendState.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+	blendState.attachmentCount = 1;
+	blendState.pAttachments = &colorBlend;
+
+	/* Depth stencil */
+	VkPipelineDepthStencilStateCreateInfo depthStencil = { };
+	depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+	depthStencil.depthTestEnable = VK_FALSE;
+	depthStencil.depthWriteEnable = VK_FALSE;
+	depthStencil.stencilTestEnable = VK_FALSE;
+
+	VkDescriptorSetLayoutBinding samplerBinding = { };
+	samplerBinding.binding = 0;
+	samplerBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	samplerBinding.descriptorCount = 1;
+	samplerBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+	VkDescriptorSetLayoutCreateInfo layoutInfo = { };
+	layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+	layoutInfo.bindingCount = 1;
+	layoutInfo.pBindings = &samplerBinding;
+
+	vkCreateDescriptorSetLayout(this->m_device, &layoutInfo, nullptr, &this->m_prefilterDescriptorSetLayout);
+
+	/* Push constants (View + Projection + Roughness) */
+	VkPushConstantRange pushRange = { };
+	pushRange.stageFlags = VK_SHADER_STAGE_ALL;
+	pushRange.offset = 0;
+	pushRange.size = sizeof(glm::mat4) * 2 + sizeof(float); // View + Projection + Roughness
+
+	this->m_pipeline = this->CreateGraphicsPipeline(
+		"PrefilterEnvMap.vert",
+		"PrefilterEnvMap.frag",
+		this->m_prefilterRenderPass,
+		&this->m_prefilterDescriptorSetLayout, 1,
+		vertexInfo,
+		rasterizer,
+		multisampling,
+		depthStencil,
+		blendState,
+		&this->m_prefilterPipelineLayout,
+		&pushRange, 1
+	);
+
+	spdlog::debug("VulkanRenderer::CreatePrefilterPipeline: Prefilter pipeline created");
+}
+
+/* 
+	Create BRDF Pipeline
+	Note: Uses a screen quad (same as lighting pass) 
+*/
+void VulkanRenderer::CreateBRDFPipeline() {
+	/* Input binding */
+	VkVertexInputBindingDescription bindingDesc = { };
+	bindingDesc.binding = 0;
+	bindingDesc.stride = sizeof(ScreenQuadVertex);
+	bindingDesc.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+	VkVertexInputAttributeDescription attribs[2] = {};
+	attribs[0].binding = 0;
+	attribs[0].location = 0;
+	attribs[0].format = VK_FORMAT_R32G32B32_SFLOAT;
+	attribs[0].offset = offsetof(ScreenQuadVertex, position);
+
+	attribs[1].binding = 0;
+	attribs[1].location = 1;
+	attribs[1].format = VK_FORMAT_R32G32_SFLOAT;
+	attribs[1].offset = offsetof(ScreenQuadVertex, texCoord);
+
+	/* Pipeline vertex input state create info */
+	VkPipelineVertexInputStateCreateInfo vertexInfo = { };
+	vertexInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+	vertexInfo.pVertexBindingDescriptions = &bindingDesc;
+	vertexInfo.vertexBindingDescriptionCount = 1;
+	vertexInfo.pVertexAttributeDescriptions = attribs;
+	vertexInfo.vertexAttributeDescriptionCount = 2;
+
+	/* Input assembly create info */
+	VkPipelineInputAssemblyStateCreateInfo inputInfo = { };
+	inputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+	inputInfo.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+
+	/* Rasterizer */
+	VkPipelineRasterizationStateCreateInfo rasterizer = { };
+	rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+	rasterizer.cullMode = VK_CULL_MODE_NONE;
+	rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+	rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
+	rasterizer.lineWidth = 1.f;
+
+	/* Multisampling */
+	VkPipelineMultisampleStateCreateInfo multisampling = { };
+	multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+	multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+	multisampling.sampleShadingEnable = VK_FALSE;
+
+	/* Color blend */
+	VkPipelineColorBlendAttachmentState colorBlend = { };
+	colorBlend.blendEnable = VK_FALSE;
+	colorBlend.colorWriteMask =
+		VK_COLOR_COMPONENT_R_BIT |
+		VK_COLOR_COMPONENT_G_BIT |
+		VK_COLOR_COMPONENT_B_BIT |
+		VK_COLOR_COMPONENT_A_BIT;
+
+	VkPipelineColorBlendStateCreateInfo blendState = { };
+	blendState.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+	blendState.pAttachments = &colorBlend;
+	blendState.attachmentCount = 1;
+	blendState.logicOpEnable = VK_FALSE;
+
+	/* Pipeline depth stencil state create info */
+	VkPipelineDepthStencilStateCreateInfo depthStencil = { };
+	depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+	depthStencil.depthTestEnable = VK_FALSE;
+	depthStencil.depthWriteEnable = VK_FALSE;
+	depthStencil.depthBoundsTestEnable = VK_FALSE;
+	depthStencil.depthCompareOp = VK_COMPARE_OP_NEVER;
+	depthStencil.stencilTestEnable = VK_FALSE;
+
+	this->m_brdfPipeline = this->CreateGraphicsPipeline(
+		"BRDFIntegration.vert",
+		"BRDFIntegration.frag",
+		this->m_brdfRenderPass,
+		nullptr, 0,
+		vertexInfo,
+		rasterizer,
+		multisampling,
+		depthStencil,
+		blendState,
+		&this->m_brdfPipelineLayout
+	);
+
+	spdlog::debug("VulkanRenderer::CreateBRDFPipeline: BRDF pipeline created");
+}
+
 /* Creation of our sync objects */
 void VulkanRenderer::CreateSyncObjects() {
 	this->m_imageAvailableSemaphores.resize(this->m_nImageCount);
