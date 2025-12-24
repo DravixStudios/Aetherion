@@ -1428,21 +1428,29 @@ void VulkanRenderer::CreateLightingDescriptorSetLayout() {
 	Creates our descriptor set layout for our skybox pass
 */
 void VulkanRenderer::CreateSkyboxDescriptorSetLayout() {
-	/* Texture sampler binding */
-	VkDescriptorSetLayoutBinding samplerBinding = { };
-	samplerBinding.binding = 0;
-	samplerBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	samplerBinding.descriptorCount = 1;
-	samplerBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-	samplerBinding.pImmutableSamplers = nullptr;
+	/* Cubemap sampler binding */
+	VkDescriptorSetLayoutBinding cubemapBinding = { };
+	cubemapBinding.binding = 0;
+	cubemapBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	cubemapBinding.descriptorCount = 1;
+	cubemapBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+	cubemapBinding.pImmutableSamplers = nullptr;
 
-	VkDescriptorSetLayoutBinding bindings[] = { samplerBinding };
+	/* Depth sampler binding */
+	VkDescriptorSetLayoutBinding depthBinding = { };
+	depthBinding.binding = 1;
+	depthBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	depthBinding.descriptorCount = 1;
+	depthBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+	depthBinding.pImmutableSamplers = nullptr;
+
+	VkDescriptorSetLayoutBinding bindings[] = { cubemapBinding, depthBinding };
 
 	/* Descriptor set layout create info */
 	VkDescriptorSetLayoutCreateInfo createInfo = { };
 	createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 	createInfo.pBindings = bindings;
-	createInfo.bindingCount = 1;
+	createInfo.bindingCount = 2;
 
 	if (vkCreateDescriptorSetLayout(this->m_device, &createInfo, nullptr, &this->m_skyboxDescriptorSetLayout) != VK_SUCCESS) {
 		spdlog::error("VulkanRenderer::CreateSkyboxDescriptorSetLayout: Failed creating skybox descriptor set layout");
@@ -1532,7 +1540,7 @@ void VulkanRenderer::CreateSkyboxDescriptorPool() {
 	/* Define our descriptor pool size */
 	VkDescriptorPoolSize poolSize = { };
 	poolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	poolSize.descriptorCount = this->m_nImageCount;
+	poolSize.descriptorCount = 2 * this->m_nImageCount;
 
 	/* Descriptor pool create info */
 	VkDescriptorPoolCreateInfo createInfo = { };
@@ -1769,18 +1777,34 @@ void VulkanRenderer::WriteSkyboxDescriptorSets() {
 	skyboxInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 	skyboxInfo.imageView = skyboxView;
 	skyboxInfo.sampler = skyboxSampler;
+
+	VkDescriptorImageInfo depthInfo = { };
+	depthInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	depthInfo.imageView = this->m_depthResolveImageView;
+	depthInfo.sampler = this->m_depthSampler;
 	
 	for (uint32_t i = 0; i < this->m_skyboxDescriptorSets.size(); i++) {
-		VkWriteDescriptorSet descriptorWrite = { };
-		descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		descriptorWrite.dstSet = this->m_skyboxDescriptorSets[i];
-		descriptorWrite.dstBinding = 0;
-		descriptorWrite.dstArrayElement = 0;
-		descriptorWrite.pImageInfo = &skyboxInfo;
-		descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		descriptorWrite.descriptorCount = 1;
+		VkWriteDescriptorSet descriptorWrites[2] = { };
 
-		vkUpdateDescriptorSets(this->m_device, 1, &descriptorWrite, 0, nullptr);
+		/* Cubemap */
+		descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrites[0].dstSet = this->m_skyboxDescriptorSets[i];
+		descriptorWrites[0].dstBinding = 0;
+		descriptorWrites[0].dstArrayElement = 0;
+		descriptorWrites[0].pImageInfo = &skyboxInfo;
+		descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		descriptorWrites[0].descriptorCount = 1;
+
+		/* Depth buffer */
+		descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrites[1].dstSet = this->m_skyboxDescriptorSets[i];
+		descriptorWrites[1].dstBinding = 1;
+		descriptorWrites[1].dstArrayElement = 0;
+		descriptorWrites[1].pImageInfo = &depthInfo;
+		descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		descriptorWrites[1].descriptorCount = 1;
+
+		vkUpdateDescriptorSets(this->m_device, 2, descriptorWrites, 0, nullptr);
 	}
 
 	spdlog::debug("VulkanRenderer::WriteSkyboxDescriptorSets: Skybox descriptor sets written");
