@@ -49,7 +49,7 @@ public:
         uint32_t nHeight,
         GPUFormat format
     );
-    virtual GPUTexture* CreateCubemap(const std::string filePath, ECubemapLayout layout = HORIZONTAL_CROSS);
+    virtual GPUTexture* CreateCubemap(const String filePath, ECubemapLayout layout = HORIZONTAL_CROSS);
     virtual void ExtractCubemapFaces(
         const float* pcSrcRGBA, 
         int nSrcWidth, 

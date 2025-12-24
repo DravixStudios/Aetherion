@@ -203,8 +203,8 @@ private:
 	void WriteSkyboxDescriptorSets();
 	void CreateCommandBuffer();
 	VkPipeline CreateGraphicsPipeline(
-		const std::string& vertPath,
-		const std::string& pixelPath,
+		const String& vertPath,
+		const String& pixelPath,
 		VkRenderPass renderPass,
 		VkDescriptorSetLayout* setLayouts,
 		uint32_t nSetLayoutCount,
@@ -261,10 +261,10 @@ public:
 	VkImageView CreateImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
 	VkSampler CreateSampler();
 
-	uint32_t GetTextureIndex(std::string& textureName);
-	uint32_t RegisterTexture(const std::string& textureName, GPUTexture* pTexture);
+	uint32_t GetTextureIndex(String& textureName);
+	uint32_t RegisterTexture(const String& textureName, GPUTexture* pTexture);
 	
-	GPUTexture* CreateCubemap(const std::string filePath, ECubemapLayout layout = HORIZONTAL_CROSS) override;
+	GPUTexture* CreateCubemap(const String filePath, ECubemapLayout layout = HORIZONTAL_CROSS) override;
 	void ExtractCubemapFaces(
 		const float* pcSrcRGBA,
 		int nSrcWidth,
@@ -278,8 +278,8 @@ public:
 	bool DrawVertexBuffer(GPUBuffer* buffer) override;
 	bool DrawIndexBuffer(GPUBuffer* vbo, GPUBuffer* ibo) override;
 private:
-	std::vector<GPUTexture*> m_loadedTextures;
-	std::map<std::string, uint32_t> m_textureIndices;
+	Vector<GPUTexture*> m_loadedTextures;
+	std::map<String, uint32_t> m_textureIndices;
 
 	/* TODO: Remove this */
 	GPUTexture* m_skybox;

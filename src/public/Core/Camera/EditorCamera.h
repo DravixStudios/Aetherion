@@ -4,7 +4,7 @@
 
 class EditorCamera : public Camera {
 public:
-	EditorCamera(std::string name);
+	EditorCamera(String name);
 
 	void Start() override;
 	void Update() override;

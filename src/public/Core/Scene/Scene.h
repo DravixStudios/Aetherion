@@ -10,10 +10,10 @@
 class Scene {
 	friend class SceneManager;
 public:
-	Scene(std::string name);
+	Scene(String name);
 
 	void AddObject(GameObject* object);
-	std::map<std::string, GameObject*> GetObjects();
+	std::map<String, GameObject*> GetObjects();
 
 	Camera* GetCurrentCamera();
 
@@ -21,10 +21,10 @@ public:
 	void Update();
 
 private:
-	std::string m_name;
+	String m_name;
 
-	std::map<std::string, GameObject*> m_gameObjects;
+	std::map<String, GameObject*> m_gameObjects;
 
 	Camera* currentCamera;
-	std::map<std::string, Camera*> m_cameras;
+	std::map<String, Camera*> m_cameras;
 };

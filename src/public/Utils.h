@@ -12,6 +12,7 @@
     #include <unistd.h>
 #endif
 
+#include "Core/Containers.h" 
 
 struct Vertex {
 	glm::vec3 position;
@@ -30,7 +31,7 @@ struct WVP {
 	glm::mat4 Projection;
 };
 
-inline std::string GetExecutableDir() {
+inline String GetExecutableDir() {
     char buffer[4096];
 
 #if defined(_WIN32)

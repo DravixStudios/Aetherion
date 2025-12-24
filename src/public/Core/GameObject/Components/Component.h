@@ -1,12 +1,13 @@
 #pragma once
 #include <iostream>
+#include "Core/Containers.h" 
 
 class Component {
 public:
-	Component(std::string name);
+	Component(String name);
 
 	virtual void Start();
 	virtual void Update();
 protected:
-	std::string m_name;
+	String m_name;
 };

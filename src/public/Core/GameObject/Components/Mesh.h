@@ -3,7 +3,6 @@
 #include "Utils.h"
 #include "Core/Renderer/ResourceManager.h"
 
-#include <vector>
 #include <map>
 
 #include <assimp/scene.h>
@@ -16,12 +15,12 @@ class VulkanRenderer;
 
 class Mesh : public Component {
 public:
-	Mesh(std::string name);
+	Mesh(String name);
 
 	void Start() override;
 	void Update() override;
 
-	bool LoadModel(std::string filePath);
+	bool LoadModel(String filePath);
 	bool HasIndices();
 
 	std::map<uint32_t, GPUBuffer*>& GetVBOs();

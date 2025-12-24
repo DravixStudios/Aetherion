@@ -10,9 +10,9 @@ public:
 	SceneManager();
 
 	void AddScene(Scene* scene);
-	Scene* GetScene(std::string name);
+	Scene* GetScene(String name);
 
-	bool SceneExists(std::string name);
+	bool SceneExists(String name);
 
 	Scene* GetCurrentScene();
 
@@ -22,7 +22,7 @@ public:
 	static SceneManager* GetInstance();
 private:
 	Scene* m_currentScene;
-	std::map<std::string, Scene*> m_scenes;
+	std::map<String, Scene*> m_scenes;
 
 	static SceneManager* m_instance;
 };

@@ -7,16 +7,16 @@
 
 class GameObject {
 public:
-	GameObject(std::string name);
+	GameObject(String name);
 
-	std::string GetName();
+	String GetName();
 
 	virtual void Start();
 	virtual void Update();
-	std::map<std::string, Component*> GetComponents();
-	void AddComponent(std::string name, Component* component);
+	std::map<String, Component*> GetComponents();
+	void AddComponent(String name, Component* component);
 private:
-	std::string m_name;
+	String m_name;
 	
-	std::map<std::string, Component*> m_components;
+	std::map<String, Component*> m_components;
 };
