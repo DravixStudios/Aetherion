@@ -3,7 +3,7 @@
 
 layout(location = 0) in vec3 inPosition;
 
-layout(location = 0) out vec3 outColor;
+layout(location = 0) out vec4 outColor;
 
 layout(set = 0, binding = 0) uniform samplerCube g_environmentMap;
 
@@ -52,7 +52,7 @@ vec3 ImportanceSampleGGX(vec2 Xi, vec3 N, float roughness) {
 }
 
 void main() {
-    vec3 N = normalize(inWorldPos);
+    vec3 N = normalize(inPosition);
     vec3 R = N;
     vec3 V = R;
 
