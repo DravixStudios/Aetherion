@@ -14,7 +14,7 @@ layout(push_constant) uniform PushConstants {
 } pc;
 
 /* 
-    Van Der Corpus sequence
+    Van Der Corput sequence
     Ref: https://holger.dammertz.org/stuff/notes_HammersleyOnHemisphere.html
  */
 float RadicalInverse_VdC(uint bits) {
