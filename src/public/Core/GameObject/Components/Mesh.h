@@ -30,9 +30,9 @@ public:
 	std::map<uint32_t, uint32_t>& GetORMIndices();
 	std::map<uint32_t, uint32_t>& GetEmissiveIndices();
 
-	uint32_t RegisterVulkan(VulkanRenderer* pRenderer, std::string textureName, GPUTexture* gpuTexture);
+	uint32_t RegisterVulkan(VulkanRenderer* pRenderer, String textureName, GPUTexture* gpuTexture);
 
-	std::map<uint32_t, std::vector<Vertex>> m_vertices;
+	std::map<uint32_t, Vector<Vertex>> m_vertices;
 	std::map<uint32_t, GPUBuffer*> m_VBOs;
 	std::map<uint32_t, GPUBuffer*> m_IBOs;
 	std::map<uint32_t, uint32_t> m_textureIndices;

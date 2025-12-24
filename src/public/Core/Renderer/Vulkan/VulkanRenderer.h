@@ -1,7 +1,7 @@
 #pragma once
 #include <iostream>
 #include <cstring>
-#include <vector>
+
 #include <optional>
 #include <set>
 #include <map>
@@ -62,15 +62,15 @@ private:
 	VkSwapchainKHR m_sc;
 	VkExtent2D m_scExtent;
 	VkFormat m_surfaceFormat;
-	std::vector<VkImage> m_scImages;
-	std::vector<VkImageView> m_imageViews;
+	Vector<VkImage> m_scImages;
+	Vector<VkImageView> m_imageViews;
 	uint32_t m_nImageCount;
 
 	/* Framebuffers */
 	VkFramebuffer m_gbufferFramebuffer;
 	VkFramebuffer m_lightingFramebuffer;
-	std::vector<VkFramebuffer> m_scFrameBuffers;
-	std::vector<VkFramebuffer> m_skyboxFrameBuffers;
+	Vector<VkFramebuffer> m_scFrameBuffers;
+	Vector<VkFramebuffer> m_skyboxFrameBuffers;
 
 	/* Render passes */
 	VkRenderPass m_geometryRenderPass;
@@ -91,7 +91,7 @@ private:
 
 	/* Command pool and buffers */
 	VkCommandPool m_commandPool;
-	std::vector<VkCommandBuffer> m_commandBuffers;
+	Vector<VkCommandBuffer> m_commandBuffers;
 
 	/* Pipelines */
 	VkPipelineLayout m_pipelineLayout;
@@ -110,9 +110,9 @@ private:
 	VkRect2D m_scissor;
 
 	/* Sync objects */
-	std::vector<VkSemaphore> m_imageAvailableSemaphores;
-	std::vector<VkSemaphore> m_renderFinishedSemaphores;
-	std::vector<VkFence> m_inFlightFences;
+	Vector<VkSemaphore> m_imageAvailableSemaphores;
+	Vector<VkSemaphore> m_renderFinishedSemaphores;
+	Vector<VkFence> m_inFlightFences;
 
 	uint32_t m_nCurrentFrameIndex;
 
@@ -150,7 +150,7 @@ private:
 	VkSampler m_positionSampler;
 
 	/* Descriptor sets */
-	std::vector<VkDescriptorSet> m_descriptorSets; // One per frame
+	Vector<VkDescriptorSet> m_descriptorSets; // One per frame
 	VkDescriptorSetLayout m_wvpDescriptorSetLayout; // For WVP (dynamic)
 	VkDescriptorSetLayout m_textureDescriptorSetLayout; // For textures (bindless)
 	VkDescriptorPool m_wvpDescriptorPool; 
@@ -159,11 +159,11 @@ private:
 
 	VkDescriptorSetLayout m_lightingDescriptorSetLayout;
 	VkDescriptorPool m_lightingDescriptorPool;
-	std::vector<VkDescriptorSet> m_lightingDescriptorSets;
+	Vector<VkDescriptorSet> m_lightingDescriptorSets;
 
 	VkDescriptorSetLayout m_skyboxDescriptorSetLayout;
 	VkDescriptorPool m_skyboxDescriptorPool;
-	std::vector<VkDescriptorSet> m_skyboxDescriptorSets;
+	Vector<VkDescriptorSet> m_skyboxDescriptorSets;
 
 	uint32_t m_nMaxDescriptorSetSamplers;
 	uint32_t m_nMaxPerStageDescriptorSamplers;
@@ -222,15 +222,15 @@ private:
 	void CreateSkyboxPipeline();
 	void CreateSyncObjects();
 	void RecordCommandBuffer(uint32_t nImageIndex);
-	VkSurfaceFormatKHR ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& formats);
-	VkPresentModeKHR ChooseSwapPresentMode(const std::vector<VkPresentModeKHR>& presentModes);
+	VkSurfaceFormatKHR ChooseSwapSurfaceFormat(const Vector<VkSurfaceFormatKHR>& formats);
+	VkPresentModeKHR ChooseSwapPresentMode(const Vector<VkPresentModeKHR>& presentModes);
 	VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
 
-	std::string ReadShader(const std::string& sFile);
-	std::vector<uint32_t> CompileShader(std::string shader, std::string filename, shaderc_shader_kind kind);
-	VkShaderModule CreateShaderModule(std::vector<uint32_t>& shaderCode);
+	String ReadShader(const String& sFile);
+	Vector<uint32_t> CompileShader(String shader, String filename, shaderc_shader_kind kind);
+	VkShaderModule CreateShaderModule(Vector<uint32_t>& shaderCode);
 
-	VkFormat FindSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags featureFlags);
+	VkFormat FindSupportedFormat(const Vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags featureFlags);
 	VkFormat FindDepthFormat();
 	bool HasStencilComponent(VkFormat format);
 
@@ -250,7 +250,7 @@ public:
 	/* Memory methods */
 	uint32_t FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 	GPUBuffer* CreateBuffer(const void* pData, uint32_t nSize, EBufferType bufferType) override;
-	GPUBuffer* CreateIndexBuffer(const std::vector<uint16_t>& indices) override;
+	GPUBuffer* CreateIndexBuffer(const Vector<uint16_t>& indices) override;
 	GPUBuffer* CreateStagingBuffer(void* pData, uint32_t nSize) override;
 	GPUTexture* CreateTexture(
 		GPUBuffer* pBuffer,
@@ -326,6 +326,6 @@ private:
 	bool CheckValidationLayersSupport();
 
 	/* Extensions */
-	std::vector<const char*> GetRequiredExtensions();
+	Vector<const char*> GetRequiredExtensions();
 	
 };

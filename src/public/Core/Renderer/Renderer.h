@@ -1,6 +1,6 @@
 #pragma once
 #include <iostream>
-#include <vector>
+
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
@@ -9,6 +9,8 @@
 #include "Core/Renderer/GPUBuffer.h"
 #include "Core/Renderer/GPUTexture.h"
 #include "Core/Renderer/GPUFormat.h"
+
+#include "Core/Containers.h"
 
 enum ECubemapLayout {
     HORIZONTAL_CROSS, // 4x3
@@ -29,7 +31,7 @@ public:
     virtual GPUBuffer* CreateBuffer(const void* pData, uint32_t nSize, EBufferType bufferType);
 
     template<typename T>
-    GPUBuffer* CreateVertexBuffer(const std::vector<T>& vertices) {
+    GPUBuffer* CreateVertexBuffer(const Vector<T>& vertices) {
         return this->CreateVertexBufferRaw(
             vertices.data(),
             static_cast<uint32_t>(vertices.size()),
@@ -41,7 +43,7 @@ protected:
     virtual GPUBuffer* CreateVertexBufferRaw(const void* pData, uint32_t nCount, uint32_t nStride);
 
 public:
-    virtual GPUBuffer* CreateIndexBuffer(const std::vector<uint16_t>& indices);
+    virtual GPUBuffer* CreateIndexBuffer(const Vector<uint16_t>& indices);
     virtual GPUBuffer* CreateStagingBuffer(void* pData, uint32_t nSize);
     virtual GPUTexture* CreateTexture(
         GPUBuffer* pBuffer, 
