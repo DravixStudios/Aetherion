@@ -2311,20 +2311,6 @@ void VulkanRenderer::CreateLightingPipeline() {
 		this->m_lightingDescriptorSetLayout
 	};
 
-	/* Pipeline layout create info */
-	VkPipelineLayoutCreateInfo layoutInfo = { };
-	layoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-	layoutInfo.pSetLayouts = setLayouts;
-	layoutInfo.setLayoutCount = 1;
-
-	if (vkCreatePipelineLayout(this->m_device, &layoutInfo, nullptr, &this->m_lightingPipelineLayout) != VK_SUCCESS) {
-		spdlog::error("VulkanRenderer::CreateLightingPipeline: Failed creating lighting pipeline");
-		throw std::runtime_error("VulkanRenderer::CreateLightingPipeline: Failed creating lighting pipeline");
-		return;
-	}
-
-	spdlog::debug("VulkanRenderer::CreateLightingPipeline: Lighting pipeline layout created");
-
 	VkPushConstantRange pushRange = { };
 	pushRange.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 	pushRange.offset = 0;
