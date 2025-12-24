@@ -3269,7 +3269,7 @@ GPUTexture* VulkanRenderer::CreateCubemap(const std::string filePath, ECubemapLa
 
 	this->EndSingleTimeCommandBuffer(cmdBuff);
 
-	this->TransitionImageLayout(cubemapImage, format, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+	this->TransitionImageLayout(cubemapImage, format, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 6);
 	delete stagingBuffer;
 	stagingBuffer = nullptr;
 
