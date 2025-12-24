@@ -116,10 +116,14 @@ void VulkanRenderer::Init() {
 	this->CreateGeometryRenderPass();
 	this->CreateLightingRenderPass();
 	this->CreateSkyboxRenderPass();
+	this->CreateIrradianceRenderPass();
+	this->CreatePrefilterRenderPass();
+	this->CreateBRDFRenderPass();
 	this->CreateCommandPool();
 	this->CreateGBufferResources();
 	this->CreateDepthResources();
 	this->CreateLightingResources();
+	this->CreateCubeMesh();
 	this->CreateGBufferFrameBuffer();
 	this->CreateLightingFrameBuffer();
 	this->CreateSkyboxFrameBuffer();
