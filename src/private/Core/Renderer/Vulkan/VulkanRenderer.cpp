@@ -2349,6 +2349,9 @@ void VulkanRenderer::RecordCommandBuffer(uint32_t nImageIndex) {
 	VkClearValue depthClear = { };
 	depthClear.depthStencil = { 1.f, 0 };
 
+	VkClearValue depthResolveClear = { };
+	depthResolveClear.depthStencil = { 1.f, 0 };
+
 	VkClearValue gbuffClears[] = {
 		albedoClear,
 		normalClear,
@@ -2360,12 +2363,13 @@ void VulkanRenderer::RecordCommandBuffer(uint32_t nImageIndex) {
 		normalResolveClear,
 		ormResolveClear,
 		emissiveResolveClear,
-		positionResolveClear
+		positionResolveClear,
+		depthResolveClear
 	};
 
 	VkRenderPassBeginInfo geometryPassInfo = { };
 	geometryPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-	geometryPassInfo.clearValueCount = 11;
+	geometryPassInfo.clearValueCount = 12;
 	geometryPassInfo.pClearValues = gbuffClears;
 	geometryPassInfo.renderArea.extent = this->m_scExtent;
 	geometryPassInfo.renderArea.offset = { 0, 0 };
@@ -2394,7 +2398,10 @@ void VulkanRenderer::RecordCommandBuffer(uint32_t nImageIndex) {
 		cameraTransform.location.z
 	});
 
+	glm::mat4 projMatrix = glm::perspectiveFovRH(glm::radians(70.f), static_cast<float>(this->m_scExtent.width), static_cast<float>(this->m_scExtent.height), .001f, 300.f);
+
 	this->m_wvp.View = cameraMatrix;
+	this->m_wvp.Projection = projMatrix;
 
 	/* TODO: Change the WVP allocation to 'per-object' data */
 	uint32_t nDynamicOffset = 0;
@@ -2548,6 +2555,53 @@ void VulkanRenderer::RecordCommandBuffer(uint32_t nImageIndex) {
 		return;
 	}
 	
+	vkCmdEndRenderPass(commandBuffer);
+
+	/* Skybox pass */
+	//this->TransitionImageLayout(this->m_depthResolveImage, this->FindDepthFormat(), VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+	VkRenderPassBeginInfo skyboxPassInfo = { };
+	skyboxPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+	skyboxPassInfo.clearValueCount = 0;
+	skyboxPassInfo.pClearValues = nullptr;
+	skyboxPassInfo.renderArea.extent = this->m_scExtent;
+	skyboxPassInfo.renderArea.offset = { 0, 0 };
+	skyboxPassInfo.renderPass = this->m_skyboxRenderPass;
+	skyboxPassInfo.framebuffer = this->m_skyboxFrameBuffers[nImageIndex];
+
+	SkyboxPushConstant skyboxPushConstant = { };
+	skyboxPushConstant.cameraPosition = { cameraTransform.location.x, cameraTransform.location.y, cameraTransform.location.z };
+	skyboxPushConstant.inverseView = glm::affineInverse(cameraMatrix);
+	skyboxPushConstant.inverseProjection = glm::inverse(projMatrix);
+	
+	vkCmdBeginRenderPass(commandBuffer, &skyboxPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+	vkCmdBindDescriptorSets(
+		commandBuffer,
+		VK_PIPELINE_BIND_POINT_GRAPHICS,
+		this->m_skyboxPipelineLayout,
+		0,
+		1,
+		&this->m_skyboxDescriptorSets[nImageIndex],
+		0,
+		nullptr
+	);
+
+	vkCmdPushConstants(
+		commandBuffer,
+		this->m_skyboxPipelineLayout,
+		VK_SHADER_STAGE_FRAGMENT_BIT,
+		0,
+		sizeof(SkyboxPushConstant),
+		&skyboxPushConstant
+	);
+
+	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->m_skyboxPipeline);
+	if (!this->DrawIndexBuffer(this->m_sqVBO, this->m_sqIBO)) {
+		spdlog::error("VulkanRenderer::RecordCommandBuffer: Failed drawing ScreenQuad VBO/IBO (skybox)");
+		throw std::runtime_error("VulkanRenderer::RecordCommandBuffer: Failed drawing ScreenQuad VBO/IBO (skybox)");
+		return;
+	}
+
 	vkCmdEndRenderPass(commandBuffer);
 
 	vkEndCommandBuffer(commandBuffer);
