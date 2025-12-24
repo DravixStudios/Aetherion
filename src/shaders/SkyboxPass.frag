@@ -25,7 +25,7 @@ void main() {
     vec3 dir = normalize(worldPos.xyz - pc.cameraPosition);
 
     float sceneDepth = texture(g_depth, vec2(uv.x, 1.0 - uv.y)).r;
-    if(sceneDepth < 1.0) discard;
+    if(sceneDepth < 1) discard;
 
     vec3 color = texture(g_skybox, dir).rgb;
     finalImage = vec4(color, 1.0);
