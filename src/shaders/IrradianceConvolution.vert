@@ -7,7 +7,7 @@ layout(location = 0) out vec3 outWorldPos;
 layout(push_constant) uniform PushConstants {
     mat4 View;
     mat4 Projection;
-}
+} pc;
 
 void main() {
     outWorldPos = inPosition;
