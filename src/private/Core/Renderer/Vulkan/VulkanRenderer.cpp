@@ -141,6 +141,12 @@ void VulkanRenderer::Init() {
 	this->AllocateSkyboxDescriptorSets();
 	this->WriteDescriptorSets();
 	this->WriteLightDescriptorSets();
+
+	/* Test skybox */
+	this->m_skybox = this->CreateCubemap("cubemap.exr", ECubemapLayout::HORIZONTAL_CROSS); // Create a sample skybox cubemap
+	this->WriteSkyboxDescriptorSets();
+	/* End test skybox */
+
 	this->CreateCommandBuffer();
 	this->CreateGBufferPipeline();
 	this->CreateLightingPipeline();
