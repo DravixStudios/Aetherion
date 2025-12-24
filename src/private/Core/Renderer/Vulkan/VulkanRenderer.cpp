@@ -2968,6 +2968,7 @@ GPUTexture* VulkanRenderer::CreateCubemap(const std::string filePath, ECubemapLa
 	VkImageViewCreateInfo viewInfo = { };
 	viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 	viewInfo.image = cubemapImage;
+	viewInfo.format = format;
 	viewInfo.viewType = VK_IMAGE_VIEW_TYPE_CUBE;
 	viewInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
 	viewInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
