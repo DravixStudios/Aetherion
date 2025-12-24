@@ -71,33 +71,58 @@ void main() {
     float metalness = orm.b;
 
     vec3 V = normalize(pc.cameraPosition - position);
+    vec3 R = reflect(-V, N);
+
     vec3 F0 = vec3(0.04);
     F0 = mix(F0, albedo, metalness);
 
-    vec3 L = normalize(lightPos - position);
-    vec3 H = normalize(V + L);
-    float distance = length(lightPos - position);
-    float attenuation = 1.0 / (distance * distance + 0.1);
-    vec3 radiance = lightColor * attenuation;
-    radiance *= (1.0 + metalness * 0.2);
+    /* ==== DIRECT LIGHTING (Point lights) ==== */
+    vec3 Lo = vec3(0.0);
 
-    float NDF = DistributionGGX(N, H, roughness);
-    float G = GeometrySmith(N, V, L, roughness);
-    vec3 F = FresnelSchlick(clamp(dot(H, V), 0.0, 1.0), F0);
+    /* POINT LIGHT 1 */
+    {
+        vec3 L = normalize(lightPos - position);
+        vec3 H = normalize(V + L);
+        float distance = length(lightPos - position);
+        float attenuation = 1.0 / (distance * distance + 0.1);
+        vec3 radiance = lightColor * attenuation;
+        radiance *= (1.0 + metalness * 0.2);
+
+        float NDF = DistributionGGX(N, H, roughness);
+        float G = GeometrySmith(N, V, L, roughness);
+        vec3 F = FresnelSchlick(clamp(dot(H, V), 0.0, 1.0), F0);
+
+        vec3 kS = F;
+        vec3 kD = (1.0 - kS) * (1.0 - metalness);
+
+        vec3 numerator = NDF * G * F;
+        float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.0001;
+        vec3 specular = numerator / denominator;
+
+        float NdotL = max(dot(N, L), 0.0);
+        Lo += (kD * albedo / PI + specular) * radiance * NdotL;
+    }
+    /* ==== IBL (Ambient lighting for environment) ==== */
+    vec3 F = FresnelSchlickRoughness(max(dot(N, V), 0.0), F0, roughness);
 
     vec3 kS = F;
-    vec3 kD = (1.0 - kS) * (1.0 - metalness);
+    vec3 kD = 1.0 - kS;
+    kD *= 1.0 - metalness;
 
-    vec3 numerator = NDF * G * F;
-    float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.0001;
-    vec3 specular = numerator / denominator;
+    /* Diffuse IBL */
+    vec3 irradiance = texture(g_irradianceMap, N).rgb;
+    vec3 diffuse = irradiance * albedo;
 
-    float NdotL = max(dot(N, L), 0.0);
-    vec3 Lo = (kD * albedo / PI + specular) * radiance * NdotL;
+    /* Specular IBL */
+    const float MAX_REFLECTION_LOD = 4.0;
+    vec3 prefilteredColor = textureLod(g_prefilterMap, R, roughness * MAX_REFLECTION_LOD).rgb;
+    vec2 brdf = texture(g_brdfLUT, vec2(max(dot(N, V), 0.0), roughness)).rg;
+    vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);
 
+    vec3 ambient = (kD * diffuse + specular) * ao;
+
+    /* ==== COMBINE ==== */
     color += Lo;
-
-    vec3 ambient = vec3(0.05) * albedo * ao;
     color += ambient;
 
     color += emissive;
