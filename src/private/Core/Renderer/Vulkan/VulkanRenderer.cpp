@@ -573,7 +573,8 @@ void VulkanRenderer::CreateGeometryRenderPass() {
 	this->m_multisampleCount = multisampleCount;
 
 	/* Attachment 0: Base color - RGBA16_FLOAT */
-	VkAttachmentDescription colorAttachment = { };
+	VkAttachmentDescription2 colorAttachment = { };
+	colorAttachment.sType = VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2;
 	colorAttachment.format = VK_FORMAT_R16G16B16A16_SFLOAT;
 	colorAttachment.samples = this->m_multisampleCount;
 	colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -584,7 +585,8 @@ void VulkanRenderer::CreateGeometryRenderPass() {
 	colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 
 	/* Attachment 1: Normal - RGBA16_SFLOAT */
-	VkAttachmentDescription normalAttachment = { };
+	VkAttachmentDescription2 normalAttachment = { };
+	normalAttachment.sType = VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2;
 	normalAttachment.format = VK_FORMAT_R16G16B16A16_SFLOAT;
 	normalAttachment.samples = this->m_multisampleCount;
 	normalAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -595,7 +597,8 @@ void VulkanRenderer::CreateGeometryRenderPass() {
 	normalAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 
 	/* Attachment 2: ORM - RGBA16_SFLOAT */
-	VkAttachmentDescription ormAttachment = { };
+	VkAttachmentDescription2 ormAttachment = { };
+	ormAttachment.sType = VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2;
 	ormAttachment.format = VK_FORMAT_R16G16B16A16_SFLOAT;
 	ormAttachment.samples = this->m_multisampleCount;
 	ormAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -606,7 +609,8 @@ void VulkanRenderer::CreateGeometryRenderPass() {
 	ormAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 
 	/* Attachment 3: Emissive - RGBA16_SFLOAT */
-	VkAttachmentDescription emissiveAttachment = { };
+	VkAttachmentDescription2 emissiveAttachment = { };
+	emissiveAttachment.sType = VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2;
 	emissiveAttachment.format = VK_FORMAT_R16G16B16A16_SFLOAT;
 	emissiveAttachment.samples = this->m_multisampleCount;
 	emissiveAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -617,7 +621,8 @@ void VulkanRenderer::CreateGeometryRenderPass() {
 	emissiveAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 
 	/* Attachment 4: Position - RGBA16_SFLOAT */
-	VkAttachmentDescription positionAttachment = { };
+	VkAttachmentDescription2 positionAttachment = { };
+	positionAttachment.sType = VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2;
 	positionAttachment.format = VK_FORMAT_R16G16B16A16_SFLOAT;
 	positionAttachment.samples = this->m_multisampleCount;
 	positionAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -628,18 +633,20 @@ void VulkanRenderer::CreateGeometryRenderPass() {
 	positionAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 
 	/* Attachment 5: Depth */
-	VkAttachmentDescription depthAttachment = { };
+	VkAttachmentDescription2 depthAttachment = { };
+	depthAttachment.sType = VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2;
 	depthAttachment.format = this->FindDepthFormat();
 	depthAttachment.samples = this->m_multisampleCount;
 	depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+	depthAttachment.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 	depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-	depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+	depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 	depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 	depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 
 	/* Attachment 6: Base color Resolve - RGBA16_SFLOAT */
-	VkAttachmentDescription colorResolveAttachment = { };
+	VkAttachmentDescription2 colorResolveAttachment = { };
+	colorResolveAttachment.sType = VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2;
 	colorResolveAttachment.format = VK_FORMAT_R16G16B16A16_SFLOAT;
 	colorResolveAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
 	colorResolveAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -650,7 +657,8 @@ void VulkanRenderer::CreateGeometryRenderPass() {
 	colorResolveAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 
 	/* Attachment 7: Normal Resolve - RGBA16_SFLOAT */
-	VkAttachmentDescription normalResolveAttachment = { };
+	VkAttachmentDescription2 normalResolveAttachment = { };
+	normalResolveAttachment.sType = VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2;
 	normalResolveAttachment.format = VK_FORMAT_R16G16B16A16_SFLOAT;
 	normalResolveAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
 	normalResolveAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -661,7 +669,8 @@ void VulkanRenderer::CreateGeometryRenderPass() {
 	normalResolveAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 
 	/* Attachment 8: ORM Resolve - RGBA16_SFLOAT */
-	VkAttachmentDescription ormResolveAttachment = { };
+	VkAttachmentDescription2 ormResolveAttachment = { };
+	ormResolveAttachment.sType = VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2;
 	ormResolveAttachment.format = VK_FORMAT_R16G16B16A16_SFLOAT;
 	ormResolveAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
 	ormResolveAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -672,7 +681,8 @@ void VulkanRenderer::CreateGeometryRenderPass() {
 	ormResolveAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 
 	/* Attachment 9: Emissive Resolve - RGBA16_SFLOAT */
-	VkAttachmentDescription emissiveResolveAttachment = { };
+	VkAttachmentDescription2 emissiveResolveAttachment = { };
+	emissiveResolveAttachment.sType = VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2;
 	emissiveResolveAttachment.format = VK_FORMAT_R16G16B16A16_SFLOAT;
 	emissiveResolveAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
 	emissiveResolveAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -683,7 +693,8 @@ void VulkanRenderer::CreateGeometryRenderPass() {
 	emissiveResolveAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 
 	/* Attachment 10: Position Resolve - RGBA16_SFLOAT */
-	VkAttachmentDescription positionResolveAttachment = { };
+	VkAttachmentDescription2 positionResolveAttachment = { };
+	positionResolveAttachment.sType = VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2;
 	positionResolveAttachment.format = VK_FORMAT_R16G16B16A16_SFLOAT;
 	positionResolveAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
 	positionResolveAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -693,65 +704,94 @@ void VulkanRenderer::CreateGeometryRenderPass() {
 	positionResolveAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 	positionResolveAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 
+	/* Attachment 11: Depth Resolve */
+	VkAttachmentDescription2 depthResolveAttachment = { };
+	depthResolveAttachment.sType = VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2;
+	depthResolveAttachment.format = this->FindDepthFormat();
+	depthResolveAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+	depthResolveAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	depthResolveAttachment.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	depthResolveAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	depthResolveAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+	depthResolveAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	depthResolveAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+
 	/* Base color attachment reference */
-	VkAttachmentReference colorRef = { };
+	VkAttachmentReference2 colorRef = { };
+	colorRef.sType = VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2;
 	colorRef.attachment = 0;
 	colorRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
 	/* Normal attachment reference */
-	VkAttachmentReference normalRef = { };
+	VkAttachmentReference2 normalRef = { };
+	normalRef.sType = VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2;
 	normalRef.attachment = 1;
 	normalRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
 	/* ORM attachment reference */
-	VkAttachmentReference ormRef = { };
+	VkAttachmentReference2 ormRef = { };
+	ormRef.sType = VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2;
 	ormRef.attachment = 2;
 	ormRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
 	/* Emissive attachment reference */
-	VkAttachmentReference emissiveRef = { };
+	VkAttachmentReference2 emissiveRef = { };
+	emissiveRef.sType = VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2;
 	emissiveRef.attachment = 3;
 	emissiveRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
 	/* Position attachment reference */
-	VkAttachmentReference positionRef = { };
+	VkAttachmentReference2 positionRef = { };
+	positionRef.sType = VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2;
 	positionRef.attachment = 4;
 	positionRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
 	/* Depth attachment reference */
-	VkAttachmentReference depthRef = { };
+	VkAttachmentReference2 depthRef = { };
+	depthRef.sType = VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2;
 	depthRef.attachment = 5;
 	depthRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
 	/* Base color resolve attachment reference */
-	VkAttachmentReference colorResolveRef = { };
+	VkAttachmentReference2 colorResolveRef = { };
+	colorResolveRef.sType = VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2;
 	colorResolveRef.attachment = 6;
 	colorResolveRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
 	/* Normal resolve attachment reference */
-	VkAttachmentReference normalResolveRef = { };
+	VkAttachmentReference2 normalResolveRef = { };
+	normalResolveRef.sType = VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2;
 	normalResolveRef.attachment = 7;
 	normalResolveRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
 	/* ORM resolve attachment reference */
-	VkAttachmentReference ormResolveRef = { };
+	VkAttachmentReference2 ormResolveRef = { };
+	ormResolveRef.sType = VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2;
 	ormResolveRef.attachment = 8;
 	ormResolveRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
 	/* Emissive resolve attachment reference */
-	VkAttachmentReference emissiveResolveRef = { };
+	VkAttachmentReference2 emissiveResolveRef = { };
+	emissiveResolveRef.sType = VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2;
 	emissiveResolveRef.attachment = 9;
 	emissiveResolveRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
 	/* Position resolve attachment reference */
-	VkAttachmentReference positionResolveRef = { };
+	VkAttachmentReference2 positionResolveRef = { };
+	positionResolveRef.sType = VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2;
 	positionResolveRef.attachment = 10;
 	positionResolveRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-	VkAttachmentReference colorRefs[] = { colorRef, normalRef, ormRef, emissiveRef, positionRef };
-	VkAttachmentReference resolveRefs[] = { colorResolveRef, normalResolveRef, ormResolveRef, emissiveResolveRef, positionResolveRef };
+	/* Depth resolve attachment reference */
+	VkAttachmentReference2 depthResolveRef = { };
+	depthResolveRef.sType = VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2;
+	depthResolveRef.attachment = 11;
+	depthResolveRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+	VkAttachmentReference2 colorRefs[] = { colorRef, normalRef, ormRef, emissiveRef, positionRef, depthRef };
+	VkAttachmentReference2 resolveRefs[] = { colorResolveRef, normalResolveRef, ormResolveRef, emissiveResolveRef, positionResolveRef };
 	
-	VkAttachmentDescription attachments[] = {
+	VkAttachmentDescription2 attachments[] = {
 		colorAttachment,
 		normalAttachment,
 		ormAttachment,
@@ -762,20 +802,31 @@ void VulkanRenderer::CreateGeometryRenderPass() {
 		normalResolveAttachment,
 		ormResolveAttachment,
 		emissiveResolveAttachment,
-		positionResolveAttachment
+		positionResolveAttachment,
+		depthResolveAttachment
 	};
 
+	/* Depth stencil resolve */
+	VkSubpassDescriptionDepthStencilResolve depthStencilResolve = { };
+	depthStencilResolve.sType = VK_STRUCTURE_TYPE_SUBPASS_DESCRIPTION_DEPTH_STENCIL_RESOLVE;
+	depthStencilResolve.pDepthStencilResolveAttachment = &depthResolveRef;
+	depthStencilResolve.pNext = nullptr;
+	depthStencilResolve.depthResolveMode = VK_RESOLVE_MODE_AVERAGE_BIT;
+	depthStencilResolve.stencilResolveMode = VK_RESOLVE_MODE_NONE;
 
 	/* Subpass description */
-	VkSubpassDescription subpass = { };
+	VkSubpassDescription2 subpass = { };
+	subpass.sType = VK_STRUCTURE_TYPE_SUBPASS_DESCRIPTION_2;
 	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 	subpass.colorAttachmentCount = 5;
 	subpass.pColorAttachments = colorRefs;
-	subpass.pDepthStencilAttachment = &depthRef;
+	subpass.pDepthStencilAttachment = &depthRef; // MSAA Depth
 	subpass.pResolveAttachments = resolveRefs;
+	subpass.pNext = &depthStencilResolve;
 
 	/* Subpass dependency */
-	VkSubpassDependency dependency = { };
+	VkSubpassDependency2 dependency = { };
+	dependency.sType = VK_STRUCTURE_TYPE_SUBPASS_DEPENDENCY_2;
 	dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
 	dependency.dstSubpass = 0;
 	dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
@@ -784,9 +835,9 @@ void VulkanRenderer::CreateGeometryRenderPass() {
 	dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 
 	/* Render pass create info */
-	VkRenderPassCreateInfo createInfo = { };
-	createInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-	createInfo.attachmentCount = 11;
+	VkRenderPassCreateInfo2 createInfo = { };
+	createInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO_2;
+	createInfo.attachmentCount = 12;
 	createInfo.pAttachments = attachments;
 	createInfo.dependencyCount = 1;
 	createInfo.pDependencies = &dependency;
@@ -794,7 +845,7 @@ void VulkanRenderer::CreateGeometryRenderPass() {
 	createInfo.pSubpasses = &subpass;
 
 	/* Create render pass */
-	if (vkCreateRenderPass(this->m_device, &createInfo, nullptr, &this->m_geometryRenderPass) != VK_SUCCESS) {
+	if (vkCreateRenderPass2(this->m_device, &createInfo, nullptr, &this->m_geometryRenderPass) != VK_SUCCESS) {
 		spdlog::error("VulkanRenderer::CreateGeometryRenderPass: Failed creating geometry render pass");
 		throw std::runtime_error("VulkanRenderer::CreateGeometryRenderPass: Failed creating geometry render pass");
 		return;
@@ -3305,6 +3356,13 @@ void VulkanRenderer::TransitionImageLayout(VkImage image, VkFormat format, VkIma
 
 		srcStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
 		dstStage = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+	}
+	else if (oldLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
+		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+		barrier.srcAccessMask = 0;
+		barrier.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
+		srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+		dstStage = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
 	}
 	else {
 		spdlog::error("VulkanRenderer::TransitionImageLayout: Unsupported layout transition");
