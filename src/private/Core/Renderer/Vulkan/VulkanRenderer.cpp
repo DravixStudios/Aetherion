@@ -1244,7 +1244,8 @@ void VulkanRenderer::CreateGBufferFrameBuffer() {
 		this->m_normalResolveBuffView,
 		this->m_ormResolveBuffView,
 		this->m_emissiveResolveBuffView,
-		this->m_positionResolveBuffView
+		this->m_positionResolveBuffView,
+		this->m_depthResolveImageView
 	};
 
 	/* Our frame buffer create info */
@@ -1254,7 +1255,7 @@ void VulkanRenderer::CreateGBufferFrameBuffer() {
 	createInfo.width = this->m_scExtent.width;
 	createInfo.height = this->m_scExtent.height;
 	createInfo.layers = 1;
-	createInfo.attachmentCount = 11;
+	createInfo.attachmentCount = 12;
 	createInfo.pAttachments = attachments;
 
 	if (vkCreateFramebuffer(this->m_device, &createInfo, nullptr, &this->m_gbufferFramebuffer) != VK_SUCCESS) {
