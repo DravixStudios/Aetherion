@@ -182,6 +182,10 @@ private:
 	VkDescriptorPool m_skyboxDescriptorPool;
 	Vector<VkDescriptorSet> m_skyboxDescriptorSets;
 
+	VkDescriptorSetLayout m_irradianceDescriptorSetLayout;
+
+	VkDescriptorSetLayout m_prefilterDescriptorSetLayout;
+
 	uint32_t m_nMaxDescriptorSetSamplers;
 	uint32_t m_nMaxPerStageDescriptorSamplers;
 	uint32_t m_nMaxTextures;
@@ -241,6 +245,9 @@ private:
 	void CreateGBufferPipeline();
 	void CreateLightingPipeline();
 	void CreateSkyboxPipeline();
+	void CreateIrradiancePipeline();
+	void CreatePrefilterPipeline();
+	void CreateBRDFPipeline();
 	void CreateSyncObjects();
 	void RecordCommandBuffer(uint32_t nImageIndex);
 	VkSurfaceFormatKHR ChooseSwapSurfaceFormat(const Vector<VkSurfaceFormatKHR>& formats);
