@@ -11,5 +11,5 @@ layout(push_constant) uniform PushConstants {
 
 void main() {
     outWorldPos = inPosition;
-    gl_Position = pc.Projection * pc.View * vec4(inPosition, 1.0);
+    gl_Position = pc.Projection * pc.View * vec4(outWorldPos, 1.0);
 }
