@@ -224,6 +224,9 @@ private:
 	void AllocateLightingDescriptorSets();
 	void AllocateSkyboxDescriptorSets();
 	void WriteDescriptorSets();
+	void GenerateIrradianceMap();
+	void GeneratePrefilterMap();
+	void GenerateBRDFLUT();
 	void WriteLightDescriptorSets();
 	void WriteSkyboxDescriptorSets();
 	void CreateCommandBuffer();
