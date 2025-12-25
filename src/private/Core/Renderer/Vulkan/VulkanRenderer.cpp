@@ -3502,6 +3502,37 @@ VkImageView VulkanRenderer::CreateImageView(VkImage image, VkFormat format, VkIm
 	return imageView;
 }
 
+VkImageView VulkanRenderer::CreateCubemapImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t nMipLevels) {
+	VkImageViewCreateInfo createInfo = { };
+	createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+	createInfo.image = image;
+
+	createInfo.viewType = VK_IMAGE_VIEW_TYPE_CUBE;
+	createInfo.format = format;
+
+	/* How to interpret texel components (normally default) */
+	createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+	createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+	createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+	createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+
+	/* Subresource range: Which image part is going to be used */
+	createInfo.subresourceRange.aspectMask = aspectFlags;
+	createInfo.subresourceRange.baseArrayLayer = 0;
+	createInfo.subresourceRange.baseMipLevel = 0;
+	createInfo.subresourceRange.levelCount = nMipLevels;
+	createInfo.subresourceRange.layerCount = 6;
+
+	VkImageView imageView;
+	if (vkCreateImageView(this->m_device, &createInfo, nullptr, &imageView) != VK_SUCCESS) {
+		spdlog::error("VulkanRenderer::CreateCubemapImageView: Failed creating cubemap image view");
+		throw std::runtime_error("VulkanRenderer::CreateCubemapImageView: Failed creating cubemap image view");
+		return nullptr;
+	}
+
+	return imageView;
+}
+
 /* Creates a sampler */
 VkSampler VulkanRenderer::CreateSampler() {
 	/* Our sampler create info */
@@ -3535,6 +3566,45 @@ VkSampler VulkanRenderer::CreateSampler() {
 	if (vkCreateSampler(this->m_device, &createInfo, nullptr, &sampler) != VK_SUCCESS) {
 		spdlog::error("VulkanRenderer::CreateSampler: Failed creating sampler");
 		throw std::runtime_error("VulkanRenderer::CreateSampler: Failed creating sampler");
+		return nullptr;
+	}
+
+	return sampler;
+}
+
+/* Creates a cubemap sampler */
+VkSampler VulkanRenderer::CreateCubemapSampler(uint32_t nMipLevels) {
+	/* Our sampler create info */
+	VkSamplerCreateInfo createInfo = { };
+	createInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+
+	createInfo.magFilter = VK_FILTER_LINEAR;
+	createInfo.minFilter = VK_FILTER_LINEAR;
+
+	createInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+	createInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+	createInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+
+	createInfo.anisotropyEnable = VK_FALSE;
+	createInfo.maxAnisotropy = 1.f;
+
+	createInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
+
+	createInfo.unnormalizedCoordinates = VK_FALSE;
+
+	createInfo.compareEnable = VK_FALSE;
+	createInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+
+	createInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+	createInfo.mipLodBias = 0.f;
+	createInfo.minLod = 0.f;
+	createInfo.maxLod = static_cast<float>(nMipLevels);
+
+	/* Creation of our sampler */
+	VkSampler sampler;
+	if (vkCreateSampler(this->m_device, &createInfo, nullptr, &sampler) != VK_SUCCESS) {
+		spdlog::error("VulkanRenderer::CreateCubemapSampler: Failed creating cubemap sampler");
+		throw std::runtime_error("VulkanRenderer::CreateCubemapSampler: Failed creating cubemap sampler");
 		return nullptr;
 	}
 
@@ -3703,26 +3773,9 @@ GPUTexture* VulkanRenderer::CreateCubemap(const String filePath, ECubemapLayout 
 	delete stagingBuffer;
 	stagingBuffer = nullptr;
 
-	/* Create our cubemap image view */
-	VkImageViewCreateInfo viewInfo = { };
-	viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-	viewInfo.image = cubemapImage;
-	viewInfo.format = format;
-	viewInfo.viewType = VK_IMAGE_VIEW_TYPE_CUBE;
-	viewInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-	viewInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-	viewInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-	viewInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-	viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-	viewInfo.subresourceRange.baseMipLevel = 0;
-	viewInfo.subresourceRange.levelCount = 1;
-	viewInfo.subresourceRange.baseArrayLayer = 0;
-	viewInfo.subresourceRange.layerCount = 6;
+	VkImageView imageView = this->CreateCubemapImageView(cubemapImage, format, VK_IMAGE_ASPECT_COLOR_BIT, 1);
 
-	VkImageView imageView;
-	vkCreateImageView(this->m_device, &viewInfo, nullptr, &imageView);
-
-	VkSampler sampler = this->CreateSampler();
+	VkSampler sampler = this->CreateCubemapSampler(1);
 	VulkanTexture* texture = new VulkanTexture(
 		this->m_device, 
 		this->m_physicalDevice, 

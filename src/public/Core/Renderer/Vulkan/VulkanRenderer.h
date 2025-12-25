@@ -287,7 +287,9 @@ public:
 		GPUFormat format
 	) override;
 	VkImageView CreateImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
+	VkImageView CreateCubemapImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t nMipLevels);
 	VkSampler CreateSampler();
+	VkSampler CreateCubemapSampler(uint32_t nMipLevels);
 
 	uint32_t GetTextureIndex(String& textureName);
 	uint32_t RegisterTexture(const String& textureName, GPUTexture* pTexture);
