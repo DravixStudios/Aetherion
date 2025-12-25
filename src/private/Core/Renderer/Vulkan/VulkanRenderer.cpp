@@ -150,6 +150,9 @@ void VulkanRenderer::Init() {
 	this->AllocateLightingDescriptorSets();
 	this->AllocateSkyboxDescriptorSets();
 	this->WriteDescriptorSets();
+	this->GenerateIrradianceMap();
+	this->GeneratePrefilterMap();
+	this->GenerateBRDFLUT();
 	this->WriteLightDescriptorSets();
 
 	/* Test skybox */
@@ -1844,6 +1847,18 @@ void VulkanRenderer::WriteDescriptorSets() {
 	}
 
 	spdlog::debug("VulkanRenderer::WriteDescriptorSets: WVP descriptor sets written");
+}
+
+void VulkanRenderer::GenerateIrradianceMap() {
+
+}
+
+void VulkanRenderer::GeneratePrefilterMap() {
+
+}
+
+void VulkanRenderer::GenerateBRDFLUT() {
+
 }
 
 void VulkanRenderer::WriteLightDescriptorSets() {
