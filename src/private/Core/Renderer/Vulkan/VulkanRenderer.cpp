@@ -150,23 +150,24 @@ void VulkanRenderer::Init() {
 	this->AllocateLightingDescriptorSets();
 	this->AllocateSkyboxDescriptorSets();
 	this->WriteDescriptorSets();
-	this->GenerateIrradianceMap();
-	this->GeneratePrefilterMap();
-	this->GenerateBRDFLUT();
-	this->WriteLightDescriptorSets();
-
-	/* Test skybox */
-	this->m_skybox = this->CreateCubemap("cubemap.exr", ECubemapLayout::HORIZONTAL_CROSS); // Create a sample skybox cubemap
-	this->WriteSkyboxDescriptorSets();
-	/* End test skybox */
-
 	this->CreateCommandBuffer();
+	
 	this->CreateGBufferPipeline();
 	this->CreateLightingPipeline();
 	this->CreateSkyboxPipeline();
 	this->CreateIrradiancePipeline();
 	this->CreatePrefilterPipeline();
 	this->CreateBRDFPipeline();
+	
+	/* Test skybox */
+	this->m_skybox = this->CreateCubemap("cubemap.exr", ECubemapLayout::HORIZONTAL_CROSS); // Create a sample skybox cubemap
+	this->WriteSkyboxDescriptorSets();
+	/* End test skybox */
+
+	this->GenerateIrradianceMap();
+	this->GeneratePrefilterMap();
+	this->GenerateBRDFLUT();
+	this->WriteLightDescriptorSets();
 	this->CreateSyncObjects();
 
 	this->m_sceneMgr = SceneManager::GetInstance();
@@ -1377,7 +1378,7 @@ void VulkanRenderer::CreateCubeMesh() {
 		// Bottom face
 		{ -1.f, -1.f, -1.f }, { 1.f, -1.f, -1.f }, { 1.f, -1.f, 1.f }, { -1.f, -1.f, 1.f },
 		// Top Face
-		{ -1.f, 1.f, -1.f }, { 1.f, 0.f, -1.f }, { 1.f, 1.f, 1.f }, { -1.f, 1.f, 1.f }
+		{ -1.f, 1.f, -1.f }, { 1.f, 1.f, -1.f }, { 1.f, 1.f, 1.f }, { -1.f, 1.f, 1.f }
 	};
 
 	Vector<uint16_t> indices = {
@@ -1849,8 +1850,266 @@ void VulkanRenderer::WriteDescriptorSets() {
 	spdlog::debug("VulkanRenderer::WriteDescriptorSets: WVP descriptor sets written");
 }
 
+/* Generates our irradiance map */
 void VulkanRenderer::GenerateIrradianceMap() {
+	uint32_t nSize = 32;
+	VkFormat format = VK_FORMAT_R32G32B32A32_SFLOAT;
 
+	/* Create cubemap image */
+	VkImageCreateInfo imageInfo = { };
+	imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+	imageInfo.imageType = VK_IMAGE_TYPE_2D;
+	imageInfo.format = format;
+	imageInfo.extent.width = nSize;
+	imageInfo.extent.height = nSize;
+	imageInfo.extent.depth = 1;
+	imageInfo.mipLevels = 1;
+	imageInfo.arrayLayers = 6;
+	imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+	imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+	imageInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+	imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	imageInfo.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
+
+	if (vkCreateImage(this->m_device, &imageInfo, nullptr, &this->m_irradianceMap) != VK_SUCCESS) {
+		spdlog::error("VulkanRenderer::GenerateIrradianceMap: Failed creating irradiance map");
+		throw std::runtime_error("VulkanRenderer::GenerateIrradianceMap: Failed creating irradiance map");
+		return;
+	}
+
+	spdlog::debug("VulkanRenderer::GenerateIrradianceMap: Irradiance map image created");
+
+	/* Allocate memory */
+	VkMemoryRequirements memReqs;
+	vkGetImageMemoryRequirements(this->m_device, this->m_irradianceMap, &memReqs);
+
+	VkMemoryAllocateInfo allocInfo = { };
+	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+	allocInfo.allocationSize = memReqs.size;
+	allocInfo.memoryTypeIndex = this->FindMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+	vkAllocateMemory(this->m_device, &allocInfo, nullptr, &this->m_irradianceMemory);
+	vkBindImageMemory(this->m_device, this->m_irradianceMap, this->m_irradianceMemory, 0);
+
+	/* Transition to color attachment */
+	this->TransitionImageLayout(this->m_irradianceMap, format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, 6);
+
+	/* Projection matrices for each cubemap face */
+	glm::mat4 captureProjection = glm::perspective(glm::radians(90.f), 1.f, .1f, 10.f);
+	glm::mat4 captureViews[] = {
+		glm::lookAt(glm::vec3(0.f), glm::vec3(1.f, 0.f, 0.f), glm::vec3(0.f, -1.f, 0.f)), // +X
+		glm::lookAt(glm::vec3(0.f), glm::vec3(-1.f, 0.f, 0.f), glm::vec3(0.f, -1.f, 0.f)), // -X
+		glm::lookAt(glm::vec3(0.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.f, 0.f, 1.f)), // +Y
+		glm::lookAt(glm::vec3(0.f), glm::vec3(0.f, -1.f, 0.f), glm::vec3(0.f, 0.f, -1.f)), // -Y
+		glm::lookAt(glm::vec3(0.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(0.f, -1.f, 0.f)), // +Z
+		glm::lookAt(glm::vec3(0.f), glm::vec3(0.f, 0.f, -1.f), glm::vec3(0.f, -1.f, 0.f)) // -Z
+	};
+
+	/* Create a framebuffer for each face */
+	Vector<VkFramebuffer> framebuffers(6);
+	for (uint32_t nFace = 0; nFace < 6; nFace++) {
+		/* Create image view for each specific face */
+		VkImageViewCreateInfo viewInfo = { };
+		viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+		viewInfo.image = this->m_irradianceMap;
+		viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+		viewInfo.format = format;
+		viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		viewInfo.subresourceRange.baseMipLevel = 0;
+		viewInfo.subresourceRange.layerCount = 1;
+		viewInfo.subresourceRange.levelCount = 1;
+		viewInfo.subresourceRange.baseArrayLayer = nFace;
+
+		VkImageView faceView;
+		if (vkCreateImageView(this->m_device, &viewInfo, nullptr, &faceView) != VK_SUCCESS) {
+			spdlog::error("VulkanRenderer::GenerateIrradianceMap: Failed creating image view for cubemap face {0}", nFace);
+			throw std::runtime_error("VulkanRenderer::GenerateIrradianceMap: Failed creating image view for cubemap face");
+			return;
+		}
+
+		/* Create framebuffer */
+		VkFramebufferCreateInfo fbInfo = { };
+		fbInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+		fbInfo.renderPass = this->m_irradianceRenderPass;
+		fbInfo.attachmentCount = 1;
+		fbInfo.pAttachments = &faceView;
+		fbInfo.width = nSize;
+		fbInfo.height = nSize;
+		fbInfo.layers = 1;
+
+		vkCreateFramebuffer(this->m_device, &fbInfo, nullptr, &framebuffers[nFace]);
+	}
+
+	/* Create descriptor set layout for the skybox source */
+	VkDescriptorSetLayoutBinding binding = { };
+	binding.binding = 0;
+	binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	binding.descriptorCount = 1;
+	binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+	VkDescriptorSetLayoutCreateInfo layoutInfo = { };
+	layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+	layoutInfo.bindingCount = 1;
+	layoutInfo.pBindings = &binding;
+
+	VkDescriptorSetLayout setLayout;
+	if (vkCreateDescriptorSetLayout(this->m_device, &layoutInfo, nullptr, &setLayout) != VK_SUCCESS) {
+		spdlog::error("VulkanRenderer::CreateIrradianceMap: Failed creating skybox source descriptor set layout");
+		throw std::runtime_error("VulkanRenderer::CreateIrradianceMap: Failed creating skybox source descriptor set layout");
+		return;
+	}
+
+	/* Creation of the descriptor pool */
+	VkDescriptorPoolSize poolSize = { };
+	poolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	poolSize.descriptorCount = 1;
+
+	VkDescriptorPoolCreateInfo poolInfo = { };
+	poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+	poolInfo.poolSizeCount = 1;
+	poolInfo.pPoolSizes = &poolSize;
+	poolInfo.maxSets = 1;
+
+	VkDescriptorPool descriptorPool;
+	if (vkCreateDescriptorPool(this->m_device, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS) {
+		spdlog::error("VulkanRenderer::GenerateIrradianceMap: Failed creating irradiance map descriptor pool");
+		throw std::runtime_error("VulkanRenderer::GenerateIrradianceMap: Failed creating irradiance map descriptor pool");
+		return;
+	}
+
+	/* Creation of the descriptor set */
+	VkDescriptorSetAllocateInfo allocSetInfo = { };
+	allocSetInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+	allocSetInfo.descriptorPool = descriptorPool;
+	allocSetInfo.descriptorSetCount = 1;
+	allocSetInfo.pSetLayouts = &setLayout;
+
+	VkDescriptorSet descriptorSet;
+	if (vkAllocateDescriptorSets(this->m_device, &allocSetInfo, &descriptorSet) != VK_SUCCESS) {
+		spdlog::error("VulkanRenderer::GenerateIrradianceMap: Failed creating irradiance map descriptor set");
+		throw std::runtime_error("VulkanRenderer::GenerateIrradianceMap: Failed creating irradiance map descriptor set");
+		return;
+	}
+
+	/* Write descriptor set with the original skybox */
+	VulkanTexture* skybox = dynamic_cast<VulkanTexture*>(this->m_skybox);
+
+	VkDescriptorImageInfo descImageInfo = { };
+	descImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	descImageInfo.imageView = skybox->GetImageView();
+	descImageInfo.sampler = skybox->GetSampler();
+
+	VkWriteDescriptorSet writeDesc = { };
+	writeDesc.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	writeDesc.dstSet = descriptorSet;
+	writeDesc.dstBinding = 0;
+	writeDesc.dstArrayElement = 0;
+	writeDesc.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	writeDesc.descriptorCount = 1;
+	writeDesc.pImageInfo = &descImageInfo;
+
+	vkUpdateDescriptorSets(this->m_device, 1, &writeDesc, 0, nullptr);
+
+	/* Render each face */
+	VkCommandBuffer commandBuff = this->BeginSingleTimeCommandBuffer();
+	
+	VkClearValue clearValue = { 0.f, 0.f, 0.f, 1.f };
+	for (uint32_t nFace = 0; nFace < 6; nFace++) {
+		VkRenderPassBeginInfo beginInfo = { };
+		beginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+		beginInfo.renderPass = this->m_irradianceRenderPass;
+		beginInfo.framebuffer = framebuffers[nFace];
+		beginInfo.renderArea.extent = { nSize, nSize };
+		beginInfo.pClearValues = &clearValue;
+		beginInfo.clearValueCount = 1;
+
+		vkCmdBeginRenderPass(commandBuff, &beginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+		/* Set viewport and scissor */
+		VkViewport viewport = { };
+		viewport.width = static_cast<float>(nSize);
+		viewport.height = static_cast<float>(nSize);
+		viewport.x = 0.f;
+		viewport.y = 0.f;
+		viewport.minDepth = 0.f;
+		viewport.maxDepth = 1.f;
+
+		VkRect2D scissor = { };
+		scissor.extent = { nSize, nSize };
+		scissor.offset = { 0, 0 };
+
+		vkCmdSetViewport(commandBuff, 0, 1, &viewport);
+		vkCmdSetScissor(commandBuff, 0, 1, &scissor);
+
+		vkCmdBindPipeline(commandBuff, VK_PIPELINE_BIND_POINT_GRAPHICS, this->m_irradiancePipeline);
+		vkCmdBindDescriptorSets(
+			commandBuff,
+			VK_PIPELINE_BIND_POINT_GRAPHICS, 
+			this->m_irradiancePipelinelayout, 
+			0, 
+			1, &descriptorSet, 
+			0, nullptr
+		);
+
+		/* Push constants (View + Projection) */
+		struct {
+			glm::mat4 View;
+			glm::mat4 Projection;
+		} pushData;
+
+		pushData.View = captureViews[nFace];
+		pushData.Projection = captureProjection;
+
+		vkCmdPushConstants(
+			commandBuff,
+			this->m_irradiancePipelinelayout,
+			VK_SHADER_STAGE_VERTEX_BIT,
+			0, 
+			sizeof(pushData), &pushData
+		);
+
+		/* Draw cube */
+		VulkanBuffer* vbo = dynamic_cast<VulkanBuffer*>(this->m_cubeVBO);
+		VulkanBuffer* ibo = dynamic_cast<VulkanBuffer*>(this->m_cubeIBO);
+
+		VkBuffer vertexBuffers[] = { vbo->GetBuffer() };
+
+		VkDeviceSize offsets[] = { 0 };
+		uint32_t nIndexCount = ibo->GetSize() / sizeof(uint16_t);
+
+		vkCmdBindVertexBuffers(commandBuff, 0, 1, vertexBuffers, offsets);
+		vkCmdBindIndexBuffer(commandBuff, ibo->GetBuffer(), 0, VK_INDEX_TYPE_UINT16);
+		
+		vkCmdDrawIndexed(commandBuff, nIndexCount, 1, 0, 0, 0);
+
+		vkCmdEndRenderPass(commandBuff);
+	}
+
+	this->EndSingleTimeCommandBuffer(commandBuff);
+
+	/* Transition to shader read */
+	this->TransitionImageLayout(
+		this->m_irradianceMap, 
+		format, 
+		VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, 
+		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 
+		6
+	);
+
+	/* Create image view and sampler */
+	this->m_irradianceMapView = this->CreateCubemapImageView(this->m_irradianceMap, format, VK_IMAGE_ASPECT_COLOR_BIT, 1);
+	this->m_irradianceSampler = this->CreateCubemapSampler(1);
+
+	/* Cleanup */
+	for (VkFramebuffer framebuffer : framebuffers) {
+		vkDestroyFramebuffer(this->m_device, framebuffer, nullptr);
+	}
+
+	vkDestroyDescriptorPool(this->m_device, descriptorPool, nullptr);
+	vkDestroyDescriptorSetLayout(this->m_device, setLayout, nullptr);
+	
+	spdlog::debug("VulkanRenderer::GenerateIrradianceMap: Irradiance map generated");
 }
 
 void VulkanRenderer::GeneratePrefilterMap() {

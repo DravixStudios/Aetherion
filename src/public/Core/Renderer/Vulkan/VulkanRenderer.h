@@ -93,6 +93,11 @@ private:
 	GPUBuffer* m_cubeVBO;
 	GPUBuffer* m_cubeIBO;
 
+	VkImage m_irradianceMap;
+	VkDeviceMemory m_irradianceMemory;
+	VkImageView m_irradianceMapView;
+	VkSampler m_irradianceSampler;
+
 	/* Command pool and buffers */
 	VkCommandPool m_commandPool;
 	Vector<VkCommandBuffer> m_commandBuffers;
