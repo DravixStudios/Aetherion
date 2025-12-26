@@ -130,6 +130,7 @@ void VulkanRenderer::Init() {
 
 	/* Test uniform */
 	this->m_wvp.World = glm::mat4(1.f);
+	this->m_wvp.World = glm::rotate(this->m_wvp.World, glm::radians(90.f), { 1.f, 0.f, 0.f });
 	this->m_wvp.View = glm::mat4(1.f);
 	this->m_wvp.View = glm::translate(this->m_wvp.View, { 0.f, 0.f, 2.f });
 	this->m_wvp.View = glm::affineInverse(this->m_wvp.View);
@@ -822,7 +823,7 @@ void VulkanRenderer::CreateGeometryRenderPass() {
 	depthStencilResolve.sType = VK_STRUCTURE_TYPE_SUBPASS_DESCRIPTION_DEPTH_STENCIL_RESOLVE;
 	depthStencilResolve.pDepthStencilResolveAttachment = &depthResolveRef;
 	depthStencilResolve.pNext = nullptr;
-	depthStencilResolve.depthResolveMode = VK_RESOLVE_MODE_AVERAGE_BIT;
+	depthStencilResolve.depthResolveMode = VK_RESOLVE_MODE_MAX_BIT;
 	depthStencilResolve.stencilResolveMode = VK_RESOLVE_MODE_NONE;
 
 	/* Subpass description */
@@ -985,7 +986,7 @@ void VulkanRenderer::CreateIrradianceRenderPass() {
 	colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 	colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 	colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+	colorAttachment.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
 	/* Color attachment reference */
 	VkAttachmentReference colorRef = { };
@@ -1574,20 +1575,27 @@ void VulkanRenderer::CreateLightingDescriptorSetLayout() {
 	samplerBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 	samplerBinding.pImmutableSamplers = nullptr;
 
-	VkDescriptorSetLayoutBinding iblBinding = { };
-	iblBinding.binding = 1;
-	iblBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	iblBinding.descriptorCount = 3;
-	iblBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-	iblBinding.pImmutableSamplers = nullptr;
+	VkDescriptorSetLayoutBinding irradiancePrefilterBinding = { };
+	irradiancePrefilterBinding.binding = 1;
+	irradiancePrefilterBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	irradiancePrefilterBinding.descriptorCount = 2;
+	irradiancePrefilterBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+	irradiancePrefilterBinding.pImmutableSamplers = nullptr;
 
-	VkDescriptorSetLayoutBinding bindings[] = { samplerBinding, iblBinding };
+	VkDescriptorSetLayoutBinding brdfBinding = { };
+	brdfBinding.binding = 2;
+	brdfBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	brdfBinding.descriptorCount = 1;
+	brdfBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+	brdfBinding.pImmutableSamplers = nullptr;
+
+	VkDescriptorSetLayoutBinding bindings[] = { samplerBinding, irradiancePrefilterBinding, brdfBinding };
 
 	/* Descriptor set layout create info */
 	VkDescriptorSetLayoutCreateInfo createInfo = { };
 	createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 	createInfo.pBindings = bindings;
-	createInfo.bindingCount = 2;
+	createInfo.bindingCount = 3;
 	
 	if (vkCreateDescriptorSetLayout(this->m_device, &createInfo, nullptr, &this->m_lightingDescriptorSetLayout) != VK_SUCCESS) {
 		spdlog::error("VulkanRenderer::CreateLightingDescriptorSetLayout: Failed creating lighting descriptor set layout");
@@ -1859,7 +1867,7 @@ void VulkanRenderer::WriteDescriptorSets() {
 
 /* Generates our irradiance map */
 void VulkanRenderer::GenerateIrradianceMap() {
-	uint32_t nSize = 32;
+	uint32_t nSize = 128;
 	VkFormat format = VK_FORMAT_R32G32B32A32_SFLOAT;
 
 	/* Create cubemap image */
@@ -1905,12 +1913,12 @@ void VulkanRenderer::GenerateIrradianceMap() {
 	/* Projection matrices for each cubemap face */
 	glm::mat4 captureProjection = glm::perspective(glm::radians(90.f), 1.f, .1f, 10.f);
 	glm::mat4 captureViews[] = {
-		glm::lookAt(glm::vec3(0.f), glm::vec3(1.f, 0.f, 0.f), glm::vec3(0.f, -1.f, 0.f)), // +X
-		glm::lookAt(glm::vec3(0.f), glm::vec3(-1.f, 0.f, 0.f), glm::vec3(0.f, -1.f, 0.f)), // -X
-		glm::lookAt(glm::vec3(0.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.f, 0.f, 1.f)), // +Y
-		glm::lookAt(glm::vec3(0.f), glm::vec3(0.f, -1.f, 0.f), glm::vec3(0.f, 0.f, -1.f)), // -Y
-		glm::lookAt(glm::vec3(0.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(0.f, -1.f, 0.f)), // +Z
-		glm::lookAt(glm::vec3(0.f), glm::vec3(0.f, 0.f, -1.f), glm::vec3(0.f, -1.f, 0.f)) // -Z
+		glm::lookAt(glm::vec3(0.f), glm::vec3(1.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f)), // +X
+		glm::lookAt(glm::vec3(0.f), glm::vec3(-1.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f)), // -X
+		glm::lookAt(glm::vec3(0.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.f, 0.f, -1.f)), // +Y
+		glm::lookAt(glm::vec3(0.f), glm::vec3(0.f, -1.f, 0.f), glm::vec3(0.f, 0.f, 1.f)), // -Y
+		glm::lookAt(glm::vec3(0.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(0.f, 1.f, 0.f)), // +Z
+		glm::lookAt(glm::vec3(0.f), glm::vec3(0.f, 0.f, -1.f), glm::vec3(0.f, 1.f, 0.f)) // -Z
 	};
 
 	/* Create a framebuffer for each face */
@@ -2035,10 +2043,10 @@ void VulkanRenderer::GenerateIrradianceMap() {
 
 		/* Set viewport and scissor */
 		VkViewport viewport = { };
-		viewport.width = static_cast<float>(nSize);
+		viewport.width = -static_cast<float>(nSize);
 		viewport.height = -static_cast<float>(nSize);
-		viewport.x = 0.f;
-		viewport.y = nSize;
+		viewport.x = static_cast<float>(nSize);
+		viewport.y = static_cast<float>(nSize);
 		viewport.minDepth = 0.f;
 		viewport.maxDepth = 1.f;
 
@@ -2174,12 +2182,12 @@ void VulkanRenderer::GeneratePrefilterMap() {
 	/* Capture matrices */
 	glm::mat4 captureProjection = glm::perspective(glm::radians(90.f), 1.f, .1f, 10.f);
 	glm::mat4 captureViews[] = {
-		glm::lookAt(glm::vec3(0.f), glm::vec3(1.f, 0.f, 0.f), glm::vec3(0.f, -1.f, 0.f)), // +X
-		glm::lookAt(glm::vec3(0.f), glm::vec3(-1.f, 0.f, 0.f), glm::vec3(0.f, -1.f, 0.f)), // -X
-		glm::lookAt(glm::vec3(0.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.f, 0.f, 1.f)), // +Y
-		glm::lookAt(glm::vec3(0.f), glm::vec3(0.f, -1.f, 0.f), glm::vec3(0.f, 0.f, -1.f)), // -Y
-		glm::lookAt(glm::vec3(0.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(0.f, -1.f, 0.f)), // +Z
-		glm::lookAt(glm::vec3(0.f), glm::vec3(0.f, 0.f, -1.f), glm::vec3(0.f, -1.f, 0.f)) // -Z
+		glm::lookAt(glm::vec3(0.f), glm::vec3(1.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f)), // +X
+		glm::lookAt(glm::vec3(0.f), glm::vec3(-1.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f)), // -X
+		glm::lookAt(glm::vec3(0.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.f, 0.f, -1.f)), // +Y
+		glm::lookAt(glm::vec3(0.f), glm::vec3(0.f, -1.f, 0.f), glm::vec3(0.f, 0.f, 1.f)), // -Y
+		glm::lookAt(glm::vec3(0.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(0.f, 1.f, 0.f)), // +Z
+		glm::lookAt(glm::vec3(0.f), glm::vec3(0.f, 0.f, -1.f), glm::vec3(0.f, 1.f, 0.f)) // -Z
 	};
 
 	/* Create descriptor set layout for the skybox source */
@@ -2356,9 +2364,9 @@ void VulkanRenderer::GeneratePrefilterMap() {
 
 			/* Viewport and scissor */
 			VkViewport viewport = { };
-			viewport.width = static_cast<float>(nMipSize);
+			viewport.width = -static_cast<float>(nMipSize);
 			viewport.height = -static_cast<float>(nMipSize);
-			viewport.x = 0.f;
+			viewport.x = static_cast<float>(nMipSize);
 			viewport.y = static_cast<float>(nMipSize);
 			viewport.minDepth = 0.f;
 			viewport.maxDepth = 1.f;
@@ -2675,8 +2683,8 @@ void VulkanRenderer::WriteLightDescriptorSets() {
 
 		descriptorWrites[7].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 		descriptorWrites[7].dstSet = this->m_lightingDescriptorSets[i];
-		descriptorWrites[7].dstBinding = 1;
-		descriptorWrites[7].dstArrayElement = 2;
+		descriptorWrites[7].dstBinding = 2;
+		descriptorWrites[7].dstArrayElement = 0;
 		descriptorWrites[7].pImageInfo = &brdfInfo;
 		descriptorWrites[7].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 		descriptorWrites[7].descriptorCount = 1;
