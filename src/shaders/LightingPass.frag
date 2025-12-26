@@ -103,7 +103,7 @@ void main() {
         Lo += (kD * albedo / PI + specular) * radiance * NdotL;
     }
 
-    color += Lo;
+    // color += Lo;
 
     /* ==== IBL (Ambient lighting for environment) ==== */
     vec3 F_ibl = FresnelSchlickRoughness(max(dot(N, V), 0.0), F0, roughness);

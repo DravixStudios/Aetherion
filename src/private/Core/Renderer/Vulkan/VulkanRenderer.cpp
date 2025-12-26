@@ -361,6 +361,7 @@ void VulkanRenderer::CheckDescriptorIndexingSupport() {
 
 	if (!indexingFeatures.descriptorBindingPartiallyBound || !indexingFeatures.runtimeDescriptorArray) {
 		spdlog::error("VulkanRenderer::CheckDescriptorIndexingSupport: Required descriptor indexing features not available");
+		throw std::runtime_error("VulkanRenderer::CheckDescriptorIndexingSupport: Required descriptor indexing features not available");
 	}
 }
 
@@ -440,6 +441,7 @@ void VulkanRenderer::CreateLogicalDevice() {
 	/* Enable descriptor indexing */
 	VkPhysicalDeviceDescriptorIndexingFeatures indexingFeatures = { };
 	indexingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES;
+	indexingFeatures.pNext = nullptr;
 	indexingFeatures.descriptorBindingPartiallyBound = VK_TRUE;
 	indexingFeatures.descriptorBindingUpdateUnusedWhilePending = VK_TRUE;
 	indexingFeatures.descriptorBindingVariableDescriptorCount = VK_TRUE;
@@ -455,10 +457,15 @@ void VulkanRenderer::CreateLogicalDevice() {
 	deviceFeatures.samplerAnisotropy = VK_TRUE;
 	deviceFeatures.sampleRateShading = VK_TRUE;
 
+	/* Enable negative viewports */
+	VkPhysicalDeviceVulkan11Features vulkan11feats = { };
+	vulkan11feats.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES;
+	vulkan11feats.pNext = &indexingFeatures;
+
 	VkPhysicalDeviceFeatures2 features2 = { };
 	features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
 	features2.features = deviceFeatures;
-	features2.pNext = &indexingFeatures;
+	features2.pNext = &vulkan11feats;
 
 	/* Logical device create info */
 	VkDeviceCreateInfo createInfo = { };
