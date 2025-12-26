@@ -61,7 +61,7 @@ GPUTexture* ResourceManager::UploadTexture(String textureName, const unsigned ch
 		}
 
 		GPUBuffer* stagingBuffer = this->m_renderer->CreateStagingBuffer(pixelData, (nWidth * nHeight) * 4);
-		GPUTexture* gpuTexture = this->m_renderer->CreateTexture(stagingBuffer, nWidth, nHeight, GPUFormat::RGBA8_SRGB);
+		GPUTexture* gpuTexture = this->m_renderer->CreateTexture(stagingBuffer, nWidth, nHeight, GPUFormat::RGBA8_UNORM);
 
 		/* Free image data */
 		stbi_image_free(pixelData);
