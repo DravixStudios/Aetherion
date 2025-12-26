@@ -14,7 +14,7 @@ layout(push_constant) uniform PushConstants {
 } pc;
 
 const vec3 lightPos = vec3(0.0, 3.0, 3.0);
-const vec3 lightColor = vec3(20.0, 20.0, 20.0);
+const vec3 lightColor = vec3(1.0, 1.0, 1.0);
 
 vec3 FresnelSchlick(float cosTheta, vec3 F0) {
     return F0 + (1.0 - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
