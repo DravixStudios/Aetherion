@@ -2029,9 +2029,9 @@ void VulkanRenderer::GenerateIrradianceMap() {
 		/* Set viewport and scissor */
 		VkViewport viewport = { };
 		viewport.width = static_cast<float>(nSize);
-		viewport.height = static_cast<float>(nSize);
+		viewport.height = -static_cast<float>(nSize);
 		viewport.x = 0.f;
-		viewport.y = 0.f;
+		viewport.y = nSize;
 		viewport.minDepth = 0.f;
 		viewport.maxDepth = 1.f;
 
@@ -2113,7 +2113,301 @@ void VulkanRenderer::GenerateIrradianceMap() {
 }
 
 void VulkanRenderer::GeneratePrefilterMap() {
+	uint32_t nSize = 128;
+	/*
+		5 mip levels:
+			0 - 128x128
+			1 - 64x64
+			2 - 32x32
+			3 - 16x16
+			4 - 8x8
+	*/
+	uint32_t nMipLevels = 5;
 
+	VkFormat format = VK_FORMAT_R32G32B32A32_SFLOAT;
+
+	/* Create cubemap image with mipmaps */
+	VkImageCreateInfo imageInfo = { };
+	imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+	imageInfo.imageType = VK_IMAGE_TYPE_2D;
+	imageInfo.format = format;
+	imageInfo.extent = { nSize, nSize, 1 };
+	imageInfo.arrayLayers = 6;
+	imageInfo.mipLevels = nMipLevels;
+	imageInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+	imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+	imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+	imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	imageInfo.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
+
+	if (vkCreateImage(this->m_device, &imageInfo, nullptr, &this->m_prefilterMap) != VK_SUCCESS) {
+		spdlog::error("VulkanRenderer::GeneratePrefilterMap: Failed creating prefilter map image");
+		throw std::runtime_error("VulkanRenderer::GeneratePrefilterMap: Failed creating prefilter map image");
+		return;
+	}
+
+	/* Get memory requirements */
+	VkMemoryRequirements memReqs;
+	vkGetImageMemoryRequirements(this->m_device, this->m_prefilterMap, &memReqs);
+
+	VkMemoryAllocateInfo allocInfo = { };
+	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+	allocInfo.allocationSize = memReqs.size;
+	allocInfo.memoryTypeIndex = this->FindMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+	if (vkAllocateMemory(this->m_device, &allocInfo, nullptr, &this->m_prefilterMemory) != VK_SUCCESS) {
+		spdlog::error("VulkanRenderer::GeneratePefilterMap: Failed allocating memory for prefilter map");
+		throw std::runtime_error("VulkanRenderer::GeneratePefilterMap: Failed allocating memory for prefilter map");
+		return;
+	}
+
+	vkBindImageMemory(this->m_device, this->m_prefilterMap, this->m_prefilterMemory, 0);
+
+	/* Capture matrices */
+	glm::mat4 captureProjection = glm::perspective(glm::radians(90.f), 1.f, .1f, 10.f);
+	glm::mat4 captureViews[] = {
+		glm::lookAt(glm::vec3(0.f), glm::vec3(1.f, 0.f, 0.f), glm::vec3(0.f, -1.f, 0.f)), // +X
+		glm::lookAt(glm::vec3(0.f), glm::vec3(-1.f, 0.f, 0.f), glm::vec3(0.f, -1.f, 0.f)), // -X
+		glm::lookAt(glm::vec3(0.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.f, 0.f, 1.f)), // +Y
+		glm::lookAt(glm::vec3(0.f), glm::vec3(0.f, -1.f, 0.f), glm::vec3(0.f, 0.f, -1.f)), // -Y
+		glm::lookAt(glm::vec3(0.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(0.f, -1.f, 0.f)), // +Z
+		glm::lookAt(glm::vec3(0.f), glm::vec3(0.f, 0.f, -1.f), glm::vec3(0.f, -1.f, 0.f)) // -Z
+	};
+
+	/* Create descriptor set layout for the skybox source */
+	VkDescriptorSetLayoutBinding binding = { };
+	binding.binding = 0;
+	binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	binding.descriptorCount = 1;
+	binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+	VkDescriptorSetLayoutCreateInfo layoutInfo = { };
+	layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+	layoutInfo.bindingCount = 1;
+	layoutInfo.pBindings = &binding;
+
+	VkDescriptorSetLayout setLayout;
+	if (vkCreateDescriptorSetLayout(this->m_device, &layoutInfo, nullptr, &setLayout) != VK_SUCCESS) {
+		spdlog::error("VulkanRenderer::CreatePrefilterMap: Failed creating skybox source descriptor set layout");
+		throw std::runtime_error("VulkanRenderer::CreatePrefilterMap: Failed creating skybox source descriptor set layout");
+		return;
+	}
+
+	/* Creation of the descriptor pool */
+	VkDescriptorPoolSize poolSize = { };
+	poolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	poolSize.descriptorCount = 1;
+
+	VkDescriptorPoolCreateInfo poolInfo = { };
+	poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+	poolInfo.poolSizeCount = 1;
+	poolInfo.pPoolSizes = &poolSize;
+	poolInfo.maxSets = 1;
+
+	VkDescriptorPool descriptorPool;
+	if (vkCreateDescriptorPool(this->m_device, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS) {
+		spdlog::error("VulkanRenderer::GeneratePrefilterMap: Failed creating prefilter map descriptor pool");
+		throw std::runtime_error("VulkanRenderer::GeneratePrefilterMap: Failed creating prefilter map descriptor pool");
+		return;
+	}
+
+	/* Creation of the descriptor set */
+	VkDescriptorSetAllocateInfo allocSetInfo = { };
+	allocSetInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+	allocSetInfo.descriptorPool = descriptorPool;
+	allocSetInfo.descriptorSetCount = 1;
+	allocSetInfo.pSetLayouts = &setLayout;
+
+	VkDescriptorSet descriptorSet;
+	if (vkAllocateDescriptorSets(this->m_device, &allocSetInfo, &descriptorSet) != VK_SUCCESS) {
+		spdlog::error("VulkanRenderer::GeneratePrefilterMap: Failed creating prefilter map descriptor set");
+		throw std::runtime_error("VulkanRenderer::GeneratePrefilterMap: Failed creating prefilter map descriptor set");
+		return;
+	}
+
+	/* Write descriptor set with the original skybox */
+	VulkanTexture* skybox = dynamic_cast<VulkanTexture*>(this->m_skybox);
+
+	VkDescriptorImageInfo descImageInfo = { };
+	descImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	descImageInfo.imageView = skybox->GetImageView();
+	descImageInfo.sampler = skybox->GetSampler();
+
+	VkWriteDescriptorSet writeDesc = { };
+	writeDesc.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	writeDesc.dstSet = descriptorSet;
+	writeDesc.dstBinding = 0;
+	writeDesc.dstArrayElement = 0;
+	writeDesc.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	writeDesc.descriptorCount = 1;
+	writeDesc.pImageInfo = &descImageInfo;
+
+	vkUpdateDescriptorSets(this->m_device, 1, &writeDesc, 0, nullptr);
+
+	VkCommandBuffer commandBuff = this->BeginSingleTimeCommandBuffer();
+
+	Vector<VkImageView> totalImageViews(nMipLevels * 6);
+	Vector<VkFramebuffer> totalFramebuffers(nMipLevels * 6);
+
+	/* Render each mip level */
+	for (uint32_t nMip = 0; nMip < nMipLevels; nMip++) {
+		uint32_t nMipSize = nSize >> nMip; // 128, 64, 32, 16, 8
+		float nRoughness = static_cast<float>(nMip) / static_cast<float>(nMipLevels - 1);
+		
+		/* Transition from undefined to color attachment */
+		this->TransitionImageLayout(
+			this->m_prefilterMap, 
+			format, 
+			VK_IMAGE_LAYOUT_UNDEFINED, 
+			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, 
+			6, 
+			nMip
+		);
+
+		/* Create framebuffers for each mip face */
+		Vector<VkFramebuffer> framebuffers(6);
+		for (uint32_t nFace = 0; nFace < 6; nFace++) {
+			/* Image view creation */
+			VkImageViewCreateInfo viewInfo = { };
+			viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+			viewInfo.image = this->m_prefilterMap;
+			viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+			viewInfo.format = format;
+			viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			viewInfo.subresourceRange.baseMipLevel = nMip;
+			viewInfo.subresourceRange.layerCount = 1;
+			viewInfo.subresourceRange.baseArrayLayer = nFace;
+			viewInfo.subresourceRange.levelCount = 1;
+
+			VkImageView faceView;
+			vkCreateImageView(this->m_device, &viewInfo, nullptr, &faceView);
+
+
+			/* Framebuffer creation */
+			VkFramebufferCreateInfo fbInfo = { };
+			fbInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+			fbInfo.renderPass = this->m_prefilterRenderPass;
+			fbInfo.attachmentCount = 1;
+			fbInfo.pAttachments = &faceView;
+			fbInfo.width = nMipSize;
+			fbInfo.height = nMipSize;
+			fbInfo.layers = 1;
+
+			if (vkCreateFramebuffer(this->m_device, &fbInfo, nullptr, &framebuffers[nFace]) != VK_SUCCESS) {
+				spdlog::error("VulkanRenderer::GeneratePrefilterMap: Failed creating framebuffer for face {0} mip {1}", nFace, nMip);
+				throw std::runtime_error("VulkanRenderer::GeneratePrefilterMap: Failed creating framebuffer for mip face");
+				return;
+			}
+
+			uint32_t idx = nMip * 6 + nFace;
+
+			totalImageViews[idx] = faceView;
+			totalFramebuffers[idx] = framebuffers[nFace];
+		}
+
+		VkClearValue clearValue = { 0.f, 0.f, 0.f, 1.f };
+
+		/* Render each face */
+		for (uint32_t nFace = 0; nFace < 6; nFace++) {
+			VkRenderPassBeginInfo beginInfo = { };
+			beginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+			beginInfo.renderPass = this->m_prefilterRenderPass;
+			beginInfo.framebuffer = framebuffers[nFace];
+			beginInfo.renderArea.extent = { nMipSize, nMipSize };
+			beginInfo.clearValueCount = 1;
+			beginInfo.pClearValues = &clearValue;
+
+			vkCmdBeginRenderPass(commandBuff, &beginInfo, VK_SUBPASS_CONTENTS_INLINE);
+			vkCmdBindPipeline(commandBuff, VK_PIPELINE_BIND_POINT_GRAPHICS, this->m_prefilterPipeline);
+			vkCmdBindDescriptorSets(
+				commandBuff, 
+				VK_PIPELINE_BIND_POINT_GRAPHICS, 
+				this->m_prefilterPipelineLayout, 
+				0, 
+				1, &descriptorSet, 
+				0, nullptr
+			);
+
+			/* Push constants (View + Projection + Roughness) */
+			struct {
+				glm::mat4 View;
+				glm::mat4 Projection;
+				float Roughness;
+			} pushData;
+			pushData.View = captureViews[nFace];
+			pushData.Projection = captureProjection;
+			pushData.Roughness = nRoughness;
+
+			vkCmdPushConstants(
+				commandBuff, 
+				this->m_prefilterPipelineLayout, 
+				VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 
+				0, 
+				sizeof(pushData), &pushData
+			);
+
+			/* Viewport and scissor */
+			VkViewport viewport = { };
+			viewport.width = static_cast<float>(nMipSize);
+			viewport.height = -static_cast<float>(nMipSize);
+			viewport.x = 0.f;
+			viewport.y = static_cast<float>(nMipSize);
+			viewport.minDepth = 0.f;
+			viewport.maxDepth = 1.f;
+
+			VkRect2D scissor = { };
+			scissor.extent = { nMipSize, nMipSize };
+			scissor.offset = { 0, 0 };
+
+			vkCmdSetViewport(commandBuff, 0, 1, &viewport);
+			vkCmdSetScissor(commandBuff, 0, 1, &scissor);
+
+			VulkanBuffer* vbo = dynamic_cast<VulkanBuffer*>(this->m_cubeVBO);
+			VulkanBuffer* ibo = dynamic_cast<VulkanBuffer*>(this->m_cubeIBO);
+
+			VkBuffer vertexBuffers[] = { vbo->GetBuffer() };
+			VkDeviceSize offsets[] = { 0 };
+
+			uint32_t nIndexCount = ibo->GetSize() / sizeof(uint16_t);
+
+			vkCmdBindVertexBuffers(commandBuff, 0, 1, vertexBuffers, offsets);
+			vkCmdBindIndexBuffer(commandBuff, ibo->GetBuffer(), 0, VK_INDEX_TYPE_UINT16);
+
+			vkCmdDrawIndexed(commandBuff, nIndexCount, 1, 0, 0, 0);
+			vkCmdEndRenderPass(commandBuff);
+		}
+
+		/* Transition mip from COLOR_ATTACHMENT to SHADER_READ_ONLY */
+		this->TransitionImageLayout(
+			this->m_prefilterMap, 
+			format, 
+			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, 
+			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 
+			6, 
+			nMip
+		);
+	}
+	
+	this->EndSingleTimeCommandBuffer(commandBuff);
+
+	this->m_prefilterMapView = this->CreateCubemapImageView(this->m_prefilterMap, format, VK_IMAGE_ASPECT_COLOR_BIT, nMipLevels);
+	this->m_prefilterSampler = this->CreateCubemapSampler(nMipLevels);
+
+	/* Cleanup */
+	for (VkFramebuffer framebuffer : totalFramebuffers) {
+		vkDestroyFramebuffer(this->m_device, framebuffer, nullptr);
+	}
+
+	for (VkImageView imageView : totalImageViews) {
+		vkDestroyImageView(this->m_device, imageView, nullptr);
+	}
+
+	vkDestroyDescriptorPool(this->m_device, descriptorPool, nullptr);
+	vkDestroyDescriptorSetLayout(this->m_device, setLayout, nullptr);
+
+
+	spdlog::debug("VulkanRenderer::GeneratePrefilterMap: Prefilter map generated");
 }
 
 void VulkanRenderer::GenerateBRDFLUT() {
@@ -2888,11 +3182,11 @@ void VulkanRenderer::CreatePrefilterPipeline() {
 
 	/* Push constants (View + Projection + Roughness) */
 	VkPushConstantRange pushRange = { };
-	pushRange.stageFlags = VK_SHADER_STAGE_ALL;
+	pushRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 	pushRange.offset = 0;
 	pushRange.size = sizeof(glm::mat4) * 2 + sizeof(float); // View + Projection + Roughness
 
-	this->m_pipeline = this->CreateGraphicsPipeline(
+	this->m_prefilterPipeline = this->CreateGraphicsPipeline(
 		"PrefilterEnvMap.vert",
 		"PrefilterEnvMap.frag",
 		this->m_prefilterRenderPass,
@@ -4245,7 +4539,7 @@ VkSampleCountFlagBits VulkanRenderer::GetMaxUsableSampleCount() {
 }
 
 /* Transition image layout to a new one */
-void VulkanRenderer::TransitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t nLayerCount) {
+void VulkanRenderer::TransitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t nLayerCount, uint32_t nBaseMipLevel) {
 	VkCommandBuffer commandBuffer = this->BeginSingleTimeCommandBuffer();
 
 	/* Create our barrier */
@@ -4259,7 +4553,7 @@ void VulkanRenderer::TransitionImageLayout(VkImage image, VkFormat format, VkIma
 
 	/* Barrier subresource range definition */
 	barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-	barrier.subresourceRange.baseMipLevel = 0;
+	barrier.subresourceRange.baseMipLevel = nBaseMipLevel;
 	barrier.subresourceRange.levelCount = 1;
 	barrier.subresourceRange.baseArrayLayer = 0;
 	barrier.subresourceRange.layerCount = nLayerCount;

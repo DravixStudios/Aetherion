@@ -98,6 +98,11 @@ private:
 	VkImageView m_irradianceMapView;
 	VkSampler m_irradianceSampler;
 
+	VkImage m_prefilterMap;
+	VkDeviceMemory m_prefilterMemory;
+	VkImageView m_prefilterMapView;
+	VkSampler m_prefilterSampler;
+
 	/* Command pool and buffers */
 	VkCommandPool m_commandPool;
 	Vector<VkCommandBuffer> m_commandBuffers;
@@ -121,7 +126,7 @@ private:
 	VkRenderPass m_irradianceRenderPass;
 
 	VkPipelineLayout m_prefilterPipelineLayout;
-	VkPipeline m_m_prefilterPipeline;
+	VkPipeline m_prefilterPipeline;
 	VkRenderPass m_prefilterRenderPass;
 
 	VkPipelineLayout m_brdfPipelineLayout;
@@ -329,7 +334,7 @@ private:
 
 	VkSampleCountFlagBits GetMaxUsableSampleCount();
 
-	void TransitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t nLayerCount = 1);
+	void TransitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t nLayerCount = 1, uint32_t nBaseMipLevel = 0);
 	VkCommandBuffer BeginSingleTimeCommandBuffer();
 	void EndSingleTimeCommandBuffer(VkCommandBuffer commandBuffer);
 
