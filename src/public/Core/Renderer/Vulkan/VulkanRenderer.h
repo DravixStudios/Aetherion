@@ -103,6 +103,11 @@ private:
 	VkImageView m_prefilterMapView;
 	VkSampler m_prefilterSampler;
 
+	VkImage m_brdfLUT;
+	VkDeviceMemory m_brdfLUTMemory;
+	VkImageView m_brdfLUTView;
+	VkSampler m_brdfSampler;
+
 	/* Command pool and buffers */
 	VkCommandPool m_commandPool;
 	Vector<VkCommandBuffer> m_commandBuffers;

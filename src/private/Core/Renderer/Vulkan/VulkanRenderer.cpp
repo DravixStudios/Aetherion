@@ -1060,7 +1060,7 @@ void VulkanRenderer::CreatePrefilterRenderPass() {
 void VulkanRenderer::CreateBRDFRenderPass() {
 	/* Attachment 0: Color attachment */
 	VkAttachmentDescription colorAttachment = { };
-	colorAttachment.format = VK_FORMAT_R32G32_SFLOAT; // Only 2 channels (RG)
+	colorAttachment.format = VK_FORMAT_R16G16_SFLOAT; // Only 2 channels (RG)
 	colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
 	colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 	colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -2410,11 +2410,160 @@ void VulkanRenderer::GeneratePrefilterMap() {
 	spdlog::debug("VulkanRenderer::GeneratePrefilterMap: Prefilter map generated");
 }
 
+/* Generate BRDF Look-Up table */
 void VulkanRenderer::GenerateBRDFLUT() {
+	uint32_t nSize = 512;
+	VkFormat format = VK_FORMAT_R16G16_SFLOAT;
 
+	/* Create 2D image */
+	VkImageCreateInfo imageInfo = { };
+	imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+	imageInfo.format = format;
+	imageInfo.imageType = VK_IMAGE_TYPE_2D;
+	imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+	imageInfo.arrayLayers = 1;
+	imageInfo.extent = { nSize, nSize, 1 };
+	imageInfo.mipLevels = 1;
+	imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	imageInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+	imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+	imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+
+	if (vkCreateImage(this->m_device, &imageInfo, nullptr, &this->m_brdfLUT) != VK_SUCCESS) {
+		spdlog::error("VulkanRenderer::GenerateBRDFLUT: Failed creating BRDF LUT image");
+		throw std::runtime_error("VulkanRenderer::GenerateBRDFLUT: Failed creating BRDF LUT image");
+		return;
+	}
+
+	/* Allocate image memory */
+	VkMemoryRequirements memReqs;
+	vkGetImageMemoryRequirements(this->m_device, this->m_brdfLUT, &memReqs);
+
+	VkMemoryAllocateInfo allocInfo = { };
+	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+	allocInfo.allocationSize = memReqs.size;
+	allocInfo.memoryTypeIndex = this->FindMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+	if (vkAllocateMemory(this->m_device, &allocInfo, nullptr, &this->m_brdfLUTMemory) != VK_SUCCESS) {
+		spdlog::error("VulkanRenderer::GenerateBRDFLUT: Failed allocating BRDF LUT memory");
+		throw std::runtime_error("VulkanRenderer::GenerateBRDFLUT: Failed allocating BRDF LUT memory");
+		return;
+	}
+
+	vkBindImageMemory(this->m_device, this->m_brdfLUT, this->m_brdfLUTMemory, 0);
+
+	this->TransitionImageLayout(this->m_brdfLUT, format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+
+	/* Create a temporal image view (for the framebuffer) */
+	VkImageView imageView = this->CreateImageView(this->m_brdfLUT, format, VK_IMAGE_ASPECT_COLOR_BIT);
+
+	/* Create framebuffer */
+	VkFramebufferCreateInfo fbInfo = { };
+	fbInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+	fbInfo.renderPass = this->m_brdfRenderPass;
+	fbInfo.attachmentCount = 1;
+	fbInfo.pAttachments = &imageView;
+	fbInfo.width = nSize;
+	fbInfo.height = nSize;
+	fbInfo.layers = 1;
+
+	VkFramebuffer framebuffer;
+	if (vkCreateFramebuffer(this->m_device, &fbInfo, nullptr, &framebuffer) != VK_SUCCESS) {
+		spdlog::error("VulkanRenderer::GenerateBRDFLUT: Failed creating framebuffer for BRDF LUT");
+		throw std::runtime_error("VulkanRenderer::GenerateBRDFLUT: Failed creating framebuffer for BRDF LUT");
+		return;
+	}
+
+	/* Render BRDF LUT */
+	VkCommandBuffer commandBuff = this->BeginSingleTimeCommandBuffer();
+
+	VkClearValue clearValue = { 0.f, 0.f, 0.f, 1.f };
+
+	VkRenderPassBeginInfo beginInfo = { };
+	beginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+	beginInfo.framebuffer = framebuffer;
+	beginInfo.renderPass = this->m_brdfRenderPass;
+	beginInfo.clearValueCount = 1;
+	beginInfo.pClearValues = &clearValue;
+	beginInfo.renderArea.extent = { nSize, nSize };
+	beginInfo.renderArea.offset = { 0, 0 };
+
+	vkCmdBeginRenderPass(commandBuff, &beginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+	/* Viewport & Scissor */
+	VkViewport viewport = { };
+	viewport.width = static_cast<float>(nSize);
+	viewport.height = static_cast<float>(nSize);
+	viewport.x = 0.f;
+	viewport.y = 0.f;
+	viewport.minDepth = 0.f;
+	viewport.maxDepth = 1.f;
+
+	VkRect2D scissor = { };
+	scissor.extent = { nSize, nSize };
+	scissor.offset = { 0, 0 };
+	
+	vkCmdSetViewport(commandBuff, 0, 1, &viewport);
+	vkCmdSetScissor(commandBuff, 0, 1, &scissor);
+
+	/* Draw screen quad */
+	VulkanBuffer* vbo = dynamic_cast<VulkanBuffer*>(this->m_sqVBO);
+	VulkanBuffer* ibo = dynamic_cast<VulkanBuffer*>(this->m_sqIBO);
+
+	VkBuffer vertexBuffers[] = { vbo->GetBuffer() };
+	VkDeviceSize offsets[] = { 0 };
+
+	uint32_t nIndexCount = ibo->GetSize() / sizeof(uint16_t);
+
+	vkCmdBindPipeline(commandBuff, VK_PIPELINE_BIND_POINT_GRAPHICS, this->m_brdfPipeline);
+	vkCmdBindVertexBuffers(commandBuff, 0, 1, vertexBuffers, offsets);
+	vkCmdBindIndexBuffer(commandBuff, ibo->GetBuffer(), 0, VK_INDEX_TYPE_UINT16);
+
+	vkCmdDrawIndexed(commandBuff, nIndexCount, 1, 0, 0, 0);
+
+	vkCmdEndRenderPass(commandBuff);
+
+	this->EndSingleTimeCommandBuffer(commandBuff);
+
+	/* 
+		No need of transitions like last 2 maps. 
+		It's SHADER_READ_OPTIMAl because of
+		the render pass
+	*/
+
+	/* Create image view */
+	this->m_brdfLUTView = this->CreateImageView(this->m_brdfLUT, format, VK_IMAGE_ASPECT_COLOR_BIT);
+
+	/* Create a CLAMP_TO_EDGE white border color sampler */
+	VkSamplerCreateInfo samplerInfo = { };
+	samplerInfo.minFilter = VK_FILTER_LINEAR;
+	samplerInfo.magFilter = VK_FILTER_LINEAR;
+	samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+	samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+	samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+	samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+	samplerInfo.anisotropyEnable = VK_FALSE;
+	samplerInfo.maxAnisotropy = 1.f;
+	samplerInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
+	samplerInfo.compareEnable = VK_FALSE;
+	samplerInfo.compareOp = VK_COMPARE_OP_NEVER;
+	samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+	samplerInfo.mipLodBias = 0.f;
+	samplerInfo.minLod = 0.f;
+	samplerInfo.maxLod = 0.f;
+	samplerInfo.unnormalizedCoordinates = VK_FALSE;
+
+	vkCreateSampler(this->m_device, &samplerInfo, nullptr, &this->m_brdfSampler);
+
+	/* Cleanup */
+	vkDestroyImageView(this->m_device, imageView, nullptr);
+	vkDestroyFramebuffer(this->m_device, framebuffer, nullptr);
+
+	spdlog::debug("VulkanRenderer::GenerateBRDFLUT: BRDF LUT Generated");
 }
 
 void VulkanRenderer::WriteLightDescriptorSets() {
+	/* G-Buffers */
 	VkDescriptorImageInfo colorInfo = { };
 	colorInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 	colorInfo.imageView = this->m_colorResolveBuffView;
