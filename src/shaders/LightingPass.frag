@@ -6,9 +6,8 @@ layout(location = 0) in vec2 inUVs;
 layout(location = 0) out vec4 finalImage;
 
 layout(set = 0, binding = 0) uniform sampler2D g_gbuffers[5];
-layout(set = 0, binding = 1) uniform samplerCube g_irradianceMap;
-layout(set = 0, binding = 2) uniform samplerCube g_prefilterMap;
-layout(set = 0, binding = 3) uniform sampler2D g_brdfLUT;
+layout(set = 0, binding = 1) uniform samplerCube g_iblMaps[2]; // [0] Irradiance, [1] Prefilter
+layout(set = 0, binding = 2) uniform sampler2D g_brdfLUT;
 
 layout(push_constant) uniform PushConstants {
     vec3 cameraPosition;
@@ -70,7 +69,8 @@ void main() {
     float roughness = clamp(orm.g, 0.05, 1.0);
     float metalness = orm.b;
 
-    vec3 V = normalize(pc.cameraPosition - position);
+    vec3 correctedCameraPos = vec3(pc.cameraPosition.x, pc.cameraPosition.y, -pc.cameraPosition.z);
+    vec3 V = normalize(correctedCameraPos - position);
     vec3 R = reflect(-V, N);
 
     vec3 F0 = vec3(0.04);
@@ -102,27 +102,29 @@ void main() {
         float NdotL = max(dot(N, L), 0.0);
         Lo += (kD * albedo / PI + specular) * radiance * NdotL;
     }
-    /* ==== IBL (Ambient lighting for environment) ==== */
-    vec3 F = FresnelSchlickRoughness(max(dot(N, V), 0.0), F0, roughness);
 
-    vec3 kS = F;
-    vec3 kD = 1.0 - kS;
-    kD *= 1.0 - metalness;
+    color += Lo;
+
+    /* ==== IBL (Ambient lighting for environment) ==== */
+    vec3 F_ibl = FresnelSchlickRoughness(max(dot(N, V), 0.0), F0, roughness);
+
+    vec3 kS_ibl = F_ibl;
+    vec3 kD_ibl = (1.0 - kS_ibl) * (1.0 - metalness);
 
     /* Diffuse IBL */
-    vec3 irradiance = texture(g_irradianceMap, N).rgb;
+    vec3 irradiance = texture(g_iblMaps[0], N).rgb;
     vec3 diffuse = irradiance * albedo;
 
     /* Specular IBL */
     const float MAX_REFLECTION_LOD = 4.0;
-    vec3 prefilteredColor = textureLod(g_prefilterMap, R, roughness * MAX_REFLECTION_LOD).rgb;
+    vec3 prefilteredColor = textureLod(g_iblMaps[1], R, roughness * MAX_REFLECTION_LOD).rgb;
     vec2 brdf = texture(g_brdfLUT, vec2(max(dot(N, V), 0.0), roughness)).rg;
-    vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);
+    vec3 specular_ibl = prefilteredColor * (F0 * brdf.x + brdf.y);
 
-    vec3 ambient = (kD * diffuse + specular) * ao;
+    // float iblIntensity = 1.5;
+    vec3 ambient = (kD_ibl * diffuse + specular_ibl);
 
     /* ==== COMBINE ==== */
-    color += Lo;
     color += ambient;
 
     color += emissive;

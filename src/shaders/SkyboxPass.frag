@@ -22,10 +22,11 @@ void main() {
     viewPos /= viewPos.w;
 
     vec4 worldPos = pc.inverseView * viewPos;
-    vec3 dir = normalize(worldPos.xyz - pc.cameraPosition);
+    vec3 correctedCameraPos = vec3(pc.cameraPosition.x, pc.cameraPosition.y, -pc.cameraPosition.z);
+    vec3 dir = normalize(worldPos.xyz - correctedCameraPos);
 
     float sceneDepth = texture(g_depth, vec2(uv.x, 1.0 - uv.y)).r;
-    if(sceneDepth < 1) discard;
+    if(sceneDepth < 1.0 - 0.00001) discard;
 
     vec3 color = texture(g_skybox, dir).rgb;
     finalImage = vec4(color, 1.0);
