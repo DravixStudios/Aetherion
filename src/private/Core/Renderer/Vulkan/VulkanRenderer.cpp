@@ -58,6 +58,12 @@ VkBufferUsageFlagBits ToVkBufferUsage(EBufferType bufferType) {
 	};
 }
 
+/* Normalize a vector */
+void Normalize(float& x, float& y, float& z) {
+	float len = std::sqrt(x * x + y * y + z * z);
+	x /= len; y /= len; z /= len;
+}
+
 struct PushConstant {
 	uint32_t nTextureIndex;
 	uint32_t nOrmTextureIndex;
@@ -161,7 +167,7 @@ void VulkanRenderer::Init() {
 	this->CreateBRDFPipeline();
 	
 	/* Test skybox */
-	this->m_skybox = this->CreateCubemap("cubemap.exr", ECubemapLayout::HORIZONTAL_CROSS); // Create a sample skybox cubemap
+	this->m_skybox = this->CreateCubemap("cedar_bridge_2_4k.exr", ECubemapLayout::HORIZONTAL_CROSS); // Create a sample skybox cubemap
 	this->WriteSkyboxDescriptorSets();
 	/* End test skybox */
 
@@ -1920,12 +1926,12 @@ void VulkanRenderer::GenerateIrradianceMap() {
 	/* Projection matrices for each cubemap face */
 	glm::mat4 captureProjection = glm::perspective(glm::radians(90.f), 1.f, .1f, 10.f);
 	glm::mat4 captureViews[] = {
-		glm::lookAt(glm::vec3(0.f), glm::vec3(1.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f)), // +X
-		glm::lookAt(glm::vec3(0.f), glm::vec3(-1.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f)), // -X
-		glm::lookAt(glm::vec3(0.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.f, 0.f, -1.f)), // +Y
-		glm::lookAt(glm::vec3(0.f), glm::vec3(0.f, -1.f, 0.f), glm::vec3(0.f, 0.f, 1.f)), // -Y
-		glm::lookAt(glm::vec3(0.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(0.f, 1.f, 0.f)), // +Z
-		glm::lookAt(glm::vec3(0.f), glm::vec3(0.f, 0.f, -1.f), glm::vec3(0.f, 1.f, 0.f)) // -Z
+		glm::lookAt(glm::vec3(0.f), glm::vec3(1.f, 0.f, 0.f), glm::vec3(0.f, -1.f, 0.f)), // +X
+		glm::lookAt(glm::vec3(0.f), glm::vec3(-1.f, 0.f, 0.f), glm::vec3(0.f, -1.f, 0.f)), // -X
+		glm::lookAt(glm::vec3(0.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.f, 0.f, 1.f)), // +Y
+		glm::lookAt(glm::vec3(0.f), glm::vec3(0.f, -1.f, 0.f), glm::vec3(0.f, 0.f, -1.f)), // -Y
+		glm::lookAt(glm::vec3(0.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(0.f, -1.f, 0.f)), // +Z
+		glm::lookAt(glm::vec3(0.f), glm::vec3(0.f, 0.f, -1.f), glm::vec3(0.f, -1.f, 0.f)) // -Z
 	};
 
 	/* Create a framebuffer for each face */
@@ -2356,10 +2362,12 @@ void VulkanRenderer::GeneratePrefilterMap() {
 				glm::mat4 View;
 				glm::mat4 Projection;
 				float Roughness;
+				uint32_t MipLevel;
 			} pushData;
 			pushData.View = captureViews[nFace];
 			pushData.Projection = captureProjection;
 			pushData.Roughness = nRoughness;
+			pushData.MipLevel = nMip;
 
 			vkCmdPushConstants(
 				commandBuff, 
@@ -3393,11 +3401,11 @@ void VulkanRenderer::CreatePrefilterPipeline() {
 
 	vkCreateDescriptorSetLayout(this->m_device, &layoutInfo, nullptr, &this->m_prefilterDescriptorSetLayout);
 
-	/* Push constants (View + Projection + Roughness) */
+	/* Push constants (View + Projection + Roughness + MipLevel) */
 	VkPushConstantRange pushRange = { };
 	pushRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 	pushRange.offset = 0;
-	pushRange.size = sizeof(glm::mat4) * 2 + sizeof(float); // View + Projection + Roughness
+	pushRange.size = sizeof(glm::mat4) * 2 + sizeof(float) + sizeof(uint32_t); // View + Projection + Roughness + MipLevel
 
 	this->m_prefilterPipeline = this->CreateGraphicsPipeline(
 		"PrefilterEnvMap.vert",
@@ -4478,20 +4486,49 @@ GPUTexture* VulkanRenderer::CreateCubemap(const String filePath, ECubemapLayout 
 	switch (layout) {
 		case ECubemapLayout::HORIZONTAL_CROSS: nFaceWidth = nWidth / 4; nFaceHeight = nHeight / 3; break;
 		case ECubemapLayout::VERTICAL_CROSS: nFaceWidth = nWidth / 3; nFaceHeight = nHeight / 4; break;
-		case ECubemapLayout::HORIZONTAL_STRIP: nFaceWidth = nWidth / 6; nFaceHeight; break;
+		case ECubemapLayout::HORIZONTAL_STRIP: nFaceWidth = nWidth / 6; nFaceHeight = nHeight; break;
 		case ECubemapLayout::VERTICAL_STRIP: nFaceWidth = nWidth; nFaceHeight = nHeight / 6; break;
 	}
 
-	/* Extract 6 faces on a buffer */
-	uint32_t nFaceSize = nFaceWidth * nFaceHeight * 4 * sizeof(float); // Width * height * 4 channels * size of float.
-	uint32_t nTotalSize = nFaceSize * 6;
-	Vector<float> extractedData(nTotalSize / sizeof(float));
+	/* Face size from equirectangular */
+	uint32_t nFaceSize = nHeight / 2;
 
-	this->ExtractCubemapFaces(pRGBA, nWidth, nHeight, extractedData.data(), nFaceWidth, nFaceHeight, layout);
+	/* Horizontal cross dimensions */
+	uint32_t nCrossWidth = nFaceSize * 4;
+	uint32_t nCrossHeight = nFaceSize * 3;
+
+	Vector<float> crossData(nCrossWidth * nCrossHeight * 4);
+
+	this->ConvertEquirectangularToHorizontalCross(
+		pRGBA,
+		nWidth, nHeight,
+		crossData.data(),
+		nFaceSize, 
+		nFaceSize
+	);
+
 	free(pRGBA); // We don't need the original EXR.
 
+	/* Extract all 6 faces */
+	uint32_t nFacePixels = nFaceSize * nFaceSize * 4;
+	uint32_t nTotalPixels = nFacePixels * 6;
+
+	Vector<float> extractedData(nTotalPixels);
+
+	this->ExtractCubemapFaces(
+		crossData.data(), 
+		nFaceSize * 4, nFaceSize * 3, 
+		extractedData.data(), 
+		nFaceSize, 
+		nFaceSize, 
+		layout
+	);
+
+	uint32_t nFaceByteSize = nFacePixels * sizeof(float);
+	uint32_t nTotalByteSize = nTotalPixels * sizeof(float);
+
 	/* Create a staging buffer */
-	GPUBuffer* stagingBuffer = this->CreateStagingBuffer(extractedData.data(), nTotalSize);
+	GPUBuffer* stagingBuffer = this->CreateStagingBuffer(extractedData.data(), nTotalByteSize);
 	VulkanBuffer* vkStagingBuffer = dynamic_cast<VulkanBuffer*>(stagingBuffer);
 
 	VkBuffer vkBuffer = vkStagingBuffer->GetBuffer();
@@ -4505,7 +4542,7 @@ GPUTexture* VulkanRenderer::CreateCubemap(const String filePath, ECubemapLayout 
 	imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
 	imageInfo.imageType = VK_IMAGE_TYPE_2D;
 	imageInfo.format = format;
-	imageInfo.extent = { static_cast<uint32_t>(nFaceWidth), static_cast<uint32_t>(nFaceHeight), 1 };
+	imageInfo.extent = { nFaceSize, nFaceSize, 1 };
 	imageInfo.mipLevels = 1;
 	imageInfo.arrayLayers = 6; // 6 faces
 	imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -4535,7 +4572,7 @@ GPUTexture* VulkanRenderer::CreateCubemap(const String filePath, ECubemapLayout 
 
 	Vector<VkBufferImageCopy> regions(6);
 	for (uint32_t i = 0; i < 6; i++) {
-		regions[i].bufferOffset = i * nFaceSize;
+		regions[i].bufferOffset = i * nFaceByteSize;
 		regions[i].bufferRowLength = 0;
 		regions[i].bufferImageHeight = 0;
 		regions[i].imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -4543,7 +4580,7 @@ GPUTexture* VulkanRenderer::CreateCubemap(const String filePath, ECubemapLayout 
 		regions[i].imageSubresource.baseArrayLayer = i;
 		regions[i].imageSubresource.layerCount = 1;
 		regions[i].imageOffset = { 0, 0, 0 };
-		regions[i].imageExtent = { static_cast<uint32_t>(nFaceWidth), static_cast<uint32_t>(nFaceHeight), 1 };
+		regions[i].imageExtent = { nFaceSize, nFaceSize, 1 };
 	}
 
 	vkCmdCopyBufferToImage(cmdBuff, vkBuffer, cubemapImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 6, regions.data());
@@ -4640,6 +4677,79 @@ void VulkanRenderer::ExtractCubemapFaces(
 				for (int c = 0; c < 4; c++) {
 					pDstFace[nDstIdX + c] = pcSrcRGBA[nSrcIdX + c];
 				}
+			}
+		}
+	}
+}
+
+/* Convert an equirectangular to horizontal cross */
+void VulkanRenderer::ConvertEquirectangularToHorizontalCross(
+	const float* pcSrcRGBA,
+	int nSrcWidth,
+	int nSrcHeight,
+	float* pDstData,
+	int nFaceWidth,
+	int nFaceSize
+) {
+	constexpr float PI = glm::pi<float>();
+
+	struct Face {
+		int nOffsetX, nOffsetY;
+		int nFaceIndex;
+	};
+
+	/* HORIZONTAL CROSS offsets */
+	Face faces[6] = {
+		{ 2 * nFaceSize, 1 * nFaceSize, 0 }, // +X
+		{ 0 * nFaceSize, 1 * nFaceSize, 1 }, // -X
+		{ 1 * nFaceSize, 0 * nFaceSize, 2 }, // +Y
+		{ 1 * nFaceSize, 2 * nFaceSize, 3 }, // -Y
+		{ 1 * nFaceSize, 1 * nFaceSize, 4 }, // +Z
+		{ 3 * nFaceSize, 1 * nFaceSize, 5 } // -Z
+	};
+
+	for (uint32_t f = 0; f < 6; f++) {
+		int nBaseX = faces[f].nOffsetX;
+		int nBaseY = faces[f].nOffsetY;
+		int nFace = faces[f].nFaceIndex;
+
+		for (uint32_t y = 0; y < nFaceSize; y++) {
+			for (uint32_t x = 0; x < nFaceSize; x++) {
+				/* UV in [-1, 1] */
+				float u = (2.f * (x + .5f) / nFaceSize) - 1.f;
+				float v = (2.f * (y + .5f) / nFaceSize) - 1.f;
+
+				/* Direction "vector" */
+				float dx, dy, dz;
+
+				switch (nFace) {
+					case 0: dx = 1; dy = -v; dz = -u; break; // +X
+					case 1: dx = -1; dy = -v; dz = u; break; // -X
+					case 2: dx = u; dy = 1; dz = v; break; // +Y
+					case 3: dx = u; dy = -1; dz = -v; break; // -Y
+					case 4: dx = u; dy = -v; dz = 1; break; // +Z
+					case 5: dx = -u; dy = -v; dz = -1; break; // -Z
+				}
+
+				Normalize(dx, dy, dz);
+
+				/* Direction to equirectangular UV */
+				float theta = std::atan2(dz, dx); // [-PI, PI]
+				float phi = std::asin(dy); // [-PI/2, PI/2]
+
+				float srcU = (theta + PI) / (2.f * PI);
+				float srcV = (PI * .5f - phi) / PI;
+
+				int nSrcX = int(srcU * nSrcWidth) % nSrcWidth;
+				int nSrcY = int(srcV * nSrcHeight) % nSrcHeight;
+
+				int nSrcIdx = (nSrcY * nSrcWidth + nSrcX) * 4;
+				int nDstIdx = ((nBaseY + y) * (nFaceSize * 4) + (nBaseX + x)) * 4;
+
+				pDstData[nDstIdx + 0] = pcSrcRGBA[nSrcIdx + 0];
+				pDstData[nDstIdx + 1] = pcSrcRGBA[nSrcIdx + 1];
+				pDstData[nDstIdx + 2] = pcSrcRGBA[nSrcIdx + 2];
+				pDstData[nDstIdx + 3] = pcSrcRGBA[nSrcIdx + 3];
 			}
 		}
 	}

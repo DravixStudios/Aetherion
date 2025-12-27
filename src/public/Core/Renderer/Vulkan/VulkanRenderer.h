@@ -323,6 +323,15 @@ public:
 		ECubemapLayout layout
 	) override;
 
+	void ConvertEquirectangularToHorizontalCross(
+		const float* pcSrcRGBA,
+		int nSrcWidth,
+		int nSrcHeight,
+		float* pDstData,
+		int nFaceWidth,
+		int nFaceSize
+	) override;
+
 	bool DrawVertexBuffer(GPUBuffer* buffer) override;
 	bool DrawIndexBuffer(GPUBuffer* vbo, GPUBuffer* ibo) override;
 private:
