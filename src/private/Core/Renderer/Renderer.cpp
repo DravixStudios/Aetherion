@@ -21,6 +21,15 @@ GPUTexture* Renderer::CreateTexture(GPUBuffer* pBuffer, uint32_t nWidth, uint32_
 
 GPUTexture* Renderer::CreateCubemap(const String filePath, ECubemapLayout layout) { return nullptr; }
 
+void Renderer::ConvertEquirectangularToHorizontalCross(
+    const float* pcSrcRGBA,
+    int nSrcWidth,
+    int nSrcHeight,
+    float* pDstData,
+    int nFaceWidth,
+    int nFaceSize
+) { }
+
 void Renderer::ExtractCubemapFaces(
     const float* pcSrcRGBA,
     int nSrcWidth,

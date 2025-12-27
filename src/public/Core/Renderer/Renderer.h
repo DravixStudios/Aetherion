@@ -52,13 +52,21 @@ public:
         GPUFormat format
     );
     virtual GPUTexture* CreateCubemap(const String filePath, ECubemapLayout layout = HORIZONTAL_CROSS);
+    virtual void ConvertEquirectangularToHorizontalCross(
+        const float* pcSrcRGBA,
+        int nSrcWidth,
+        int nSrcHeight,
+        float* pDstData,
+        int nFaceWidth,
+        int nFaceSize
+    );
     virtual void ExtractCubemapFaces(
-        const float* pcSrcRGBA, 
-        int nSrcWidth, 
-        int nSrcHeight, 
-        float* pDstData, 
-        int nFaceWidth, 
-        int nFaceHeight, 
+        const float* pcSrcRGBA,
+        int nSrcWidth,
+        int nSrcHeight,
+        float* pDstData,
+        int nFaceWidth,
+        int nFaceHeight,
         ECubemapLayout layout
     );
     virtual bool DrawVertexBuffer(GPUBuffer* buffer);
