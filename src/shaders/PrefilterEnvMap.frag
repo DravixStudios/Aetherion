@@ -11,6 +11,7 @@ layout(push_constant) uniform PushConstants {
     mat4 View;
     mat4 Projection;
     float Roughness;
+    uint MipLevel;
 } pc;
 
 /* 
@@ -60,6 +61,9 @@ void main() {
     vec3 prefilteredColor = vec3(0.0);
     float totalWeight = 0.0;
 
+    float adaptFactor = max(pc.Roughness + pc.MipLevel / 4.0, 0.0);
+    float maxBrightness = mix(20.0, 80.0, adaptFactor);
+
     for(uint i = 0u; i < SAMPLE_COUNT; ++i) {
         vec2 Xi = Hammersley(i, SAMPLE_COUNT);
         vec3 H = ImportanceSampleGGX(Xi, N, pc.Roughness);
@@ -67,7 +71,17 @@ void main() {
 
         float NdotL = max(dot(N, L), 0.0);
         if(NdotL > 0.0) {
-            prefilteredColor += texture(g_environmentMap, L).rgb * NdotL;
+            vec3 envSample = texture(g_environmentMap, L).rgb;
+            float luminance = dot(envSample, vec3(0.2126, 0.7152, 0.0722));
+            float maxColor = max(envSample.r, max(envSample.g, envSample.b));
+
+            float brightness = max(luminance, maxColor * 0.5);
+            if(brightness > maxBrightness) {
+                envSample *= maxBrightness / brightness;
+            }
+
+            prefilteredColor += envSample * NdotL;
+
             totalWeight += NdotL;
         }
     }

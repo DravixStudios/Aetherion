@@ -101,6 +101,7 @@ void main() {
 
         float NdotL = max(dot(N, L), 0.0);
         Lo += (kD * albedo / PI + specular) * radiance * NdotL;
+        // Lo += F;
     }
 
     // color += Lo;
@@ -132,5 +133,5 @@ void main() {
     color = color / (color + 1.0);
     // color = pow(color, vec3(1.0/2.2));
 
-    finalImage = vec4(color, 1.0);
+    finalImage = vec4(vec3(color), 1.0);
 }

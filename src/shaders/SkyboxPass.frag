@@ -29,5 +29,6 @@ void main() {
     if(sceneDepth < 1.0 - 0.00001) discard;
 
     vec3 color = texture(g_skybox, dir).rgb;
+    color = color / (color + 1.0);
     finalImage = vec4(color, 1.0);
 }
