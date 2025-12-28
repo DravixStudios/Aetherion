@@ -46,7 +46,7 @@ void VulkanRingBuffer::Init(uint32_t nBufferSize, uint32_t nAlignment, uint32_t 
 	}
 	this->m_vkRenderer = vkRenderer;
 	
-	GPUBuffer* pBuffer = this->m_vkRenderer->CreateBuffer(nullptr, nBufferSize, EBufferType::CONSTANT_BUFFER);
+	GPUBuffer* pBuffer = this->m_vkRenderer->CreateBuffer(nullptr, nBufferSize, bufferType);
 	VulkanBuffer* vkBuffer = dynamic_cast<VulkanBuffer*>(pBuffer);
 
 	if (vkBuffer == nullptr) {
@@ -59,11 +59,23 @@ void VulkanRingBuffer::Init(uint32_t nBufferSize, uint32_t nAlignment, uint32_t 
 	this->m_memory = vkBuffer->GetMemory();
 
 	/* 
-		Map all the memory persistently 
-		TODO: Upload batch
+		Map all the memory persistently
 	*/
 	vkMapMemory(this->m_device, this->m_memory, 0, VK_WHOLE_SIZE, 0, &this->pMap);
-	spdlog::debug("VulkanUniformRingBuffeer::Init: Ring buffer initialized with {0} bytes and {1} alignment", nBufferSize, nAlignment);
+
+	String bufferTypeName = "UNKNOWN";
+	switch (bufferType) {
+		case EBufferType::CONSTANT_BUFFER: bufferTypeName = "CONSTANT"; break;
+		case EBufferType::VERTEX_BUFFER: bufferTypeName = "VERTEX"; break;
+		case EBufferType::INDEX_BUFFER: bufferTypeName = "INDEX"; break;
+		case EBufferType::STORAGE_BUFFER: bufferTypeName = "STORAGE"; break;
+	}
+
+	spdlog::debug("VulkanUniformRingBuffeer::Init: {0} Ring buffer initialized", bufferTypeName);
+	spdlog::debug("  - Total size: {0} KB", nBufferSize / 1024);
+	spdlog::debug("  - Per-frame size: {0} KB", this->m_nPerFrameSize / 1024);
+	spdlog::debug("  - Alignment: {0} bytes", this->m_nAlignment);
+	spdlog::debug("  - Frames in flight: {0}", this->m_nFramesInFlight);
 }
 
 /* Allocates a chunk of memory from the ring buffer with proper alignments */
