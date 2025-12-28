@@ -113,12 +113,12 @@ void main() {
     vec3 kD_ibl = (1.0 - kS_ibl) * (1.0 - metalness);
 
     /* Diffuse IBL */
-    vec3 irradiance = texture(g_iblMaps[0], N).rgb;
+    vec3 irradiance = texture(g_iblMaps[0], vec3(-N.x, N.y, N.z)).rgb;
     vec3 diffuse = irradiance * albedo;
 
     /* Specular IBL */
     const float MAX_REFLECTION_LOD = 4.0;
-    vec3 prefilteredColor = textureLod(g_iblMaps[1], R, roughness * MAX_REFLECTION_LOD).rgb;
+    vec3 prefilteredColor = textureLod(g_iblMaps[1], vec3(-R.x, R.y, R.z), roughness * MAX_REFLECTION_LOD).rgb;
     vec2 brdf = texture(g_brdfLUT, vec2(max(dot(N, V), 0.0), roughness)).rg;
     vec3 specular_ibl = prefilteredColor * (F0 * brdf.x + brdf.y);
 

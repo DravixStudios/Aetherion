@@ -1926,12 +1926,12 @@ void VulkanRenderer::GenerateIrradianceMap() {
 	/* Projection matrices for each cubemap face */
 	glm::mat4 captureProjection = glm::perspective(glm::radians(90.f), 1.f, .1f, 10.f);
 	glm::mat4 captureViews[] = {
-		glm::lookAt(glm::vec3(0.f), glm::vec3(1.f, 0.f, 0.f), glm::vec3(0.f, -1.f, 0.f)), // +X
-		glm::lookAt(glm::vec3(0.f), glm::vec3(-1.f, 0.f, 0.f), glm::vec3(0.f, -1.f, 0.f)), // -X
-		glm::lookAt(glm::vec3(0.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.f, 0.f, 1.f)), // +Y
-		glm::lookAt(glm::vec3(0.f), glm::vec3(0.f, -1.f, 0.f), glm::vec3(0.f, 0.f, -1.f)), // -Y
-		glm::lookAt(glm::vec3(0.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(0.f, -1.f, 0.f)), // +Z
-		glm::lookAt(glm::vec3(0.f), glm::vec3(0.f, 0.f, -1.f), glm::vec3(0.f, -1.f, 0.f)) // -Z
+		glm::lookAt(glm::vec3(0.f), glm::vec3(-1.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f)), // +X
+		glm::lookAt(glm::vec3(0.f), glm::vec3(1.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f)), // -X
+		glm::lookAt(glm::vec3(0.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.f, 0.f, -1.f)), // +Y
+		glm::lookAt(glm::vec3(0.f), glm::vec3(0.f, -1.f, 0.f), glm::vec3(0.f, 0.f, 1.f)), // -Y
+		glm::lookAt(glm::vec3(0.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(0.f, 1.f, 0.f)), // +Z
+		glm::lookAt(glm::vec3(0.f), glm::vec3(0.f, 0.f, -1.f), glm::vec3(0.f, 1.f, 0.f)) // -Z
 	};
 
 	/* Create a framebuffer for each face */
@@ -2056,9 +2056,9 @@ void VulkanRenderer::GenerateIrradianceMap() {
 
 		/* Set viewport and scissor */
 		VkViewport viewport = { };
-		viewport.width = -static_cast<float>(nSize);
+		viewport.width = static_cast<float>(nSize);
 		viewport.height = -static_cast<float>(nSize);
-		viewport.x = static_cast<float>(nSize);
+		viewport.x = 0.f;
 		viewport.y = static_cast<float>(nSize);
 		viewport.minDepth = 0.f;
 		viewport.maxDepth = 1.f;
@@ -2195,8 +2195,8 @@ void VulkanRenderer::GeneratePrefilterMap() {
 	/* Capture matrices */
 	glm::mat4 captureProjection = glm::perspective(glm::radians(90.f), 1.f, .1f, 10.f);
 	glm::mat4 captureViews[] = {
-		glm::lookAt(glm::vec3(0.f), glm::vec3(1.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f)), // +X
 		glm::lookAt(glm::vec3(0.f), glm::vec3(-1.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f)), // -X
+		glm::lookAt(glm::vec3(0.f), glm::vec3(1.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f)), // +X
 		glm::lookAt(glm::vec3(0.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.f, 0.f, -1.f)), // +Y
 		glm::lookAt(glm::vec3(0.f), glm::vec3(0.f, -1.f, 0.f), glm::vec3(0.f, 0.f, 1.f)), // -Y
 		glm::lookAt(glm::vec3(0.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(0.f, 1.f, 0.f)), // +Z
@@ -2379,9 +2379,9 @@ void VulkanRenderer::GeneratePrefilterMap() {
 
 			/* Viewport and scissor */
 			VkViewport viewport = { };
-			viewport.width = -static_cast<float>(nMipSize);
+			viewport.width = static_cast<float>(nMipSize);
 			viewport.height = -static_cast<float>(nMipSize);
-			viewport.x = static_cast<float>(nMipSize);
+			viewport.x = 0.f;
 			viewport.y = static_cast<float>(nMipSize);
 			viewport.minDepth = 0.f;
 			viewport.maxDepth = 1.f;
