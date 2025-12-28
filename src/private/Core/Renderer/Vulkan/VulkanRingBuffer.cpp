@@ -9,14 +9,32 @@ VulkanRingBuffer::VulkanRingBuffer(VkDevice& device, VkPhysicalDevice& physicalD
 	this->pMap = nullptr;
 }
 
-void VulkanRingBuffer::Init(uint32_t nBufferSize, uint32_t nAlignment, uint32_t nFramesInFlight) {
-	GPURingBuffer::Init(nBufferSize, nAlignment, nFramesInFlight);
+void VulkanRingBuffer::Init(uint32_t nBufferSize, uint32_t nAlignment, uint32_t nFramesInFlight, EBufferType bufferType) {
+	GPURingBuffer::Init(nBufferSize, nAlignment, nFramesInFlight, bufferType);
 
 	VkPhysicalDeviceProperties devProps;
 	vkGetPhysicalDeviceProperties(this->m_physicalDevice, &devProps);
-	uint32_t nMinAlignment = devProps.limits.minUniformBufferOffsetAlignment;
-	this->m_nAlignment = std::max(this->m_nAlignment, nMinAlignment);
+	uint32_t nMinAlignment = nAlignment;
 
+	/* Different alignment depending on the buffer type */
+	switch (bufferType) {
+	case EBufferType::CONSTANT_BUFFER:
+		nMinAlignment = std::max(static_cast<VkDeviceSize>(nAlignment), devProps.limits.minUniformBufferOffsetAlignment);
+		break;
+	case EBufferType::STORAGE_BUFFER:
+		nMinAlignment = std::max(static_cast<VkDeviceSize>(nAlignment), devProps.limits.minStorageBufferOffsetAlignment);
+		break;
+	case EBufferType::VERTEX_BUFFER:
+	case EBufferType::INDEX_BUFFER:
+		nMinAlignment = nAlignment;
+		break;
+	default:
+		nMinAlignment = nAlignment;
+		break;
+	}
+
+
+	this->m_nAlignment = std::max(this->m_nAlignment, nMinAlignment);
 	this->m_nPerFrameSize = nBufferSize / nFramesInFlight;
 
 	VulkanRenderer* vkRenderer = dynamic_cast<VulkanRenderer*>(this->m_renderer);
