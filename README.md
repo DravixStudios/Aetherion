@@ -12,6 +12,8 @@
 - Deferred rendering
 - PBR
 - Image Based Lighting
+- Indirect Drawing ❌
+- Disney BRDF ❌
 - C# Scripting system ❌
 - GUI ❌
 - Project management ❌
