@@ -151,6 +151,7 @@ void VulkanRenderer::Init() {
 	this->CreateDescriptorSetLayout();
 	this->CreateLightingDescriptorSetLayout();
 	this->CreateSkyboxDescriptorSetLayout();
+	this->CreateCullingDescriptorSetLayout();
 	this->CreateDescriptorPool();
 	this->CreateLightingDescriptorPool();
 	this->CreateSkyboxDescriptorPool();
@@ -168,7 +169,7 @@ void VulkanRenderer::Init() {
 	this->CreateBRDFPipeline();
 	
 	/* Test skybox */
-	this->m_skybox = this->CreateCubemap("cedar_bridge_2_4k.exr", ECubemapLayout::HORIZONTAL_CROSS); // Create a sample skybox cubemap
+	this->m_skybox = this->CreateCubemap("rogland_clear_night_8k.exr", ECubemapLayout::HORIZONTAL_CROSS); // Create a sample skybox cubemap
 	this->WriteSkyboxDescriptorSets();
 	/* End test skybox */
 
@@ -1657,6 +1658,55 @@ void VulkanRenderer::CreateSkyboxDescriptorSetLayout() {
 	spdlog::debug("VulkanRenderer::CreateSkyboxDescriptorSetLayout: Skybox descriptor set layout created");
 }
 
+/* Create GPUCulling compute shader descriptor set layout */
+void VulkanRenderer::CreateCullingDescriptorSetLayout() {
+	VkDescriptorSetLayoutBinding bindings[5] = { };
+
+	/* Binding 0: Instance data (ObjectInstanceData) */
+	bindings[0].binding = 0;
+	bindings[0].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+	bindings[0].descriptorCount = 1;
+	bindings[0].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+
+	/* Binding 1: Draw batches (DrawBatch) */
+	bindings[1].binding = 1;
+	bindings[1].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+	bindings[1].descriptorCount = 1;
+	bindings[1].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+
+	/* Binding 2: Output commands (DrawIndexedIndirectCommand) */
+	bindings[2].binding = 2;
+	bindings[2].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+	bindings[2].descriptorCount = 1;
+	bindings[2].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+
+	/* Binding 3: Draw count */
+	bindings[3].binding = 3;
+	bindings[3].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+	bindings[3].descriptorCount = 1;
+	bindings[3].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+
+	/* Binding 4: WVP Ring buffer (read only) */
+	bindings[4].binding = 4;
+	bindings[4].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+	bindings[4].descriptorCount = 1;
+	bindings[4].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+
+	/* Descriptor set layout create info */
+	VkDescriptorSetLayoutCreateInfo createInfo = { };
+	createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+	createInfo.bindingCount = 5;
+	createInfo.pBindings = bindings;
+	
+	if (vkCreateDescriptorSetLayout(this->m_device, &createInfo, nullptr, &this->m_cullingDescriptorSetLayout) != VK_SUCCESS) {
+		spdlog::error("VulkanRenderer::CreateCullingDescriptorSetLayout: Failed creating culling descriptor set layout");
+		throw std::runtime_error("VulkanRenderer::CreateCullingDescriptorSetLayout: Failed creating culling descriptor set layout");
+		return;
+	}
+
+	spdlog::debug("VulkanRenderer::CreateCullingDescriptorSetLayout: Culling descriptor set layout created");
+}
+
 /* Create our descriptor pool */
 void VulkanRenderer::CreateDescriptorPool() {
 	/* Define our uniform descriptor pool size */
@@ -1877,6 +1927,10 @@ void VulkanRenderer::WriteDescriptorSets() {
 	}
 
 	spdlog::debug("VulkanRenderer::WriteDescriptorSets: WVP descriptor sets written");
+}
+
+void VulkanRenderer::CreateIndirectBuffers() {
+	
 }
 
 /* Generates our irradiance map */
@@ -4077,6 +4131,10 @@ GPUBuffer* VulkanRenderer::CreateBuffer(const void* pData, uint32_t nSize, EBuff
 	createInfo.size = nSize;
 	createInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 	createInfo.usage = usage;
+
+	if (bufferType == EBufferType::STAGING_BUFFER) {
+		createInfo.usage |= VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
+	}
 
 	/* Create buffer */
 	VkBuffer buffer = nullptr;
