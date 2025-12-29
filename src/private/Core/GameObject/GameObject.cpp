@@ -2,6 +2,11 @@
 
 GameObject::GameObject(String name) {
 	this->m_name = name;
+
+	this->transform = { };
+	this->transform.location = { 0.f, 0.f, 0.f };
+	this->transform.rotation = { 0.f, 0.f, 0.f };
+	this->transform.scale = { 1.f, 1.f, 1.f };
 }
 
 String GameObject::GetName() {

@@ -160,7 +160,6 @@ bool Mesh::LoadModel(String filePath) {
 
 		/* 
 			Load emissive
-			TODO: Load emissive if it has, otherways, mark as no emissive.
 		*/
 		aiString emissivePath;
 		if (material->GetTextureCount(aiTextureType_EMISSIVE) > 0 && material->GetTexture(aiTextureType_EMISSIVE, 0, &emissivePath) == AI_SUCCESS) {
