@@ -272,6 +272,7 @@ private:
 	void CreateBRDFPipeline();
 	void CreateSyncObjects();
 	void RecordCommandBuffer(uint32_t nImageIndex);
+	void UpdateInstanceData(uint32_t nFrameIndex);
 	VkSurfaceFormatKHR ChooseSwapSurfaceFormat(const Vector<VkSurfaceFormatKHR>& formats);
 	VkPresentModeKHR ChooseSwapPresentMode(const Vector<VkPresentModeKHR>& presentModes);
 	VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
@@ -354,6 +355,9 @@ private:
 	GPURingBuffer* m_instanceDataBuff;
 	GPURingBuffer* m_batchDataBuff;
 	GPUBuffer* m_countBuff;
+
+	Vector<ObjectInstanceData> m_instanceData;
+	Vector<DrawBatch> m_drawBatches;
 
 	Vector<FrameIndirectData> m_frameIndirectData;
 

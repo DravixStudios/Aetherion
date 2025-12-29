@@ -3966,6 +3966,137 @@ void VulkanRenderer::RecordCommandBuffer(uint32_t nImageIndex) {
 	vkEndCommandBuffer(commandBuffer);
 }
 
+/* Updates instance data */
+void VulkanRenderer::UpdateInstanceData(uint32_t nFrameIndex) {
+	Scene* currentScene = this->m_sceneMgr->GetCurrentScene();
+	Camera* currentCamera = currentScene->GetCurrentCamera();
+	Transform cameraTransform = currentCamera->transform;
+
+	std::map<String, GameObject*> objects = currentScene->GetObjects();
+
+	/* Calculate camera matrixes */
+	glm::mat4 cameraMatrix = glm::mat4(1.f);
+	cameraMatrix = glm::rotate(cameraMatrix, glm::radians(cameraTransform.rotation.x), glm::vec3(1.f, 0.f, 0.f));
+	cameraMatrix = glm::rotate(cameraMatrix, glm::radians(cameraTransform.rotation.y), glm::vec3(0.f, 1.f, 0.f));
+
+	cameraMatrix = glm::translate(cameraMatrix, {
+		-cameraTransform.location.x,
+		-cameraTransform.location.y,
+		cameraTransform.location.z
+	});
+
+	glm::mat4 projMatrix = glm::perspectiveFovRH(
+		glm::radians(70.f), 
+		static_cast<float>(this->m_scExtent.width), static_cast<float>(this->m_scExtent.height), 
+		.001f, 300.f
+	);
+
+	/* Clear temporal data */
+	this->m_instanceData.clear();
+	this->m_drawBatches.clear();
+
+	/* 
+		Reset ring buffers for this frame 
+
+		Note: We don't reset m_indirectDrawBuff (it's written by compute shader)
+	*/
+	this->m_wvpBuff->Reset(nFrameIndex);
+	this->m_instanceDataBuff->Reset(nFrameIndex);
+	this->m_batchDataBuff->Reset(nFrameIndex); 
+
+	uint32_t nInstanceDataIndex = 0;
+
+	/* Process all scene GamObejects */
+	for (std::pair<String, GameObject*> obj : objects) {
+		GameObject* pObj = obj.second;
+		std::map<String, Component*> components = pObj->GetComponents();
+		
+		if (components.count("MeshComponent") <= 0) {
+			continue;
+		}
+
+		Mesh* mesh = dynamic_cast<Mesh*>(components["MeshComponent"]);
+		if (!mesh) {
+			spdlog::error("VulkanRenderer::UpdateInstanceData: GameObject {0} has a invalid MeshComponent", obj.first);
+			throw std::runtime_error("VulkanRenderer::UpdateInstanceData: GameObject has a invalid MeshComponent");
+			continue;
+		}
+
+		Transform objTransform = pObj->transform;
+
+		/* Construct world matrix */
+		glm::mat4 worldMatrix = glm::mat4(1.f);
+		worldMatrix = glm::rotate(worldMatrix, glm::radians(objTransform.rotation.x), glm::vec3(1.f, 0.f, 0.f));
+		worldMatrix = glm::rotate(worldMatrix, glm::radians(objTransform.rotation.y), glm::vec3(0.f, 1.f, 0.f));
+		worldMatrix = glm::rotate(worldMatrix, glm::radians(objTransform.rotation.z), glm::vec3(0.f, 0.f, 1.f));
+		worldMatrix = glm::translate(
+			worldMatrix, 
+			glm::vec3(
+				objTransform.location.x, 
+				objTransform.location.y, 
+				objTransform.location.z
+			)
+		);
+		worldMatrix = glm::scale(
+			worldMatrix, 
+			glm::vec3(
+				objTransform.location.x, 
+				objTransform.location.y, 
+				objTransform.location.z
+			)
+		);
+
+		/* Get buffers and indices */
+		std::map<uint32_t, GPUBuffer*> VBOs = mesh->GetVBOs();
+		std::map<uint32_t, GPUBuffer*> IBOs = mesh->GetIBOs();
+		std::map<uint32_t, uint32_t> albedoIndices = mesh->GetTextureIndices();
+		std::map<uint32_t, uint32_t> ormIndices = mesh->GetORMIndices();
+		std::map<uint32_t, uint32_t> emissiveIndices = mesh->GetEmissiveIndices();
+
+		uint32_t nSubmeshIndex = 0;
+		for (std::pair<uint32_t, GPUBuffer*> VBO : VBOs) {
+			/* Allocate WVP in the ring buffer */
+			WVP wvp;
+			wvp.World = worldMatrix;
+			wvp.View = cameraMatrix;
+			wvp.Projection = projMatrix;
+
+			/* Copy WVP to the Ring buffer */
+			uint32_t nWvpOffset = 0;
+			void* pWvpMap = this->m_wvpBuff->Allocate(sizeof(WVP), nWvpOffset);
+			memcpy(pWvpMap, &wvp, sizeof(WVP));
+
+			/* Create ObjectInstanceData */
+			ObjectInstanceData instanceData = { };
+			instanceData.wvpOffset = nWvpOffset;
+			instanceData.textureIndex = albedoIndices[nSubmeshIndex];
+			instanceData.ormTextureIndex = ormIndices[nSubmeshIndex];
+			instanceData.emissiveTextureIndex = INVALID_INDEX;
+
+			if (std::map<uint32_t, uint32_t>::iterator it = emissiveIndices.find(nSubmeshIndex); it != emissiveIndices.end()) {
+				instanceData.emissiveTextureIndex = emissiveIndices[nSubmeshIndex];
+			}
+
+			this->m_instanceData.push_back(instanceData);
+
+			/* Create DrawBatch */
+			GPUBuffer* pVBO = VBO.second;
+			GPUBuffer* pIBO = IBOs[nSubmeshIndex];
+
+			DrawBatch batch = { };
+			batch.indexCount = pIBO->GetSize() / sizeof(uint16_t);
+			batch.firstIndex = 0;
+			batch.vertexOffset = 0;
+			batch.instanceDataIndex = nInstanceDataIndex;
+
+			this->m_drawBatches.push_back(batch);
+
+			nInstanceDataIndex++;
+			nSubmeshIndex++;
+		}
+	}
+}
+
 /* 
 	Choose for the best swap surface format
 
