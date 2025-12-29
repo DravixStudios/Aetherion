@@ -2003,6 +2003,15 @@ void VulkanRenderer::CreateIndirectBuffers() {
 		EBufferType::STORAGE_BUFFER
 	);
 
+	/* Initialize FrameIndirectData */
+	this->m_frameIndirectData.resize(nFramesInFlight);
+	for (FrameIndirectData frameData : this->m_frameIndirectData) {
+		frameData.instanceDataOffset = 0;
+		frameData.batchDataOffset = 0;
+		frameData.indirectDrawOffset = 0;
+		frameData.objectCount = 0;
+	}
+
 	spdlog::debug(
 		"VulkanRenderer::CreateIndirectBuffers: Ring buffers created. Max Objects/Batches/Draws: {0}/{1}/{2}", 
 		MAX_OBJECTS, MAX_BATCHES, MAX_DRAWS

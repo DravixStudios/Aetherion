@@ -355,6 +355,8 @@ private:
 	GPURingBuffer* m_batchDataBuff;
 	GPUBuffer* m_countBuff;
 
+	Vector<FrameIndirectData> m_frameIndirectData;
+
 	VkSampleCountFlagBits GetMaxUsableSampleCount();
 
 	void TransitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t nLayerCount = 1, uint32_t nBaseMipLevel = 0);

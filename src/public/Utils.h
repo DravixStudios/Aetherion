@@ -53,6 +53,13 @@ struct DrawBatch {
     uint32_t instanceDataIndex;
 };
 
+struct FrameIndirectData {
+    uint32_t instanceDataOffset;
+    uint32_t batchDataOffset;
+    uint32_t indirectDrawOffset;
+    uint32_t objectCount;
+};
+
 inline String GetExecutableDir() {
     char buffer[4096];
 
