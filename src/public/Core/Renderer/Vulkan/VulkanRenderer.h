@@ -202,6 +202,7 @@ private:
 	VkDescriptorSetLayout m_prefilterDescriptorSetLayout;
 
 	VkDescriptorSetLayout m_cullingDescriptorSetLayout;
+	VkDescriptorPool m_cullingDescriptorPool;
 
 	uint32_t m_nMaxDescriptorSetSamplers;
 	uint32_t m_nMaxPerStageDescriptorSamplers;
@@ -238,6 +239,7 @@ private:
 	void CreateDescriptorPool();
 	void CreateLightingDescriptorPool();
 	void CreateSkyboxDescriptorPool();
+	void CreateCullingDescriptorPool();
 	void AllocateDescriptorSets();
 	void AllocateLightingDescriptorSets();
 	void AllocateSkyboxDescriptorSets();

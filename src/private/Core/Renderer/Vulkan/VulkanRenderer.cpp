@@ -155,6 +155,7 @@ void VulkanRenderer::Init() {
 	this->CreateDescriptorPool();
 	this->CreateLightingDescriptorPool();
 	this->CreateSkyboxDescriptorPool();
+	this->CreateCullingDescriptorPool();
 	this->AllocateDescriptorSets();
 	this->AllocateLightingDescriptorSets();
 	this->AllocateSkyboxDescriptorSets();
@@ -169,7 +170,7 @@ void VulkanRenderer::Init() {
 	this->CreateBRDFPipeline();
 	
 	/* Test skybox */
-	this->m_skybox = this->CreateCubemap("rogland_clear_night_8k.exr", ECubemapLayout::HORIZONTAL_CROSS); // Create a sample skybox cubemap
+	this->m_skybox = this->CreateCubemap("cedar_bridge_2_4k.exr", ECubemapLayout::HORIZONTAL_CROSS); // Create a sample skybox cubemap
 	this->WriteSkyboxDescriptorSets();
 	/* End test skybox */
 
@@ -1804,6 +1805,28 @@ void VulkanRenderer::CreateSkyboxDescriptorPool() {
 	}
 
 	spdlog::debug("VulkanRenderer::CreateSkyboxDescriptorPool: Skybox descriptor pool created");
+}
+
+/* Create a descriptor pool for our GPU culling */
+void VulkanRenderer::CreateCullingDescriptorPool() {
+	/* Define our descriptor pool size */
+	VkDescriptorPoolSize poolSize = { };
+	poolSize.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+	poolSize.descriptorCount = 5 * this->m_nImageCount;
+
+	/* Descriptor pool create info */
+	VkDescriptorPoolCreateInfo createInfo = { };
+	createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+	createInfo.poolSizeCount = 1;
+	createInfo.pPoolSizes = &poolSize;
+	createInfo.maxSets = this->m_nImageCount;
+
+	if (vkCreateDescriptorPool(this->m_device, &createInfo, nullptr, &this->m_cullingDescriptorPool) != VK_SUCCESS) {
+		spdlog::error("VulkanRenderer::CreateCullingDescriptorPool: Failed creating GPU culling descriptor pool");
+		throw std::runtime_error("VulkanRenderer::CreateCullingDescriptorPool: Failed creating GPU culling descriptor pool");
+	}
+
+	spdlog::debug("VulkanRenderer::CreateCullingDescriptorPool: GPU Culling descriptor pool created");
 }
 
 /* 
