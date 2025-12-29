@@ -1,0 +1,108 @@
+#version 450
+
+layout(local_size_x = 256) in;
+
+struct DrawIndexedIndirectCommand {
+    uint indexCount;
+    uint instanceCount;
+    uint firstIndex;
+    int vertexOffset;
+    uint firstInstance;
+};
+
+struct ObjectInstanceData {
+    uint wvpOffset; // WVP Ring buffer dynamic offset
+    uint textureIndex;
+    uint ormTextureIndex;
+    uint emissiveTextureIndex;
+};
+
+struct DrawBatch {
+    uint indexCount;
+    uint firstIndex;
+    int vertexOffset;
+    uint instanceDataIndex;
+};
+
+struct WVP {
+    mat4 World;
+    mat4 View;
+    mat4 Projection;
+};
+
+/* Bindings */ 
+layout(set = 0, binding = 0) buffer InputInstances {
+    ObjectInstanceData instances[];
+};
+
+layout(set = 0, binding = 1) buffer InputBatches {
+    DrawBatch batches[];
+};
+
+layout(set = 0, binding = 2) buffer OutputCommands {
+    DrawIndexedIndirectCommand commands[];
+};
+
+layout(set = 0, binding = 3) buffer DrawCount {
+    uint count;
+};
+
+/* WVP Ring buffer (Read only) */
+layout(set = 0, binding = 4) readonly buffer WVPBuffer {
+    WVP wvpData[];
+};
+
+layout(push_constant) uniform PushConstants {
+    mat4 viewProj;
+    vec4 frustumPlanes[6];
+    uint totalBatches;
+    uint wvpAlignment; // Ring buffer alignment
+} pc;
+
+/* Frustum culling using world matrix position */ 
+bool IsVisible(mat4 worldMatrix, vec4 frustumPlanes[6]) {
+    /* Extract world position */
+    vec3 worldPos = vec3(worldMatrix[3][0], worldMatrix[3][1], worldMatrix[3][2]);
+
+    /* Pretty simple frustum culling */
+    for(int i = 0; i < 6; i++) {
+        float distance = dot(frustumPlanes[i].xyz, worldPos) + frustumPlanes[i].w;
+        if(distance < -10.0) { // Conservative radio
+            return false;
+        }
+    } 
+
+    return true;
+}
+
+void main() {
+    uint batchIndex = gl_GlobalInvocationID.x;
+
+    if(batchIndex >= pc.totalBatches) {
+        return;
+    }
+
+    DrawBatch batch = batches[batchIndex];
+    ObjectInstanceData instance = instances[batch.instanceDataIndex];
+
+    /*
+        Read the WVP from the ring buffer using the offset
+        The offset is already calculated in bytes so
+        we divide it over the alignment of the WVP
+    */
+    uint wvpIndex = instance.wvpOffset / pc.wvpAlignment;
+    WVP wvp = wvpData[wvpIndex];
+
+    /* Frustum culling */
+    if(IsVisible(wvp.World, pc.frustumPlanes)) {
+        /* Atomic increment for getting the write index */
+        uint drawIndex = atomicAdd(count, 1);
+
+        /* Write indirect draw command */
+        commands[drawIndex].indexCount = batch.indexCount;
+        commands[drawIndex].instanceCount = 1;
+        commands[drawIndex].firstIndex = batch.firstIndex;
+        commands[drawIndex].vertexOffset = batch.vertexOffset;
+        commands[drawIndex].firstInstance = batch.instanceDataIndex;
+    }
+}
