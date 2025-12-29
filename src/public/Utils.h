@@ -31,6 +31,28 @@ struct WVP {
 	glm::mat4 Projection;
 };
 
+struct ObjectInstanceData {
+    uint32_t wvpOffset;
+    uint32_t textureIndex;
+    uint32_t ormTextureIndex;
+    uint32_t emissiveTextureIndex;
+};
+
+struct DrawIndexedIndirectCommand {
+    uint32_t indexCount;
+    uint32_t instanceCount;
+    uint32_t firstIndex;
+    int vertexOffset;
+    uint32_t firstInstance;
+};
+
+struct DrawBatch {
+    uint32_t indexCount;
+    uint32_t firstIndex;
+    int vertexOffset;
+    uint32_t instanceDataIndex;
+};
+
 inline String GetExecutableDir() {
     char buffer[4096];
 
