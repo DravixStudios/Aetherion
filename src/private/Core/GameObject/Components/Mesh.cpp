@@ -188,6 +188,8 @@ bool Mesh::LoadModel(String filePath) {
 	}
 
 	this->m_bMeshImported = true;
+
+	return true;
 }
 
 bool Mesh::HasIndices() {

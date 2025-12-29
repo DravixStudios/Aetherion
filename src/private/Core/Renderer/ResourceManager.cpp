@@ -25,6 +25,8 @@ bool ResourceManager::AddTexture(String textureName, GPUTexture* pTexture) {
 	}
 
 	this->m_textures[textureName] = pTexture;
+
+	return true;
 }
 
 bool ResourceManager::TextureExists(String textureName) {
