@@ -9,10 +9,11 @@ GPURingBuffer::GPURingBuffer() {
 	this->m_nFramesInFlight = 0;
 }
 
-void GPURingBuffer::Init(uint32_t nBufferSize, uint32_t nAlignment, uint32_t nFramesInFlight) {
+void GPURingBuffer::Init(uint32_t nBufferSize, uint32_t nAlignment, uint32_t nFramesInFlight, EBufferType bufferType) {
 	this->m_nBufferSize = nBufferSize;
 	this->m_nAlignment = nAlignment;
 	this->m_nFramesInFlight = nFramesInFlight;
+	this->m_bufferType = bufferType;
 }
 
 void* GPURingBuffer::Allocate(uint32_t nDataSize, uint32_t& outOffset) { return nullptr; }

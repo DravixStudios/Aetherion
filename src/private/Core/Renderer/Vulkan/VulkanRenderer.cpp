@@ -173,6 +173,7 @@ void VulkanRenderer::Init() {
 	this->WriteSkyboxDescriptorSets();
 	/* End test skybox */
 
+	this->CreateIndirectBuffers();
 	this->GenerateIrradianceMap();
 	this->GeneratePrefilterMap();
 	this->GenerateBRDFLUT();
@@ -1929,8 +1930,83 @@ void VulkanRenderer::WriteDescriptorSets() {
 	spdlog::debug("VulkanRenderer::WriteDescriptorSets: WVP descriptor sets written");
 }
 
+/* Creates indirect buffers */
 void VulkanRenderer::CreateIndirectBuffers() {
-	
+	constexpr uint32_t MAX_OBJECTS = 100000; // Maximum objects
+	constexpr uint32_t MAX_BATCHES = 100000; // Max batches
+	constexpr uint32_t MAX_DRAWS = 100000; // Max indirect commands
+
+	uint32_t nFramesInFlight = this->m_nImageCount;
+
+	/* ObjectInstanceData ring buffer */
+	VulkanRingBuffer* instanceBuff = new VulkanRingBuffer(this->m_device, this->m_physicalDevice);
+	uint32_t nInstanceSize = MAX_OBJECTS * sizeof(ObjectInstanceData);
+
+	/* 
+		Alignment is 16 because we have 4 uint32_t.
+		4 bytes * 4 = 16 bytes.
+	*/
+	instanceBuff->Init(nInstanceSize, 16, nFramesInFlight, EBufferType::STORAGE_BUFFER);
+
+	/* DrawBatch ring buffer */
+	VulkanRingBuffer* batchBuff = new VulkanRingBuffer(this->m_device, this->m_physicalDevice);
+	uint32_t nBatchSize = MAX_BATCHES * sizeof(DrawBatch);
+	batchBuff->Init(nBatchSize, 16, nFramesInFlight, EBufferType::STORAGE_BUFFER);
+
+	/* DrawIndexedIndirectCommand ring buffer */
+	VulkanRingBuffer* indirectBuff = new VulkanRingBuffer(this->m_device, this->m_physicalDevice);
+	uint32_t nIndirectSize = MAX_DRAWS * sizeof(DrawIndexedIndirectCommand);
+	indirectBuff->Init(nIndirectSize, 32, nFramesInFlight, EBufferType::STORAGE_BUFFER);
+
+	/* DrawCount buffer (4 bytes) */
+	VkBuffer countBuff = nullptr;
+	VkDeviceMemory countMemory = nullptr;
+
+	VkBufferCreateInfo countInfo = { };
+	countInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+	countInfo.size = sizeof(uint32_t);
+	countInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	countInfo.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
+					  VK_BUFFER_USAGE_TRANSFER_DST_BIT |
+					  VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
+
+	if (vkCreateBuffer(this->m_device, &countInfo, nullptr, &countBuff) != VK_SUCCESS) {
+		spdlog::error("VulkanRenderer::CreateIndirectBuffer: Failed creating DrawCount buffer");
+		throw std::runtime_error("VulkanRenderer::CreateIndirectBuffer: Failed creating DrawCount buffer");
+		return;
+	}
+
+	VkMemoryRequirements memReqs;
+	vkGetBufferMemoryRequirements(this->m_device, countBuff, &memReqs);
+
+	VkMemoryAllocateInfo allocInfo = { };
+	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+	allocInfo.allocationSize = memReqs.size;
+	allocInfo.memoryTypeIndex = FindMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+	if (vkAllocateMemory(this->m_device, &allocInfo, nullptr, &countMemory) != VK_SUCCESS) {
+		spdlog::error("VulkanRenderer::CreateIndirectBuffer: Failed allocating DrawCount buffer memory");
+		throw std::runtime_error("VulkanRenderer::CreateIndirectBuffer: Failed allocating DrawCount buffer memory");
+	}
+
+	vkBindBufferMemory(this->m_device, countBuff, countMemory, 0);
+
+	this->m_instanceDataBuff = instanceBuff;
+	this->m_batchDataBuff = batchBuff;
+	this->m_indirectDrawBuff = indirectBuff;
+	this->m_countBuff = new VulkanBuffer(
+		this->m_device, 
+		this->m_physicalDevice, 
+		countBuff, 
+		countMemory, 
+		memReqs.size, 
+		EBufferType::STORAGE_BUFFER
+	);
+
+	spdlog::debug(
+		"VulkanRenderer::CreateIndirectBuffers: Ring buffers created. Max Objects/Batches/Draws: {0}/{1}/{2}", 
+		MAX_OBJECTS, MAX_BATCHES, MAX_DRAWS
+	);
 }
 
 /* Generates our irradiance map */

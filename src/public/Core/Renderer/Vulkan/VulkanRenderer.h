@@ -201,6 +201,8 @@ private:
 
 	VkDescriptorSetLayout m_prefilterDescriptorSetLayout;
 
+	VkDescriptorSetLayout m_cullingDescriptorSetLayout;
+
 	uint32_t m_nMaxDescriptorSetSamplers;
 	uint32_t m_nMaxPerStageDescriptorSamplers;
 	uint32_t m_nMaxTextures;
@@ -232,6 +234,7 @@ private:
 	void CreateDescriptorSetLayout(); 
 	void CreateLightingDescriptorSetLayout();
 	void CreateSkyboxDescriptorSetLayout();
+	void CreateCullingDescriptorSetLayout();
 	void CreateDescriptorPool();
 	void CreateLightingDescriptorPool();
 	void CreateSkyboxDescriptorPool();
@@ -239,6 +242,7 @@ private:
 	void AllocateLightingDescriptorSets();
 	void AllocateSkyboxDescriptorSets();
 	void WriteDescriptorSets();
+	void CreateIndirectBuffers();
 	void GenerateIrradianceMap();
 	void GeneratePrefilterMap();
 	void GenerateBRDFLUT();
@@ -344,7 +348,12 @@ private:
 	void CopyBufferToImage(VkBuffer buffer, VkImage image, uint32_t nWidth, uint32_t nHeight);
 
 	WVP m_wvp;
+
 	GPURingBuffer* m_wvpBuff;
+	GPURingBuffer* m_indirectDrawBuff;
+	GPURingBuffer* m_instanceDataBuff;
+	GPURingBuffer* m_batchDataBuff;
+	GPUBuffer* m_countBuff;
 
 	VkSampleCountFlagBits GetMaxUsableSampleCount();
 
