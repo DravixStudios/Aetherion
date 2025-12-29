@@ -5280,18 +5280,25 @@ VkCommandBuffer VulkanRenderer::BeginSingleTimeCommandBuffer() {
 void VulkanRenderer::EndSingleTimeCommandBuffer(VkCommandBuffer commandBuffer) {
 	vkEndCommandBuffer(commandBuffer);
 
+	/* Create a fence */
+	VkFenceCreateInfo fenceInfo = { };
+	fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+
+	VkFence fence;
+	vkCreateFence(this->m_device, &fenceInfo, nullptr, &fence);
+
 	/* Submit our command buffer to our graphics queue */
 	VkSubmitInfo submitInfo = { };
 	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 	submitInfo.commandBufferCount = 1;
 	submitInfo.pCommandBuffers = &commandBuffer;
 
-	vkQueueSubmit(this->m_graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
-
-	vkQueueWaitIdle(this->m_graphicsQueue);
+	vkQueueSubmit(this->m_graphicsQueue, 1, &submitInfo, fence);
+	vkWaitForFences(this->m_device, 1, &fence, VK_TRUE, UINT64_MAX);
 
 	/* Free our command buffer */
 	vkFreeCommandBuffers(this->m_device, this->m_commandPool, 1, &commandBuffer);
+	vkDestroyFence(this->m_device, fence, nullptr);
 }
 
 /* Check if the physical device is suitable */
