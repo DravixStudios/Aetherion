@@ -2180,10 +2180,10 @@ void VulkanRenderer::GenerateIrradianceMap() {
 	vkUpdateDescriptorSets(this->m_device, 1, &writeDesc, 0, nullptr);
 
 	/* Render each face */
-	VkCommandBuffer commandBuff = this->BeginSingleTimeCommandBuffer();
-	
 	VkClearValue clearValue = { 0.f, 0.f, 0.f, 1.f };
 	for (uint32_t nFace = 0; nFace < 6; nFace++) {
+		VkCommandBuffer commandBuff = this->BeginSingleTimeCommandBuffer();
+
 		VkRenderPassBeginInfo beginInfo = { };
 		beginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 		beginInfo.renderPass = this->m_irradianceRenderPass;
@@ -2252,9 +2252,10 @@ void VulkanRenderer::GenerateIrradianceMap() {
 		vkCmdDrawIndexed(commandBuff, nIndexCount, 1, 0, 0, 0);
 
 		vkCmdEndRenderPass(commandBuff);
+
+		this->EndSingleTimeCommandBuffer(commandBuff);
 	}
 
-	this->EndSingleTimeCommandBuffer(commandBuff);
 
 	/* Transition to shader read */
 	this->TransitionImageLayout(
