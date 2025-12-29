@@ -1932,9 +1932,11 @@ void VulkanRenderer::WriteDescriptorSets() {
 
 /* Creates indirect buffers */
 void VulkanRenderer::CreateIndirectBuffers() {
-	constexpr uint32_t MAX_OBJECTS = 100000; // Maximum objects
-	constexpr uint32_t MAX_BATCHES = 100000; // Max batches
-	constexpr uint32_t MAX_DRAWS = 100000; // Max indirect commands
+	constexpr uint32_t MAX_OBJECTS = 131072; // Maximum objects (2^17)
+	constexpr uint32_t MAX_BATCHES = 131072; // Max batches (2^17)
+	constexpr uint32_t MAX_DRAWS = 131072; // Max indirect commands (2^17)
+
+	this->m_nMaxDrawCount = MAX_DRAWS;
 
 	uint32_t nFramesInFlight = this->m_nImageCount;
 
@@ -3682,6 +3684,8 @@ void VulkanRenderer::CreateSyncObjects() {
 }
 
 void VulkanRenderer::RecordCommandBuffer(uint32_t nImageIndex) {
+	this->UpdateInstanceData(nImageIndex);
+
 	/* Begin command buffer */
 	VkCommandBufferBeginInfo beginInfo = { };
 	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -4096,6 +4100,54 @@ void VulkanRenderer::UpdateInstanceData(uint32_t nFrameIndex) {
 			nSubmeshIndex++;
 		}
 	}
+
+	/* Allocate and copy Instance Data to the ring buffer */
+	uint32_t nInstanceDataOffset = 0;
+	uint32_t nInstanceDataTotal = this->m_instanceData.size() * sizeof(ObjectInstanceData);
+
+	void* pInstanceMap = this->m_instanceDataBuff->Allocate(nInstanceDataTotal, nInstanceDataOffset);
+
+	if (pInstanceMap == nullptr) {
+		spdlog::error("VulkanRenderer::UpdateInstanceData: Failed allocating instance data in ring buffer");
+		throw std::runtime_error("VulkanRenderer::UpdateInstanceData: Failed allocating instance data in ring buffer");
+		return;
+	}
+
+	memcpy(pInstanceMap, this->m_instanceData.data(), nInstanceDataTotal);
+
+	/* Allocate and copy Batch Data to the ring buffer */
+	uint32_t nBatchDataOffset = 0;
+	uint32_t nBatchDataTotal = this->m_drawBatches.size() * sizeof(DrawBatch);
+
+	void* pBatchMap = this->m_batchDataBuff->Allocate(nInstanceDataTotal, nBatchDataOffset);
+
+	if (pBatchMap == nullptr) {
+		spdlog::error("VulkanRenderer::UpdateInstanceData: Failed allocating draw batch in ring buffer");
+		throw std::runtime_error("VulkanRenderer::UpdateInstanceData: Failed allocating draw batch in ring buffer");
+		return;
+	}
+
+	memcpy(pBatchMap, this->m_drawBatches.data(), nBatchDataTotal);
+
+	/* Reset indirect draw ring buffer for the compute shader write */
+	this->m_indirectDrawBuff->Reset(nFrameIndex);
+
+	uint32_t nIndirectDrawOffset = 0;
+	uint32_t nIndirectDrawSize = this->m_nMaxDrawCount;
+
+	void* pIndirectMap = this->m_indirectDrawBuff->Allocate(nIndirectDrawSize, nIndirectDrawOffset);
+
+	if (pIndirectMap == nullptr) {
+		spdlog::error("VulkanRenderer::UpdateInstanceData: Failed allocating indirect draw data in ring buffer");
+		throw std::runtime_error("VulkanRenderer::UpdateInstanceData: Failed allocating indirect draw data in ring buffer");
+		return;
+	}
+
+	/* Save offsets for this frame */
+	this->m_frameIndirectData[nFrameIndex].instanceDataOffset = nInstanceDataOffset;
+	this->m_frameIndirectData[nFrameIndex].batchDataOffset = nBatchDataOffset;
+	this->m_frameIndirectData[nFrameIndex].indirectDrawOffset = nIndirectDrawOffset;
+	this->m_frameIndirectData[nFrameIndex].objectCount = static_cast<uint32_t>(this->m_drawBatches.size());
 }
 
 /* 

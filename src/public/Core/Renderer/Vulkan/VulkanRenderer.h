@@ -355,6 +355,7 @@ private:
 	GPURingBuffer* m_instanceDataBuff;
 	GPURingBuffer* m_batchDataBuff;
 	GPUBuffer* m_countBuff;
+	uint32_t m_nMaxDrawCount;
 
 	Vector<ObjectInstanceData> m_instanceData;
 	Vector<DrawBatch> m_drawBatches;
