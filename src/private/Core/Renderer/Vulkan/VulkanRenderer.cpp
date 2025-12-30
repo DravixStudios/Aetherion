@@ -470,6 +470,7 @@ void VulkanRenderer::CreateLogicalDevice() {
 	VkPhysicalDeviceFeatures deviceFeatures = { };
 	deviceFeatures.samplerAnisotropy = VK_TRUE;
 	deviceFeatures.sampleRateShading = VK_TRUE;
+	deviceFeatures.multiDrawIndirect = VK_TRUE; // Enable indirect multi draw
 
 	/* Enable negative viewports */
 	VkPhysicalDeviceVulkan11Features vulkan11feats = { };
