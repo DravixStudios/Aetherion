@@ -5243,6 +5243,51 @@ void VulkanRenderer::ConvertEquirectangularToHorizontalCross(
 	}
 }
 
+/* Extracts frustum planes from a view-projection matrix */
+void VulkanRenderer::ExtractFrustumPlanes(const glm::mat4& viewProj, glm::vec4 planes[6]) {
+	/* Left plane */
+	planes[0].x = viewProj[0][3] + viewProj[0][0];
+	planes[0].y = viewProj[1][3] + viewProj[1][0];
+	planes[0].z = viewProj[2][3] + viewProj[2][0];
+	planes[0].w = viewProj[3][3] + viewProj[3][0];
+
+	/* Right plane */
+	planes[1].x = viewProj[0][3] - viewProj[0][0];
+	planes[1].y = viewProj[1][3] - viewProj[1][0];
+	planes[1].z = viewProj[2][3] - viewProj[2][0];
+	planes[1].w = viewProj[3][3] - viewProj[3][0];
+
+	/* Bottom plane */
+	planes[2].x = viewProj[0][3] + viewProj[0][1];
+	planes[2].y = viewProj[1][3] + viewProj[1][1];
+	planes[2].z = viewProj[2][3] + viewProj[2][1];
+	planes[2].w = viewProj[3][3] + viewProj[3][1];
+
+	/* Top plane */
+	planes[3].x = viewProj[0][3] - viewProj[0][1];
+	planes[3].y = viewProj[1][3] - viewProj[1][1];
+	planes[3].z = viewProj[2][3] - viewProj[2][1];
+	planes[3].w = viewProj[3][3] - viewProj[3][1];
+
+	/* Near plane */
+	planes[4].x = viewProj[0][3] + viewProj[0][2];
+	planes[4].y = viewProj[1][3] + viewProj[1][2];
+	planes[4].z = viewProj[2][3] + viewProj[2][2];
+	planes[4].w = viewProj[3][3] + viewProj[3][2];
+
+	/* Far plane */
+	planes[5].x = viewProj[0][3] - viewProj[0][2];
+	planes[5].y = viewProj[1][3] - viewProj[1][2];
+	planes[5].z = viewProj[2][3] - viewProj[2][2];
+	planes[5].w = viewProj[3][3] - viewProj[3][2];
+
+	/* Normalize all planes */
+	for (uint32_t i = 0; i < 6; i++) {
+		float length = glm::length(glm::vec3(planes[i]));
+		planes[i] /= length;
+	}
+}
+
 /* Copy our buffer to a VkImage */
 void VulkanRenderer::CopyBufferToImage(VkBuffer buffer, VkImage image, uint32_t nWidth, uint32_t nHeight) {
 	VkCommandBuffer commandBuffer = this->BeginSingleTimeCommandBuffer();

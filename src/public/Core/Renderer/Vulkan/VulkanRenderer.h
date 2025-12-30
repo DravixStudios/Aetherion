@@ -345,6 +345,8 @@ public:
 		int nFaceWidth,
 		int nFaceSize
 	) override;
+	
+	void ExtractFrustumPlanes(const glm::mat4& viewProj, glm::vec4 planes[6]);
 
 	bool DrawVertexBuffer(GPUBuffer* buffer) override;
 	bool DrawIndexBuffer(GPUBuffer* vbo, GPUBuffer* ibo) override;
