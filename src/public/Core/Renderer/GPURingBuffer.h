@@ -23,6 +23,7 @@ public:
     virtual void Reset(uint32_t nImageIndex);
 
     virtual uint64_t GetSize();
+    virtual uint32_t GetAlignment() const { return this->m_nAlignment; }
 protected:
     Core* m_core;
     Renderer* m_renderer;
