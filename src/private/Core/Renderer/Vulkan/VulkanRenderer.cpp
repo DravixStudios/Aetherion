@@ -177,11 +177,11 @@ void VulkanRenderer::Init() {
 	this->WriteSkyboxDescriptorSets();
 	/* End test skybox */
 
-	this->CreateIndirectBuffers();
 	this->GenerateIrradianceMap();
 	this->GeneratePrefilterMap();
 	this->GenerateBRDFLUT();
 	this->WriteLightDescriptorSets();
+	this->WriteCullingDescriptorSets();
 	this->CreateSyncObjects();
 
 	this->m_sceneMgr = SceneManager::GetInstance();
@@ -2898,6 +2898,66 @@ void VulkanRenderer::WriteLightDescriptorSets() {
 	}
 
 	spdlog::debug("VulkanRenderer::WriteLightDescriptorSets: Lighting descriptor sets written");
+}
+
+/* Write our GPU culling descriptor sets */
+void VulkanRenderer::WriteCullingDescriptorSets() {
+	VulkanRingBuffer* wvpBuff = dynamic_cast<VulkanRingBuffer*>(this->m_wvpBuff);
+	if (wvpBuff == nullptr) {
+		spdlog::error("VulkanRenderer::WriteCullingDescriptorSets: Specified WVP buffer is invalid");
+		throw std::runtime_error("VulkanRenderer::WriteCullingDescriptorSets: Specified WVP buffer is invalid");
+		return;
+	}
+
+	VulkanRingBuffer* instanceDataBuff = dynamic_cast<VulkanRingBuffer*>(this->m_instanceDataBuff);
+	VulkanRingBuffer* batchDataBuff = dynamic_cast<VulkanRingBuffer*>(this->m_batchDataBuff);
+	VulkanRingBuffer* indirectDrawBuff = dynamic_cast<VulkanRingBuffer*>(this->m_indirectDrawBuff);
+	VulkanBuffer* drawCountBuff = dynamic_cast<VulkanBuffer*>(this->m_countBuff);
+
+	VkDescriptorBufferInfo bufferInfos[5] = { };
+
+	/* Binding 0: Instance data */
+	bufferInfos[0].buffer = instanceDataBuff->GetBuffer();
+	bufferInfos[0].offset = 0;
+	bufferInfos[0].range = VK_WHOLE_SIZE;
+
+	/* Binding 1: Draw batch data */
+	bufferInfos[1].buffer = batchDataBuff->GetBuffer();
+	bufferInfos[1].offset = 0;
+	bufferInfos[1].range = VK_WHOLE_SIZE;
+
+	/* Binding 2: Output commands */
+	bufferInfos[2].buffer = indirectDrawBuff->GetBuffer();
+	bufferInfos[2].offset = 0;
+	bufferInfos[2].range = VK_WHOLE_SIZE;
+
+	/* Binding 3: Draw count */
+	bufferInfos[3].buffer = drawCountBuff->GetBuffer();
+	bufferInfos[3].offset = 0;
+	bufferInfos[3].range = VK_WHOLE_SIZE;
+
+	/* Binding 4: WVP Ring buffer */
+	bufferInfos[4].buffer = wvpBuff->GetBuffer();
+	bufferInfos[4].offset = 0;
+	bufferInfos[4].range = VK_WHOLE_SIZE;
+
+	for (uint32_t i = 0; i < this->m_nImageCount; i++) {
+		VkWriteDescriptorSet descriptorWrites[5] = { };
+
+		for (uint32_t j = 0; j < 5; j++) {
+			descriptorWrites[j].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			descriptorWrites[j].dstSet = this->m_cullingDescriptorSets[i];
+			descriptorWrites[j].dstBinding = j;
+			descriptorWrites[j].dstArrayElement = 0;
+			descriptorWrites[j].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+			descriptorWrites[j].descriptorCount = 1;
+			descriptorWrites[j].pBufferInfo = &bufferInfos[j];
+		}
+
+		vkUpdateDescriptorSets(this->m_device, 5, descriptorWrites, 0, nullptr);
+	}
+	
+	spdlog::debug("VulkanRenderer::WriteCullingDescriptorSets: GPU culling descriptor sets written");
 }
 
 /*

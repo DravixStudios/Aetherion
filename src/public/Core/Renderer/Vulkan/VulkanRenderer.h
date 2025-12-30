@@ -252,6 +252,7 @@ private:
 	void GenerateBRDFLUT();
 	void WriteLightDescriptorSets();
 	void WriteSkyboxDescriptorSets();
+	void WriteCullingDescriptorSets();
 	void CreateCommandBuffer();
 	VkPipeline CreateGraphicsPipeline(
 		const String& vertPath,
