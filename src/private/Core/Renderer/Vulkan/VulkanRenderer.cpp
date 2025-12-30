@@ -1308,6 +1308,23 @@ void VulkanRenderer::CreateGBufferResources() {
 	this->TransitionImageLayout(this->m_positionResolveBuffer, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 
 	spdlog::debug("VulkanRenderer::CreateGBufferResources: G-Buffers created");
+
+	this->CreateGlobalGeometryBuffers();
+}
+
+void VulkanRenderer::CreateGlobalGeometryBuffers() {
+	/* 512MB for vertices */
+	uint32_t nVBOSize = 512 * 1024 * 1024;
+	/* 128MB for indices */
+	uint32_t nIBOSize = 128 * 1024 * 1024;
+
+	this->m_globalVBO = this->CreateBuffer(nullptr, nVBOSize, EBufferType::VERTEX_BUFFER);
+	this->m_globalIBO = this->CreateBuffer(nullptr, nIBOSize, EBufferType::INDEX_BUFFER);
+
+	this->m_nVertexDataOffset = 0;
+	this->m_nIndexDataOffset = 0;
+
+	spdlog::debug("VulkanRenderer::CreateGlobalGeometryBuffers: Global geometry buffers initialized: VBO: {0}MB. IBO: {1}MB", (nVBOSize / 1024 / 1024), (nIBOSize / 1024 / 1024));
 }
 
 /* Depth resources creation */
