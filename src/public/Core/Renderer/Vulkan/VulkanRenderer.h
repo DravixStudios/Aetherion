@@ -203,6 +203,7 @@ private:
 
 	VkDescriptorSetLayout m_cullingDescriptorSetLayout;
 	VkDescriptorPool m_cullingDescriptorPool;
+	Vector<VkDescriptorSet> m_cullingDescriptorSets;
 
 	uint32_t m_nMaxDescriptorSetSamplers;
 	uint32_t m_nMaxPerStageDescriptorSamplers;
@@ -243,6 +244,7 @@ private:
 	void AllocateDescriptorSets();
 	void AllocateLightingDescriptorSets();
 	void AllocateSkyboxDescriptorSets();
+	void AllocateCullingDescriptorSets();
 	void WriteDescriptorSets();
 	void CreateIndirectBuffers();
 	void GenerateIrradianceMap();

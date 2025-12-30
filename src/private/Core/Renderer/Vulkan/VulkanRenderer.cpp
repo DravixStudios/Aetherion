@@ -148,6 +148,8 @@ void VulkanRenderer::Init() {
 	this->m_wvpBuff = pUrb;
 	/* End Test uniform */
 
+	this->CreateIndirectBuffers();
+
 	this->CreateDescriptorSetLayout();
 	this->CreateLightingDescriptorSetLayout();
 	this->CreateSkyboxDescriptorSetLayout();
@@ -159,6 +161,7 @@ void VulkanRenderer::Init() {
 	this->AllocateDescriptorSets();
 	this->AllocateLightingDescriptorSets();
 	this->AllocateSkyboxDescriptorSets();
+	this->AllocateCullingDescriptorSets();
 	this->WriteDescriptorSets();
 	this->CreateCommandBuffer();
 	
@@ -1919,6 +1922,27 @@ void VulkanRenderer::AllocateSkyboxDescriptorSets() {
 	}
 
 	spdlog::debug("VulkanRenderer::AllocateSkyboxDescriptorSets: Skybox descriptor sets allocated");
+}
+
+/* Allocate GPU culling descriptor sets */
+void VulkanRenderer::AllocateCullingDescriptorSets() {
+	Vector<VkDescriptorSetLayout> layouts(this->m_nImageCount, this->m_cullingDescriptorSetLayout);
+
+	/* Descriptor set layout allocate info */
+	VkDescriptorSetAllocateInfo allocInfo = { };
+	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+	allocInfo.descriptorPool = this->m_cullingDescriptorPool;
+	allocInfo.descriptorSetCount = this->m_nImageCount;
+	allocInfo.pSetLayouts = layouts.data();
+
+	this->m_cullingDescriptorSets.resize(this->m_nImageCount);
+	if (vkAllocateDescriptorSets(this->m_device, &allocInfo, this->m_cullingDescriptorSets.data()) != VK_SUCCESS) {
+		spdlog::error("VulkanRenderer::AllocateCullingDescriptorSets: Failed allocating GPU culling descriptor sets");
+		throw std::runtime_error("VulkanRenderer::AllocateCullingDescriptorSets: Failed allocating GPU culling descriptor sets");
+		return;
+	}
+
+	spdlog::debug("VulkanRenderer::AllocateCullingDescriptorSets: GPU culling descriptor sets allocated");
 }
 
 /* Writes our descriptor sets */
