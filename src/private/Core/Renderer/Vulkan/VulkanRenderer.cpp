@@ -3881,6 +3881,35 @@ void VulkanRenderer::RecordCommandBuffer(uint32_t nImageIndex) {
 	/* Dispatch compute shader for culling */
 	this->DispatchComputeCulling(commandBuffer);
 
+	/* Barrier for making sure that the compute ends before the graphics */
+	VulkanRingBuffer* indirectBuff = dynamic_cast<VulkanRingBuffer*>(this->m_indirectDrawBuff);
+
+	VkBufferMemoryBarrier computeBarriers[2] = { };
+
+	computeBarriers[0].sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+	computeBarriers[0].srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+	computeBarriers[0].dstAccessMask = VK_ACCESS_INDIRECT_COMMAND_READ_BIT;
+	computeBarriers[0].buffer = indirectBuff->GetBuffer();
+	computeBarriers[0].offset = this->m_frameIndirectData[nImageIndex].indirectDrawOffset;
+	computeBarriers[0].size = VK_WHOLE_SIZE;
+
+	computeBarriers[1].sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+	computeBarriers[1].srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+	computeBarriers[1].dstAccessMask = VK_ACCESS_INDIRECT_COMMAND_READ_BIT;
+	computeBarriers[1].buffer = countBuff->GetBuffer();
+	computeBarriers[1].offset = 0;
+	computeBarriers[1].size = sizeof(uint32_t);
+
+	vkCmdPipelineBarrier(
+		commandBuffer,
+		VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT,
+		0,
+		0,
+		nullptr,
+		2, computeBarriers,
+		0, nullptr
+	);
+
 	/* G-Buffer pass */
 	/* G-Buffer clear values */
 	VkClearValue albedoClear = { { { 0.f, 0.f, 0.f, 1.f } } };
@@ -4200,7 +4229,7 @@ void VulkanRenderer::DispatchComputeCulling(VkCommandBuffer commandBuff) {
 
 	/* Calculate necessary work group number */
 	uint32_t nWorkGroupSize = 256; //  Shader's local_size_x
-	uint32_t nWorkGroupCount = (pushData.totalBatches + nWorkGroupCount - 1) / nWorkGroupSize;
+	uint32_t nWorkGroupCount = (pushData.totalBatches + nWorkGroupSize - 1) / nWorkGroupSize;
 
 	/* Dispatch compute shader */
 	vkCmdDispatch(commandBuff, nWorkGroupCount, 1, 1);
