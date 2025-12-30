@@ -1673,7 +1673,7 @@ void VulkanRenderer::CreateCullingDescriptorSetLayout() {
 	bindings[0].binding = 0;
 	bindings[0].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 	bindings[0].descriptorCount = 1;
-	bindings[0].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+	bindings[0].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT | VK_SHADER_STAGE_VERTEX_BIT;
 
 	/* Binding 1: Draw batches (DrawBatch) */
 	bindings[1].binding = 1;
@@ -1697,7 +1697,7 @@ void VulkanRenderer::CreateCullingDescriptorSetLayout() {
 	bindings[4].binding = 4;
 	bindings[4].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 	bindings[4].descriptorCount = 1;
-	bindings[4].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+	bindings[4].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT | VK_SHADER_STAGE_VERTEX_BIT;
 
 	/* Descriptor set layout create info */
 	VkDescriptorSetLayoutCreateInfo createInfo = { };
