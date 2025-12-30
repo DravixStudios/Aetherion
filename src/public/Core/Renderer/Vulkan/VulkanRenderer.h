@@ -125,6 +125,9 @@ private:
 	VkPipelineLayout m_skyboxPipelineLayout;
 	VkPipeline m_skyboxPipeline;
 
+	VkPipelineLayout m_cullingPipelineLayout;
+	VkPipeline m_cullingPipeline;
+
 	/* IBL Generation Pipelines */
 	VkPipelineLayout m_irradiancePipelinelayout;
 	VkPipeline m_irradiancePipeline;
@@ -274,6 +277,7 @@ private:
 	void CreateSkyboxPipeline();
 	void CreateIrradiancePipeline();
 	void CreatePrefilterPipeline();
+	void CreateCullingPipeline();
 	void CreateBRDFPipeline();
 	void CreateSyncObjects();
 	void RecordCommandBuffer(uint32_t nImageIndex);

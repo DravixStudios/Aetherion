@@ -170,6 +170,7 @@ void VulkanRenderer::Init() {
 	this->CreateSkyboxPipeline();
 	this->CreateIrradiancePipeline();
 	this->CreatePrefilterPipeline();
+	this->CreateCullingPipeline();
 	this->CreateBRDFPipeline();
 	
 	/* Test skybox */
@@ -3672,6 +3673,58 @@ void VulkanRenderer::CreatePrefilterPipeline() {
 	);
 
 	spdlog::debug("VulkanRenderer::CreatePrefilterPipeline: Prefilter pipeline created");
+}
+
+/* Create GPU culling compute pipeline */
+void VulkanRenderer::CreateCullingPipeline() {
+	/* Compile shader */
+	Vector<uint32_t> computeShader = this->CompileShader(
+		this->ReadShader("GPUCulling.comp"), 
+		"GPUCulling.comp", 
+		shaderc_compute_shader
+	);
+
+	VkShaderModule shaderModule = this->CreateShaderModule(computeShader);
+
+	VkPipelineShaderStageCreateInfo stageInfo = { };
+	stageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+	stageInfo.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+	stageInfo.module = shaderModule;
+	stageInfo.pName = "main";
+
+	/* Push constants */
+	VkPushConstantRange pushRange = { };
+	pushRange.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+	pushRange.offset = 0;
+	pushRange.size = sizeof(glm::mat4) + sizeof(glm::vec4) + (sizeof(uint32_t) * 2);
+
+	VkPipelineLayoutCreateInfo layoutInfo = { };
+	layoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+	layoutInfo.setLayoutCount = 1;
+	layoutInfo.pSetLayouts = &this->m_cullingDescriptorSetLayout;
+	layoutInfo.pushConstantRangeCount = 1;
+	layoutInfo.pPushConstantRanges = &pushRange;
+
+	if (vkCreatePipelineLayout(this->m_device, &layoutInfo, nullptr, &this->m_cullingPipelineLayout) != VK_SUCCESS) {
+		spdlog::error("VulkanRenderer::CreateCullingPipeline: Failed creating GPU culling pipeline layout");
+		throw std::runtime_error("VulkanRenderer::CreateCullingPipeline: Failed creating GPU culling pipeline layout");
+		return;
+	}
+
+	VkComputePipelineCreateInfo pipelineInfo = { };
+	pipelineInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+	pipelineInfo.stage = stageInfo;
+	pipelineInfo.layout = this->m_cullingPipelineLayout;
+
+	if (vkCreateComputePipelines(this->m_device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &this->m_cullingPipeline) != VK_SUCCESS) {
+		spdlog::error("VulkanRenderer::CreateCullingPipeline: Failed creating GPU culling compute pipeline");
+		throw std::runtime_error("VulkanRenderer::CreateCullingPipeline: Failed creating GPU culling compute pipeline");
+		return;
+	}
+	
+	vkDestroyShaderModule(this->m_device, shaderModule, nullptr);
+
+	spdlog::debug("VulkanRenderer::CreateCullingPipeline: GPU culling compute pipeline created");
 }
 
 /* 
