@@ -281,6 +281,7 @@ private:
 	void CreateBRDFPipeline();
 	void CreateSyncObjects();
 	void RecordCommandBuffer(uint32_t nImageIndex);
+	void DispatchComputeCulling(VkCommandBuffer commandBuff);
 	void UpdateInstanceData(uint32_t nFrameIndex);
 	VkSurfaceFormatKHR ChooseSwapSurfaceFormat(const Vector<VkSurfaceFormatKHR>& formats);
 	VkPresentModeKHR ChooseSwapPresentMode(const Vector<VkPresentModeKHR>& presentModes);

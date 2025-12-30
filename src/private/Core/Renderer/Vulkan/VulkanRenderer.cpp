@@ -3696,7 +3696,7 @@ void VulkanRenderer::CreateCullingPipeline() {
 	VkPushConstantRange pushRange = { };
 	pushRange.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
 	pushRange.offset = 0;
-	pushRange.size = sizeof(glm::mat4) + sizeof(glm::vec4) + (sizeof(uint32_t) * 2);
+	pushRange.size = sizeof(glm::mat4) + (sizeof(glm::vec4) * 6) + (sizeof(uint32_t) * 2);
 
 	VkPipelineLayoutCreateInfo layoutInfo = { };
 	layoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -3847,14 +3847,39 @@ void VulkanRenderer::RecordCommandBuffer(uint32_t nImageIndex) {
 	this->UpdateInstanceData(nImageIndex);
 
 	/* Begin command buffer */
-	VkCommandBufferBeginInfo beginInfo = { };
-	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-
 	VkCommandBuffer commandBuffer = this->m_commandBuffers[this->m_nCurrentFrameIndex];
 
+	VkCommandBufferBeginInfo beginInfo = { };
+	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 	vkBeginCommandBuffer(commandBuffer, &beginInfo);
 
-	/* Begin render pass */
+	/* Compute culling */
+	
+	/* Reset draw count to 0 */
+	VulkanBuffer* countBuff = dynamic_cast<VulkanBuffer*>(this->m_countBuff);
+	vkCmdFillBuffer(commandBuffer, countBuff->GetBuffer(), 0, sizeof(uint32_t), 0);
+
+	/* Barrier for making sure that the reset ends before the compute */
+	VkBufferMemoryBarrier resetBarrier = { };
+	resetBarrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+	resetBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+	resetBarrier.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+	resetBarrier.buffer = countBuff->GetBuffer();
+	resetBarrier.offset = 0;
+	resetBarrier.size = sizeof(uint32_t);
+
+	vkCmdPipelineBarrier(
+		commandBuffer, 
+		VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+		0, 
+		0, 
+		nullptr, 
+		1, &resetBarrier, 
+		0, nullptr
+	);
+
+	/* Dispatch compute shader for culling */
+	this->DispatchComputeCulling(commandBuffer);
 
 	/* G-Buffer pass */
 	/* G-Buffer clear values */
@@ -3891,6 +3916,7 @@ void VulkanRenderer::RecordCommandBuffer(uint32_t nImageIndex) {
 		depthResolveClear
 	};
 
+	/* Begin render pass */
 	VkRenderPassBeginInfo geometryPassInfo = { };
 	geometryPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 	geometryPassInfo.clearValueCount = 12;
@@ -4131,6 +4157,55 @@ void VulkanRenderer::RecordCommandBuffer(uint32_t nImageIndex) {
 	vkEndCommandBuffer(commandBuffer);
 }
 
+void VulkanRenderer::DispatchComputeCulling(VkCommandBuffer commandBuff) {
+	vkCmdBindPipeline(commandBuff, VK_PIPELINE_BIND_POINT_COMPUTE, this->m_cullingPipeline);
+
+	vkCmdBindDescriptorSets(
+		commandBuff,
+		VK_PIPELINE_BIND_POINT_COMPUTE,
+		this->m_cullingPipelineLayout,
+		0,
+		1, &this->m_cullingDescriptorSets[this->m_nCurrentFrameIndex],
+		0, nullptr
+	);
+
+	VulkanRingBuffer* wvpBuff = dynamic_cast<VulkanRingBuffer*>(this->m_wvpBuff);
+
+	/* Calculate frustum planes */
+	glm::mat4 viewProj = this->m_wvp.View * this->m_wvp.Projection;
+	glm::vec4 frustumPlanes[6];
+	this->ExtractFrustumPlanes(viewProj, frustumPlanes);
+
+	/* Push constants */
+	struct {
+		glm::mat4 viewProj;
+		glm::vec4 frustumPlanes[6];
+		uint32_t totalBatches;
+		uint32_t wvpAlignment;
+	} pushData;
+
+	pushData.viewProj = viewProj;
+	pushData.totalBatches = static_cast<uint32_t>(this->m_drawBatches.size());
+	pushData.wvpAlignment = wvpBuff->GetAlignment();
+	memcpy(pushData.frustumPlanes, frustumPlanes, sizeof(glm::vec4) * 6); // Copy frustum planes to push data
+
+	/* Push constants */
+	vkCmdPushConstants(
+		commandBuff,
+		this->m_cullingPipelineLayout, 
+		VK_SHADER_STAGE_COMPUTE_BIT, 
+		0, 
+		sizeof(pushData), &pushData
+	);
+
+	/* Calculate necessary work group number */
+	uint32_t nWorkGroupSize = 256; //  Shader's local_size_x
+	uint32_t nWorkGroupCount = (pushData.totalBatches + nWorkGroupCount - 1) / nWorkGroupSize;
+
+	/* Dispatch compute shader */
+	vkCmdDispatch(commandBuff, nWorkGroupCount, 1, 1);
+}
+
 /* Updates instance data */
 void VulkanRenderer::UpdateInstanceData(uint32_t nFrameIndex) {
 	Scene* currentScene = this->m_sceneMgr->GetCurrentScene();
@@ -4155,6 +4230,10 @@ void VulkanRenderer::UpdateInstanceData(uint32_t nFrameIndex) {
 		static_cast<float>(this->m_scExtent.width), static_cast<float>(this->m_scExtent.height), 
 		.001f, 300.f
 	);
+
+	this->m_wvp.World = glm::mat4(1.f);
+	this->m_wvp.View = cameraMatrix;
+	this->m_wvp.Projection = projMatrix;
 
 	/* Clear temporal data */
 	this->m_instanceData.clear();
