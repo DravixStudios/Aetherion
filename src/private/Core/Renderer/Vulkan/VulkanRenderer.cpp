@@ -2088,7 +2088,7 @@ void VulkanRenderer::CreateIndirectBuffers() {
 
 /* Generates our irradiance map */
 void VulkanRenderer::GenerateIrradianceMap() {
-	uint32_t nSize = 128;
+	uint32_t nSize = 64;
 	VkFormat format = VK_FORMAT_R32G32B32A32_SFLOAT;
 
 	/* Create cubemap image */
