@@ -10,7 +10,8 @@ Input::Input() {
 	this->m_pWindow = nullptr;
 }
 
-void Input::ShowCursor(bool bShow) {
+void 
+Input::ShowCursor(bool bShow) {
 	if (!bShow) {
 		/* Disable cursor */
 		glfwSetInputMode(this->m_pWindow, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
@@ -40,35 +41,43 @@ void Input::ShowCursor(bool bShow) {
 	}
 }
 
-void Input::SetWindow(GLFWwindow* pWindow) {
+void 
+Input::SetWindow(GLFWwindow* pWindow) {
 	this->m_pWindow = pWindow;
 }
 
-void Input::SetKey(char key, EInputState state) {
+void 
+Input::SetKey(char key, EInputState state) {
 	this->m_keys[key] = state;
 }
 
-void Input::SetKeyDown(char key) {
+void 
+Input::SetKeyDown(char key) {
 	this->SetKey(key, EInputState::PRESSED);
 }
 
-void Input::SetKeyUp(char key) {
+void 
+Input::SetKeyUp(char key) {
 	this->SetKey(key, EInputState::RELEASED);
 }
 
-void Input::SetButton(EMouseButton btn, EInputState state) {
+void 
+Input::SetButton(EMouseButton btn, EInputState state) {
 	this->m_buttons[btn] = state;
 }
 
-void Input::SetButtonDown(EMouseButton btn) {
+void 
+Input::SetButtonDown(EMouseButton btn) {
 	this->SetButton(btn, EInputState::PRESSED);
 }
 
-void Input::SetButtonUp(EMouseButton btn) {
+void 
+Input::SetButtonUp(EMouseButton btn) {
 	this->SetButton(btn, EInputState::RELEASED);
 }
 
-bool Input::GetKey(char key, EInputState state) {
+bool
+Input::GetKey(char key, EInputState state) {
 	if (this->m_keys.count(key) < 1)
 		return false;
 
@@ -78,15 +87,18 @@ bool Input::GetKey(char key, EInputState state) {
 	return false;
 }
 
-bool Input::GetKeyDown(char key) {
+bool 
+Input::GetKeyDown(char key) {
 	return this->GetKey(key, EInputState::PRESSED);
 }
 
-bool Input::GetKeyUp(char key) {
+bool 
+Input::GetKeyUp(char key) {
 	return this->GetKey(key, EInputState::RELEASED);
 }
 
-bool Input::GetButton(EMouseButton btn, EInputState state) {
+bool 
+Input::GetButton(EMouseButton btn, EInputState state) {
 	if (this->m_buttons.count(btn) < 1)
 		return false;
 
@@ -96,23 +108,28 @@ bool Input::GetButton(EMouseButton btn, EInputState state) {
 	return false;
 }
 
-bool Input::GetButtonDown(EMouseButton btn) {
+bool 
+Input::GetButtonDown(EMouseButton btn) {
 	return this->GetButton(btn, EInputState::PRESSED);
 }
 
-bool Input::GetButtonUp(EMouseButton btn) {
+bool 
+Input::GetButtonUp(EMouseButton btn) {
 	return this->GetButton(btn, EInputState::RELEASED);
 }
 
-float Input::GetDeltaX() {
+float 
+Input::GetDeltaX() {
 	return this->deltaX;
 }
 
-float Input::GetDeltaY() {
+float 
+Input::GetDeltaY() {
 	return this->deltaY;
 }
 
-void Input::Callback(EInputType nEventType, int nKeyOrButton, int nAction, float posX, float posY) {
+void 
+Input::Callback(EInputType nEventType, int nKeyOrButton, int nAction, float posX, float posY) {
 	switch (nEventType) {
 	case EInputType::KEYBOARD:
 		if (nAction == GLFW_PRESS) 
@@ -142,15 +159,18 @@ void Input::Callback(EInputType nEventType, int nKeyOrButton, int nAction, float
 	}
 }
 
-void Input::KeyCallback(GLFWwindow* pWindow, int nKey, int nScancode, int nAction, int nMods) {
+void 
+Input::KeyCallback(GLFWwindow* pWindow, int nKey, int nScancode, int nAction, int nMods) {
 	Input::GetInstance()->Callback(EInputType::KEYBOARD, nKey, nAction);
 }
 
-void Input::MouseButtonCallback(GLFWwindow* pWindow, int nButton, int nAction, int nMods) {
+void
+Input::MouseButtonCallback(GLFWwindow* pWindow, int nButton, int nAction, int nMods) {
 	Input::GetInstance()->Callback(EInputType::MOUSE_BUTTON, nButton, nAction);
 }
 
-void Input::Close() {
+void 
+Input::Close() {
 	Vector<char> keysToRemove;
 	for (std::pair<char, EInputState> key : this->m_keys) {
 		if (key.second == EInputState::RELEASED)
@@ -173,7 +193,8 @@ void Input::Close() {
 	this->deltaY = 0.f;
 }
 
-Input* Input::GetInstance() {
+Input*
+Input::GetInstance() {
 	if (Input::m_instance == nullptr)
 		Input::m_instance = new Input();
 

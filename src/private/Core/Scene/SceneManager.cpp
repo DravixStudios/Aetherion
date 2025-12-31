@@ -8,7 +8,8 @@ SceneManager::SceneManager() {
 }
 
 /* Add a scene to our scene map */
-void SceneManager::AddScene(Scene* scene) {
+void 
+SceneManager::AddScene(Scene* scene) {
 	if (this->SceneExists(scene->m_name)) {
 		spdlog::error("SceneManager::AddScene: Scene with name {0} already exists", scene->m_name);
 		return;
@@ -18,7 +19,8 @@ void SceneManager::AddScene(Scene* scene) {
 }
 
 /* Get scene by name */
-Scene* SceneManager::GetScene(String name) {
+Scene* 
+SceneManager::GetScene(String name) {
 	if (!this->SceneExists(name)) {
 		spdlog::error("SceneManager::GetScene: Scene with name {0} not found", name);
 		return nullptr;
@@ -28,15 +30,18 @@ Scene* SceneManager::GetScene(String name) {
 }
 
 /* Check if the scene actually exists */
-bool SceneManager::SceneExists(String name) {
+bool 
+SceneManager::SceneExists(String name) {
 	return this->m_scenes.count(name) > 0;
 }
 
-Scene* SceneManager::GetCurrentScene() {
+Scene* 
+SceneManager::GetCurrentScene() {
 	return this->m_currentScene;
 }
 
-void SceneManager::Start() {
+void 
+SceneManager::Start() {
 	GameObject* sampleObj = new GameObject("Sample object");
 
 	Mesh* mesh = new Mesh("MeshComponent");
@@ -46,11 +51,13 @@ void SceneManager::Start() {
 	this->m_currentScene->Start();
 }
 
-void SceneManager::Update() {
+void 
+SceneManager::Update() {
 	this->m_currentScene->Update();
 }
 
-SceneManager* SceneManager::GetInstance() {
+SceneManager* 
+SceneManager::GetInstance() {
 	if (SceneManager::m_instance == nullptr)
 		SceneManager::m_instance = new SceneManager();
 	return SceneManager::m_instance;

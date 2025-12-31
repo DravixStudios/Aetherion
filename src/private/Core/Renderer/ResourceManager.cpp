@@ -9,7 +9,8 @@ ResourceManager::ResourceManager() {
 	this->m_renderer = nullptr;
 }
 
-GPUTexture* ResourceManager::GetTexture(String textureName) {
+GPUTexture* 
+ResourceManager::GetTexture(String textureName) {
 	if (!this->TextureExists(textureName)) {
 		spdlog::error("ResourceManager::GetTexture: Texture with name {0} not found.", textureName);
 		return nullptr;
@@ -18,7 +19,8 @@ GPUTexture* ResourceManager::GetTexture(String textureName) {
 	return this->m_textures[textureName];
 }
 
-bool ResourceManager::AddTexture(String textureName, GPUTexture* pTexture) {
+bool 
+ResourceManager::AddTexture(String textureName, GPUTexture* pTexture) {
 	if (this->TextureExists(textureName)) {
 		spdlog::error("ResourceManager::AddTexture: Couldn't add texture {0}. Already exists", textureName);
 		return false;
@@ -29,14 +31,16 @@ bool ResourceManager::AddTexture(String textureName, GPUTexture* pTexture) {
 	return true;
 }
 
-bool ResourceManager::TextureExists(String textureName) {
+bool 
+ResourceManager::TextureExists(String textureName) {
 	if (this->m_textures.count(textureName) > 0)
 		return true;
 	
 	return false;
 }
 
-GPUTexture* ResourceManager::UploadTexture(String textureName, const unsigned char* pData, int nWidth, int nHeight) {
+GPUTexture* 
+ResourceManager::UploadTexture(String textureName, const unsigned char* pData, int nWidth, int nHeight) {
 	if (this->TextureExists(textureName)) {
 		spdlog::error("ResourceManager::UploadTexture: Couldn't add texture {0}. Already exists", textureName);
 		return this->m_textures[textureName];
@@ -83,11 +87,13 @@ GPUTexture* ResourceManager::UploadTexture(String textureName, const unsigned ch
 	}
 }
 
-void ResourceManager::SetRenderer(Renderer* pRenderer) {
+void 
+ResourceManager::SetRenderer(Renderer* pRenderer) {
 	this->m_renderer = pRenderer;
 }
 
-ResourceManager* ResourceManager::GetInstance() {
+ResourceManager* 
+ResourceManager::GetInstance() {
 	if (ResourceManager::m_instance == nullptr) {
 		ResourceManager::m_instance = new ResourceManager();
 	}

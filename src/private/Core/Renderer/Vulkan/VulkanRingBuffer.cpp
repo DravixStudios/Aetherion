@@ -9,7 +9,8 @@ VulkanRingBuffer::VulkanRingBuffer(VkDevice& device, VkPhysicalDevice& physicalD
 	this->pMap = nullptr;
 }
 
-void VulkanRingBuffer::Init(uint32_t nBufferSize, uint32_t nAlignment, uint32_t nFramesInFlight, EBufferType bufferType) {
+void 
+VulkanRingBuffer::Init(uint32_t nBufferSize, uint32_t nAlignment, uint32_t nFramesInFlight, EBufferType bufferType) {
 	GPURingBuffer::Init(nBufferSize, nAlignment, nFramesInFlight, bufferType);
 
 	VkPhysicalDeviceProperties devProps;
@@ -79,7 +80,8 @@ void VulkanRingBuffer::Init(uint32_t nBufferSize, uint32_t nAlignment, uint32_t 
 }
 
 /* Allocates a chunk of memory from the ring buffer with proper alignments */
-void* VulkanRingBuffer::Allocate(uint32_t nDataSize, uint32_t& outOffset) {
+void* 
+VulkanRingBuffer::Allocate(uint32_t nDataSize, uint32_t& outOffset) {
 	/* Convert our data size to a size aligned with VulkanRingBuffer::m_nAlignment */
 	uint32_t nAlignedSize = this->Align(nDataSize, this->m_nAlignment);
 
@@ -99,14 +101,17 @@ void* VulkanRingBuffer::Allocate(uint32_t nDataSize, uint32_t& outOffset) {
 	return pPtr;
 }
 
-uint32_t VulkanRingBuffer::Align(uint32_t nValue, uint32_t nAlignment) {
+uint32_t 
+VulkanRingBuffer::Align(uint32_t nValue, uint32_t nAlignment) {
 	return (nValue + nAlignment - 1) & ~(nAlignment - 1);
 }
 
-void VulkanRingBuffer::Reset(uint32_t nImageIndex) {
+void 
+VulkanRingBuffer::Reset(uint32_t nImageIndex) {
 	this->m_nOffset = this->Align(this->m_nPerFrameSize * nImageIndex, this->m_nAlignment);
 }
 
-VkBuffer VulkanRingBuffer::GetBuffer() {
+VkBuffer 
+VulkanRingBuffer::GetBuffer() {
 	return this->m_buffer;
 }

@@ -15,7 +15,8 @@ Core::Core() {
 }
 
 /* Core init method */
-void Core::Init() {
+void 
+Core::Init() {
     /* Initialize GLFW */
     if (!glfwInit()) {
         spdlog::error("Error initializing GLFW");
@@ -62,7 +63,8 @@ void Core::Init() {
 }
 
 /* Our core update method */
-void Core::Update() {
+void 
+Core::Update() {
     /* While window should not close */
     while (!glfwWindowShouldClose(this->m_pWindow)) {
         this->m_time->PreUpdate();
@@ -75,7 +77,8 @@ void Core::Update() {
 }
 
 /* Get our renderer instance */
-Renderer* Core::GetRenderer() {
+Renderer* 
+Core::GetRenderer() {
     if (this->m_renderer == nullptr) {
         spdlog::error("Core::GetRenderer: Core::m_renderer class member not defined");
         throw std::runtime_error("Core::GetRenderer: Core::m_renderer class member not defined");
@@ -85,7 +88,8 @@ Renderer* Core::GetRenderer() {
     return this->m_renderer;
 }
 
-Core* Core::GetInstance() {
+Core* 
+Core::GetInstance() {
     if (Core::m_instance == nullptr)
         Core::m_instance = new Core();
     return Core::m_instance;

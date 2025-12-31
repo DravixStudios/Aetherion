@@ -113,7 +113,8 @@ VulkanRenderer::VulkanRenderer() : Renderer::Renderer() {
 }
 
 /* Renderer init method */
-void VulkanRenderer::Init() {
+void 
+VulkanRenderer::Init() {
 	Renderer::Init();
 
 	this->CreateInstance();
@@ -194,7 +195,8 @@ void VulkanRenderer::Init() {
 }
 
 /* Initialize our Vulkan instance */
-void VulkanRenderer::CreateInstance() {
+void 
+VulkanRenderer::CreateInstance() {
 	spdlog::debug("Instance creation started");
 
 	/* Check if validation layers enabled and if are supported */
@@ -262,7 +264,8 @@ void VulkanRenderer::CreateInstance() {
 }
 
 /* Set up of our debug messenger */
-void VulkanRenderer::SetupDebugMessenger() {
+void 
+VulkanRenderer::SetupDebugMessenger() {
 	if (!this->m_bEnableValidationLayers) return;
 
 	VkDebugUtilsMessengerCreateInfoEXT createInfo = { };
@@ -274,7 +277,8 @@ void VulkanRenderer::SetupDebugMessenger() {
 }
 
 /* Window surface creation */
-void VulkanRenderer::CreateSurface() {
+void 
+VulkanRenderer::CreateSurface() {
 	if (!this->m_pWindow) {
 		spdlog::error("CreateSurface: No window provided");
 		throw std::runtime_error("CreateSurface: No window provided");
@@ -289,7 +293,8 @@ void VulkanRenderer::CreateSurface() {
 }
 
 /* Pick the most suitable physical device */
-void VulkanRenderer::PickPhysicalDevice() {
+void 
+VulkanRenderer::PickPhysicalDevice() {
 	/* Enumerate the amount of physical devices */
 	uint32_t nPhysicalDeviceCount = 0;
 	vkEnumeratePhysicalDevices(this->m_vkInstance, &nPhysicalDeviceCount, nullptr);
@@ -335,7 +340,8 @@ void VulkanRenderer::PickPhysicalDevice() {
 }
 
 /* Check if device supports decriptor indexing */
-void VulkanRenderer::CheckDescriptorIndexingSupport() {
+void 
+VulkanRenderer::CheckDescriptorIndexingSupport() {
 	/* Query number of available extensions */
 	uint32_t nExtensionCount;
 	vkEnumerateDeviceExtensionProperties(this->m_physicalDevice, nullptr, &nExtensionCount, nullptr);
@@ -385,7 +391,8 @@ void VulkanRenderer::CheckDescriptorIndexingSupport() {
 }
 
 /* Get GPU limits */
-void VulkanRenderer::QueryDeviceLimits() {
+void 
+VulkanRenderer::QueryDeviceLimits() {
 	/* Get physical device properties */
 	VkPhysicalDeviceProperties devProps;
 	vkGetPhysicalDeviceProperties(this->m_physicalDevice, &devProps);
@@ -429,7 +436,8 @@ void VulkanRenderer::QueryDeviceLimits() {
 }
 
 /* Create our logical device */
-void VulkanRenderer::CreateLogicalDevice() {
+void 
+VulkanRenderer::CreateLogicalDevice() {
 	QueueFamilyIndices indices = this->FindQueueFamilies(this->m_physicalDevice);
 
 	/* If queue family indices are not complete, throw error */
@@ -523,7 +531,8 @@ void VulkanRenderer::CreateLogicalDevice() {
 }
 
 /* Create our swap chain */
-void VulkanRenderer::CreateSwapChain() {
+void 
+VulkanRenderer::CreateSwapChain() {
 	SwapChainSupportDetails details = this->QuerySwapChainSupport(this->m_physicalDevice);
 
 	/* Image count: Minimum supported image count + 1 (if 2, we'll triple buffer it) */
@@ -593,7 +602,8 @@ void VulkanRenderer::CreateSwapChain() {
 /* 
 	Creation of our image views 
 */
-void VulkanRenderer::CreateImageViews() {
+void 
+VulkanRenderer::CreateImageViews() {
 	/* We'll have same amount of image views as swap images */
 	this->m_imageViews.resize(this->m_scImages.size());
 
@@ -609,7 +619,8 @@ void VulkanRenderer::CreateImageViews() {
 /* 
 	Create our geometry render pass 
 */
-void VulkanRenderer::CreateGeometryRenderPass() {
+void 
+VulkanRenderer::CreateGeometryRenderPass() {
 	/* Get multisample count */
 	VkSampleCountFlagBits multisampleCount = this->GetMaxUsableSampleCount();
 	this->m_multisampleCount = multisampleCount;
@@ -899,7 +910,8 @@ void VulkanRenderer::CreateGeometryRenderPass() {
 /*
 	Creation of our lighting render pass (Screen Quad)
 */
-void VulkanRenderer::CreateLightingRenderPass() {
+void 
+VulkanRenderer::CreateLightingRenderPass() {
 	/* Attachment 0: Final color output */
 	VkAttachmentDescription colorAttachment = { };
 	colorAttachment.format = this->m_surfaceFormat;
@@ -954,7 +966,8 @@ void VulkanRenderer::CreateLightingRenderPass() {
 /*
 	Creation of our skybox render pass (Screen Quad over our lighting frame)
 */
-void VulkanRenderer::CreateSkyboxRenderPass() {
+void 
+VulkanRenderer::CreateSkyboxRenderPass() {
 	/* Attachment 0: Final color output */
 	VkAttachmentDescription colorAttachment = { };
 	colorAttachment.format = this->m_surfaceFormat;
@@ -1006,7 +1019,8 @@ void VulkanRenderer::CreateSkyboxRenderPass() {
 }
 
 /* Create irradiance render pass */
-void VulkanRenderer::CreateIrradianceRenderPass() {
+void 
+VulkanRenderer::CreateIrradianceRenderPass() {
 	/* Attachment 0: Color attachment */
 	VkAttachmentDescription colorAttachment = { };
 	colorAttachment.format = VK_FORMAT_R32G32B32A32_SFLOAT;
@@ -1047,7 +1061,8 @@ void VulkanRenderer::CreateIrradianceRenderPass() {
 }
 
 /* Create prefilter render pass (Same as irradiance) */
-void VulkanRenderer::CreatePrefilterRenderPass() {
+void 
+VulkanRenderer::CreatePrefilterRenderPass() {
 	/* Attachment 0: Color attachment */
 	VkAttachmentDescription colorAttachment = { };
 	colorAttachment.format = VK_FORMAT_R32G32B32A32_SFLOAT;
@@ -1088,7 +1103,8 @@ void VulkanRenderer::CreatePrefilterRenderPass() {
 }
 
 /* Create BRDF render pass */
-void VulkanRenderer::CreateBRDFRenderPass() {
+void 
+VulkanRenderer::CreateBRDFRenderPass() {
 	/* Attachment 0: Color attachment */
 	VkAttachmentDescription colorAttachment = { };
 	colorAttachment.format = VK_FORMAT_R16G16_SFLOAT; // Only 2 channels (RG)
@@ -1129,7 +1145,8 @@ void VulkanRenderer::CreateBRDFRenderPass() {
 }
 
 /* Command pool creation */
-void VulkanRenderer::CreateCommandPool() {
+void 
+VulkanRenderer::CreateCommandPool() {
 	QueueFamilyIndices indices = FindQueueFamilies(this->m_physicalDevice);
 
 	VkCommandPoolCreateInfo createInfo = { };
@@ -1148,7 +1165,8 @@ void VulkanRenderer::CreateCommandPool() {
 /*
 	Create our G-Buffer resources
 */
-void VulkanRenderer::CreateGBufferResources() {
+void 
+VulkanRenderer::CreateGBufferResources() {
 	VkDeviceMemory colorMemory, normalMemory, ormMemory, emissiveMemory, positionMemory = nullptr;
 	VkDeviceMemory colorResolveMemory, normalResolveMemory, ormResolveMemory, emissiveResolveMemory, positionResolveMemory = nullptr;
 
@@ -1320,7 +1338,8 @@ void VulkanRenderer::CreateGBufferResources() {
 	this->CreateGlobalGeometryBuffers();
 }
 
-void VulkanRenderer::CreateGlobalGeometryBuffers() {
+void 
+VulkanRenderer::CreateGlobalGeometryBuffers() {
 	/* 512MB for vertices */
 	uint32_t nVBOSize = 512 * 1024 * 1024;
 	/* 128MB for indices */
@@ -1336,7 +1355,8 @@ void VulkanRenderer::CreateGlobalGeometryBuffers() {
 }
 
 /* Depth resources creation */
-void VulkanRenderer::CreateDepthResources() {
+void 
+VulkanRenderer::CreateDepthResources() {
 	VkFormat depthFormat = this->FindDepthFormat();
 
 	/* Cretion of our depth image */
@@ -1387,7 +1407,8 @@ void VulkanRenderer::CreateDepthResources() {
 }
 
 /* Create lighting resources */
-void VulkanRenderer::CreateLightingResources() {
+void 
+VulkanRenderer::CreateLightingResources() {
 	/* Screen quad vertices */
 	Vector<ScreenQuadVertex> vertices = {
 		{ { -1.f, -1.f, 0.f }, { 0.f, 0.f  }}, // BL
@@ -1412,7 +1433,8 @@ void VulkanRenderer::CreateLightingResources() {
 }
 
 /* Creates a cube mesh for IBL */
-void VulkanRenderer::CreateCubeMesh() {
+void 
+VulkanRenderer::CreateCubeMesh() {
 	/* Vertices of a centered cube */
 	Vector<glm::vec3> vertices = {
 		// Back face
@@ -1447,7 +1469,8 @@ void VulkanRenderer::CreateCubeMesh() {
 /*
 	Create a frame buffer per each G-Buffer
 */
-void VulkanRenderer::CreateGBufferFrameBuffer() {
+void 
+VulkanRenderer::CreateGBufferFrameBuffer() {
 	VkImageView attachments[] = {
 		this->m_colorBuffView,
 		this->m_normalBuffView,
@@ -1485,7 +1508,8 @@ void VulkanRenderer::CreateGBufferFrameBuffer() {
 /*
 	Create framebuffers for drawing our screen quad
 */
-void VulkanRenderer::CreateLightingFrameBuffer() {
+void 
+VulkanRenderer::CreateLightingFrameBuffer() {
 	this->m_scFrameBuffers.resize(this->m_imageViews.size());
 
 	for (uint32_t i = 0; i < this->m_scFrameBuffers.size(); i++) {
@@ -1515,7 +1539,8 @@ void VulkanRenderer::CreateLightingFrameBuffer() {
 /* 
 	Create framebuffers for drawing our skybox
 */
-void VulkanRenderer::CreateSkyboxFrameBuffer() {
+void 
+VulkanRenderer::CreateSkyboxFrameBuffer() {
 	this->m_skyboxFrameBuffers.resize(this->m_imageViews.size());
 
 	for (uint32_t i = 0; i < this->m_skyboxFrameBuffers.size(); i++) {
@@ -1543,7 +1568,8 @@ void VulkanRenderer::CreateSkyboxFrameBuffer() {
 }
 
 /* Create our descriptor set layout */
-void VulkanRenderer::CreateDescriptorSetLayout() {
+void 
+VulkanRenderer::CreateDescriptorSetLayout() {
 	/* World view projection binding */
 	VkDescriptorSetLayoutBinding wvpBinding = { };
 	wvpBinding.binding = 0;
@@ -1613,7 +1639,8 @@ void VulkanRenderer::CreateDescriptorSetLayout() {
 /*
 	Creates our descriptor set layout for our lighting pass
 */
-void VulkanRenderer::CreateLightingDescriptorSetLayout() {
+void 
+VulkanRenderer::CreateLightingDescriptorSetLayout() {
 	/* Texture sampler binding */
 	VkDescriptorSetLayoutBinding samplerBinding = { };
 	samplerBinding.binding = 0;
@@ -1656,7 +1683,8 @@ void VulkanRenderer::CreateLightingDescriptorSetLayout() {
 /*
 	Creates our descriptor set layout for our skybox pass
 */
-void VulkanRenderer::CreateSkyboxDescriptorSetLayout() {
+void 
+VulkanRenderer::CreateSkyboxDescriptorSetLayout() {
 	/* Cubemap sampler binding */
 	VkDescriptorSetLayoutBinding cubemapBinding = { };
 	cubemapBinding.binding = 0;
@@ -1691,7 +1719,8 @@ void VulkanRenderer::CreateSkyboxDescriptorSetLayout() {
 }
 
 /* Create GPUCulling compute shader descriptor set layout */
-void VulkanRenderer::CreateCullingDescriptorSetLayout() {
+void 
+VulkanRenderer::CreateCullingDescriptorSetLayout() {
 	VkDescriptorSetLayoutBinding bindings[5] = { };
 
 	/* Binding 0: Instance data (ObjectInstanceData) */
@@ -1740,7 +1769,8 @@ void VulkanRenderer::CreateCullingDescriptorSetLayout() {
 }
 
 /* Create our descriptor pool */
-void VulkanRenderer::CreateDescriptorPool() {
+void 
+VulkanRenderer::CreateDescriptorPool() {
 	/* Define our uniform descriptor pool size */
 	VkDescriptorPoolSize wvpPoolSize = { };
 	wvpPoolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
@@ -1788,7 +1818,8 @@ void VulkanRenderer::CreateDescriptorPool() {
 /*
 	Create a descriptor pool for our lighting pass 
 */
-void VulkanRenderer::CreateLightingDescriptorPool() {
+void 
+VulkanRenderer::CreateLightingDescriptorPool() {
 	/* Define our descriptor pool size */
 	VkDescriptorPoolSize poolSize = { };
 	poolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -1814,7 +1845,8 @@ void VulkanRenderer::CreateLightingDescriptorPool() {
 /*
 	Create a descriptor pool for our skybox pass
 */
-void VulkanRenderer::CreateSkyboxDescriptorPool() {
+void 
+VulkanRenderer::CreateSkyboxDescriptorPool() {
 	/* Define our descriptor pool size */
 	VkDescriptorPoolSize poolSize = { };
 	poolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -1838,7 +1870,8 @@ void VulkanRenderer::CreateSkyboxDescriptorPool() {
 }
 
 /* Create a descriptor pool for our GPU culling */
-void VulkanRenderer::CreateCullingDescriptorPool() {
+void 
+VulkanRenderer::CreateCullingDescriptorPool() {
 	/* Define our descriptor pool size */
 	VkDescriptorPoolSize poolSize = { };
 	poolSize.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
@@ -1862,7 +1895,8 @@ void VulkanRenderer::CreateCullingDescriptorPool() {
 /* 
 	Allocate our descriptor sets 
 */
-void VulkanRenderer::AllocateDescriptorSets() {
+void 
+VulkanRenderer::AllocateDescriptorSets() {
 	/* 
 		Initialize vector with m_nImageCount size and copy in each index m_descriptorSetLayout 
 		We do this because we are going to have a descriptor set per frame in flight
@@ -1910,7 +1944,8 @@ void VulkanRenderer::AllocateDescriptorSets() {
 }
 
 /* Allocate descriptor sets for our lighting pass */
-void VulkanRenderer::AllocateLightingDescriptorSets() {
+void 
+VulkanRenderer::AllocateLightingDescriptorSets() {
 	Vector<VkDescriptorSetLayout> layouts(this->m_nImageCount, this->m_lightingDescriptorSetLayout);
 
 	/* Descriptor set allocate info */
@@ -1931,7 +1966,8 @@ void VulkanRenderer::AllocateLightingDescriptorSets() {
 }
 
 /* Allocate descriptor sets for our skybox pass */
-void VulkanRenderer::AllocateSkyboxDescriptorSets() {
+void 
+VulkanRenderer::AllocateSkyboxDescriptorSets() {
 	Vector<VkDescriptorSetLayout> layouts(this->m_nImageCount, this->m_skyboxDescriptorSetLayout);
 
 	/* Descriptor set allocate info */
@@ -1952,7 +1988,8 @@ void VulkanRenderer::AllocateSkyboxDescriptorSets() {
 }
 
 /* Allocate GPU culling descriptor sets */
-void VulkanRenderer::AllocateCullingDescriptorSets() {
+void 
+VulkanRenderer::AllocateCullingDescriptorSets() {
 	Vector<VkDescriptorSetLayout> layouts(this->m_nImageCount, this->m_cullingDescriptorSetLayout);
 
 	/* Descriptor set layout allocate info */
@@ -1973,7 +2010,8 @@ void VulkanRenderer::AllocateCullingDescriptorSets() {
 }
 
 /* Writes our descriptor sets */
-void VulkanRenderer::WriteDescriptorSets() {
+void 
+VulkanRenderer::WriteDescriptorSets() {
 	/* Get our World View Projection Ring Buffer */
 	VulkanRingBuffer* ringBuffer = dynamic_cast<VulkanRingBuffer*>(this->m_wvpBuff);
 	if (ringBuffer == nullptr) {
@@ -2005,7 +2043,8 @@ void VulkanRenderer::WriteDescriptorSets() {
 }
 
 /* Creates indirect buffers */
-void VulkanRenderer::CreateIndirectBuffers() {
+void 
+VulkanRenderer::CreateIndirectBuffers() {
 	constexpr uint32_t MAX_OBJECTS = 131072; // Maximum objects (2^17)
 	constexpr uint32_t MAX_BATCHES = 131072; // Max batches (2^17)
 	constexpr uint32_t MAX_DRAWS = 131072; // Max indirect commands (2^17)
@@ -2095,7 +2134,8 @@ void VulkanRenderer::CreateIndirectBuffers() {
 }
 
 /* Generates our irradiance map */
-void VulkanRenderer::GenerateIrradianceMap() {
+void 
+VulkanRenderer::GenerateIrradianceMap() {
 	uint32_t nSize = 64;
 	VkFormat format = VK_FORMAT_R32G32B32A32_SFLOAT;
 
@@ -2357,7 +2397,8 @@ void VulkanRenderer::GenerateIrradianceMap() {
 	spdlog::debug("VulkanRenderer::GenerateIrradianceMap: Irradiance map generated");
 }
 
-void VulkanRenderer::GeneratePrefilterMap() {
+void 
+VulkanRenderer::GeneratePrefilterMap() {
 	uint32_t nSize = 128;
 	/*
 		5 mip levels:
@@ -2658,7 +2699,8 @@ void VulkanRenderer::GeneratePrefilterMap() {
 }
 
 /* Generate BRDF Look-Up table */
-void VulkanRenderer::GenerateBRDFLUT() {
+void 
+VulkanRenderer::GenerateBRDFLUT() {
 	uint32_t nSize = 512;
 	VkFormat format = VK_FORMAT_R16G16_SFLOAT;
 
@@ -2809,7 +2851,8 @@ void VulkanRenderer::GenerateBRDFLUT() {
 	spdlog::debug("VulkanRenderer::GenerateBRDFLUT: BRDF LUT Generated");
 }
 
-void VulkanRenderer::WriteLightDescriptorSets() {
+void 
+VulkanRenderer::WriteLightDescriptorSets() {
 	/* G-Buffers */
 	VkDescriptorImageInfo colorInfo = { };
 	colorInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -2928,7 +2971,8 @@ void VulkanRenderer::WriteLightDescriptorSets() {
 }
 
 /* Write our GPU culling descriptor sets */
-void VulkanRenderer::WriteCullingDescriptorSets() {
+void 
+VulkanRenderer::WriteCullingDescriptorSets() {
 	VulkanRingBuffer* wvpBuff = dynamic_cast<VulkanRingBuffer*>(this->m_wvpBuff);
 	if (wvpBuff == nullptr) {
 		spdlog::error("VulkanRenderer::WriteCullingDescriptorSets: Specified WVP buffer is invalid");
@@ -2992,7 +3036,8 @@ void VulkanRenderer::WriteCullingDescriptorSets() {
 	
 	TODO: Make this function able to change skyboxes dynamically.
 */
-void VulkanRenderer::WriteSkyboxDescriptorSets() {
+void 
+VulkanRenderer::WriteSkyboxDescriptorSets() {
 	/* 
 		Get our skybox VulkanTexture
 		TODO: Select skybox from current scene.
@@ -3039,7 +3084,8 @@ void VulkanRenderer::WriteSkyboxDescriptorSets() {
 	spdlog::debug("VulkanRenderer::WriteSkyboxDescriptorSets: Skybox descriptor sets written");
 }
 
-void VulkanRenderer::CreateCommandBuffer() {
+void
+VulkanRenderer::CreateCommandBuffer() {
 	this->m_commandBuffers.resize(this->m_nImageCount);
 
 	VkCommandBufferAllocateInfo allocInfo = { };
@@ -3074,7 +3120,8 @@ void VulkanRenderer::CreateCommandBuffer() {
 
 	Return value: The created pipeline.
 */
-VkPipeline VulkanRenderer::CreateGraphicsPipeline(
+VkPipeline 
+VulkanRenderer::CreateGraphicsPipeline(
 	const String& vertPath,
 	const String& pixelPath,
 	VkRenderPass renderPass,
@@ -3307,7 +3354,8 @@ void VulkanRenderer::CreateGBufferPipeline() {
 	spdlog::debug("CreateGBufferPipeline: G-Buffer pipeline created");
 }
 
-void VulkanRenderer::CreateLightingPipeline() {
+void 
+VulkanRenderer::CreateLightingPipeline() {
 	/* Input binding */
 	VkVertexInputBindingDescription bindingDesc = { };
 	bindingDesc.binding = 0;
@@ -3401,7 +3449,8 @@ void VulkanRenderer::CreateLightingPipeline() {
 	);
 }
 
-void VulkanRenderer::CreateSkyboxPipeline() {
+void 
+VulkanRenderer::CreateSkyboxPipeline() {
 	/* Input binding */
 	VkVertexInputBindingDescription bindingDesc = { };
 	bindingDesc.binding = 0;
@@ -3509,7 +3558,8 @@ void VulkanRenderer::CreateSkyboxPipeline() {
 	);
 }
 
-void VulkanRenderer::CreateIrradiancePipeline() {
+void 
+VulkanRenderer::CreateIrradiancePipeline() {
 	/* Vertex input (only position) */
 	VkVertexInputBindingDescription bindingDesc = { };
 	bindingDesc.binding = 0;
@@ -3609,7 +3659,8 @@ void VulkanRenderer::CreateIrradiancePipeline() {
 }
 
 /* Create prefilter pipeline (same as irradiance but with bigger push range. View + Projection + Roughness) */
-void VulkanRenderer::CreatePrefilterPipeline() {
+void 
+VulkanRenderer::CreatePrefilterPipeline() {
 	/* Vertex input (only position) */
 	VkVertexInputBindingDescription bindingDesc = { };
 	bindingDesc.binding = 0;
@@ -3702,7 +3753,8 @@ void VulkanRenderer::CreatePrefilterPipeline() {
 }
 
 /* Create GPU culling compute pipeline */
-void VulkanRenderer::CreateCullingPipeline() {
+void
+VulkanRenderer::CreateCullingPipeline() {
 	/* Compile shader */
 	Vector<uint32_t> computeShader = this->CompileShader(
 		this->ReadShader("GPUCulling.comp"), 
@@ -3757,7 +3809,8 @@ void VulkanRenderer::CreateCullingPipeline() {
 	Create BRDF Pipeline
 	Note: Uses a screen quad (same as lighting pass) 
 */
-void VulkanRenderer::CreateBRDFPipeline() {
+void 
+VulkanRenderer::CreateBRDFPipeline() {
 	/* Input binding */
 	VkVertexInputBindingDescription bindingDesc = { };
 	bindingDesc.binding = 0;
@@ -3843,7 +3896,8 @@ void VulkanRenderer::CreateBRDFPipeline() {
 }
 
 /* Creation of our sync objects */
-void VulkanRenderer::CreateSyncObjects() {
+void 
+VulkanRenderer::CreateSyncObjects() {
 	this->m_imageAvailableSemaphores.resize(this->m_nImageCount);
 	this->m_renderFinishedSemaphores.resize(this->m_nImageCount);
 	this->m_inFlightFences.resize(this->m_nImageCount);
@@ -3869,7 +3923,8 @@ void VulkanRenderer::CreateSyncObjects() {
 	spdlog::debug("CreateSyncObjects: Sync objects created");
 }
 
-void VulkanRenderer::RecordCommandBuffer(uint32_t nImageIndex) {
+void 
+VulkanRenderer::RecordCommandBuffer(uint32_t nImageIndex) {
 	this->UpdateInstanceData(nImageIndex);
 
 	/* Begin command buffer */
@@ -4147,7 +4202,8 @@ void VulkanRenderer::RecordCommandBuffer(uint32_t nImageIndex) {
 	vkEndCommandBuffer(commandBuffer);
 }
 
-void VulkanRenderer::DispatchComputeCulling(VkCommandBuffer commandBuff) {
+void 
+VulkanRenderer::DispatchComputeCulling(VkCommandBuffer commandBuff) {
 	vkCmdBindPipeline(commandBuff, VK_PIPELINE_BIND_POINT_COMPUTE, this->m_cullingPipeline);
 
 	vkCmdBindDescriptorSets(
@@ -4197,7 +4253,8 @@ void VulkanRenderer::DispatchComputeCulling(VkCommandBuffer commandBuff) {
 }
 
 /* Updates instance data */
-void VulkanRenderer::UpdateInstanceData(uint32_t nFrameIndex) {
+void 
+VulkanRenderer::UpdateInstanceData(uint32_t nFrameIndex) {
 	Scene* currentScene = this->m_sceneMgr->GetCurrentScene();
 	Camera* currentCamera = currentScene->GetCurrentCamera();
 	Transform cameraTransform = currentCamera->transform;
@@ -4379,7 +4436,8 @@ void VulkanRenderer::UpdateInstanceData(uint32_t nFrameIndex) {
 
 	If there is a format that is B8G8R8A8_SRGB and its color space is SRGB_NONLINEAR, select that
 */
-VkSurfaceFormatKHR VulkanRenderer::ChooseSwapSurfaceFormat(const Vector<VkSurfaceFormatKHR>& formats) {
+VkSurfaceFormatKHR 
+VulkanRenderer::ChooseSwapSurfaceFormat(const Vector<VkSurfaceFormatKHR>& formats) {
 	for (const VkSurfaceFormatKHR& format : formats) {
 		if (format.format == VK_FORMAT_B8G8R8A8_SRGB && format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
 			return format;
@@ -4393,7 +4451,8 @@ VkSurfaceFormatKHR VulkanRenderer::ChooseSwapSurfaceFormat(const Vector<VkSurfac
 
 	If there is a MAILBOX present mode, select it. Else, FIFO_KHR
 */
-VkPresentModeKHR VulkanRenderer::ChooseSwapPresentMode(const Vector<VkPresentModeKHR>& presentModes) {
+VkPresentModeKHR 
+VulkanRenderer::ChooseSwapPresentMode(const Vector<VkPresentModeKHR>& presentModes) {
 	for (const VkPresentModeKHR& presentMode : presentModes) {
 		if (presentMode == VK_PRESENT_MODE_MAILBOX_KHR) {
 			return presentMode;
@@ -4409,7 +4468,8 @@ VkPresentModeKHR VulkanRenderer::ChooseSwapPresentMode(const Vector<VkPresentMod
 		If capabilities extent is not valid, create one.
 		(Inside the limits)
 */
-VkExtent2D VulkanRenderer::ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities) {
+VkExtent2D 
+VulkanRenderer::ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities) {
 	if (capabilities.currentExtent.width != (std::numeric_limits<uint32_t>::max)()) {
 		return capabilities.currentExtent;
 	}
@@ -4432,7 +4492,8 @@ VkExtent2D VulkanRenderer::ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capa
 /*
 	Read our shader file
 */
-String VulkanRenderer::ReadShader(const String& sFile) {
+String 
+VulkanRenderer::ReadShader(const String& sFile) {
 	std::filesystem::path path = sFile;
 	if(!path.is_absolute()) {
 		String executableDir = GetExecutableDir();
@@ -4454,7 +4515,8 @@ String VulkanRenderer::ReadShader(const String& sFile) {
 /*
 	Compile our shader to Spir-V code with https://github.com/google/shaderc
 */
-Vector<uint32_t> VulkanRenderer::CompileShader(String shader, String filename, shaderc_shader_kind kind) {
+Vector<uint32_t> 
+VulkanRenderer::CompileShader(String shader, String filename, shaderc_shader_kind kind) {
 	shaderc::Compiler compiler;
 	shaderc::CompileOptions options;
 
@@ -4483,7 +4545,8 @@ Vector<uint32_t> VulkanRenderer::CompileShader(String shader, String filename, s
 }
 
 /* Create a shader module from our shader code */
-VkShaderModule VulkanRenderer::CreateShaderModule(Vector<uint32_t>& shaderCode) {
+VkShaderModule
+VulkanRenderer::CreateShaderModule(Vector<uint32_t>& shaderCode) {
 	VkShaderModuleCreateInfo createInfo = { };
 	createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
 	createInfo.codeSize = shaderCode.size() * sizeof(uint32_t);
@@ -4503,7 +4566,8 @@ VkShaderModule VulkanRenderer::CreateShaderModule(Vector<uint32_t>& shaderCode) 
 }
 
 /* Find supported format */
-VkFormat VulkanRenderer::FindSupportedFormat(const Vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags featureFlags) {
+VkFormat 
+VulkanRenderer::FindSupportedFormat(const Vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags featureFlags) {
 	/* For each candidate */
 	for (VkFormat format : candidates) {
 		/* Query physical device format properties */
@@ -4523,7 +4587,8 @@ VkFormat VulkanRenderer::FindSupportedFormat(const Vector<VkFormat>& candidates,
 }
 
 /* Find depth format */
-VkFormat VulkanRenderer::FindDepthFormat() {
+VkFormat 
+VulkanRenderer::FindDepthFormat() {
 	return this->FindSupportedFormat(
 		{ VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT },
 		VK_IMAGE_TILING_OPTIMAL,
@@ -4531,12 +4596,14 @@ VkFormat VulkanRenderer::FindDepthFormat() {
 	);
 }
 
-bool VulkanRenderer::HasStencilComponent(VkFormat format) {
+bool 
+VulkanRenderer::HasStencilComponent(VkFormat format) {
 	return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
 }
 
 /* Create a Vulkan image */
-uint32_t VulkanRenderer::CreateImage(
+uint32_t 
+VulkanRenderer::CreateImage(
 	uint32_t nWidth,
 	uint32_t nHeight,
 	VkFormat format,
@@ -4597,7 +4664,8 @@ uint32_t VulkanRenderer::CreateImage(
 }
 
 /* Find memory type */
-uint32_t VulkanRenderer::FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) {
+uint32_t 
+VulkanRenderer::FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) {
 	/* Query physical device memory properties */
 	VkPhysicalDeviceMemoryProperties memProps = { };
 	vkGetPhysicalDeviceMemoryProperties(this->m_physicalDevice, &memProps);
@@ -4615,7 +4683,8 @@ uint32_t VulkanRenderer::FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFla
 }
 
 /* Create a buffer based on the buffer type */
-GPUBuffer* VulkanRenderer::CreateBuffer(const void* pData, uint32_t nSize, EBufferType bufferType) {
+GPUBuffer* 
+VulkanRenderer::CreateBuffer(const void* pData, uint32_t nSize, EBufferType bufferType) {
 	VkBufferUsageFlagBits usage = ToVkBufferUsage(bufferType);
 
 	/* Buffer create info */
@@ -4683,7 +4752,8 @@ GPUBuffer* VulkanRenderer::CreateBuffer(const void* pData, uint32_t nSize, EBuff
 }
 
 /* Creation of a index buffer */
-GPUBuffer* VulkanRenderer::CreateIndexBuffer(const Vector<uint16_t>& indices) {
+GPUBuffer* 
+VulkanRenderer::CreateIndexBuffer(const Vector<uint16_t>& indices) {
 	GPUBuffer* retBuff = this->CreateBuffer(static_cast<const void*>(indices.data()), indices.size() * sizeof(uint16_t), EBufferType::INDEX_BUFFER);
 	return retBuff;
 }
@@ -4692,7 +4762,8 @@ GPUBuffer* VulkanRenderer::CreateIndexBuffer(const Vector<uint16_t>& indices) {
 	Create a CPU visible staging buffer and copy the given data to it.
 	This buffer is intended for transferring texture or GPU resource data to GPU memory.
 */
-GPUBuffer* VulkanRenderer::CreateStagingBuffer(void* pData, uint32_t nSize) {
+GPUBuffer* 
+VulkanRenderer::CreateStagingBuffer(void* pData, uint32_t nSize) {
 	VkBuffer buffer = nullptr;
 	VkDeviceMemory memory = nullptr;
 
@@ -4743,7 +4814,8 @@ GPUBuffer* VulkanRenderer::CreateStagingBuffer(void* pData, uint32_t nSize) {
 /*
 	Create a VkImage from our staging buffer
 */
-GPUTexture* VulkanRenderer::CreateTexture(GPUBuffer* pBuffer, uint32_t nWidth, uint32_t nHeight, GPUFormat format) {
+GPUTexture* 
+VulkanRenderer::CreateTexture(GPUBuffer* pBuffer, uint32_t nWidth, uint32_t nHeight, GPUFormat format) {
 	VkBuffer vkBuffer = nullptr;
 	VulkanBuffer* buffer = dynamic_cast<VulkanBuffer*>(pBuffer);
 
@@ -4812,7 +4884,8 @@ GPUTexture* VulkanRenderer::CreateTexture(GPUBuffer* pBuffer, uint32_t nWidth, u
 }
 
 /* Creates a vulkan image view */
-VkImageView VulkanRenderer::CreateImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags) {
+VkImageView 
+VulkanRenderer::CreateImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags) {
 	VkImageViewCreateInfo createInfo = { };
 	createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 	createInfo.image = image;
@@ -4843,7 +4916,8 @@ VkImageView VulkanRenderer::CreateImageView(VkImage image, VkFormat format, VkIm
 	return imageView;
 }
 
-VkImageView VulkanRenderer::CreateCubemapImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t nMipLevels) {
+VkImageView 
+VulkanRenderer::CreateCubemapImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t nMipLevels) {
 	VkImageViewCreateInfo createInfo = { };
 	createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 	createInfo.image = image;
@@ -4875,7 +4949,8 @@ VkImageView VulkanRenderer::CreateCubemapImageView(VkImage image, VkFormat forma
 }
 
 /* Creates a sampler */
-VkSampler VulkanRenderer::CreateSampler() {
+VkSampler 
+VulkanRenderer::CreateSampler() {
 	/* Our sampler create info */
 	VkSamplerCreateInfo createInfo = { };
 	createInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -4914,7 +4989,8 @@ VkSampler VulkanRenderer::CreateSampler() {
 }
 
 /* Creates a cubemap sampler */
-VkSampler VulkanRenderer::CreateCubemapSampler(uint32_t nMipLevels) {
+VkSampler 
+VulkanRenderer::CreateCubemapSampler(uint32_t nMipLevels) {
 	/* Our sampler create info */
 	VkSamplerCreateInfo createInfo = { };
 	createInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -4953,7 +5029,8 @@ VkSampler VulkanRenderer::CreateCubemapSampler(uint32_t nMipLevels) {
 }
 
 /* Checks if texture is registered and returns the index */
-uint32_t VulkanRenderer::GetTextureIndex(String& textureName) {
+uint32_t 
+VulkanRenderer::GetTextureIndex(String& textureName) {
 	if (this->m_textureIndices.count(textureName) <= 0) {
 		spdlog::error("VulkanRenderer::GetTextureIndex: Texture {0} not found. Make sure it is registered", textureName);
 		return 0;
@@ -4967,7 +5044,8 @@ uint32_t VulkanRenderer::GetTextureIndex(String& textureName) {
 	and loaded textures vector and writes to the 
 	global texture descriptor set 
 */
-uint32_t VulkanRenderer::RegisterTexture(const String& textureName, GPUTexture* pTexture) {
+uint32_t 
+VulkanRenderer::RegisterTexture(const String& textureName, GPUTexture* pTexture) {
 	VulkanTexture* texture = dynamic_cast<VulkanTexture*>(pTexture);
 	if (texture == nullptr) {
 		spdlog::error("VulkanRenderer::RegisterTexture: Specified GPUTexture is not a Vulkan texture");
@@ -5009,7 +5087,8 @@ uint32_t VulkanRenderer::RegisterTexture(const String& textureName, GPUTexture* 
 	return nTextureIndex;
 }
 
-void VulkanRenderer::UploadMeshToGlobalBuffers(const Vector<Vertex>& vertices, const Vector<uint16_t>& indices, Mesh::SubMesh& outSubMesh) {
+void 
+VulkanRenderer::UploadMeshToGlobalBuffers(const Vector<Vertex>& vertices, const Vector<uint16_t>& indices, Mesh::SubMesh& outSubMesh) {
 	uint32_t nVertexSize = vertices.size() * sizeof(Vertex);
 	uint32_t nIndexSize = indices.size() * sizeof(uint16_t);
 
@@ -5063,7 +5142,8 @@ void VulkanRenderer::UploadMeshToGlobalBuffers(const Vector<Vertex>& vertices, c
 	Loads EXR cubemap and creates 
 	a GPUTexture with the Cubemap texture type 
 */
-GPUTexture* VulkanRenderer::CreateCubemap(const String filePath, ECubemapLayout layout) {
+GPUTexture* 
+VulkanRenderer::CreateCubemap(const String filePath, ECubemapLayout layout) {
 	/* Load EXR with TinyEXR */
 	float* pRGBA = nullptr;
 	int nWidth, nHeight;
@@ -5213,7 +5293,8 @@ GPUTexture* VulkanRenderer::CreateCubemap(const String filePath, ECubemapLayout 
 /*
 	Extract the cubemap faces and copy each of them
 */
-void VulkanRenderer::ExtractCubemapFaces(
+void 
+VulkanRenderer::ExtractCubemapFaces(
 	const float* pcSrcRGBA,
 	int nSrcWidth,
 	int nSrcHeight,
@@ -5285,7 +5366,8 @@ void VulkanRenderer::ExtractCubemapFaces(
 }
 
 /* Convert an equirectangular to horizontal cross */
-void VulkanRenderer::ConvertEquirectangularToHorizontalCross(
+void 
+VulkanRenderer::ConvertEquirectangularToHorizontalCross(
 	const float* pcSrcRGBA,
 	int nSrcWidth,
 	int nSrcHeight,
@@ -5358,7 +5440,8 @@ void VulkanRenderer::ConvertEquirectangularToHorizontalCross(
 }
 
 /* Extracts frustum planes from a view-projection matrix */
-void VulkanRenderer::ExtractFrustumPlanes(const glm::mat4& viewProj, glm::vec4 planes[6]) {
+void 
+VulkanRenderer::ExtractFrustumPlanes(const glm::mat4& viewProj, glm::vec4 planes[6]) {
 	/* Left plane */
 	planes[0].x = viewProj[0][3] + viewProj[0][0];
 	planes[0].y = viewProj[1][3] + viewProj[1][0];
@@ -5403,7 +5486,8 @@ void VulkanRenderer::ExtractFrustumPlanes(const glm::mat4& viewProj, glm::vec4 p
 }
 
 /* Copy our buffer to a VkImage */
-void VulkanRenderer::CopyBufferToImage(VkBuffer buffer, VkImage image, uint32_t nWidth, uint32_t nHeight) {
+void 
+VulkanRenderer::CopyBufferToImage(VkBuffer buffer, VkImage image, uint32_t nWidth, uint32_t nHeight) {
 	VkCommandBuffer commandBuffer = this->BeginSingleTimeCommandBuffer();
 
 	VkBufferImageCopy region = { };
@@ -5430,7 +5514,8 @@ void VulkanRenderer::CopyBufferToImage(VkBuffer buffer, VkImage image, uint32_t 
 }
 
 /* Bind our vertex buffer */
-bool VulkanRenderer::DrawVertexBuffer(GPUBuffer* buffer) {
+bool 
+VulkanRenderer::DrawVertexBuffer(GPUBuffer* buffer) {
 	/* First of all, check if the specified buffer is a VulkanBuffer */
 	if (dynamic_cast<VulkanBuffer*>(buffer) == nullptr) {
 		spdlog::error("BindVertexBuffer: Specified GPUBuffer is not a Vulkan buffer");
@@ -5456,7 +5541,8 @@ bool VulkanRenderer::DrawVertexBuffer(GPUBuffer* buffer) {
 }
 
 /* Bind and draw index buffer */
-bool VulkanRenderer::DrawIndexBuffer(GPUBuffer* vbo, GPUBuffer* ibo) {
+bool 
+VulkanRenderer::DrawIndexBuffer(GPUBuffer* vbo, GPUBuffer* ibo) {
 	if (dynamic_cast<VulkanBuffer*>(vbo) == nullptr || dynamic_cast<VulkanBuffer*>(ibo) == nullptr) {
 		spdlog::error("VulkanRenderer::DrawIndexBuffer: Specified VBO or IBO is not a Vulkan buffer");
 		throw std::runtime_error("VulkanRenderer::DrawIndexBuffer: Specified VBO or IBO is not a Vulkan buffer");
@@ -5487,7 +5573,8 @@ bool VulkanRenderer::DrawIndexBuffer(GPUBuffer* vbo, GPUBuffer* ibo) {
 }
 
 /* Get the max usable sample count depending on the physical device properties */
-VkSampleCountFlagBits VulkanRenderer::GetMaxUsableSampleCount() {
+VkSampleCountFlagBits 
+VulkanRenderer::GetMaxUsableSampleCount() {
 	/* Get physical device properties */
 	VkPhysicalDeviceProperties devProps;
 	vkGetPhysicalDeviceProperties(this->m_physicalDevice, &devProps);
@@ -5509,7 +5596,8 @@ VkSampleCountFlagBits VulkanRenderer::GetMaxUsableSampleCount() {
 }
 
 /* Transition image layout to a new one */
-void VulkanRenderer::TransitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t nLayerCount, uint32_t nBaseMipLevel) {
+void 
+VulkanRenderer::TransitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t nLayerCount, uint32_t nBaseMipLevel) {
 	VkCommandBuffer commandBuffer = this->BeginSingleTimeCommandBuffer();
 
 	/* Create our barrier */
@@ -5624,7 +5712,8 @@ void VulkanRenderer::TransitionImageLayout(VkImage image, VkFormat format, VkIma
 }
 
 /* Begins a single time vulkan command buffer */
-VkCommandBuffer VulkanRenderer::BeginSingleTimeCommandBuffer() {
+VkCommandBuffer 
+VulkanRenderer::BeginSingleTimeCommandBuffer() {
 	/* Allocate our command buffer */
 	VkCommandBufferAllocateInfo cmdBuffInfo = { };
 	cmdBuffInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -5649,7 +5738,8 @@ VkCommandBuffer VulkanRenderer::BeginSingleTimeCommandBuffer() {
 }
 
 /* Ends a single time command buffer and submits to the graphics queue */
-void VulkanRenderer::EndSingleTimeCommandBuffer(VkCommandBuffer commandBuffer) {
+void 
+VulkanRenderer::EndSingleTimeCommandBuffer(VkCommandBuffer commandBuffer) {
 	vkEndCommandBuffer(commandBuffer);
 
 	/* Create a fence */
@@ -5674,7 +5764,8 @@ void VulkanRenderer::EndSingleTimeCommandBuffer(VkCommandBuffer commandBuffer) {
 }
 
 /* Check if the physical device is suitable */
-bool VulkanRenderer::IsDeviceSuitable(VkPhysicalDevice device) {
+bool 
+VulkanRenderer::IsDeviceSuitable(VkPhysicalDevice device) {
 	QueueFamilyIndices indices = this->FindQueueFamilies(device); /* Fetch queue family indices */
 
 	bool bExtensionsSupported = this->CheckDeviceExtensionSupport(device); /* Check if device extensions are supported and store it */
@@ -5690,7 +5781,8 @@ bool VulkanRenderer::IsDeviceSuitable(VkPhysicalDevice device) {
 }
 
 /* Find queue families for physical device */
-QueueFamilyIndices VulkanRenderer::FindQueueFamilies(VkPhysicalDevice device) {
+QueueFamilyIndices 
+VulkanRenderer::FindQueueFamilies(VkPhysicalDevice device) {
 	QueueFamilyIndices indices;
 
 	/* Enumerate physical device queue family properties */
@@ -5727,7 +5819,8 @@ QueueFamilyIndices VulkanRenderer::FindQueueFamilies(VkPhysicalDevice device) {
 }
 
 /* Check if physical device supports device extensions */
-bool VulkanRenderer::CheckDeviceExtensionSupport(VkPhysicalDevice device) {
+bool 
+VulkanRenderer::CheckDeviceExtensionSupport(VkPhysicalDevice device) {
 	/* Enumerate device extensions */
 	uint32_t nExtensionCount = 0;
 	vkEnumerateDeviceExtensionProperties(device, nullptr, &nExtensionCount, nullptr);
@@ -5751,7 +5844,8 @@ bool VulkanRenderer::CheckDeviceExtensionSupport(VkPhysicalDevice device) {
 }
 
 /* Check if device supports swap chain */
-SwapChainSupportDetails VulkanRenderer::QuerySwapChainSupport(VkPhysicalDevice device) {
+SwapChainSupportDetails 
+VulkanRenderer::QuerySwapChainSupport(VkPhysicalDevice device) {
 	SwapChainSupportDetails details;
 
 	/* Get physical device surface capabilities and store at swap chain support details' capabilities field */
@@ -5781,7 +5875,8 @@ SwapChainSupportDetails VulkanRenderer::QuerySwapChainSupport(VkPhysicalDevice d
 }
 
 /* Get required extensions */
-Vector<const char*> VulkanRenderer::GetRequiredExtensions() {
+Vector<const char*> 
+VulkanRenderer::GetRequiredExtensions() {
 	/* Enum GLFW extensions */
 	uint32_t nGlfwExtensions = 0;
 	const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&nGlfwExtensions);
@@ -5798,7 +5893,8 @@ Vector<const char*> VulkanRenderer::GetRequiredExtensions() {
 
 
 /* Populates a create info for our debug messenger */
-void VulkanRenderer::PopulateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo) {
+void 
+VulkanRenderer::PopulateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo) {
 	createInfo = { };
 	createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
 	createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT
@@ -5814,7 +5910,8 @@ void VulkanRenderer::PopulateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreat
 }
 
 /* Check for validation layers support */
-bool VulkanRenderer::CheckValidationLayersSupport() {
+bool 
+VulkanRenderer::CheckValidationLayersSupport() {
 	/* Enumerate instance layer properties */
 	uint32_t nLayerCount;
 	vkEnumerateInstanceLayerProperties(&nLayerCount, nullptr);
@@ -5842,7 +5939,8 @@ bool VulkanRenderer::CheckValidationLayersSupport() {
 }
 
 /* Debug messenger callback */
-VKAPI_ATTR VkBool32 VKAPI_CALL VulkanRenderer::DebugCallback(
+VKAPI_ATTR VkBool32 VKAPI_CALL 
+VulkanRenderer::DebugCallback(
 	VkDebugUtilsMessageSeverityFlagBitsEXT msgSeverity,
 	VkDebugUtilsMessageTypeFlagsEXT msgType,
 	const VkDebugUtilsMessengerCallbackDataEXT* pCbData,
@@ -5864,7 +5962,8 @@ VKAPI_ATTR VkBool32 VKAPI_CALL VulkanRenderer::DebugCallback(
 }
 
 /* Manual extension function loading (vkCreateDebugUtilsMessengerEXT) */
-VkResult VulkanRenderer::CreateDebugUtilsMessengerEXT(
+VkResult 
+VulkanRenderer::CreateDebugUtilsMessengerEXT(
 	VkInstance instance,
 	const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
 	VkAllocationCallbacks* pAllocator,
@@ -5880,7 +5979,8 @@ VkResult VulkanRenderer::CreateDebugUtilsMessengerEXT(
 }
 
 /* Manual extension function loading (vkDestroyDebugUtilsMessengerEXT) */
-void VulkanRenderer::DestroyDebugUtilsMessengerEXT(
+void 
+VulkanRenderer::DestroyDebugUtilsMessengerEXT(
 	VkInstance instance,
 	VkDebugUtilsMessengerEXT debugMessenger,
 	const VkAllocationCallbacks* pAllocator
@@ -5891,7 +5991,8 @@ void VulkanRenderer::DestroyDebugUtilsMessengerEXT(
 	}
 }
 
-void VulkanRenderer::Update() {
+void 
+VulkanRenderer::Update() {
 	Renderer::Update();
 
 	vkWaitForFences(this->m_device, 1, &this->m_inFlightFences[this->m_nCurrentFrameIndex], VK_TRUE, UINT64_MAX);

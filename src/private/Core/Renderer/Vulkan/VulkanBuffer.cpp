@@ -21,7 +21,8 @@ VulkanBuffer::~VulkanBuffer() {
 	}
 }
 
-VkDevice VulkanBuffer::GetDevice() {
+VkDevice 
+VulkanBuffer::GetDevice() {
 	if (this->m_dev == nullptr) {
 		spdlog::error("VulkanBuffer::GetDevice: Device not defined");
 	}
@@ -29,7 +30,8 @@ VkDevice VulkanBuffer::GetDevice() {
 	return this->m_dev;
 }
 
-VkPhysicalDevice VulkanBuffer::GetPhysicalDevice() {
+VkPhysicalDevice 
+VulkanBuffer::GetPhysicalDevice() {
 	if (this->m_physicalDev == nullptr) {
 		spdlog::error("VulkanBuffer::GetPhysicalDevice: Physical not defined");
 	}
@@ -37,7 +39,8 @@ VkPhysicalDevice VulkanBuffer::GetPhysicalDevice() {
 	return this->m_physicalDev;
 }
 
-VkBuffer VulkanBuffer::GetBuffer() {
+VkBuffer 
+VulkanBuffer::GetBuffer() {
 	if (this->m_buffer == nullptr) {
 		spdlog::error("VulkanBuffer::GetBuffer: Buffer not defined");
 	}
@@ -45,7 +48,8 @@ VkBuffer VulkanBuffer::GetBuffer() {
 	return this->m_buffer;
 }
 
-VkDeviceMemory VulkanBuffer::GetMemory() {
+VkDeviceMemory 
+VulkanBuffer::GetMemory() {
 	if (this->m_memory == nullptr) {
 		spdlog::error("VulkanBuffer::GetMemory: DeviceMemory not defined");
 	}
@@ -53,7 +57,8 @@ VkDeviceMemory VulkanBuffer::GetMemory() {
 	return this->m_memory;
 }
 
-uint32_t VulkanBuffer::GetSize() {
+uint32_t 
+VulkanBuffer::GetSize() {
 	if (this->m_nSize <= 0) {
 		spdlog::error("VulkanBuffer::GetSize: Buffer size is 0");
 	}

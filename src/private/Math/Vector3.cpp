@@ -12,35 +12,43 @@ Vector3::Vector3(float x, float y, float z) {
     this->z = z;
 }
 
-Vector3 Vector3::operator+(const Vector3& v) {
+Vector3 
+Vector3::operator+(const Vector3& v) {
     return Vector3{ x + v.x, y + v.y, z + v.z };
 }
 
-Vector3 Vector3::operator-(const Vector3& v) {
+Vector3 
+Vector3::operator-(const Vector3& v) {
     return Vector3{ x - v.x, y - v.y, z - v.z };
 }
 
-Vector3 Vector3::operator*(const Vector3& v) {
+Vector3 
+Vector3::operator*(const Vector3& v) {
     return Vector3{ x * v.x, y * v.y, z * v.z };
 }
 
-Vector3 Vector3::operator/(const Vector3& v) {
+Vector3 
+Vector3::operator/(const Vector3& v) {
     return Vector3{ x / v.x, y / v.y, z / v.z };
 }
 
-Vector3 Vector3::operator+(float value) {
+Vector3
+Vector3::operator+(float value) {
     return Vector3{ x + value, y + value, z + value };
 }
 
-Vector3 Vector3::operator-(float value) {
+Vector3 
+Vector3::operator-(float value) {
     return Vector3{ x - value, y - value, z - value };
 }
 
-Vector3 Vector3::operator*(float value) {
+Vector3 
+Vector3::operator*(float value) {
     return Vector3{ x * value, y * value, z * value };
 }
 
-Vector3 Vector3::operator/(float value) {
+Vector3 
+Vector3::operator/(float value) {
     return Vector3{ x / value, y / value, z / value };
 }
 
