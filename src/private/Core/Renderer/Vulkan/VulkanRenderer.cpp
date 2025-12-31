@@ -457,30 +457,33 @@ void VulkanRenderer::CreateLogicalDevice() {
 		queueCreateInfos.push_back(queueInfo);
 	}
 
-	/* Enable descriptor indexing */
-	VkPhysicalDeviceDescriptorIndexingFeatures indexingFeatures = { };
-	indexingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES;
-	indexingFeatures.pNext = nullptr;
-	indexingFeatures.descriptorBindingPartiallyBound = VK_TRUE;
-	indexingFeatures.descriptorBindingUpdateUnusedWhilePending = VK_TRUE;
-	indexingFeatures.descriptorBindingVariableDescriptorCount = VK_TRUE;
-	indexingFeatures.runtimeDescriptorArray = VK_TRUE;
-	indexingFeatures.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
-	indexingFeatures.descriptorBindingSampledImageUpdateAfterBind = VK_TRUE;
-	indexingFeatures.descriptorBindingStorageImageUpdateAfterBind = VK_TRUE;
-	indexingFeatures.descriptorBindingStorageBufferUpdateAfterBind = VK_TRUE;
-	indexingFeatures.descriptorBindingUniformBufferUpdateAfterBind = VK_TRUE;
-
 	/* Physical device features */
 	VkPhysicalDeviceFeatures deviceFeatures = { };
 	deviceFeatures.samplerAnisotropy = VK_TRUE;
 	deviceFeatures.sampleRateShading = VK_TRUE;
 	deviceFeatures.multiDrawIndirect = VK_TRUE; // Enable indirect multi draw
 
+	/* Enable Vulkan 1.2 features */
+	VkPhysicalDeviceVulkan12Features vulkan12Feats = { };
+	vulkan12Feats.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
+	vulkan12Feats.pNext = nullptr;
+	vulkan12Feats.descriptorIndexing = VK_TRUE;
+	vulkan12Feats.drawIndirectCount = VK_TRUE;
+	vulkan12Feats.descriptorBindingPartiallyBound = VK_TRUE;
+	vulkan12Feats.descriptorBindingUpdateUnusedWhilePending = VK_TRUE;
+	vulkan12Feats.descriptorBindingVariableDescriptorCount = VK_TRUE;
+	vulkan12Feats.runtimeDescriptorArray = VK_TRUE;
+	vulkan12Feats.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
+	vulkan12Feats.descriptorBindingSampledImageUpdateAfterBind = VK_TRUE;
+	vulkan12Feats.descriptorBindingStorageImageUpdateAfterBind = VK_TRUE;
+	vulkan12Feats.descriptorBindingStorageBufferUpdateAfterBind = VK_TRUE;
+	vulkan12Feats.descriptorBindingUniformBufferUpdateAfterBind = VK_TRUE;
+	
+
 	/* Enable negative viewports */
 	VkPhysicalDeviceVulkan11Features vulkan11feats = { };
 	vulkan11feats.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES;
-	vulkan11feats.pNext = &indexingFeatures;
+	vulkan11feats.pNext = &vulkan12Feats;
 
 	VkPhysicalDeviceFeatures2 features2 = { };
 	features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
