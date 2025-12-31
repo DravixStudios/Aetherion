@@ -4049,71 +4049,6 @@ void VulkanRenderer::RecordCommandBuffer(uint32_t nImageIndex) {
 		nullptr
 	);
 
-	/* Per object loop */
-	for (std::pair<String, GameObject*> obj : objects) {
-		/* Get only the GameObject pointer, we actually don't care the object name */
-		GameObject* pObj = obj.second;
-
-		/* Get all the components from de object */
-		std::map<String, Component*> components = pObj->GetComponents();
-		
-		/*
-			Find the mesh component(s) and draw it
-
-			TODO: Cache all the mesh components and reference to 
-			their corresponding object and draw them.
-		*/
-		if (components.count("MeshComponent") <= 0) {
-			continue; // Oh, you have no mesh components? NEXT.
-		}
-
-		Component* meshComponent = components["MeshComponent"];
-		Mesh* mesh = dynamic_cast<Mesh*>(meshComponent);
-
-		if (!mesh) {
-			spdlog::error("VulkanRenderer::RecordCommandBuffer: Tried to cast type Component to MeshComponent and failed. GameObject: {0}", obj.first);
-			continue;
-		}
-
-		std::map<uint32_t, GPUBuffer*> vertices = mesh->GetVBOs();
-		std::map<uint32_t, uint32_t> textureIndices = mesh->GetTextureIndices();
-		std::map<uint32_t, uint32_t> ormIndices = mesh->GetORMIndices();
-		std::map<uint32_t, uint32_t> emissiveIndices = mesh->GetEmissiveIndices();
-
-		uint32_t i = 0;
-		for (std::pair<uint32_t, GPUBuffer*> vertex : vertices) {
-			uint32_t nTextureIndex = textureIndices[vertex.first];
-			uint32_t nOrmIndex = ormIndices[vertex.first];
-			uint32_t nEmissiveIndex = INVALID_INDEX;
-
-			if (std::map<uint32_t, uint32_t>::iterator it = emissiveIndices.find(vertex.first); it != emissiveIndices.end()) {
-				nEmissiveIndex = it->second;
-			}
-
-			PushConstant pushConstant = { nTextureIndex, nOrmIndex, nEmissiveIndex };
-
-			vkCmdPushConstants(
-				commandBuffer, 
-				this->m_gbuffPipelineLayout, 
-				VK_SHADER_STAGE_FRAGMENT_BIT, 
-				0, 
-				sizeof(PushConstant), 
-				&pushConstant
-			);
-			
-			if (mesh->HasIndices()) {
-				std::map<uint32_t, GPUBuffer*> indices =  mesh->GetIBOs();
-				GPUBuffer* index = indices[i];
-				this->DrawIndexBuffer(vertex.second, index);
-			}
-			else {
-				this->DrawVertexBuffer(vertex.second);
-			}
-
-			i++;
-		}
-	}
-
 	vkCmdEndRenderPass(commandBuffer);
 
 	/* Lighting pass */
@@ -4346,14 +4281,12 @@ void VulkanRenderer::UpdateInstanceData(uint32_t nFrameIndex) {
 		);
 
 		/* Get buffers and indices */
-		std::map<uint32_t, GPUBuffer*> VBOs = mesh->GetVBOs();
-		std::map<uint32_t, GPUBuffer*> IBOs = mesh->GetIBOs();
+		std::map<uint32_t, Mesh::SubMesh> subMeshes = mesh->GetSubMeshes();
 		std::map<uint32_t, uint32_t> albedoIndices = mesh->GetTextureIndices();
 		std::map<uint32_t, uint32_t> ormIndices = mesh->GetORMIndices();
 		std::map<uint32_t, uint32_t> emissiveIndices = mesh->GetEmissiveIndices();
 
-		uint32_t nSubmeshIndex = 0;
-		for (std::pair<uint32_t, GPUBuffer*> VBO : VBOs) {
+		for (auto const& [nSubmeshIndex, subMesh] : subMeshes) {
 			/* Allocate WVP in the ring buffer */
 			WVP wvp;
 			wvp.World = worldMatrix;
@@ -4379,19 +4312,16 @@ void VulkanRenderer::UpdateInstanceData(uint32_t nFrameIndex) {
 			this->m_instanceData.push_back(instanceData);
 
 			/* Create DrawBatch */
-			GPUBuffer* pVBO = VBO.second;
-			GPUBuffer* pIBO = IBOs[nSubmeshIndex];
 
 			DrawBatch batch = { };
-			batch.indexCount = pIBO->GetSize() / sizeof(uint16_t);
-			batch.firstIndex = 0;
-			batch.vertexOffset = 0;
+			batch.indexCount = subMesh.nIndexCount;
+			batch.firstIndex = subMesh.nFirstIndex;
+			batch.vertexOffset = subMesh.nVertexOffset;
 			batch.instanceDataIndex = nInstanceDataIndex;
 
 			this->m_drawBatches.push_back(batch);
 
 			nInstanceDataIndex++;
-			nSubmeshIndex++;
 		}
 	}
 
