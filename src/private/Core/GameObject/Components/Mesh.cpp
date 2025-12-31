@@ -97,12 +97,13 @@ bool Mesh::LoadModel(String filePath) {
 			}
 
 			GPUBuffer* IBO = renderer->CreateIndexBuffer(indices);
-			this->m_IBOs[i] = IBO;
 		}
 
+		SubMesh subMesh = { };
+		renderer->UploadMeshToGlobalBuffers(vertices, indices, subMesh);
+		this->m_subMeshes[i] = subMesh;
+
 		this->m_vertices[i] = vertices;
-		GPUBuffer* VBO = renderer->CreateVertexBuffer(vertices);
-		this->m_VBOs[i] = VBO;
 
 		/* Texture loading */
 		const aiMaterial* material =  scene->mMaterials[mesh->mMaterialIndex];
@@ -195,14 +196,8 @@ bool Mesh::HasIndices() {
 	return this->m_bHasIndices;
 }
 
-/* Returns Mesh::m_VBOs */
-std::map<uint32_t, GPUBuffer*>& Mesh::GetVBOs() {
-	return this->m_VBOs;
-}
-
-/* Returns Mesh::m_IBOs */
-std::map<uint32_t, GPUBuffer*>& Mesh::GetIBOs() {
-	return this->m_IBOs;
+std::map<uint32_t, Mesh::SubMesh>& Mesh::GetSubMeshes() {
+	return this->m_subMeshes;
 }
 
 /* Returns Mesh::m_textures */

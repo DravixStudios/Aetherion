@@ -333,6 +333,8 @@ public:
 
 	uint32_t GetTextureIndex(String& textureName);
 	uint32_t RegisterTexture(const String& textureName, GPUTexture* pTexture);
+
+	void UploadMeshToGlobalBuffers(const Vector<Vertex>& vertices, const Vector<uint16_t>& indices, Mesh::SubMesh& outSubMesh) override;
 	
 	GPUTexture* CreateCubemap(const String filePath, ECubemapLayout layout = HORIZONTAL_CROSS) override;
 	void ExtractCubemapFaces(

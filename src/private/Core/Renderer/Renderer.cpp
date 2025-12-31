@@ -21,6 +21,8 @@ GPUTexture* Renderer::CreateTexture(GPUBuffer* pBuffer, uint32_t nWidth, uint32_
 
 GPUTexture* Renderer::CreateCubemap(const String filePath, ECubemapLayout layout) { return nullptr; }
 
+void Renderer::UploadMeshToGlobalBuffers(const Vector<Vertex>& vertices, const Vector<uint16_t>& indices, Mesh::SubMesh& outSubMesh) { }
+
 void Renderer::ConvertEquirectangularToHorizontalCross(
     const float* pcSrcRGBA,
     int nSrcWidth,

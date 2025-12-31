@@ -5076,6 +5076,56 @@ uint32_t VulkanRenderer::RegisterTexture(const String& textureName, GPUTexture* 
 	return nTextureIndex;
 }
 
+void VulkanRenderer::UploadMeshToGlobalBuffers(const Vector<Vertex>& vertices, const Vector<uint16_t>& indices, Mesh::SubMesh& outSubMesh) {
+	uint32_t nVertexSize = vertices.size() * sizeof(Vertex);
+	uint32_t nIndexSize = indices.size() * sizeof(uint16_t);
+
+	/* Verify that fits on the buffer */
+	if (this->m_nVertexDataOffset * sizeof(Vertex) + nVertexSize > this->m_globalVBO->GetSize()) {
+		spdlog::error("VulkanRenderer::UploadMeshToGlobalBuffers: Global geometry buffer is full");
+		throw std::runtime_error("VulkanRenderer::UploadMeshToGlobalBuffers: Global geometry buffer is full");
+		return;
+	}
+
+	/* Copy data to the global buffer */
+	VulkanBuffer* vbo = dynamic_cast<VulkanBuffer*>(this->m_globalVBO);
+	VulkanBuffer* ibo = dynamic_cast<VulkanBuffer*>(this->m_globalIBO);
+
+	/* Map and copy vertices */
+	void* pVertexData = nullptr;
+	vkMapMemory(
+		this->m_device, 
+		vbo->GetMemory(), 
+		static_cast<VkDeviceSize>(this->m_nVertexDataOffset * sizeof(Vertex)), 
+		nVertexSize, 
+		0, 
+		&pVertexData
+	);
+	memcpy(pVertexData, vertices.data(), nVertexSize);
+	vkUnmapMemory(this->m_device, vbo->GetMemory());
+
+	/* Map and copy indices */
+	void* pIndexData = nullptr;
+	vkMapMemory(
+		this->m_device, 
+		ibo->GetMemory(), 
+		static_cast<VkDeviceSize>(this->m_nIndexDataOffset * sizeof(uint16_t)), 
+		nIndexSize, 
+		0, 
+		&pIndexData
+	);
+	memcpy(pIndexData, indices.data(), nIndexSize);
+	vkUnmapMemory(this->m_device, ibo->GetMemory());
+
+	/* Set mesh localization data */
+	outSubMesh.nVertexOffset = this->m_nVertexDataOffset;
+	outSubMesh.nFirstIndex = this->m_nIndexDataOffset;
+	outSubMesh.nIndexCount = indices.size();
+
+	this->m_nVertexDataOffset += vertices.size();
+	this->m_nIndexDataOffset += indices.size();
+}
+
 /* 
 	Loads EXR cubemap and creates 
 	a GPUTexture with the Cubemap texture type 

@@ -9,6 +9,7 @@
 #include "Core/Renderer/GPUBuffer.h"
 #include "Core/Renderer/GPUTexture.h"
 #include "Core/Renderer/GPUFormat.h"
+#include "Core/GameObject/Components/Mesh.h"
 
 #include "Core/Containers.h"
 
@@ -51,6 +52,9 @@ public:
         uint32_t nHeight,
         GPUFormat format
     );
+
+    virtual void UploadMeshToGlobalBuffers(const Vector<Vertex>& vertices, const Vector<uint16_t>& indices, Mesh::SubMesh& outSubMesh);
+
     virtual GPUTexture* CreateCubemap(const String filePath, ECubemapLayout layout = HORIZONTAL_CROSS);
     virtual void ConvertEquirectangularToHorizontalCross(
         const float* pcSrcRGBA,
