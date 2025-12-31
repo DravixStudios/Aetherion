@@ -5,12 +5,9 @@
 layout(location = 0) in vec3 inNormals;
 layout(location = 1) in vec2 inUVs;
 layout(location = 2) in vec3 fragPos;
-
-layout(push_constant) uniform PushConstants {
-    uint nTextureIndex;
-    uint nOrmIndex;
-    uint nEmissiveIndex;
-} pc; // Get our push constants
+layout(location = 3) in flat uint inTextureIndex;
+layout(location = 4) in flat uint inOrmTextureIndex;
+layout(location = 5) in flat uint inEmissiveTextureIndex;
 
 layout(set = 1, binding = 0) uniform sampler2D g_textures[]; // Get our bindless textures array.
 
@@ -21,13 +18,13 @@ layout(location = 3) out vec4 outEmissive;
 layout(location = 4) out vec4 outPosition;
 
 void main() {
-    outBaseColor = texture(g_textures[nonuniformEXT(pc.nTextureIndex)], vec2(inUVs.x, inUVs.y));
+    outBaseColor = texture(g_textures[nonuniformEXT(inTextureIndex)], vec2(inUVs.x, inUVs.y));
     outBaseColor.rgb = pow(outBaseColor.rgb, vec3(2.2));
     vec3 normals = inNormals * 0.5 + 0.5;
     outNormals = vec4(normals.xyz, 1.0);
-    outORM =  texture(g_textures[nonuniformEXT(pc.nOrmIndex)], vec2(inUVs.x, inUVs.y));
-    if(pc.nEmissiveIndex != INVALID_INDEX) {
-        outEmissive =  texture(g_textures[nonuniformEXT(pc.nEmissiveIndex)], vec2(inUVs.x, inUVs.y));
+    outORM =  texture(g_textures[nonuniformEXT(inOrmTextureIndex)], vec2(inUVs.x, inUVs.y));
+    if(inEmissiveTextureIndex != INVALID_INDEX) {
+        outEmissive =  texture(g_textures[nonuniformEXT(inEmissiveTextureIndex)], vec2(inUVs.x, inUVs.y));
         outEmissive.rgb = pow(outEmissive.rgb, vec3(2.2));
     } else {
         outEmissive = vec4(0.0, 0.0, 0.0, 0.0);
