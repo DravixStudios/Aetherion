@@ -55,7 +55,12 @@ VkBufferUsageFlagBits ToVkBufferUsage(EBufferType bufferType) {
 		case EBufferType::CONSTANT_BUFFER: return VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
 		case EBufferType::VERTEX_BUFFER: return VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
 		case EBufferType::INDEX_BUFFER: return VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
-		case EBufferType::STORAGE_BUFFER: return VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+		case EBufferType::STORAGE_BUFFER: 
+			return static_cast<VkBufferUsageFlagBits>(
+				VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | 
+				VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT | 
+				VK_BUFFER_USAGE_TRANSFER_DST_BIT
+			);
 	};
 }
 
