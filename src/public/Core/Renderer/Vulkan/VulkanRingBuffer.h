@@ -21,6 +21,8 @@ public:
 	void Reset(uint32_t nImageIndex) override;
 
 	VkBuffer GetBuffer();
+	uint32_t GetPerFrameSize() const { return this->m_nPerFrameSize; }
+	uint32_t GetOffset() const { return this->m_nOffset; }
 
 private:
 	VkDevice m_device;
