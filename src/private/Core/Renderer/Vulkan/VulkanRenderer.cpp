@@ -179,7 +179,7 @@ void VulkanRenderer::Init() {
 	this->CreateBRDFPipeline();
 	
 	/* Test skybox */
-	this->m_skybox = this->CreateCubemap("cedar_bridge_2_4k.exr", ECubemapLayout::HORIZONTAL_CROSS); // Create a sample skybox cubemap
+	this->m_skybox = this->CreateCubemap("cedar_bridge_sunset_1_4k.exr", ECubemapLayout::HORIZONTAL_CROSS); // Create a sample skybox cubemap
 	this->WriteSkyboxDescriptorSets();
 	/* End test skybox */
 
@@ -2093,7 +2093,7 @@ void VulkanRenderer::CreateIndirectBuffers() {
 
 /* Generates our irradiance map */
 void VulkanRenderer::GenerateIrradianceMap() {
-	uint32_t nSize = 128;
+	uint32_t nSize = 64;
 	VkFormat format = VK_FORMAT_R32G32B32A32_SFLOAT;
 
 	/* Create cubemap image */
