@@ -57,6 +57,7 @@ struct FrameIndirectData {
     uint32_t instanceDataOffset;
     uint32_t batchDataOffset;
     uint32_t indirectDrawOffset;
+    uint32_t wvpOffset;
     uint32_t objectCount;
 };
 
