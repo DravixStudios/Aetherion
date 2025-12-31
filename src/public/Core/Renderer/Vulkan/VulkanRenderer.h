@@ -184,6 +184,12 @@ private:
 	VkSampler m_emissiveSampler;
 	VkSampler m_positionSampler;
 
+	/* G-Buffer buffers */
+	GPUBuffer* m_globalVBO;
+	GPUBuffer* m_globalIBO;
+	uint32_t m_nVertexDataOffset;
+	uint32_t m_nIndexDataOffset;
+
 	/* Descriptor sets */
 	Vector<VkDescriptorSet> m_descriptorSets; // One per frame
 	VkDescriptorSetLayout m_wvpDescriptorSetLayout; // For WVP (dynamic)
@@ -231,6 +237,7 @@ private:
 	void CreateCubeMesh();
 	void CreateCommandPool();
 	void CreateGBufferResources();
+	void CreateGlobalGeometryBuffers();
 	void CreateDepthResources();
 	void CreateLightingResources();
 	void CreateGBufferFrameBuffer();
