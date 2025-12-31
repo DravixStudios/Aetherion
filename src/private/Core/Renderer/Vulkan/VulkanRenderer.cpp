@@ -174,7 +174,7 @@ void VulkanRenderer::Init() {
 	this->CreateBRDFPipeline();
 	
 	/* Test skybox */
-	this->m_skybox = this->CreateCubemap("cedar_bridge_2_4k.exr", ECubemapLayout::HORIZONTAL_CROSS); // Create a sample skybox cubemap
+	this->m_skybox = this->CreateCubemap("cedar_bridge_sunset_1_4k.exr", ECubemapLayout::HORIZONTAL_CROSS); // Create a sample skybox cubemap
 	this->WriteSkyboxDescriptorSets();
 	/* End test skybox */
 
