@@ -1,9 +1,16 @@
 #pragma once
+#include <string>
+#include <filesystem>
+
+#include "Core/Logger.h"
+
+#define GLFW_INCLUDE_VULKAN
+#include <GLFW/glfw3.h>
+
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/matrix_inverse.hpp>
-#include <string>
-#include <filesystem>
+
 #if defined(_WIN32)
     #include <windows.h>
 #elif defined(__APPLE__)
@@ -13,6 +20,32 @@
 #endif
 
 #include "Core/Containers.h" 
+
+#define VK_CHECK(res, msg) \
+    do {\
+        impl::vk_check_impl(res, CLASS_NAME, __func__, msg); \
+    } while(0)
+
+/* 
+    Implementations we don't want to be visible from anywhere. 
+
+    Note: If for some reason we want to use these functions, we'll
+    need to access them like impl::foo_impl(x);
+*/
+namespace impl {
+    inline void 
+    vk_check_impl(
+        VkResult res,
+        const char* className,
+        const char* func,
+        const char* msg
+    ) {
+        if (res != VK_SUCCESS) {
+            Logger::Error("{}::{}: {}", className, func, msg);
+            throw std::runtime_error(msg);
+        }
+    }
+}
 
 struct Vertex {
 	glm::vec3 position;
@@ -82,11 +115,11 @@ inline String GetExecutableDir() {
         std::filesystem::path exePath(buffer);
         return exePath.parent_path().string();
     }
-	spdlog::error("GetExecutableDir: Couldn't determine executable path on Linux");
+	Logger::Error("GetExecutableDir: Couldn't determine executable path on Linux");
     throw std::runtime_error("GetExecutableDir: Couldn't determine executable path on Linux");
 
 #else
-	spdlog::error("GetExecutableDir: Unsupported platform");
+	Logger::Error("GetExecutableDir: Unsupported platform");
     throw std::runtime_error("GetExecutableDir: Unsupported platform");
 #endif
 }

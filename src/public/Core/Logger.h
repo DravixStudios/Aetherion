@@ -52,7 +52,7 @@ namespace Logger {
 	inline void
 		Debug(const char* fmt_str, Args&&... args) {
 		std::cout << BLUE << "[Debug] " << WHITE
-			<< fmt::vformat(fmt_str, fmt::make_format_args(std::forward<Args>(args)...))
+			<< fmt::vformat(fmt::runtime(fmt_str), fmt::make_format_args(std::forward<Args>(args)...))
 			<< std::endl;
 	}
 
@@ -60,7 +60,7 @@ namespace Logger {
 	inline void
 		Info(const char* fmt_str, Args&&... args) {
 		std::cout << GREEN << "[Info] " << WHITE
-			<< fmt::vformat(fmt_str, fmt::make_format_args(std::forward<Args>(args)...))
+			<< fmt::vformat(fmt::runtime(fmt_str), fmt::make_format_args(std::forward<Args>(args)...))
 			<< std::endl;
 	}
 
@@ -68,7 +68,7 @@ namespace Logger {
 	inline void
 		Error(const char* fmt_str, Args&&... args) {
 		std::cout << RED << "[Error] " << WHITE
-			<< fmt::vformat(fmt_str, fmt::make_format_args(std::forward<Args>(args)...))
+			<< fmt::vformat(fmt::runtime(fmt_str), fmt::make_format_args(std::forward<Args>(args)...))
 			<< std::endl;
 	}
 #endif
