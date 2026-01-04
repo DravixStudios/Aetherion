@@ -1,6 +1,10 @@
 #include <iostream>
-#include <spdlog/spdlog.h>
 #include "Core/Core.h"
+#include "Core/Logger.h"
+
+#if defined(LOGGING_USE_SPDLOG)
+	#include <spdlog/spdlog.h>
+#endif
 
 Core* g_core = nullptr;
 
@@ -19,12 +23,14 @@ Core* g_core = nullptr;
 int main() {
 	g_core = Core::GetInstance();
 
-#ifndef NDEBUG
+#if defined(LOGGING_USE_SPDLOG)
 	spdlog::set_level(spdlog::level::debug);
-#endif
-	spdlog::info("Aetherion debug console");
-	spdlog::info("Version: {0}.{1}.{2}", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH);
-	spdlog::info("Dravix Studios. All rights reserved");
+#ifndef NDEBUG
+#endif // NDEBUG
+#endif // LOGGING_USE_SPDLOG
+	Logger::Info("Aetherion debug console");
+	Logger::Info("Version: {0}.{1}.{2}", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH);
+	Logger::Info("Dravix Studios. All rights reserved");
 
 	if (g_core == nullptr) {
 		spdlog::error("Failed to get the Core instance");
