@@ -25,3 +25,11 @@ enum class EShaderStage {
 	ALL = 0x7FFFFFFF
 };
 
+inline EShaderStage operator|(EShaderStage a, EShaderStage b) {
+	return static_cast<EShaderStage>(static_cast<uint32_t>(a) | static_cast<uint32_t>(b));
+}
+
+inline EShaderStage operator&(EShaderStage a, EShaderStage b) {
+	return static_cast<EShaderStage>(static_cast<uint32_t>(a) & static_cast<uint32_t>(b));
+}
+
