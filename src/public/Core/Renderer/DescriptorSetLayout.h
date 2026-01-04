@@ -1,4 +1,7 @@
 #pragma once
+#include <cstdint>
+
+#include "Core/Containers.h"
 
 enum class EDescriptorType {
 	SAMPLER,
@@ -33,3 +36,27 @@ inline EShaderStage operator&(EShaderStage a, EShaderStage b) {
 	return static_cast<EShaderStage>(static_cast<uint32_t>(a) & static_cast<uint32_t>(b));
 }
 
+struct DescriptorSetLayoutBinding {
+	uint32_t nBinding;
+	EDescriptorType descriptorType;
+	uint32_t nDescriptorCount;
+	EShaderStage stageFlags;
+	bool bUpdateAfterBind = false; // For bindless
+};
+
+struct DescriptorSetLayoutCreateInfo {
+	Vector<DescriptorSetLayoutBinding> bindings;
+	bool bUpdateAfterBind = false; // If the whole set supports update after bind
+};
+
+class DescriptorSetLayout {
+public:
+	DescriptorSetLayout() = default;
+	virtual ~DescriptorSetLayout() = default;
+
+	virtual void Create(const DescriptorSetLayoutCreateInfo& createInfo) = 0;
+
+	const DescriptorSetLayoutCreateInfo& GetCreateInfo() const { return this->m_createInfo; }
+protected:
+	DescriptorSetLayoutCreateInfo m_createInfo;
+};
