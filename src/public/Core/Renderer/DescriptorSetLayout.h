@@ -54,7 +54,7 @@ public:
 	DescriptorSetLayout() = default;
 	virtual ~DescriptorSetLayout() = default;
 
-	virtual void Create(const DescriptorSetLayoutCreateInfo& createInfo) = 0;
+	virtual void Create(const DescriptorSetLayoutCreateInfo& createInfo) { this->m_createInfo = createInfo; }
 
 	const DescriptorSetLayoutCreateInfo& GetCreateInfo() const { return this->m_createInfo; }
 protected:
