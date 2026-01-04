@@ -10,6 +10,26 @@ VulkanDescriptorSetLayout::~VulkanDescriptorSetLayout() {
 	}
 }
 
+/* 
+	Creation of our VulkanDescriptorSetLayout
+
+	Notes:
+		- When a binding has bUpdateAfterBind set
+		to true, it will add 2 flags.
+
+			~ VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT
+			~ VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT
+		
+		- When descriptor set layout create info has
+		bUpdateAfterBind enabled, we'll create a 
+		descriptor set layout binding flags create info
+		and bind our bindingFlags to it (bindless textures' ones)
+
+		It also adds a flag to the layout create info
+		that specifies that the pool needs to be
+		created with the VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT
+		flag.
+*/
 void VulkanDescriptorSetLayout::Create(const DescriptorSetLayoutCreateInfo& createInfo) {
 	DescriptorSetLayout::Create(createInfo);
 
