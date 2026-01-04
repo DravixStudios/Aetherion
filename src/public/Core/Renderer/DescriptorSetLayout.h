@@ -51,6 +51,8 @@ struct DescriptorSetLayoutCreateInfo {
 
 class DescriptorSetLayout {
 public:
+	static constexpr const char* CLASS_NAME = "DescriptorSetLayout";
+
 	DescriptorSetLayout() = default;
 	virtual ~DescriptorSetLayout() = default;
 

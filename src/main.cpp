@@ -1,5 +1,6 @@
 #include <iostream>
 #include "Core/Core.h"
+#include "Utils.h"
 #include "Core/Logger.h"
 
 #if defined(LOGGING_USE_SPDLOG)

@@ -1,5 +1,6 @@
 #pragma once
 #include "Core/Renderer/DescriptorSetLayout.h"
+#include "Utils.h"
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
