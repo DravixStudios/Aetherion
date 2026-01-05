@@ -3,6 +3,9 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
+#include "Core/Renderer/Vulkan/VulkanHelpers.h"
+#include "Utils.h"
+
 class VulkanDescriptorPool : public DescriptorPool {
 public:
 	using Ptr = std::shared_ptr<VulkanDescriptorPool>;

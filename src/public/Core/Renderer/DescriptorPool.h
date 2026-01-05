@@ -15,6 +15,8 @@ struct DescriptorPoolCreateInfo {
 
 class DescriptorPool {
 public:
+	static constexpr const char* CLASS_NAME = "DescriptorPool";
+
 	using Ptr = std::shared_ptr<DescriptorPool>;
 
 	DescriptorPool() = default;
