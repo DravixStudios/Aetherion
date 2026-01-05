@@ -5,7 +5,27 @@
 
 /* Shared pointers */
 template<typename T>
-using Ref = std::shared_ptr<T>;
+class Ref {
+public:
+	Ref() = default;
+	Ref(std::shared_ptr<T> ptr) : m_ptr(ptr) {}
+
+	T* operator->() { return this->m_ptr.get(); }
+	const T* operator->() const { return this->m_ptr.get(); }
+
+	T& operator*() { return *this->m_ptr; }
+	const T& operator*() const { return *this->m_ptr; }
+
+	std::shared_ptr<T> Get() const { return this->m_ptr; }
+
+	template<typename U>
+	Ref<U> 
+	As() const {
+		return std::static_pointer_cast<U>(this->m_ptr);
+	}
+private:
+	std::shared_ptr<T> m_ptr;
+};
 
 template<typename T>
 using WeakRef = std::weak_ptr<T>;
@@ -13,7 +33,7 @@ using WeakRef = std::weak_ptr<T>;
 template<typename T, typename... Args>
 Ref<T> 
 CreateRef(Args&&... args) {
-	return std::make_shared<T>(std::forward<Args>(args)...);
+	return Ref<T>(std::make_shared<T>(std::forward<Args>(args)...));
 }
 
 /* Common aliases */
