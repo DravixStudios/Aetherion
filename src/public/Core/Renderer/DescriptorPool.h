@@ -1,5 +1,6 @@
 #pragma once
 #include "Core/Renderer/DescriptorSetLayout.h"
+#include <memory>
 
 struct DescriptorPoolSize {
 	EDescriptorType type;
@@ -14,6 +15,8 @@ struct DescriptorPoolCreateInfo {
 
 class DescriptorPool {
 public:
+	using Ptr = std::shared_ptr<DescriptorPool>;
+
 	DescriptorPool() = default;
 	virtual ~DescriptorPool() = default;
 

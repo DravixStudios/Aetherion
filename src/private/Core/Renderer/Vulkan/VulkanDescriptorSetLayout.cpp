@@ -1,8 +1,8 @@
 #include "Core/Renderer/Vulkan/VulkanDescriptorSetLayout.h"
 #include <spdlog/spdlog.h>
 
-VulkanDescriptorSetLayout::VulkanDescriptorSetLayout(VkDevice device) 
-	: m_device(device), m_layout(VK_NULL_HANDLE) {}
+VulkanDescriptorSetLayout::VulkanDescriptorSetLayout(VkDevice device)  
+	: DescriptorSetLayout::DescriptorSetLayout(), m_device(device), m_layout(VK_NULL_HANDLE) {}
 
 VulkanDescriptorSetLayout::~VulkanDescriptorSetLayout() {
 	if (this->m_layout != VK_NULL_HANDLE) {

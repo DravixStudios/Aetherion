@@ -8,12 +8,19 @@
 
 class VulkanDescriptorSetLayout : public DescriptorSetLayout {
 public:
-	VulkanDescriptorSetLayout(VkDevice device);
+	using Ptr = std::shared_ptr<VulkanDescriptorSetLayout>;
+
+	explicit VulkanDescriptorSetLayout(VkDevice device);
 	~VulkanDescriptorSetLayout() override;
 
 	void Create(const DescriptorSetLayoutCreateInfo& createInfo) override;
 
 	VkDescriptorSetLayout GetVkLayout() const { return this->m_layout; }
+
+	static Ptr
+	CreateShared(VkDevice device) {
+		return std::make_shared<VulkanDescriptorSetLayout>(device);
+	}
 private:
 	VkDevice m_device;
 	VkDescriptorSetLayout m_layout;

@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint>
+#include <memory>
 
 #include "Core/Containers.h"
 
@@ -51,6 +52,8 @@ struct DescriptorSetLayoutCreateInfo {
 
 class DescriptorSetLayout {
 public:
+	using Ptr = std::shared_ptr<DescriptorSetLayout>;
+
 	static constexpr const char* CLASS_NAME = "DescriptorSetLayout";
 
 	DescriptorSetLayout() = default;
