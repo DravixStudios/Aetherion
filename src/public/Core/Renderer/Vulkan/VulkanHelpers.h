@@ -7,7 +7,7 @@
 
 namespace VulkanHelpers {
 	/* Converts EDescriptorType into VkDescriptorType */
-	VkDescriptorType
+	inline VkDescriptorType
 	ConvertDescriptorType(EDescriptorType type) {
 		switch (type) {
 		case EDescriptorType::SAMPLER: return VK_DESCRIPTOR_TYPE_SAMPLER;
@@ -26,7 +26,7 @@ namespace VulkanHelpers {
 	}
 
 	/* Converts EShaderStage into VkShaderStageFlags */
-	VkShaderStageFlags
+	inline VkShaderStageFlags
 	ConvertShaderStage(EShaderStage stage) {
 		VkShaderStageFlags flags = 0;
 

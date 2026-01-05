@@ -1,5 +1,8 @@
 #pragma once
 #include "Core/Renderer/DescriptorSet.h"
+#include "Core/Renderer/Vulkan/VulkanDescriptorSet.h"
+#include "Core/Renderer/Vulkan/VulkanDescriptorPool.h"
+
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
@@ -23,7 +26,9 @@ public:
 	CreateShared(VkDevice device) {
 		return CreateRef<VulkanDescriptorSet>(device);
 	}
+
 private:
 	VkDevice m_device;
 	VkDescriptorSet m_descriptorSet;
+	VkDescriptorPool m_pool;
 };

@@ -1,5 +1,5 @@
 #include "Core/Renderer/Vulkan/VulkanDescriptorSetLayout.h"
-#include <spdlog/spdlog.h>
+#include "Core/Renderer/Vulkan/VulkanHelpers.h"
 
 VulkanDescriptorSetLayout::VulkanDescriptorSetLayout(VkDevice device)  
 	: DescriptorSetLayout::DescriptorSetLayout(), m_device(device), m_layout(VK_NULL_HANDLE) {}
