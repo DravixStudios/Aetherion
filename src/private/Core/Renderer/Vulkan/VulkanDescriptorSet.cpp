@@ -13,8 +13,22 @@ VulkanDescriptorSet::~VulkanDescriptorSet() {
 void
 VulkanDescriptorSet::Allocate(Ref<DescriptorPool> pool, Ref<DescriptorSetLayout> layout) {
 	Ref<VulkanDescriptorPool> vkDescriptorPool = pool.As<VulkanDescriptorPool>();
+	Ref<VulkanDescriptorSetLayout> vkLayout = layout.As<VulkanDescriptorSetLayout>();
 
+	this->m_pool = vkDescriptorPool->GetVkPool();
+	VkDescriptorSetLayout vkLayoutHandle = vkLayout->GetVkLayout();
 
+	/* Descriptor set allocation */
+	VkDescriptorSetAllocateInfo allocInfo = { };
+	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+	allocInfo.descriptorPool = this->m_pool;
+	allocInfo.descriptorSetCount = 1;
+	allocInfo.pSetLayouts = &vkLayoutHandle;
+
+	VK_CHECK(
+		vkAllocateDescriptorSets(this->m_device, &allocInfo, &this->m_descriptorSet), 
+		"Failed allocating descriptor sets"
+	);
 }
 
 void 

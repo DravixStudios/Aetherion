@@ -1,6 +1,7 @@
 #pragma once
 #include "Core/Renderer/DescriptorSet.h"
 #include "Core/Renderer/Vulkan/VulkanDescriptorSet.h"
+#include "Core/Renderer/Vulkan/VulkanDescriptorSetLayout.h"
 #include "Core/Renderer/Vulkan/VulkanDescriptorPool.h"
 
 #define GLFW_INCLUDE_VULKAN
