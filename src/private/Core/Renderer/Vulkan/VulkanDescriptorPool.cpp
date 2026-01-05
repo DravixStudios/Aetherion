@@ -9,7 +9,8 @@ VulkanDescriptorPool::~VulkanDescriptorPool() {
 	}
 }
 
-void VulkanDescriptorPool::Create(const DescriptorPoolCreateInfo& createInfo) {
+void 
+VulkanDescriptorPool::Create(const DescriptorPoolCreateInfo& createInfo) {
 	/* Convert DescriptorPoolSize to Vulkan descriptor pool size */
 	Vector<VkDescriptorPoolSize> vkPoolSizes;
 
@@ -38,6 +39,7 @@ void VulkanDescriptorPool::Create(const DescriptorPoolCreateInfo& createInfo) {
 	Logger::Debug("VulkanDescriptorPool::Create: Descriptor pool created. Max sets: {}", createInfo.nMaxSets);
 }
 
-void VulkanDescriptorPool::Reset() {
+void 
+VulkanDescriptorPool::Reset() {
 	vkResetDescriptorPool(this->m_device, this->m_pool, 0);
 }

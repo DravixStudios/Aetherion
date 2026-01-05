@@ -8,7 +8,7 @@
 
 class VulkanDescriptorPool : public DescriptorPool {
 public:
-	using Ptr = std::shared_ptr<VulkanDescriptorPool>;
+	using Ptr = Ref<VulkanDescriptorPool>;
 
 	explicit VulkanDescriptorPool(VkDevice device);
 	~VulkanDescriptorPool() override;
@@ -21,7 +21,7 @@ public:
 	/* Factory for creating a shared_ptr of VulkanDescriptorPool */
 	static Ptr 
 	CreateShared(VkDevice device) {
-		return std::make_shared<VulkanDescriptorPool>(device);
+		return CreateRef<VulkanDescriptorPool>(device);
 	}
 private:
 	VkDevice m_device;

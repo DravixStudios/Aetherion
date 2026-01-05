@@ -52,7 +52,7 @@ struct DescriptorSetLayoutCreateInfo {
 
 class DescriptorSetLayout {
 public:
-	using Ptr = std::shared_ptr<DescriptorSetLayout>;
+	using Ptr = Ref<DescriptorSetLayout>;
 
 	static constexpr const char* CLASS_NAME = "DescriptorSetLayout";
 

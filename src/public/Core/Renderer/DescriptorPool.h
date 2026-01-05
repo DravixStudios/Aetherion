@@ -17,7 +17,7 @@ class DescriptorPool {
 public:
 	static constexpr const char* CLASS_NAME = "DescriptorPool";
 
-	using Ptr = std::shared_ptr<DescriptorPool>;
+	using Ptr = Ref<DescriptorPool>;
 
 	DescriptorPool() = default;
 	virtual ~DescriptorPool() = default;
