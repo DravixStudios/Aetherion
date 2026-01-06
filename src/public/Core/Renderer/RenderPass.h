@@ -62,3 +62,34 @@ struct SubpassDependency {
 	uint32_t nSrcSubpass; // VK_SUBPASS_EXTERNAL = ~0U for external dependencies
 	uint32_t nDstSubpass;
 };
+
+struct RenderPassCreateInfo {
+	Vector<AttachmentDescription> attachments;
+	Vector<SubpassDescription> subpasses;
+	Vector<SubpassDependency> dependencies;
+};
+
+struct ClearColor {
+	float r = 0.f;
+	float g = 0.f;
+	float b = 0.f;
+	float a = 1.f;
+};
+
+struct ClearDepthStencil {
+	float depth = 1.f;
+	uint8_t stencil = 0;
+};
+
+struct ClearValue {
+	enum class Type { COLOR, DEPTH_STENCIL } type = Type::COLOR;
+
+	union {
+		ClearColor color;
+		ClearDepthStencil deptStencil;
+	};
+
+	ClearValue() : color() {}
+	explicit ClearValue(const ClearColor& c) : type(Type::COLOR), color(c) {}
+	explicit ClearValue(const ClearDepthStencil& ds) : type(Type::DEPTH_STENCIL), deptStencil(ds) {}
+};
