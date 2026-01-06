@@ -101,6 +101,59 @@ VulkanDescriptorSet::WriteTexture(
 }
 
 void 
+VulkanDescriptorSet::WriteBuffers(
+	uint32_t nBinding, 
+	uint32_t nFirstArrayElement, 
+	const Vector<DescriptorBufferInfo>& bufferInfos, 
+	EBufferType bufferType
+) {
+	uint32_t nStartIdx = this->m_bufferInfos.size();
+
+	for (const DescriptorBufferInfo& bufferInfo : bufferInfos) {
+		Ref<VulkanBuffer> vkBuffer = bufferInfo.buffer.As<VulkanBuffer>();
+
+		VkDescriptorBufferInfo buffInfo = { };
+		buffInfo.buffer = vkBuffer->GetBuffer();
+		buffInfo.offset = bufferInfo.nOffset;
+		buffInfo.range = bufferInfo.nRange == 0 ? VK_WHOLE_SIZE : bufferInfo.nRange;
+
+		this->m_bufferInfos.push_back(buffInfo);
+	}
+
+	VkWriteDescriptorSet write = { };
+	write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	write.dstSet = this->m_descriptorSet;
+	write.dstBinding = nBinding;
+	write.dstArrayElement = nFirstArrayElement;
+	write.descriptorCount = bufferInfos.size();
+	write.pBufferInfo = &this->m_bufferInfos[nStartIdx];
+
+	/* (EBufferType -> VkDescriptorType) */
+	switch (bufferType) {
+	case EBufferType::CONSTANT_BUFFER:
+		write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		break;
+	case EBufferType::STORAGE_BUFFER:
+		write.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+		break;
+	default:
+		write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		break;
+	}
+
+	this->m_pendingWrites.push_back(write);
+}
+
+void 
+VulkanDescriptorSet::WriteTextures(
+	uint32_t nBinding, 
+	uint32_t nFirstArrayElement, 
+	const Vector<DescriptorImageInfo>& imageInfos
+) {
+
+}
+
+void 
 VulkanDescriptorSet::UpdateWrites() {
 
 }

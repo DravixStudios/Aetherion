@@ -23,6 +23,14 @@ public:
 	void WriteBuffer(uint32_t nBinding, uint32_t nArrayElement, const DescriptorBufferInfo& bufferInfo) override;
 	void WriteTexture(uint32_t nBinding, uint32_t nArrayElement, const DescriptorImageInfo& imageInfo) override;
 
+	void WriteBuffers(
+		uint32_t nBinding, 
+		uint32_t nFirstArrayElement,
+		const Vector<DescriptorBufferInfo>& bufferInfos,
+		EBufferType bufferType = EBufferType::CONSTANT_BUFFER
+	) override;
+	void WriteTextures(uint32_t nBinding, uint32_t nFirstArrayElement, const Vector<DescriptorImageInfo>& imageInfos) override;
+
 	void UpdateWrites() override;
 
 	VkDescriptorSet GetVkSet() const { return this->m_descriptorSet; }

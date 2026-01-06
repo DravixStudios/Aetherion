@@ -26,11 +26,26 @@ public:
 
 	virtual void Allocate(Ref<DescriptorPool> pool, Ref<DescriptorSetLayout> layout) = 0;
 
-	virtual void WriteBuffer(uint32_t nBinding, uint32_t nArrayElement, const DescriptorBufferInfo& bufferInfo) = 0;
+	virtual void WriteBuffer(
+		uint32_t nBinding, 
+		uint32_t nArrayElement, 
+		const DescriptorBufferInfo& bufferInfo
+	) = 0;
+
 	virtual void WriteTexture(uint32_t nBinding, uint32_t nArrayElement, const DescriptorImageInfo& imageInfo) = 0;
 
-	virtual void WriteBuffers(uint32_t nBinding, uint32_t nFirstArrayElement, const Vector<DescriptorBufferInfo>& bufferInfos) = 0;
-	virtual void WriteTextures(uint32_t nBinding, uint32_t nFirstArrayElement, const Vector<DescriptorImageInfo>& imageInfos) = 0;
+	virtual void WriteBuffers(
+		uint32_t nBinding, 
+		uint32_t nFirstArrayElement, 
+		const Vector<DescriptorBufferInfo>& bufferInfos,
+		EBufferType bufferType = EBufferType::CONSTANT_BUFFER
+	) = 0;
+
+	virtual void WriteTextures(
+		uint32_t nBinding, 
+		uint32_t nFirstArrayElement, 
+		const Vector<DescriptorImageInfo>& imageInfos
+	) = 0;
 
 	virtual void UpdateWrites() = 0;
 };
