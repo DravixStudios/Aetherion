@@ -93,3 +93,42 @@ struct ClearValue {
 	explicit ClearValue(const ClearColor& c) : type(Type::COLOR), color(c) {}
 	explicit ClearValue(const ClearDepthStencil& ds) : type(Type::DEPTH_STENCIL), deptStencil(ds) {}
 };
+
+struct Rect2D {
+	int32_t x = 0;
+	int32_t y = 0;
+	uint32_t width = 0;
+	uint32_t height = 0;
+};
+
+/* 
+	Framebuffer forward declaration
+	TODO: Implement framebuffer abstraction
+*/
+class Framebuffer;
+
+struct RenderPassBeginInfo {
+	Ref<RenderPass> renderPass;
+	Ref<Framebuffer> framebuffer;
+	Rect2D renderArea;
+	Vector<ClearValue> clearValues;
+};
+
+class RenderPass {
+public:
+	static constexpr const char* CLASS_NAME = "RenderPass";
+
+	using Ptr = Ref<RenderPass>;
+
+	virtual ~RenderPass() = default;
+
+	virtual void 
+	Create(const RenderPassCreateInfo& createInfo) {
+		this->m_createInfo = createInfo;
+	}
+
+	const RenderPassCreateInfo& GetCreateInfo() const { return this->m_createInfo; }
+
+protected:
+	RenderPassCreateInfo m_createInfo;
+};
