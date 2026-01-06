@@ -100,6 +100,16 @@ VulkanDescriptorSet::WriteTexture(
 	this->m_pendingWrites.push_back(write);
 }
 
+/* 
+	Adds many buffers for writing 
+
+	Notes:
+		- The buffer will be binded at the specified binding
+		and it will bind all the buffers on an array starting
+		from nFirstArrayElement to the last buffer.
+
+		E.g: nFirstArrayElement: 0. Buffer count: 5. [0, 4]
+*/
 void 
 VulkanDescriptorSet::WriteBuffers(
 	uint32_t nBinding, 
@@ -144,13 +154,40 @@ VulkanDescriptorSet::WriteBuffers(
 	this->m_pendingWrites.push_back(write);
 }
 
+/*
+	Adds many images for writing
+
+	Notes: Same notes as in VulkanDescriptorSet::WriteBuffers
+*/
 void 
 VulkanDescriptorSet::WriteTextures(
 	uint32_t nBinding, 
 	uint32_t nFirstArrayElement, 
 	const Vector<DescriptorImageInfo>& imageInfos
 ) {
+	uint32_t nStartIdx = this->m_imageInfos.size();
 
+	for (const DescriptorImageInfo& imageInfo : imageInfos) {
+		Ref<VulkanTexture> vkTexture = imageInfo.texture.As<VulkanTexture>();
+
+		VkDescriptorImageInfo imgInfo = { };
+		imgInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		imgInfo.imageView = vkTexture->GetImageView();
+		imgInfo.sampler = vkTexture->GetSampler();
+
+		this->m_imageInfos.push_back(imgInfo);
+	}
+
+	VkWriteDescriptorSet write = { };
+	write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	write.dstSet = this->m_descriptorSet;
+	write.dstBinding = nBinding;
+	write.dstArrayElement = nFirstArrayElement;
+	write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	write.descriptorCount = imageInfos.size();
+	write.pImageInfo = &this->m_imageInfos[nStartIdx];
+
+	this->m_pendingWrites.push_back(write);
 }
 
 void 
