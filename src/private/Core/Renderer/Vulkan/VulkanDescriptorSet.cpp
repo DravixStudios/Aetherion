@@ -190,7 +190,20 @@ VulkanDescriptorSet::WriteTextures(
 	this->m_pendingWrites.push_back(write);
 }
 
+/*
+	Writes all the pending descriptor writes
+	and clears these vectors:
+		- m_pendingWrites
+		- m_bufferInfos
+		- m_imageInfos
+*/
 void 
 VulkanDescriptorSet::UpdateWrites() {
+	if (!this->m_pendingWrites.empty()) {
+		vkUpdateDescriptorSets(this->m_device, this->m_pendingWrites.size(), this->m_pendingWrites.data(), 0, nullptr);
 
+		this->m_pendingWrites.clear();
+		this->m_bufferInfos.clear();
+		this->m_imageInfos.clear();
+	}
 }
