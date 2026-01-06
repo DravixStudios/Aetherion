@@ -10,6 +10,7 @@ VulkanDescriptorSet::~VulkanDescriptorSet() {
 	}
 }
 
+/* Allocates our descriptor set */
 void
 VulkanDescriptorSet::Allocate(Ref<DescriptorPool> pool, Ref<DescriptorSetLayout> layout) {
 	Ref<VulkanDescriptorPool> vkDescriptorPool = pool.As<VulkanDescriptorPool>();
@@ -31,6 +32,7 @@ VulkanDescriptorSet::Allocate(Ref<DescriptorPool> pool, Ref<DescriptorSetLayout>
 	);
 }
 
+/* Adds a buffer for writing */
 void 
 VulkanDescriptorSet::WriteBuffer(
 	uint32_t nBinding,
@@ -70,9 +72,32 @@ VulkanDescriptorSet::WriteBuffer(
 	this->m_pendingWrites.push_back(write);
 }
 
+/* Adds a texture for writing */
 void 
-VulkanDescriptorSet::WriteTexture(uint32_t nBinding, uint32_t nArrayElement, const DescriptorImageInfo& imageInfo) {
+VulkanDescriptorSet::WriteTexture(
+	uint32_t nBinding, 
+	uint32_t nArrayElement, 
+	const DescriptorImageInfo& imageInfo
+) {
+	Ref<VulkanTexture> vkTexture = imageInfo.texture.As<VulkanTexture>();
 
+	VkDescriptorImageInfo imgInfo = { };
+	imgInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	imgInfo.imageView = vkTexture->GetImageView();
+	imgInfo.sampler = vkTexture->GetSampler();
+
+	this->m_imageInfos.push_back(imgInfo);
+
+	VkWriteDescriptorSet write = { };
+	write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	write.dstSet = this->m_descriptorSet;
+	write.dstBinding = nBinding;
+	write.dstArrayElement = nArrayElement;
+	write.descriptorCount = 1;
+	write.pImageInfo = &this->m_imageInfos.back();
+
+	this->m_pendingWrites.push_back(write);
 }
 
 void 

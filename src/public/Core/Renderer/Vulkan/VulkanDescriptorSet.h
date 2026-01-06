@@ -1,9 +1,12 @@
 #pragma once
 #include "Core/Renderer/DescriptorSet.h"
-#include "Core/Renderer/Vulkan/VulkanDescriptorSet.h"
+
 #include "Core/Renderer/Vulkan/VulkanDescriptorSetLayout.h"
 #include "Core/Renderer/Vulkan/VulkanDescriptorPool.h"
+#include "Core/Renderer/Vulkan/VulkanDescriptorSet.h"
+
 #include "Core/Renderer/Vulkan/VulkanBuffer.h"
+#include "Core/Renderer/Vulkan/VulkanTexture.h"
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
@@ -35,5 +38,6 @@ private:
 	VkDescriptorPool m_pool;
 
 	Vector<VkDescriptorBufferInfo> m_bufferInfos;
+	Vector<VkDescriptorImageInfo> m_imageInfos;
 	Vector<VkWriteDescriptorSet> m_pendingWrites;
 };
