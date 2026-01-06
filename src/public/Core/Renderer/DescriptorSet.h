@@ -11,18 +11,14 @@ struct DescriptorBufferInfo {
 	uint32_t nRange = 0; // 0 = whole size (VK_WHOLE_SIZE)
 };
 
-/* 
-	The texture in this struct, is for special cases
-	where a separate sampler is needed.
-
-	Normally the texture comes with it's sampler
-*/
 struct DescriptorImageInfo {
 	Ref<GPUTexture> texture;
 };
 
 class DescriptorSet {
 public:
+	static constexpr const char* CLASS_NAME = "DescriptorSet";
+
 	using Ptr = Ref<DescriptorSet>;
 
 	DescriptorSet() = default;
@@ -32,6 +28,9 @@ public:
 
 	virtual void WriteBuffer(uint32_t nBinding, uint32_t nArrayElement, const DescriptorBufferInfo& bufferInfo) = 0;
 	virtual void WriteTexture(uint32_t nBinding, uint32_t nArrayElement, const DescriptorImageInfo& imageInfo) = 0;
+
+	virtual void WriteBuffers(uint32_t nBinding, uint32_t nFirstArrayElement, const Vector<DescriptorBufferInfo>& bufferInfos) = 0;
+	virtual void WriteTextures(uint32_t nBinding, uint32_t nFirstArrayElement, const Vector<DescriptorImageInfo>& imageInfos) = 0;
 
 	virtual void UpdateWrites() = 0;
 };
