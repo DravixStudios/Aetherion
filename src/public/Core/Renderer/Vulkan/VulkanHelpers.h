@@ -4,6 +4,7 @@
 
 #include "Core/Renderer/DescriptorSetLayout.h"
 #include "Core/Renderer/DescriptorPool.h"
+#include "Core/Renderer/RenderPass.h"
 
 namespace VulkanHelpers {
 	/* Converts EDescriptorType into VkDescriptorType */
@@ -50,5 +51,40 @@ namespace VulkanHelpers {
 		if (flags == 0) flags = VK_SHADER_STAGE_ALL;
 
 		return flags;
+	}
+
+	inline VkAttachmentLoadOp 
+	ConvertLoadOp(EAttachmentLoadOp loadOp) {
+		switch (loadOp) {
+			case EAttachmentLoadOp::LOAD: return VK_ATTACHMENT_LOAD_OP_LOAD;
+			case EAttachmentLoadOp::CLEAR: return VK_ATTACHMENT_LOAD_OP_CLEAR;
+			case EAttachmentLoadOp::DONT_CARE: return VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+			default: return VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+		}
+	}
+
+	inline VkAttachmentStoreOp
+	ConvertStoreOp(EAttachmentStoreOp storeOp) {
+		switch(storeOp) {
+			case EAttachmentStoreOp::STORE: return VK_ATTACHMENT_STORE_OP_STORE;
+			case EAttachmentStoreOp::DONT_CARE: return VK_ATTACHMENT_STORE_OP_DONT_CARE;
+			default: return VK_ATTACHMENT_STORE_OP_STORE;
+		}
+	}
+
+	inline VkImageLayout
+	ConvertImageLayout(EImageLayout layout) {
+		switch (layout) {
+			case EImageLayout::UNDEFINED: return VK_IMAGE_LAYOUT_UNDEFINED;
+			case EImageLayout::GENERAL: return VK_IMAGE_LAYOUT_GENERAL;
+			case EImageLayout::COLOR_ATTACHMENT: return VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+			case EImageLayout::DEPTH_STENCIL_ATTACHMENT: return VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+			case EImageLayout::DEPTH_STENCIL_READ_ONLY: return VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+			case EImageLayout::SHADER_READ_ONLY: return VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			case EImageLayout::TRANSFER_SRC: return VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+			case EImageLayout::TRANSFER_DST: return VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+			case EImageLayout::PRESENT_SRC: return VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+			default: return VK_IMAGE_LAYOUT_UNDEFINED;
+		}
 	}
 }
