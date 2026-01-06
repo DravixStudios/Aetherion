@@ -32,8 +32,42 @@ VulkanDescriptorSet::Allocate(Ref<DescriptorPool> pool, Ref<DescriptorSetLayout>
 }
 
 void 
-VulkanDescriptorSet::WriteBuffer(uint32_t nBinding, uint32_t nArrayElement, const DescriptorBufferInfo& bufferInfo) {
+VulkanDescriptorSet::WriteBuffer(
+	uint32_t nBinding,
+	uint32_t nArrayElement,
+	const DescriptorBufferInfo& bufferInfo
+) {
+	Ref<VulkanBuffer> vkBuffer = bufferInfo.buffer.As<VulkanBuffer>();
 
+	VkDescriptorBufferInfo buffInfo = { };
+	buffInfo.buffer = vkBuffer->GetBuffer();
+	buffInfo.offset = bufferInfo.nOffset;
+	buffInfo.range = bufferInfo.nRange == 0 ? VK_WHOLE_SIZE : bufferInfo.nRange;
+
+	this->m_bufferInfos.push_back(buffInfo);
+
+	VkWriteDescriptorSet write = { };
+	write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	write.dstBinding = nBinding;
+	write.dstArrayElement = nArrayElement;
+	write.dstSet = this->m_descriptorSet;
+	write.descriptorCount = 1;
+	write.pBufferInfo = &this->m_bufferInfos.back();
+
+	/* (EBufferType -> VkDescriptorType) */
+	switch (vkBuffer->GetBufferType()) {
+	case EBufferType::CONSTANT_BUFFER:
+		write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		break;
+	case EBufferType::STORAGE_BUFFER:
+		write.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+		break;
+	default:
+		write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		break;
+	}
+
+	this->m_pendingWrites.push_back(write);
 }
 
 void 

@@ -3,6 +3,7 @@
 #include "Core/Renderer/Vulkan/VulkanDescriptorSet.h"
 #include "Core/Renderer/Vulkan/VulkanDescriptorSetLayout.h"
 #include "Core/Renderer/Vulkan/VulkanDescriptorPool.h"
+#include "Core/Renderer/Vulkan/VulkanBuffer.h"
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
@@ -32,4 +33,7 @@ private:
 	VkDevice m_device;
 	VkDescriptorSet m_descriptorSet;
 	VkDescriptorPool m_pool;
+
+	Vector<VkDescriptorBufferInfo> m_bufferInfos;
+	Vector<VkWriteDescriptorSet> m_pendingWrites;
 };
