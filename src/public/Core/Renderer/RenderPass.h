@@ -47,7 +47,9 @@ struct SubpassDescription {
 	Vector<AttachmentReference> colorAttachments;
 	Vector<AttachmentReference> resolveAttachments; // For MSAA
 	AttachmentReference depthStencilAttachment;
+	AttachmentReference depthResolveAttachment;
 	bool bHasDepthStencil = false;
+	bool bHasDepthStencilResolve = false;
 	Vector<uint32_t> preserveAttachments;
 };
 
@@ -106,6 +108,7 @@ struct Rect2D {
 	TODO: Implement framebuffer abstraction
 */
 class Framebuffer;
+class RenderPass;
 
 struct RenderPassBeginInfo {
 	Ref<RenderPass> renderPass;

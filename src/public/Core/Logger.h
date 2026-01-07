@@ -50,7 +50,7 @@ namespace Logger {
 #else
 	template<typename... Args>
 	inline void
-		Debug(const char* fmt_str, Args&&... args) {
+	Debug(const char* fmt_str, Args&&... args) {
 		std::cout << BLUE << "[Debug] " << WHITE
 			<< fmt::vformat(fmt::runtime(fmt_str), fmt::make_format_args(std::forward<Args>(args)...))
 			<< std::endl;
@@ -58,7 +58,7 @@ namespace Logger {
 
 	template<typename... Args>
 	inline void
-		Info(const char* fmt_str, Args&&... args) {
+	Info(const char* fmt_str, Args&&... args) {
 		std::cout << GREEN << "[Info] " << WHITE
 			<< fmt::vformat(fmt::runtime(fmt_str), fmt::make_format_args(std::forward<Args>(args)...))
 			<< std::endl;
@@ -66,7 +66,7 @@ namespace Logger {
 
 	template<typename... Args>
 	inline void
-		Error(const char* fmt_str, Args&&... args) {
+	Error(const char* fmt_str, Args&&... args) {
 		std::cout << RED << "[Error] " << WHITE
 			<< fmt::vformat(fmt::runtime(fmt_str), fmt::make_format_args(std::forward<Args>(args)...))
 			<< std::endl;
