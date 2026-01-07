@@ -17,7 +17,8 @@ public:
 
 	VkRenderPass GetVkRenderPass()  const { return this->m_renderPass; }
 	
-	static Ptr CreateShared(VkDevice device) {
+	static Ptr 
+	CreateShared(VkDevice device) {
 		return CreateRef<VulkanRenderPass>(device);
 	}
 private:

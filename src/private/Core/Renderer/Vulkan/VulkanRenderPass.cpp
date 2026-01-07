@@ -4,7 +4,9 @@ VulkanRenderPass::VulkanRenderPass(VkDevice device)
 	: m_device(device), m_renderPass(VK_NULL_HANDLE) {}
 
 VulkanRenderPass::~VulkanRenderPass() {
-
+	if (this->m_renderPass != VK_NULL_HANDLE) {
+		vkDestroyRenderPass(this->m_device, this->m_renderPass, nullptr);
+	}
 }
 
 void 
