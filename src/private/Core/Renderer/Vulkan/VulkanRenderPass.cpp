@@ -141,4 +141,10 @@ VulkanRenderPass::Create(const RenderPassCreateInfo& createInfo) {
 	rpInfo.pSubpasses = subpasses.data();
 
 	VK_CHECK(vkCreateRenderPass2(this->m_device, &rpInfo, nullptr, &this->m_renderPass), "Failed creating render pass");
+
+	Logger::Debug(
+		"VulkanRenderPass::Create: Render pass created with {} attachments and {} subpasses", 
+		attachments.size(), 
+		subpasses.size()
+	); 
 }
