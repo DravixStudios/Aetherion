@@ -5,6 +5,7 @@
 #include "Core/Renderer/DescriptorSetLayout.h"
 #include "Core/Renderer/DescriptorPool.h"
 #include "Core/Renderer/RenderPass.h"
+#include "Core/Renderer/Pipeline.h"
 
 namespace VulkanHelpers {
 	/* Converts EDescriptorType into VkDescriptorType */
@@ -100,6 +101,17 @@ namespace VulkanHelpers {
 			case GPUFormat::D32_FLOAT_S8_UINT: return VK_FORMAT_D32_SFLOAT_S8_UINT;
 			case GPUFormat::R8_UNORM: return VK_FORMAT_R8_UNORM;
 			default: return VK_FORMAT_R8G8B8A8_UNORM;
+		}
+	}
+
+	inline VkCullModeFlags
+	ConvertCullMode(ECullMode cullMode) {
+		switch (cullMode) {
+			case ECullMode::NONE: return VK_CULL_MODE_NONE;
+			case ECullMode::FRONT: return VK_CULL_MODE_FRONT_BIT;
+			case ECullMode::BACK: return VK_CULL_MODE_BACK_BIT;
+			case ECullMode::FRONT_BACK: return VK_CULL_MODE_FRONT_AND_BACK;
+			default: return VK_CULL_MODE_NONE;
 		}
 	}
 }
