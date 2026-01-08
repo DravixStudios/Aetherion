@@ -133,4 +133,19 @@ namespace VulkanHelpers {
 			default: return VK_FRONT_FACE_CLOCKWISE;
 		}
 	}
+	
+	inline VkCompareOp
+	ConvertCompareOp(ECompareOp compareOp) {
+		switch (compareOp) {
+			case ECompareOp::ALWAYS: return VK_COMPARE_OP_ALWAYS;
+			case ECompareOp::EQUAL: return VK_COMPARE_OP_EQUAL;
+			case ECompareOp::GREATER: return VK_COMPARE_OP_GREATER;
+			case ECompareOp::GREATER_OR_EQUAL: return VK_COMPARE_OP_GREATER_OR_EQUAL;
+			case ECompareOp::LESS: return VK_COMPARE_OP_LESS;
+			case ECompareOp::LESS_OR_EQUAL: return VK_COMPARE_OP_LESS_OR_EQUAL;
+			case ECompareOp::NEVER: return VK_COMPARE_OP_NEVER;
+			case ECompareOp::NOT_EQUAL: return VK_COMPARE_OP_NOT_EQUAL;
+			default: return VK_COMPARE_OP_LESS;
+		}
+	}
 }
