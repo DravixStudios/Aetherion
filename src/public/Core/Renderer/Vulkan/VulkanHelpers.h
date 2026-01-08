@@ -148,4 +148,16 @@ namespace VulkanHelpers {
 			default: return VK_COMPARE_OP_LESS;
 		}
 	}
+
+	inline VkBlendOp
+	ConvertBlendOp(EBlendOp blendOp) {
+		switch(blendOp) {
+			case EBlendOp::ADD: return VK_BLEND_OP_ADD;
+			case EBlendOp::MAX: return VK_BLEND_OP_MAX;
+			case EBlendOp::MIN: return VK_BLEND_OP_MIN;
+			case EBlendOp::REVERSE_SUBTRACT: return VK_BLEND_OP_REVERSE_SUBTRACT;
+			case EBlendOp::SUBTRACT: return VK_BLEND_OP_SUBTRACT;
+			default: return VK_BLEND_OP_ADD;
+		}
+	}
 }
