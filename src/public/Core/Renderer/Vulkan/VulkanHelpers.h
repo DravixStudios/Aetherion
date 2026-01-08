@@ -114,4 +114,23 @@ namespace VulkanHelpers {
 			default: return VK_CULL_MODE_NONE;
 		}
 	}
+	
+	inline VkPolygonMode
+	ConvertPolygonMode(EPolygonMode polygonMode) {
+		switch (polygonMode) {
+			case EPolygonMode::FILL: return VK_POLYGON_MODE_FILL;
+			case EPolygonMode::LINE: return VK_POLYGON_MODE_LINE;
+			case EPolygonMode::POINT: return VK_POLYGON_MODE_POINT;
+			default: return VK_POLYGON_MODE_FILL;
+		}
+	}
+
+	inline VkFrontFace
+	ConvertFrontFace(EFrontFace frontFace) {
+		switch (frontFace) {
+			case EFrontFace::CLOCKWISE: return VK_FRONT_FACE_CLOCKWISE;
+			case EFrontFace::COUNTER_CLOCKWISE: return VK_FRONT_FACE_COUNTER_CLOCKWISE;
+			default: return VK_FRONT_FACE_CLOCKWISE;
+		}
+	}
 }
