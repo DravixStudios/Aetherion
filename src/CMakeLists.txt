@@ -1,6 +1,5 @@
-file(GLOB_RECURSE SOURCES "private/**/*.cpp" "main.cpp")
+﻿file(GLOB_RECURSE SOURCES "private/**/*.cpp" "main.cpp" "private/stb_image_impl.cpp")
 file(GLOB_RECURSE HEADERS "public/**/*.h")
-
 add_executable("Aetherion" ${SOURCES} ${HEADERS})
 
 if (CMAKE_VERSION VERSION_GREATER 3.12)
@@ -19,9 +18,11 @@ find_package(glfw3 CONFIG REQUIRED)
 find_package(spdlog CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
 find_package(assimp CONFIG REQUIRED)
+find_package(spirv_cross_c_shared REQUIRED)
+
 if(WIN32)
     find_package(unofficial-shaderc CONFIG REQUIRED)
-    target_link_libraries(Aetherion PRIVATE Vulkan::Vulkan glfw spdlog::spdlog unofficial::shaderc::shaderc glm::glm assimp::assimp )
+    target_link_libraries(Aetherion PRIVATE Vulkan::Vulkan glfw spdlog::spdlog unofficial::shaderc::shaderc glm::glm assimp::assimp spirv-cross-c-shared)
     target_compile_definitions(Aetherion PRIVATE NOMINMAX)
 endif()
 if(NOT WIN32)
@@ -29,7 +30,7 @@ if(NOT WIN32)
     set(SHADERC_LIBRARIES /usr/local/lib/libshaderc_combined.a)
 
     include_directories(${SHADERC_INCLUDE_DIR})
-    target_link_libraries(Aetherion PRIVATE Vulkan::Vulkan glfw spdlog::spdlog ${SHADERC_LIBRARIES} glm::glm assimp::assimp)
+    target_link_libraries(Aetherion PRIVATE Vulkan::Vulkan glfw spdlog::spdlog ${SHADERC_LIBRARIES} glm::glm assimp::assimp spirv-cross-c-shared)
 
 endif()
 
