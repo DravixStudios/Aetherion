@@ -88,6 +88,27 @@ namespace VulkanHelpers {
 		return flags;
 	}
 
+	/**
+	* Converts EPrimitiveTopology to Vulkan primite topology (VkPrimitiveTopology)
+	* 
+	* @param topology Primitive topology
+	* 
+	* @returns Vulkan primitive topology
+	*/
+	inline VkPrimitiveTopology
+	ConvertTopology(EPrimitiveTopology topology) {
+		switch (topology) {
+			case EPrimitiveTopology::POINT_LIST: return VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
+			case EPrimitiveTopology::LINE_LIST: return VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
+			case EPrimitiveTopology::LINE_STRIP: return VK_PRIMITIVE_TOPOLOGY_LINE_STRIP;
+			case EPrimitiveTopology::TRIANGLE_LIST: return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+			case EPrimitiveTopology::TRIANGLE_STRIP: return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
+			case EPrimitiveTopology::TRIANGLE_FAN: return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN;
+			case EPrimitiveTopology::PATCH_LIST: return VK_PRIMITIVE_TOPOLOGY_PATCH_LIST;
+			default: return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+		}
+	}
+
 	inline VkAttachmentLoadOp 
 	ConvertLoadOp(EAttachmentLoadOp loadOp) {
 		switch (loadOp) {
