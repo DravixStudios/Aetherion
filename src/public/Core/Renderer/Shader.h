@@ -64,4 +64,5 @@ private:
 	EShaderStage m_stage;
 
 	Vector<uint32_t> CompileGLSLToSPIRV(const String& source, const String& name, EShaderStage stage);
+	String TranspileSPIRVToGLSL(const Vector<uint32_t>& spirv, uint32_t nVersion);
 };
