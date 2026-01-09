@@ -8,7 +8,13 @@
 #include "Core/Renderer/Pipeline.h"
 
 namespace VulkanHelpers {
-	/* Converts EDescriptorType into VkDescriptorType */
+	/** 
+	* Converts EDescriptorType into VkDescriptorType 
+	* 
+	* @param type Descriptor type
+	* 
+	* @returns Vulkan descriptor type
+	*/
 	inline VkDescriptorType
 	ConvertDescriptorType(EDescriptorType type) {
 		switch (type) {
