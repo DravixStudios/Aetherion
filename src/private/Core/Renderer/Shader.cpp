@@ -58,7 +58,13 @@ Shader::LoadFromGLSLSource(const String& source, const String& name, EShaderStag
     this->m_stage = shaderStage;
 
     /* Compile SPIR-V */
-    
+    this->m_spirvCode = this->CompileGLSLToSPIRV(source, name, shaderStage);
+    Logger::Debug(
+        "Shader::LoadGLSLSource: Loaded {} as {}", 
+        name, 
+        shaderStage == EShaderStage::VERTEX ? "vertex" : 
+        shaderStage == EShaderStage::FRAGMENT ? "fragment" : "compute"
+    );
 }
 
 /** 
