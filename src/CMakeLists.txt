@@ -1,4 +1,4 @@
-﻿file(GLOB_RECURSE SOURCES "private/**/*.cpp" "main.cpp" "private/stb_image_impl.cpp")
+file(GLOB_RECURSE SOURCES "private/**/*.cpp" "main.cpp" "private/stb_image_impl.cpp")
 file(GLOB_RECURSE HEADERS "public/**/*.h")
 add_executable("Aetherion" ${SOURCES} ${HEADERS})
 
@@ -13,16 +13,28 @@ set("PUBLIC_INCLUDES" "${CMAKE_CURRENT_SOURCE_DIR}/../include" )
 
 target_sources(Aetherion PRIVATE "${PUBLIC_INCLUDES}/miniz/miniz.c")
 
+# Fetch SPIRV-Cross
+include(FetchContent)
+
+FetchContent_Declare(
+    spirv-cross
+    GIT_REPOSITORY https://github.com/KhronosGroup/SPIRV-Cross.git
+    GIT_TAG vulkan-sdk-1.4.335.0
+)
+
+FetchContent_MakeAvailable(spirv-cross)
+
 find_package(Vulkan REQUIRED)
 find_package(glfw3 CONFIG REQUIRED)
 find_package(spdlog CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
 find_package(assimp CONFIG REQUIRED)
-find_package(spirv_cross_c_shared REQUIRED)
+
+target_link_libraries(Aetherion PRIVATE spirv-cross-c spirv-cross-glsl spirv-cross-hlsl spirv-cross-msl)
 
 if(WIN32)
     find_package(unofficial-shaderc CONFIG REQUIRED)
-    target_link_libraries(Aetherion PRIVATE Vulkan::Vulkan glfw spdlog::spdlog unofficial::shaderc::shaderc glm::glm assimp::assimp spirv-cross-c-shared)
+    target_link_libraries(Aetherion PRIVATE Vulkan::Vulkan glfw spdlog::spdlog unofficial::shaderc::shaderc glm::glm assimp::assimp)
     target_compile_definitions(Aetherion PRIVATE NOMINMAX)
 endif()
 if(NOT WIN32)
@@ -30,7 +42,7 @@ if(NOT WIN32)
     set(SHADERC_LIBRARIES /usr/local/lib/libshaderc_combined.a)
 
     include_directories(${SHADERC_INCLUDE_DIR})
-    target_link_libraries(Aetherion PRIVATE Vulkan::Vulkan glfw spdlog::spdlog ${SHADERC_LIBRARIES} glm::glm assimp::assimp spirv-cross-c-shared)
+    target_link_libraries(Aetherion PRIVATE Vulkan::Vulkan glfw spdlog::spdlog ${SHADERC_LIBRARIES} glm::glm assimp::assimp)
 
 endif()
 
