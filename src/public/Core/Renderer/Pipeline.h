@@ -208,13 +208,14 @@ struct ComputePipelineCreateInfo {
 
 class Pipeline {
 public:
+	static constexpr const char* CLASS_NAME = "Pipeline";
+	using Ptr = Ref<Pipeline>;
+
 	virtual ~Pipeline() = default;
 	virtual void CreateGraphics(const GraphicsPipelineCreateInfo& createInfo) = 0;
 	virtual void CreateCompute(const ComputePipelineCreateInfo& createInfo) = 0;
 
-	
 	EPipelineType GetType() const { return this->m_type; }
-
-private:
+protected:
 	EPipelineType m_type;
 };

@@ -52,6 +52,13 @@ public:
 	const Vector<uint32_t>& GetSPIRV() const { return this->m_spirvCode; }
 	String GetGLSL(uint32_t nVersion = 450);
 
+	/**
+	* Returns the Shader's stage
+	* 
+	* @param Shader stage (EShaderStage)
+	*/
+	EShaderStage GetStage() const { return this->m_stage; }
+
 	Ptr
 	CreateShared() {
 		return CreateRef<Shader>();
