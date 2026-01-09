@@ -1,6 +1,7 @@
 #include "Core/Renderer/Shader.h"
 #include <fstream>
 #include <sstream>
+#include <shaderc/shaderc.hpp>
 
 Shader::Shader() {
 
@@ -36,7 +37,7 @@ Shader::LoadFromGLSL(const String& path, EShaderStage shaderStage) {
     std::stringstream buffer;
     buffer << file.rdbuf();
 
-    this->LoadFromGLSLSource(buffer.str(), shaderStage);
+    this->LoadFromGLSLSource(buffer.str(), path, shaderStage);
 }
 
 /**
@@ -47,9 +48,75 @@ Shader::LoadFromGLSL(const String& path, EShaderStage shaderStage) {
  * shader code.
  * 
  * @param source Source shader code
+ * @param name Shader name (normally the shader file name)
  * @param shaderStage Shader's stage
  */
 void 
-Shader::LoadFromGLSLSource(const String& source, EShaderStage shaderStage) {
+Shader::LoadFromGLSLSource(const String& source, const String& name, EShaderStage shaderStage) {
+    this->m_sourceGLSL = source;
+    this->m_filename = name;
+    this->m_stage = shaderStage;
 
+    /* Compile SPIR-V */
+    
+}
+
+/** 
+ * Compiles GLSL into SPIR-V with shaderc
+ * 
+ * @param source Source shader code
+ * @param name Shader name (normally the shader file name)
+ * @param shaderStage Shader's stage
+ * 
+ * @returns The compiled SPIR-V shader in a uint32_t vector.
+ * 
+ * @throws std::runtime_error if shader preprocessing or compilation fails 
+ */
+Vector<uint32_t> 
+Shader::CompileGLSLToSPIRV(const String& source, const String& name, EShaderStage stage) {
+    shaderc::Compiler compiler;
+    shaderc::CompileOptions options;
+
+    options.SetTargetEnvironment(shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_2);
+    options.SetTargetSpirv(shaderc_spirv_version_1_5);
+    options.SetOptimizationLevel(shaderc_optimization_level_performance);
+    options.SetForcedVersionProfile(450, shaderc_profile_none);
+
+    shaderc_shader_kind kind;
+    switch(stage) {
+        case EShaderStage::VERTEX: kind = shaderc_vertex_shader; break;
+        case EShaderStage::FRAGMENT: kind = shaderc_fragment_shader; break;
+        case EShaderStage::COMPUTE: kind = shaderc_compute_shader; break;
+        default: kind = shaderc_vertex_shader; break;
+    }
+
+    /* Preprocess GLSL */
+    shaderc::PreprocessedSourceCompilationResult preprocessedResult = 
+        compiler.PreprocessGlsl(
+            source, 
+            kind, 
+            name.c_str(), 
+            options
+        );
+
+    if(preprocessedResult.GetCompilationStatus() != shaderc_compilation_status_success) {
+        Logger::Error("Shader::CompileGLSLToSPIRV: {}", preprocessedResult.GetErrorMessage());
+        throw std::runtime_error("Shader::CompileGLSLToSPIRV: Failed preprocessing shader");
+    }
+
+    /* Compile preprocessed GLSL to SPIR-V */
+    shaderc::SpvCompilationResult result = 
+        compiler.CompileGlslToSpv(
+            preprocessedResult.cbegin(), 
+            kind, 
+            name.c_str(), 
+            options
+        );
+        
+    if(result.GetCompilationStatus() != shaderc_compilation_status_success) {
+        Logger::Error("Shader::CompileGLSLToSPIRV: {}", result.GetErrorMessage());
+        throw std::runtime_error("Shader::CompileGLSLToSPIRV: Failed compiling shader");
+    }
+
+    return Vector<uint32_t>(result.cbegin(), result.cend());
 }

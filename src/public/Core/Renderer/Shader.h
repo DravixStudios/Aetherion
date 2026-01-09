@@ -40,7 +40,7 @@ public:
 	explicit Shader();
 	~Shader();
 	void LoadFromGLSL(const String& path, EShaderStage shaderStage);
-	void LoadFromGLSLSource(const String& source, EShaderStage shaderStage);
+	void LoadFromGLSLSource(const String& source, const String& name, EShaderStage shaderStage);
 	
 	/**
 	* 
@@ -58,4 +58,10 @@ public:
 	}
 private:
 	Vector<uint32_t> m_spirvCode;
+
+	String m_sourceGLSL;
+	String m_filename;
+	EShaderStage m_stage;
+
+	Vector<uint32_t> CompileGLSLToSPIRV(const String& source, const String& name, EShaderStage stage);
 };
