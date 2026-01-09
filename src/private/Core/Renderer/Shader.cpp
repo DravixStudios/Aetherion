@@ -2,6 +2,7 @@
 #include <fstream>
 #include <sstream>
 #include <shaderc/shaderc.hpp>
+#include <spirv_cross/spirv_glsl.hpp>
 
 Shader::Shader() {
 
@@ -125,4 +126,24 @@ Shader::CompileGLSLToSPIRV(const String& source, const String& name, EShaderStag
     }
 
     return Vector<uint32_t>(result.cbegin(), result.cend());
+}
+
+/**
+ * Transpiles SPIR-V code to GLSL with SPIRV-Cross
+ * 
+ * @param spirv SPIR-V Code
+ * @param nVersion GLSL Shader version
+ * 
+ * @returns The transpiled GLSL Shader
+ */
+String 
+Shader::TranspileSPIRVToGLSL(const Vector<uint32_t>& spirv, uint32_t nVersion) {
+    spirv_cross::CompilerGLSL glsl(spirv);
+
+    spirv_cross::CompilerGLSL::Options options;
+    options.version = nVersion;
+    options.es = false;
+    glsl.set_common_options(options);
+
+    return glsl.compile();
 }
