@@ -32,8 +32,34 @@ namespace VulkanHelpers {
 		default: return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		}
 	}
+	
+	/**
+	* Converts a single shader stage into Vulkan shader stage
+	* 
+	* @param stage Shader stage
+	* 
+	* @returns Vulkan shader stage
+	*/
+	inline VkShaderStageFlagBits
+	ConvertSingleShaderStage(EShaderStage stage) {
+		switch (stage) {
+			case EShaderStage::VERTEX: return VK_SHADER_STAGE_VERTEX_BIT;
+			case EShaderStage::FRAGMENT: return VK_SHADER_STAGE_FRAGMENT_BIT;
+			case EShaderStage::GEOMETRY: return VK_SHADER_STAGE_GEOMETRY_BIT;
+			case EShaderStage::COMPUTE: return VK_SHADER_STAGE_COMPUTE_BIT;
+			case EShaderStage::TESSELATION_CONTROL: return VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT;
+			case EShaderStage::TESSELATION_EVALUATION: return VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT;
+			default: return VK_SHADER_STAGE_VERTEX_BIT;
+		}
+	}
 
-	/* Converts EShaderStage into VkShaderStageFlags */
+	/** 
+	* Converts EShaderStage into VkShaderStageFlags 
+	* 
+	* @param EShaderStage Shader stages
+	* 
+	* @returns Vulkan shader stages
+	*/
 	inline VkShaderStageFlags
 	ConvertShaderStage(EShaderStage stage) {
 		VkShaderStageFlags flags = 0;
@@ -43,6 +69,8 @@ namespace VulkanHelpers {
 			flags |= VK_SHADER_STAGE_VERTEX_BIT;
 		if ((stage & EShaderStage::FRAGMENT) != static_cast<EShaderStage>(0))
 			flags |= VK_SHADER_STAGE_FRAGMENT_BIT;
+		if ((stage & EShaderStage::GEOMETRY) != static_cast<EShaderStage>(0))
+			flags |= VK_SHADER_STAGE_GEOMETRY_BIT;
 		if ((stage & EShaderStage::COMPUTE) != static_cast<EShaderStage>(0))
 			flags |= VK_SHADER_STAGE_COMPUTE_BIT;
 		if ((stage & EShaderStage::TESSELATION_CONTROL) != static_cast<EShaderStage>(0))
