@@ -127,6 +127,26 @@ namespace VulkanHelpers {
 			case EStencilOp::INVERT: return VK_STENCIL_OP_INVERT;
 			case EStencilOp::INCREMENT_AND_WRAP: return VK_STENCIL_OP_INCREMENT_AND_WRAP;
 			case EStencilOp::DECREMENT_AND_WRAP: return VK_STENCIL_OP_DECREMENT_AND_WRAP;
+			default: return VK_STENCIL_OP_KEEP;
+		}
+	}
+
+	inline VkBlendFactor
+	ConvertBlendFactor(EBlendFactor blendFactor) {
+		switch(blendFactor) {
+			case EBlendFactor::ZERO: return VK_BLEND_FACTOR_ZERO;
+			case EBlendFactor::ONE: return VK_BLEND_FACTOR_ONE;
+			case EBlendFactor::SRC_COLOR: return VK_BLEND_FACTOR_SRC_COLOR;
+			case EBlendFactor::ONE_MINUS_SRC_COLOR: return VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR;
+			case EBlendFactor::DST_COLOR: return VK_BLEND_FACTOR_DST_COLOR;
+			case EBlendFactor::ONE_MINUS_DST_COLOR: return VK_BLEND_FACTOR_ONE_MINUS_DST_COLOR;
+			case EBlendFactor::SRC_ALPHA: return VK_BLEND_FACTOR_SRC_ALPHA;
+			case EBlendFactor::ONE_MINUS_SRC_ALPHA: return VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+			case EBlendFactor::DST_ALPHA: return VK_BLEND_FACTOR_DST_ALPHA;
+			case EBlendFactor::ONE_MINUS_DST_ALPHA: return VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA;
+			case EBlendFactor::CONSTANT_COLOR: return VK_BLEND_FACTOR_CONSTANT_COLOR;
+			case EBlendFactor::ONE_MINUS_CONSTANT_COLOR: return VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_COLOR;
+			default: return VK_BLEND_FACTOR_ZERO;
 		}
 	}
 
