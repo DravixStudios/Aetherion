@@ -18,7 +18,7 @@ public:
 	static constexpr const char* CLASS_NAME = "PipelineLayout";
 	using Ptr = Ref<PipelineLayout>;
 
-	~PipelineLayout() = default;
+	virtual ~PipelineLayout() = default;
 
 	virtual void Create(const PipelineLayoutCreateInfo& createInfo) = 0;
 
