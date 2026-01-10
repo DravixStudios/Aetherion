@@ -103,10 +103,6 @@ struct Rect2D {
 	uint32_t height = 0;
 };
 
-/* 
-	Framebuffer forward declaration
-	TODO: Implement framebuffer abstraction
-*/
 class Framebuffer;
 class RenderPass;
 
