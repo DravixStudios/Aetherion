@@ -34,5 +34,67 @@ public:
 		uint32_t nFirstSet, 
 		const Vector<Ref<DescriptorSet>>& sets, const Vector<uint32_t>& dynamicOffsets = {}) = 0;
 
+	/**
+	* Binds vertex buffers
+	* 
+	* @param buffers Vertex buffer vector
+	* @param offsets Offsets (default = {})
+	*/
+	virtual void BindVertexBuffers(const Vector<Ref<GPUBuffer>>& buffers, const Vector<size_t>& offsets = {}) = 0;
+	
+	/**
+	* Binds a index buffer
+	* 
+	* @param buffer Index buffer
+	* @param indexType Index type (defaul = UINT32)
+	*/
+	virtual void BindIndexBuffer(Ref<GPUBuffer> buffer, EIndexType indexType = EIndexType::UINT32) = 0;
 
+	/**
+	* Performs a draw call
+	* 
+	* @param nVertexCount Number of vertices
+	* @param nInstanceCount Number of instances (default = 1)
+	* @param nFirstVertex First vertex (default = 0)
+	* @param nFirstInstance First instance (default = 0)
+	*/
+	virtual void Draw(
+		uint32_t nVertexCount, 
+		uint32_t nInstanceCount = 1,
+		uint32_t nFirstVertex = 0, 
+		uint32_t nFirstInstance = 0) = 0;
+
+	/**
+	* Performs a indexed draw call
+	* 
+	* @param nIndexCount Number of indices
+	* @param nInstanceCount Number of instances (default = 1)
+	* @param nFirstIndex First index (default = 0)
+	* @param nVertexOffset Vertex offset (default = 0)
+	* @param nFirstInstance First instance (default = 0)
+	*/
+	virtual void DrawIndexed(
+		uint32_t nIndexCount,
+		uint32_t nInstanceCount = 1, 
+		uint32_t nFirstIndex = 0, 
+		uint32_t nVertexOffset = 0, 
+		uint32_t nFirstInstance = 0) = 0;
+
+	/**
+	* Performs an indirect indexed draw call
+	* 
+	* @param buffer Buffer containing draw parameters
+	* @param nOffset Byte offset into buffer where parameters begin
+	* @param countBuffer Buffer containing draw count
+	* @param nCountBufferOffset Byte offset into countBuffer where the draw count begins
+	* @param nMaxDrawCount Maximum number of draws that will be executed
+	* @param nStride Byte stride between successive sets of draw parameters.
+	*/
+	virtual void DrawIndexedIndirect(
+		Ref<GPUBuffer> buffer,
+		uint32_t nOffset,
+		Ref<GPUBuffer> countBuffer,
+		uint32_t nCountBufferOffset,
+		uint32_t nMaxDrawCount,
+		uint32_t nStride) = 0;
 };
