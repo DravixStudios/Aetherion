@@ -202,7 +202,7 @@ struct GraphicsPipelineCreateInfo {
 
 struct ComputePipelineCreateInfo {
 	Ref<Shader> shader;
-	Vector<DescriptorSetLayout> descriptorSetLayouts;
+	Vector<Ref<DescriptorSetLayout>> descriptorSetLayouts;
 	Vector<PushConstantRange> pushConstantRanges;
 };
 
