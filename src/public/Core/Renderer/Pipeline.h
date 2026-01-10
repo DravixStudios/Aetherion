@@ -6,6 +6,7 @@
 
 #include "Core/Renderer/DescriptorSetLayout.h"
 #include "Core/Renderer/RenderPass.h"
+#include "Core/Renderer/PipelineLayout.h"
 
 enum class EPipelineType {
 	GRAPHICS,
@@ -157,12 +158,6 @@ struct MultisampleState {
 	float minSampleShading = 1.f;
 	bool bAlphaToCoverageEnable = false;
 	bool bAlphaToOneEnable = false;
-};
-
-struct PushConstantRange {
-	EShaderStage stage;
-	uint32_t nOffset;
-	uint32_t nSize;
 };
 
 struct GraphicsPipelineCreateInfo {

@@ -4,7 +4,7 @@
 #include <shaderc/shaderc.hpp>
 #include <spirv_cross/spirv_glsl.hpp>
 
-Shader::Shader() {
+Shader::Shader() : m_stage(EShaderStage::ALL) {
 
 }
 
