@@ -1,6 +1,12 @@
 #pragma once
 #include "Core/Renderer/PipelineLayout.h"
 
+#include "Core/Renderer/Vulkan/VulkanDescriptorSetLayout.h"
+#include "Core/Renderer/Vulkan/VulkanHelpers.h"
+
+#define GLFW_INCLUDE_VULKAN
+#include <GLFW/glfw3.h>
+
 class VulkanPipelineLayout : public PipelineLayout {
 public:
 	using Ptr = Ref<VulkanPipelineLayout>;
@@ -9,6 +15,8 @@ public:
 	~VulkanPipelineLayout() override;
 
 	void Create(const PipelineLayoutCreateInfo& createInfo) override;
+
+	VkPipelineLayout GetVkLayout() const { return this->m_layout; }
 
 	static Ptr
 	CreateShared(VkDevice device) {

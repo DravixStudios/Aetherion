@@ -1,5 +1,6 @@
 #pragma once
 #include <iostream>
+#include "Core/Renderer/DescriptorSetLayout.h"
 #include "Core/Renderer/Shader.h"
 
 struct PushConstantRange {

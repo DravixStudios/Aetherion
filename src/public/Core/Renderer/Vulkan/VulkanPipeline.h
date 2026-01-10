@@ -5,6 +5,7 @@
 #include "Core/Renderer/Vulkan/VulkanHelpers.h"
 #include "Core/Renderer/Vulkan/VulkanDescriptorSetLayout.h"
 #include "Core/Renderer/Vulkan/VulkanRenderPass.h"
+#include "Core/Renderer/Vulkan/VulkanPipelineLayout.h"
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>

@@ -166,37 +166,8 @@ VulkanPipeline::CreateGraphics(const GraphicsPipelineCreateInfo& createInfo) {
 	dynamicState.pDynamicStates = dynamicStates;
 
 	/* Pipeline layout */
-	Vector<VkDescriptorSetLayout> descriptorSetLayouts;
-	for (const Ref<DescriptorSetLayout>& layout : createInfo.descriptorSetLayouts) {
-		Ref<VulkanDescriptorSetLayout> vkLayout = layout.As<VulkanDescriptorSetLayout>();
-		descriptorSetLayouts.push_back(vkLayout->GetVkLayout());
-	}
-
-	Vector<VkPushConstantRange> pushConstantRanges;
-	for (const PushConstantRange& range : createInfo.pushConstantRanges) {
-		VkPushConstantRange vkRange = { };
-		vkRange.offset = range.nOffset;
-		vkRange.size = range.nSize;
-		vkRange.stageFlags = VulkanHelpers::ConvertShaderStage(range.stage);
-
-		pushConstantRanges.push_back(vkRange);
-	}
-
-	VkPipelineLayoutCreateInfo pipelineLayoutInfo = { };
-	pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-	pipelineLayoutInfo.pushConstantRangeCount = pushConstantRanges.size();
-	pipelineLayoutInfo.pPushConstantRanges = pushConstantRanges.data();
-	pipelineLayoutInfo.setLayoutCount = descriptorSetLayouts.size();
-	pipelineLayoutInfo.pSetLayouts = descriptorSetLayouts.data();
-
-	VK_CHECK(
-		vkCreatePipelineLayout(
-			this->m_device, 
-			&pipelineLayoutInfo, 
-			nullptr, 
-			&this->m_pipelineLayout
-		), 
-	"Failed creating pipeline layout");
+	Ref<VulkanPipelineLayout> vkLayout = createInfo.pipelineLayout.As<VulkanPipelineLayout>();
+	this->m_pipelineLayout = vkLayout->GetVkLayout();
 
 	/* Graphics pipeline */
 	VkGraphicsPipelineCreateInfo pipelineInfo = { };

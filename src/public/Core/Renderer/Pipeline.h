@@ -184,11 +184,8 @@ struct GraphicsPipelineCreateInfo {
 	/* Multisampling */
 	MultisampleState multisampleState;
 
-	/* Descriptor set layouts */
-	Vector<Ref<DescriptorSetLayout>> descriptorSetLayouts;
-
-	/* Push constants */
-	Vector<PushConstantRange> pushConstantRanges;
+	/* Pipeline layout */
+	Ref<PipelineLayout> pipelineLayout;
 
 	/* Render pass (only for Vulkan, nullptr in D3D12 and others) */
 	Ref<RenderPass> renderPass { std::shared_ptr<RenderPass>(nullptr) };
