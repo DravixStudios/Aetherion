@@ -16,6 +16,8 @@ public:
 	T& operator*() { return *this->m_ptr; }
 	const T& operator*() const { return *this->m_ptr; }
 
+	explicit operator bool() const { return this->m_ptr != nullptr; }
+
 	std::shared_ptr<T> Get() const { return this->m_ptr; }
 
 	template<typename U>

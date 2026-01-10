@@ -82,13 +82,13 @@ enum class EStencilOp {
 	INCREMENT_AND_CLAMP,
 	DECREMENT_AND_CLAMP,
 	INVERT,
-	INCREMENT_AND_WARP,
-	DECREMENT_AND_WARP
+	INCREMENT_AND_WRAP,
+	DECREMENT_AND_WRAP
 };
 
 
 struct VertexInputBinding {
-	uint32_t nLocation;
+	uint32_t nBinding;
 	uint32_t nStride;
 	bool bPerInstance; // false: per vertex, true: per instance
 }; 

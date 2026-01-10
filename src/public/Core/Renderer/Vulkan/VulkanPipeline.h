@@ -1,6 +1,10 @@
 #pragma once
+#include "Utils.h"
 #include "Core/Renderer/Pipeline.h"
+
 #include "Core/Renderer/Vulkan/VulkanHelpers.h"
+#include "Core/Renderer/Vulkan/VulkanDescriptorSetLayout.h"
+#include "Core/Renderer/Vulkan/VulkanRenderPass.h"
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
