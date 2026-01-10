@@ -109,6 +109,27 @@ namespace VulkanHelpers {
 		}
 	}
 
+	/**
+	* Converts EStencilOp to Vulkan stencil op (VkStencilOp)
+	* 
+	* @param stencilOp Stencil op
+	* 
+	* @returns Vulkan stencil op
+	*/
+	inline VkStencilOp
+	ConvertStencilOp(EStencilOp stencilOp) {
+		switch (stencilOp) {
+			case EStencilOp::KEEP: return VK_STENCIL_OP_KEEP;
+			case EStencilOp::ZERO: return VK_STENCIL_OP_ZERO;
+			case EStencilOp::REPLACE: return VK_STENCIL_OP_REPLACE;
+			case EStencilOp::INCREMENT_AND_CLAMP: return VK_STENCIL_OP_INCREMENT_AND_CLAMP;
+			case EStencilOp::DECREMENT_AND_CLAMP: return VK_STENCIL_OP_DECREMENT_AND_CLAMP;
+			case EStencilOp::INVERT: return VK_STENCIL_OP_INVERT;
+			case EStencilOp::INCREMENT_AND_WRAP: return VK_STENCIL_OP_INCREMENT_AND_WRAP;
+			case EStencilOp::DECREMENT_AND_WRAP: return VK_STENCIL_OP_DECREMENT_AND_WRAP;
+		}
+	}
+
 	inline VkAttachmentLoadOp 
 	ConvertLoadOp(EAttachmentLoadOp loadOp) {
 		switch (loadOp) {
