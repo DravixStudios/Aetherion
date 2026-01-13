@@ -20,7 +20,7 @@ public:
 	void CreateGraphics(const GraphicsPipelineCreateInfo& createInfo) override;
 	void CreateCompute(const ComputePipelineCreateInfo& createInfo) override;
 	
-	VkPipeline GetVkPipeline() const { this->m_pipeline; }
+	VkPipeline GetVkPipeline() const { return this->m_pipeline; }
 	VkPipelineLayout GetVkPipelineLayout() const { return this->m_pipelineLayout; }
 	VkPipelineBindPoint GetVkBindPoint() const { return this->m_bindPoint; }
 

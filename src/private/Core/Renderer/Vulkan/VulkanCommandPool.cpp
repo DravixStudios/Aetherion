@@ -97,7 +97,7 @@ VulkanCommandPool::FreeCommandBuffer(Ref<CommandBuffer> commandBuffer) {
 }
 
 void 
-VulkanCommandPool::FreeCommandBuffers(Vector<Ref<CommandBuffer>> commandBuffers) {
+VulkanCommandPool::FreeCommandBuffers(const Vector<Ref<CommandBuffer>>& commandBuffers) {
 	uint32_t nCommandBuffCount = commandBuffers.size();
 
 	Vector<VkCommandBuffer> vkCommandBuffers;

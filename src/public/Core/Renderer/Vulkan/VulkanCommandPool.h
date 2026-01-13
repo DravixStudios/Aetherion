@@ -20,7 +20,7 @@ public:
 	Vector<Ref<CommandBuffer>> AllocateCommandBuffers(uint32_t nCount) override;
 
 	void FreeCommandBuffer(Ref<CommandBuffer> commandBuffer) override;
-	void FreeCommandBuffers(Vector<Ref<CommandBuffer>> commandBuffers) override;;
+	void FreeCommandBuffers(const Vector<Ref<CommandBuffer>>& commandBuffers) override;
 
 	void Reset(bool bReleaseResources) override;
 

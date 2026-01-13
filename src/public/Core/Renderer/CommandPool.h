@@ -69,7 +69,7 @@ public:
 	*
 	* @param commandBuffers A vector of command buffers to free
 	*/
-	virtual void FreeCommandBuffers(Vector<Ref<CommandBuffer>> commandBuffers) = 0;
+	virtual void FreeCommandBuffers(const Vector<Ref<CommandBuffer>>& commandBuffers) = 0;
 
 	/**
 	* Resets the command pool freeing all the command buffers

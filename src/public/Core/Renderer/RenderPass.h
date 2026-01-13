@@ -3,6 +3,7 @@
 
 #include "Core/Renderer/GPUTexture.h"
 #include "Core/Renderer/GPUFormat.h"
+#include "Core/Renderer/Rect2D.h"
 
 enum class EAttachmentLoadOp {
 	LOAD,
@@ -94,13 +95,6 @@ struct ClearValue {
 	ClearValue() : color() {}
 	explicit ClearValue(const ClearColor& c) : type(Type::COLOR), color(c) {}
 	explicit ClearValue(const ClearDepthStencil& ds) : type(Type::DEPTH_STENCIL), deptStencil(ds) {}
-};
-
-struct Rect2D {
-	int32_t x = 0;
-	int32_t y = 0;
-	uint32_t width = 0;
-	uint32_t height = 0;
 };
 
 class Framebuffer;

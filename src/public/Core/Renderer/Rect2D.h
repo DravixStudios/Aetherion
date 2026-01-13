@@ -3,7 +3,7 @@
 
 struct Offset2D {
 	uint32_t x;
-	uint32_t y,
+	uint32_t y;
 };
 
 struct Extent2D {
