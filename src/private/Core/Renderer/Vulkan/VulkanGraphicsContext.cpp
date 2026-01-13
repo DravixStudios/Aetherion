@@ -83,7 +83,7 @@ VulkanGraphicsContext::BindVertexBuffers(
 * @param indexType Index type (default = UINT16)
 */
 void 
-VulkanGraphicsContext::BindIndexBuffer(Ref<GPUBuffer> buffer, EIndexType indexType = EIndexType::UINT16) {
+VulkanGraphicsContext::BindIndexBuffer(Ref<GPUBuffer> buffer, EIndexType indexType) {
 	VkIndexType vkIndexType = VulkanHelpers::ConvertIndexType(indexType);
 
 	VkBuffer vkBuffer = buffer.As<VulkanBuffer>()->GetBuffer();
