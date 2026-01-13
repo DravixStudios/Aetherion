@@ -37,4 +37,9 @@ private:
 	VkInstance m_instance;
 	VkSurfaceKHR m_surface;
 	VkDevice m_device;
+
+	VkPhysicalDeviceProperties m_devProperties;
+
+	void CachePhysicalDeviceProperties();
+
 };
