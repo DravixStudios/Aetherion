@@ -1,6 +1,9 @@
 #pragma once
 #include "Core/Renderer/CommandPool.h"
 
+#include "Core/Renderer/Vulkan/VulkanHelpers.h"
+#include "Core/Renderer/Vulkan/VulkanCommandBuffer.h"
+
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
@@ -13,6 +16,9 @@ public:
 
 	void Create(const CommandPoolCreateInfo& createInfo) override;
 
+	Ref<CommandBuffer> AllocateCommandBuffer() override;
+	Vector<Ref<CommandBuffer>> AllocateCommandBuffers(uint32_t nCount) override;
+
 	static Ptr
 	CreateShared(VkDevice device) {
 		return CreateRef<VulkanCommandPool>(device);
@@ -21,4 +27,6 @@ public:
 private:
 	VkDevice m_device;
 	VkCommandPool m_pool;
+
+	VkCommandPoolCreateFlags ConvertCommandPoolFlags(ECommandPoolFlags flags);
 };

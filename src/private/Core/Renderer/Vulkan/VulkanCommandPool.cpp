@@ -16,5 +16,55 @@ VulkanCommandPool::~VulkanCommandPool() {
 */
 void 
 VulkanCommandPool::Create(const CommandPoolCreateInfo& createInfo) {
+	VkCommandPoolCreateInfo poolInfo = { };
+	poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+	poolInfo.queueFamilyIndex = createInfo.nQueueFamilyIndex;
+	poolInfo.flags = this->ConvertCommandPoolFlags(createInfo.flags);
 	
+	VK_CHECK(vkCreateCommandPool(this->m_device, &poolInfo, nullptr, &this->m_pool), "Failed creating command pool");
+}
+
+/**
+* Allocates a Vulkan command buffer from the current pool
+* 
+* @return A command buffer
+*/
+Ref<CommandBuffer> 
+VulkanCommandPool::AllocateCommandBuffer() {
+	VkCommandBuffer vkCommandBuff = nullptr;
+
+	VkCommandBufferAllocateInfo allocInfo = { };
+	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+	allocInfo.commandPool = this->m_pool;
+	allocInfo.commandBufferCount = 1;
+	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+
+	VK_CHECK(vkAllocateCommandBuffers(this->m_device, &allocInfo, &vkCommandBuff), "Failed allocating command buffer");
+
+	Ref<VulkanCommandBuffer> commandBuff = VulkanCommandBuffer::CreateShared(this->m_device, this->m_pool);
+	return commandBuff.As<CommandBuffer>();
+}
+
+Vector<Ref<CommandBuffer>> 
+VulkanCommandPool::AllocateCommandBuffers(uint32_t nCount) {
+	
+}
+
+/**
+* (ECommandPoolFlags -> VkCommandPoolCreateFlags)
+* 
+* @param flags Command pool flags (ECommandPoolFlags)
+*/
+VkCommandPoolCreateFlags 
+VulkanCommandPool::ConvertCommandPoolFlags(ECommandPoolFlags flags) {
+	VkCommandPoolCreateFlags vkFlags = 0;
+	if ((flags & ECommandPoolFlags::TRANSIENT) != ECommandPoolFlags::NONE) {
+		vkFlags |= VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
+	}
+
+	if ((flags & ECommandPoolFlags::RESET_COMMAND_BUFFER) != ECommandPoolFlags::NONE) {
+		vkFlags |= VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+	}
+
+	return vkFlags;
 }
