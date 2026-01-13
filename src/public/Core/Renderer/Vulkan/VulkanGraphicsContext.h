@@ -19,6 +19,8 @@ public:
 		uint32_t nFirstSet, 
 		const Vector<Ref<DescriptorSet>>& sets, const Vector<uint32_t>& dynamicOffsets = {}) override;
 
+	void BindVertexBuffers(const Vector<Ref<GPUBuffer>>& buffers, const Vector<size_t>& offsets = {}) override;
+
 private:
 	VkCommandBuffer m_commandBuffer;
 	VkPipeline m_currentPipeline;

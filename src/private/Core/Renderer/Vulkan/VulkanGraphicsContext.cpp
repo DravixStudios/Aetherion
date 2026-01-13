@@ -51,3 +51,27 @@ VulkanGraphicsContext::BindDescriptorSets(
 		dynamicOffsets.size(), dynamicOffsets.data()
 	);
 }
+
+/**
+* Binds vertex buffers
+* 
+* @param buffers Vertex buffer vector
+* @param offsets Offsets (default = {})
+*/
+void 
+VulkanGraphicsContext::BindVertexBuffers(
+	const Vector<Ref<GPUBuffer>>& buffers, 
+	const Vector<size_t>& offsets
+) {
+	uint32_t nBufferCount = buffers.size();
+
+	Vector<VkBuffer> vkBuffers;
+	vkBuffers.resize(nBufferCount);
+
+	for (uint32_t i = 0; i < nBufferCount; i++) {
+		const Ref<GPUBuffer>& buffer = buffers[i];
+		vkBuffers[i] = buffer.As<VulkanBuffer>()->GetBuffer();
+	}
+
+	vkCmdBindVertexBuffers(this->m_commandBuffer, 0, nBufferCount, vkBuffers.data(), offsets.data());
+}
