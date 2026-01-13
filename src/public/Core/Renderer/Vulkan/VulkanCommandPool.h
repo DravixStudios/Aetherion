@@ -22,6 +22,10 @@ public:
 	void FreeCommandBuffer(Ref<CommandBuffer> commandBuffer) override;
 	void FreeCommandBuffers(Vector<Ref<CommandBuffer>> commandBuffers) override;;
 
+	void Reset(bool bReleaseResources) override;
+
+	VkCommandPool GetVkCommandPool() const { return this->m_pool; }
+
 	static Ptr
 	CreateShared(VkDevice device) {
 		return CreateRef<VulkanCommandPool>(device);

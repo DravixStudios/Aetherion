@@ -112,6 +112,22 @@ VulkanCommandPool::FreeCommandBuffers(Vector<Ref<CommandBuffer>> commandBuffers)
 }
 
 /**
+* Resets the Vulkan command pool freeing all the command buffers
+* 
+* @param bReleaseResources If true, release the resources
+*/
+void 
+VulkanCommandPool::Reset(bool bReleaseResources) {
+	VkCommandPoolResetFlags resetFlags = 0;
+
+	if (bReleaseResources) {
+		resetFlags |= VK_COMMAND_POOL_RESET_RELEASE_RESOURCES_BIT;
+	}
+
+	VK_CHECK(vkResetCommandPool(this->m_device, this->m_pool, resetFlags), "Failed to reset a command pool");
+}
+
+/**
 * (ECommandPoolFlags -> VkCommandPoolCreateFlags)
 * 
 * @param flags Command pool flags (ECommandPoolFlags)
