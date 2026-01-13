@@ -7,7 +7,8 @@
 enum class ECommandPoolFlags : uint32_t {
 	NONE = 0,
 	TRANSIENT = 1 << 0,
-	RESET_COMMAND_BUFFER = 1 << 2
+	RESET_COMMAND_BUFFER = 1 << 2,
+	ALL = 0x7FFFFFFF
 };
 
 inline ECommandPoolFlags 
@@ -45,7 +46,7 @@ public:
 	* 
 	* @returns A new command buffer
 	*/
-	virtual Ref<CommandBuffer> AllocateCommandBuffer();
+	virtual Ref<CommandBuffer> AllocateCommandBuffer() = 0;
 
 	/**
 	* Allocates many coommand buffers from the current pool

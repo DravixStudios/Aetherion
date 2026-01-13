@@ -16,8 +16,8 @@ public:
 	void Reset() override;
 
 	static Ptr
-	CreateShared(VkDevice device) {
-		return CreateRef<VulkanCommandBuffer>(device);
+	CreateShared(VkDevice device, VkCommandPool pool) {
+		return CreateRef<VulkanCommandBuffer>(device, pool);
 	}
 private:
 	VkDevice m_device;
