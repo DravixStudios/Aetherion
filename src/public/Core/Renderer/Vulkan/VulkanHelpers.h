@@ -6,6 +6,7 @@
 #include "Core/Renderer/DescriptorPool.h"
 #include "Core/Renderer/RenderPass.h"
 #include "Core/Renderer/Pipeline.h"
+#include "Core/Renderer/GPUBuffer.h"
 
 namespace VulkanHelpers {
 	/** 
@@ -254,6 +255,16 @@ namespace VulkanHelpers {
 			case EBlendOp::REVERSE_SUBTRACT: return VK_BLEND_OP_REVERSE_SUBTRACT;
 			case EBlendOp::SUBTRACT: return VK_BLEND_OP_SUBTRACT;
 			default: return VK_BLEND_OP_ADD;
+		}
+	}
+
+	inline VkIndexType
+	ConvertIndexType(EIndexType indexType) {
+		switch (indexType) {
+			case EIndexType::UINT8: return VK_INDEX_TYPE_UINT8;
+			case EIndexType::UINT16: return VK_INDEX_TYPE_UINT16;
+			case EIndexType::UINT32: return VK_INDEX_TYPE_UINT32;
+			default: return VK_INDEX_TYPE_UINT16;
 		}
 	}
 }
