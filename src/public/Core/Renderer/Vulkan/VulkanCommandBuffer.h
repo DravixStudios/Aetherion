@@ -15,6 +15,8 @@ public:
 	void End() override;
 	void Reset() override;
 
+	VkCommandBuffer GetVkCommandBuffer() const { return this->m_commandBuffer; }
+
 	static Ptr
 	CreateShared(VkDevice device, VkCommandBuffer buffer) {
 		return CreateRef<VulkanCommandBuffer>(device, buffer);

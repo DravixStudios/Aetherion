@@ -49,7 +49,7 @@ public:
 	virtual Ref<CommandBuffer> AllocateCommandBuffer() = 0;
 
 	/**
-	* Allocates many coommand buffers from the current pool
+	* Allocates many command buffers from the current pool
 	* 
 	* @param nCount Command buffer count
 	* 
