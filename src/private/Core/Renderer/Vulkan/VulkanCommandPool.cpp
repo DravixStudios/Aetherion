@@ -41,13 +41,47 @@ VulkanCommandPool::AllocateCommandBuffer() {
 
 	VK_CHECK(vkAllocateCommandBuffers(this->m_device, &allocInfo, &vkCommandBuff), "Failed allocating command buffer");
 
-	Ref<VulkanCommandBuffer> commandBuff = VulkanCommandBuffer::CreateShared(this->m_device, this->m_pool);
+	Ref<VulkanCommandBuffer> commandBuff = VulkanCommandBuffer::CreateShared(this->m_device, vkCommandBuff);
 	return commandBuff.As<CommandBuffer>();
 }
 
+/**
+* Allocates many Vulkan command buffers from the current pool
+* 
+* @param nCount Command buffer count
+* 
+* @returns A vector of Vulkan command buffers
+*/
 Vector<Ref<CommandBuffer>> 
 VulkanCommandPool::AllocateCommandBuffers(uint32_t nCount) {
+	Vector<VkCommandBuffer> vkCommandBuffers;
+	vkCommandBuffers.resize(nCount);
+
+	VkCommandBufferAllocateInfo allocInfo = { };
+	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+	allocInfo.commandPool = this->m_pool;
+	allocInfo.commandBufferCount = nCount;
+	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+
+	VK_CHECK(
+		vkAllocateCommandBuffers(
+			this->m_device, 
+			&allocInfo, 
+			vkCommandBuffers.data()
+		), "Failed allocating command buffers");
+
+	Vector<Ref<CommandBuffer>> commandBuffers;
+	commandBuffers.resize(nCount);
+
+	for (uint32_t i = 0; i < nCount; i++) {
+		VkCommandBuffer vkCommandBuffer = vkCommandBuffers[i];
+
+		Ref<VulkanCommandBuffer> commandBuffer = VulkanCommandBuffer::CreateShared(this->m_device, vkCommandBuffer);
+
+		commandBuffers[i] = commandBuffer.As<CommandBuffer>();
+	}
 	
+	return commandBuffers;
 }
 
 /**

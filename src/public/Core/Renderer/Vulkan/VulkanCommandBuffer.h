@@ -8,7 +8,7 @@ class VulkanCommandBuffer : public CommandBuffer {
 public:
 	using Ptr = Ref<VulkanCommandBuffer>;
 	
-	VulkanCommandBuffer(VkDevice device, VkCommandPool pool);
+	VulkanCommandBuffer(VkDevice device, VkCommandBuffer buffer);
 	~VulkanCommandBuffer() override;
 
 	void Begin() override;
@@ -16,12 +16,11 @@ public:
 	void Reset() override;
 
 	static Ptr
-	CreateShared(VkDevice device, VkCommandPool pool) {
-		return CreateRef<VulkanCommandBuffer>(device, pool);
+	CreateShared(VkDevice device, VkCommandBuffer buffer) {
+		return CreateRef<VulkanCommandBuffer>(device, buffer);
 	}
 private:
 	VkDevice m_device;
 	
 	VkCommandBuffer m_commandBuffer;
-	VkCommandPool m_pool;
 };

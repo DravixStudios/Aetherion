@@ -1,11 +1,10 @@
 #include "Core/Renderer/Vulkan/VulkanCommandBuffer.h"
 
-VulkanCommandBuffer::VulkanCommandBuffer(VkDevice device, VkCommandPool pool)
-	: m_device(device), m_commandBuffer(VK_NULL_HANDLE), m_pool(pool) { }
+VulkanCommandBuffer::VulkanCommandBuffer(VkDevice device, VkCommandBuffer buffer)
+	: m_device(device), m_commandBuffer(buffer) { }
 
 VulkanCommandBuffer::~VulkanCommandBuffer() {
 	if (this->m_commandBuffer != VK_NULL_HANDLE) {
-		vkFreeCommandBuffers(this->m_device, this->m_pool, 1, &this->m_commandBuffer);
 		this->m_commandBuffer = VK_NULL_HANDLE;
 	}
 }
@@ -16,7 +15,6 @@ VulkanCommandBuffer::Begin() {
 	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
 	VK_CHECK(vkBeginCommandBuffer(this->m_commandBuffer, &beginInfo), "Failed to begin a command buffer");
-	
 }
 
 void
