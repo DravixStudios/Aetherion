@@ -50,9 +50,9 @@ public:
 	* Binds a index buffer
 	* 
 	* @param buffer Index buffer
-	* @param indexType Index type (defaul = UINT32)
+	* @param indexType Index type (defaul = UINT16)
 	*/
-	virtual void BindIndexBuffer(Ref<GPUBuffer> buffer, EIndexType indexType = EIndexType::UINT32) = 0;
+	virtual void BindIndexBuffer(Ref<GPUBuffer> buffer, EIndexType indexType = EIndexType::UINT16) = 0;
 
 	/**
 	* Performs a draw call

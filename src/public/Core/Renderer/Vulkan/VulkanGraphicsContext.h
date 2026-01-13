@@ -1,6 +1,7 @@
 #pragma once
 #include "Core/Renderer/GraphicsContext.h"
 
+#include "Core/Renderer/Vulkan/VulkanHelpers.h"
 #include "Core/Renderer/Vulkan/VulkanPipeline.h"
 #include "Core/Renderer/Vulkan/VulkanDescriptorSet.h"
 
@@ -20,6 +21,7 @@ public:
 		const Vector<Ref<DescriptorSet>>& sets, const Vector<uint32_t>& dynamicOffsets = {}) override;
 
 	void BindVertexBuffers(const Vector<Ref<GPUBuffer>>& buffers, const Vector<size_t>& offsets = {}) override;
+	void BindIndexBuffer(Ref<GPUBuffer> buffer, EIndexType indexType = EIndexType::UINT16) override;
 
 private:
 	VkCommandBuffer m_commandBuffer;

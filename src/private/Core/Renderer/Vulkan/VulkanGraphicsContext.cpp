@@ -75,3 +75,17 @@ VulkanGraphicsContext::BindVertexBuffers(
 
 	vkCmdBindVertexBuffers(this->m_commandBuffer, 0, nBufferCount, vkBuffers.data(), offsets.data());
 }
+
+/**
+* Binds a index buffer
+* 
+* @param buffer Index buffer
+* @param indexType Index type (default = UINT16)
+*/
+void 
+VulkanGraphicsContext::BindIndexBuffer(Ref<GPUBuffer> buffer, EIndexType indexType = EIndexType::UINT16) {
+	VkIndexType vkIndexType = VulkanHelpers::ConvertIndexType(indexType);
+
+	VkBuffer vkBuffer = buffer.As<VulkanBuffer>()->GetBuffer();
+	vkCmdBindIndexBuffer(this->m_commandBuffer, vkBuffer, 0, vkIndexType);
+}
