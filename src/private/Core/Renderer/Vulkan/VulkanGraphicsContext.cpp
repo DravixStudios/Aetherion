@@ -89,3 +89,88 @@ VulkanGraphicsContext::BindIndexBuffer(Ref<GPUBuffer> buffer, EIndexType indexTy
 	VkBuffer vkBuffer = buffer.As<VulkanBuffer>()->GetBuffer();
 	vkCmdBindIndexBuffer(this->m_commandBuffer, vkBuffer, 0, vkIndexType);
 }
+
+/**
+* Performs a draw call
+*
+* @param nVertexCount Number of vertices
+* @param nInstanceCount Number of instances (default = 1)
+* @param nFirstVertex First vertex (default = 0)
+* @param nFirstInstance First instance (default = 0)
+*/
+void 
+VulkanGraphicsContext::Draw(
+	uint32_t nVertexCount,
+	uint32_t nInstanceCount,
+	uint32_t nFirstVertex,
+	uint32_t nFirstInstance
+) {
+	vkCmdDraw(
+		this->m_commandBuffer, 
+		nVertexCount, 
+		nInstanceCount, 
+		nFirstVertex, 
+		nFirstInstance
+	);
+}
+
+
+/**
+* Performs a indexed draw call
+*
+* @param nIndexCount Number of indices
+* @param nInstanceCount Number of instances (default = 1)
+* @param nFirstIndex First index (default = 0)
+* @param nVertexOffset Vertex offset (default = 0)
+* @param nFirstInstance First instance (default = 0)
+*/
+void 
+VulkanGraphicsContext::DrawIndexed(
+	uint32_t nIndexCount,
+	uint32_t nInstanceCount,
+	uint32_t nFirstIndex,
+	uint32_t nVertexOffset,
+	uint32_t nFirstInstance
+) {
+	vkCmdDrawIndexed(
+		this->m_commandBuffer,
+		nIndexCount,
+		nInstanceCount,
+		nFirstIndex,
+		nVertexOffset,
+		nFirstInstance
+	);
+}
+
+/**
+* Performs an indirect indexed draw call
+*
+* @param buffer Buffer containing draw parameters
+* @param nOffset Byte offset into buffer where parameters begin
+* @param countBuffer Buffer containing draw count
+* @param nCountBufferOffset Byte offset into countBuffer where the draw count begins
+* @param nMaxDrawCount Maximum number of draws that will be executed
+* @param nStride Byte stride between successive sets of draw parameters.
+*/
+void 
+VulkanGraphicsContext::DrawIndexedIndirect(
+	Ref<GPUBuffer> buffer,
+	uint32_t nOffset,
+	Ref<GPUBuffer> countBuffer,
+	uint32_t nCountBufferOffset,
+	uint32_t nMaxDrawCount,
+	uint32_t nStride
+) {
+	VkBuffer vkBuffer = buffer.As<VulkanBuffer>()->GetBuffer();
+	VkBuffer vkCountBuffer = countBuffer.As<VulkanBuffer>()->GetBuffer();
+
+	vkCmdDrawIndexedIndirectCount(
+		this->m_commandBuffer,
+		vkBuffer,
+		nOffset,
+		vkCountBuffer,
+		nCountBufferOffset,
+		nMaxDrawCount,
+		nStride
+	);
+}
