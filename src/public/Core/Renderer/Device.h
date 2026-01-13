@@ -71,7 +71,7 @@ public:
 		bool bCompute = false,
 		bool bTransfer = false,
 		bool bPresent = false
-	) = 0;
+	) const = 0;
 
 	/**
 	* Gets device limits
