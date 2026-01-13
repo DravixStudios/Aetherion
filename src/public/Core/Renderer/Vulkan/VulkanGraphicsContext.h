@@ -54,6 +54,9 @@ public:
 		uint32_t nSize,
 		const void* pcData
 	) override;
+
+	void SetViewport(const Viewport& viewport) override;
+	void SetScissor(const Rect2D& scissor) override;
 private:
 	VkCommandBuffer m_commandBuffer;
 	VkPipeline m_currentPipeline;

@@ -203,3 +203,39 @@ VulkanGraphicsContext::PushConstants(
 		pcData
 	);
 }
+
+/**
+* Set viewport
+*
+* @param viewport Viewport struct
+*/
+void VulkanGraphicsContext::SetViewport(const Viewport& viewport) {
+	VkViewport vkViewport = { };
+	vkViewport.x = viewport.x;
+	vkViewport.y = viewport.y;
+	vkViewport.width = viewport.width;
+	vkViewport.height = viewport.height;
+	vkViewport.minDepth = viewport.minDepth;
+	vkViewport.maxDepth = viewport.maxDepth;
+	
+	vkCmdSetViewport(this->m_commandBuffer, 0, 1, &vkViewport);
+}
+
+/**
+* Set scissor
+*
+* @param scissor Scissor rect
+*/
+void VulkanGraphicsContext::SetScissor(const Rect2D& scissor) {
+	VkExtent2D extent = { };
+	extent.width = scissor.extent.width;
+	extent.height = scissor.extent.height;
+
+	VkOffset2D offset = { };
+	offset.x = scissor.offset.x;
+	offset.y = scissor.offset.y;
+
+	VkRect2D vkScissor = { offset, extent };
+
+	vkCmdSetScissor(this->m_commandBuffer, 0, 1, &vkScissor);
+}
