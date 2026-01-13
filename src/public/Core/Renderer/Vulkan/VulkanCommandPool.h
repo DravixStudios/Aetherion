@@ -19,6 +19,9 @@ public:
 	Ref<CommandBuffer> AllocateCommandBuffer() override;
 	Vector<Ref<CommandBuffer>> AllocateCommandBuffers(uint32_t nCount) override;
 
+	void FreeCommandBuffer(Ref<CommandBuffer> commandBuffer) override;
+	void FreeCommandBuffers(Vector<Ref<CommandBuffer>> commandBuffers) override;;
+
 	static Ptr
 	CreateShared(VkDevice device) {
 		return CreateRef<VulkanCommandPool>(device);

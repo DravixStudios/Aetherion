@@ -85,6 +85,33 @@ VulkanCommandPool::AllocateCommandBuffers(uint32_t nCount) {
 }
 
 /**
+* Frees a command buffer
+* 
+* @param commandBuffer Command buffer to free
+*/
+void 
+VulkanCommandPool::FreeCommandBuffer(Ref<CommandBuffer> commandBuffer) {
+	VkCommandBuffer vkCommandBuffer = commandBuffer.As<VulkanCommandBuffer>()->GetVkCommandBuffer();
+
+	vkFreeCommandBuffers(this->m_device, this->m_pool, 1, &vkCommandBuffer);
+}
+
+void 
+VulkanCommandPool::FreeCommandBuffers(Vector<Ref<CommandBuffer>> commandBuffers) {
+	uint32_t nCommandBuffCount = commandBuffers.size();
+
+	Vector<VkCommandBuffer> vkCommandBuffers;
+	vkCommandBuffers.resize(nCommandBuffCount);
+
+	for (uint32_t i = 0; i < nCommandBuffCount; i++) {
+		VkCommandBuffer vkCommandBuffer = commandBuffers[i].As<VulkanCommandBuffer>()->GetVkCommandBuffer();
+		vkCommandBuffers[i] = vkCommandBuffer;
+	}
+
+	vkFreeCommandBuffers(this->m_device, this->m_pool, nCommandBuffCount, vkCommandBuffers.data());
+}
+
+/**
 * (ECommandPoolFlags -> VkCommandPoolCreateFlags)
 * 
 * @param flags Command pool flags (ECommandPoolFlags)
