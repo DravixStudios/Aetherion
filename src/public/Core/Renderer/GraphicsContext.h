@@ -7,6 +7,10 @@
 #include "Core/Renderer/DescriptorSetLayout.h"
 #include "Core/Renderer/GPUBuffer.h"
 #include "Core/Renderer/GPURingBuffer.h"
+#include "Core/Renderer/PipelineLayout.h"
+#include "Core/Renderer/Viewport.h"
+#include "Core/Renderer/Rect2D.h"
+#include "Core/Renderer/RenderPass.h"
 
 class GraphicsContext {
 public:
@@ -97,4 +101,34 @@ public:
 		uint32_t nCountBufferOffset,
 		uint32_t nMaxDrawCount,
 		uint32_t nStride) = 0;
+
+	/**
+	* Push constants to pipeline layout
+	* 
+	* @param layout Pipeline layout
+	* @param stages Shader stage
+	* @param nOffset Push constant offset
+	* @param nSize Size of push constant data
+	* @param pcData Constant pointer to push constant data
+	*/
+	virtual void PushConstants(
+		Ref<PipelineLayout> layout, 
+		EShaderStage stages, 
+		uint32_t nOffset, 
+		uint32_t nSize, 
+		const void* pcData) = 0;
+
+	/**
+	* Set viewport
+	* 
+	* @param viewport Viewport struct
+	*/
+	virtual void SetViewport(const Viewport& viewport) = 0;
+	
+	/**
+	* Set scissor
+	* 
+	* @param scissor Scissor rect
+	*/
+	virtual void SetScissor(const Rect2D& scissor) = 0;
 };
