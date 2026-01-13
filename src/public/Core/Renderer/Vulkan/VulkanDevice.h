@@ -1,11 +1,8 @@
 #pragma once
 #include "Core/Renderer/Device.h"
-#include <optional>
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
-
-struct QueueFamilyIndices;
 
 class VulkanDevice : public Device {
 public:
