@@ -46,6 +46,14 @@ public:
 		uint32_t nMaxDrawCount,
 		uint32_t nStride = 0
 	) override;
+
+	void PushConstants(
+		Ref<PipelineLayout> layout,
+		EShaderStage stages,
+		uint32_t nOffsets,
+		uint32_t nSize,
+		const void* pcData
+	) override;
 private:
 	VkCommandBuffer m_commandBuffer;
 	VkPipeline m_currentPipeline;

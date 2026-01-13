@@ -174,3 +174,32 @@ VulkanGraphicsContext::DrawIndexedIndirect(
 		nStride
 	);
 }
+
+/**
+	* Push constants to pipeline layout
+	*
+	* @param layout Pipeline layout
+	* @param stages Shader stage
+	* @param nOffset Push constant offset
+	* @param nSize Size of push constant data
+	* @param pcData Constant pointer to push constant data
+	*/
+void 
+VulkanGraphicsContext::PushConstants(
+	Ref<PipelineLayout> layout,
+	EShaderStage stages,
+	uint32_t nOffsets,
+	uint32_t nSize,
+	const void* pcData
+) {
+	VkPipelineLayout vkLayout = layout.As<VulkanPipelineLayout>()->GetVkLayout();
+
+	vkCmdPushConstants(
+		this->m_commandBuffer,
+		vkLayout,
+		VulkanHelpers::ConvertShaderStage(stages),
+		nOffsets,
+		nSize,
+		pcData
+	);
+}
