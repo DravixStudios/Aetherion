@@ -5,14 +5,9 @@
 Core* Core::m_instance;
 
 /* Core constructor */
-Core::Core() {
-    this->m_pWindow = nullptr;
-    this->m_renderer = nullptr;
-    this->m_sceneMgr = nullptr;
-    this->m_input = Input::GetInstance();
-    this->m_time = Time::GetInstance();
-    this->m_resMgr = ResourceManager::GetInstance();
-}
+Core::Core()
+    : m_renderBackend(ERenderBackend::VULKAN), 
+    m_resMgr(ResourceManager::GetInstance()), m_input(Input::GetInstance()) {}
 
 /* Core init method */
 void 
@@ -47,19 +42,19 @@ Core::Init() {
         TODO: Change between graphics APIs.
             Note: When implemented many APIs and not only Vulkan.
     */
-    this->m_renderer = new VulkanRenderer();
 
-    /* Set our renderer window and init */
-    this->m_renderer->SetWindow(this->m_pWindow);
-    this->m_renderer->Init();
+    switch (this->m_renderBackend) {
+    case ERenderBackend::VULKAN: this->m_renderer = new VulkanRenderer();
+    }
+    
     
     this->m_input->SetWindow(this->m_pWindow);
     glfwSetKeyCallback(this->m_pWindow, Input::KeyCallback);
     glfwSetMouseButtonCallback(this->m_pWindow, Input::MouseButtonCallback);
 
-    this->m_resMgr->SetRenderer(this->m_renderer);
+    /*this->m_resMgr->SetRenderer(this->m_renderer);
     this->m_sceneMgr = SceneManager::GetInstance();
-    this->m_sceneMgr->Start();
+    this->m_sceneMgr->Start();*/
 }
 
 /* Our core update method */
@@ -70,7 +65,6 @@ Core::Update() {
         this->m_time->PreUpdate();
         glfwPollEvents(); // Poll GLFW events
         this->m_sceneMgr->Update();
-        this->m_renderer->Update(); // Update our renderer
         this->m_input->Close();
         this->m_time->PostUpdate();
     }

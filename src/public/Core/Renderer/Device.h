@@ -51,7 +51,9 @@ public:
 	) const = 0;
 
 	/**
-	* Device name
+	* Gets the Device name
+	* 
+	* @returns Device name
 	*/
 	virtual const char* GetDeviceName() const = 0;
 };
