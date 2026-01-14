@@ -33,6 +33,8 @@ public:
 
 	void Create(GLFWwindow* pWindow) override;
 
+	Ref<Device> CreateDevice() override;
+
 	static Ptr
 	CreateShared() {
 		return CreateRef<VulkanRenderer>();

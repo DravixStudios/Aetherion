@@ -105,6 +105,27 @@ void VulkanRenderer::Create(GLFWwindow* pWindow) {
 }
 
 /**
+* Creates a logical device
+* 
+* @returns A new logical device
+*/
+Ref<Device> 
+VulkanRenderer::CreateDevice() {
+	DeviceCreateInfo deviceInfo = { };
+	deviceInfo.bEnableMultiDrawIndirect = true;
+	deviceInfo.bEnableSamplerAnisotroply = true;
+	deviceInfo.bEnableDepthClamp = false;
+	deviceInfo.bEnableGeometryShader = false;
+	deviceInfo.validationLayers = validationLayers;
+	deviceInfo.requiredExtensions = deviceExtensions;
+
+	Ref<VulkanDevice> device = VulkanDevice::CreateShared(this->m_physicalDevice, this->m_instance, this->m_surface);
+	device->Create(deviceInfo);
+
+	return device.As<Device>();
+}
+
+/**
 * Picks the most suitable physical device
 */
 void 
