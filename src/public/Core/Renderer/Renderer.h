@@ -6,6 +6,10 @@
 
 class Renderer {
 public:
-    ~Renderer() = default;
+    static constexpr const char* CLASS_NAME = "Renderer";
+
+    using Ptr = Ref<Renderer>;
+
+    virtual ~Renderer() = default;
     virtual void Create() = 0;
 };
