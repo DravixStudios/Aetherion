@@ -19,5 +19,14 @@ private:
 	bool CheckValidationLayersSupport();
 	Vector<const char*> GetRequiredExtensions();
 
+	void PopulateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& messengerInfo);
+
+	static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(
+		VkDebugUtilsMessageSeverityFlagBitsEXT severity, 
+		VkDebugUtilsMessageTypeFlagsEXT type, 
+		const VkDebugUtilsMessengerCallbackDataEXT* pcData, 
+		void* pvUserData
+	);
+
 	VkInstance m_instance;
 };

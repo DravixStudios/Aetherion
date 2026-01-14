@@ -68,3 +68,45 @@ VulkanRenderer::GetRequiredExtensions() {
 
 	return extensions;
 }
+
+/**
+* Populates debug messenger create info
+* 
+* @param messengerInfo Reference to Debug messenger create info
+*/
+void
+VulkanRenderer::PopulateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& messengerInfo) {
+	messengerInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
+									VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT   |
+									VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT;
+
+	messengerInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT	   |
+								VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+								VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+	messengerInfo.pfnUserCallback = VulkanRenderer::DebugCallback;
+	messengerInfo.pUserData = this;
+}
+
+VKAPI_ATTR VkBool32 VKAPI_CALL
+VulkanRenderer::DebugCallback(
+	VkDebugUtilsMessageSeverityFlagBitsEXT severity,
+	VkDebugUtilsMessageTypeFlagsEXT type,
+	const VkDebugUtilsMessengerCallbackDataEXT* pcData,
+	void* pvUserData
+) {
+	VulkanRenderer* renderer = static_cast<VulkanRenderer*>(pvUserData);
+
+	switch (severity) {
+		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
+			Logger::Debug("Validation layers: {}", pcData->pMessage);
+			break;
+		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
+			Logger::Warn("Validation layers: {}", pcData->pMessage);
+			break;
+		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
+			Logger::Error("Validation layers: {}", pcData->pMessage);
+			break;
+	}
+
+	return VK_FALSE;
+}
