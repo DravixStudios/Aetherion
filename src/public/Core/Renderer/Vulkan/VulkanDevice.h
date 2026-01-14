@@ -8,6 +8,7 @@
 #include "Core/Renderer/Device.h"
 
 #include "Core/Renderer/Vulkan/VulkanRenderer.h"
+#include "Core/Renderer/Vulkan/VulkanCommandPool.h"
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
@@ -21,6 +22,8 @@ public:
 
 	void Create(const DeviceCreateInfo& createInfo) override;
 	void WaitIdle() override;
+
+	Ref<CommandPool> CreateCommandPool(const CommandPoolCreateInfo& createInfo) override;
 
 	void GetLimits(
 		uint32_t& nMaxUniformBufferRange,

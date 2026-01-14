@@ -122,6 +122,21 @@ VulkanDevice::WaitIdle() {
 }
 
 /**
+* Creates a Vulkan command pool
+*
+* @param createInfo Command pool create info
+*
+* @returns Created command pool
+*/
+Ref<CommandPool> 
+VulkanDevice::CreateCommandPool(const CommandPoolCreateInfo& createInfo) {
+	Ref<VulkanCommandPool> pool = VulkanCommandPool::CreateShared(this->m_device);
+	pool->Create(createInfo);
+
+	return pool.As<CommandPool>();
+}
+
+/**
 * Gets device limits
 */
 void 

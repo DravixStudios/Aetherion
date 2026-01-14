@@ -2,6 +2,7 @@
 #include <cstdint>
 
 #include "Core/Containers.h"
+#include "Core/Renderer/CommandPool.h"
 
 enum class EQueueType {
 	GRAPHICS,
@@ -34,6 +35,15 @@ public:
 	* @param createInfo Device create info
 	*/
 	virtual void Create(const DeviceCreateInfo& createInfo) = 0;
+
+	/**
+	* Creates a command pool
+	* 
+	* @param createInfo Command pool create info
+	*
+	* @returns Created command pool
+	*/
+	virtual Ref<CommandPool> CreateCommandPool(const CommandPoolCreateInfo& createInfo);
 
 	/**
 	* Waits till device finishes all the operations
