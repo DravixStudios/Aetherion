@@ -44,7 +44,12 @@ Core::Init() {
     */
 
     switch (this->m_renderBackend) {
-        case ERenderBackend::VULKAN: this->m_renderer = new VulkanRenderer();
+        case ERenderBackend::VULKAN:
+#ifdef RENDERER_USE_VULKAN
+            this->m_renderer = VulkanRenderer::CreateShared().As<Renderer>();
+#else
+            Logger::Error("Core::Init: Vulkan not available in this build");
+#endif
     }
     
     this->m_renderer->Create(this->m_pWindow);

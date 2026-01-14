@@ -2,15 +2,15 @@
 #include <optional>
 #include <set>
 
+#include "Utils.h"
 #include "Core/Logger.h"
 
 #include "Core/Renderer/Device.h"
-#include "Utils.h"
+
+#include "Core/Renderer/Vulkan/VulkanRenderer.h"
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
-
-struct QueueFamilyIndices;
 
 class VulkanDevice : public Device {
 public:

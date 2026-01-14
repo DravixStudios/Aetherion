@@ -1,12 +1,21 @@
 #include "Core/Renderer/Vulkan/VulkanRenderer.h"
+#include "Core/Renderer/Vulkan/VulkanDevice.h"
 
 Vector<const char*> validationLayers = {
 	"VK_LAYER_KHRONOS_validation"
 };
 
+Vector<const char*> deviceExtensions = {
+	VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+	VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME,
+#ifdef __APPLE__
+	"VK_KHR_portability_subset"
+#endif // __APPLE__
+};
+
 VulkanRenderer::VulkanRenderer() 
 	: m_instance(VK_NULL_HANDLE), m_bEnableValidationLayers(false), m_debugMessenger(VK_NULL_HANDLE),
-	  m_pWindow(nullptr), m_surface(VK_NULL_HANDLE) {}
+	  m_pWindow(nullptr), m_surface(VK_NULL_HANDLE), m_physicalDevice(VK_NULL_HANDLE) {}
 
 VulkanRenderer::~VulkanRenderer() {
 	if (this->m_instance != VK_NULL_HANDLE) {
@@ -90,6 +99,164 @@ void VulkanRenderer::Create(GLFWwindow* pWindow) {
 			nullptr, 
 			&this->m_surface
 		), "Couldn't create window surface");
+
+	this->PickPhysicalDevice();
+}
+
+/**
+* Picks the most suitable physical device
+*/
+void 
+VulkanRenderer::PickPhysicalDevice() {
+	uint32_t nPhysicalDeviceCount = 0;
+	vkEnumeratePhysicalDevices(this->m_instance, &nPhysicalDeviceCount, nullptr);
+
+	Vector<VkPhysicalDevice> physicalDevices(nPhysicalDeviceCount);
+
+	Logger::Debug("VulkanRenderer::PickPhysicalDevice: Available physical device count: {}", nPhysicalDeviceCount);
+
+	for (const VkPhysicalDevice& physicalDevice : physicalDevices) {
+		if (this->IsDeviceSuitable(physicalDevice)) {
+			this->m_physicalDevice = physicalDevice;
+			break;
+		}
+	}
+
+	if (this->m_physicalDevice == VK_NULL_HANDLE) {
+		Logger::Error("VulkanRenderer::PickPhysicalDevice: No suitable device found");
+		throw std::runtime_error("VulkanRenderer::PickPhysicalDevice: No suitable device found");
+	}
+
+	VkPhysicalDeviceProperties deviceProperties;
+	vkGetPhysicalDeviceProperties(this->m_physicalDevice, &deviceProperties);
+
+	/* Check if physical device supports Vulkan 1.2 */
+	uint32_t nApiMajor = VK_VERSION_MAJOR(deviceProperties.apiVersion);
+	uint32_t nApiMinor = VK_VERSION_MINOR(deviceProperties.apiVersion);
+
+	if (nApiMajor < 1 || (nApiMajor == 1 && nApiMinor < 2)) {
+		Logger::Error(
+			"VulkanRenderer::PickPhysicalDevice: Selected device does not support Vulkan 1.2 minimum. Found: {}.{}", 
+			nApiMajor, 
+			nApiMinor
+		);
+
+		throw std::runtime_error("VulkanRenderer::PickPhysicalDevice: Vulkan 1.2 required");
+	}
+}
+
+/**
+* Checks if physical device is suitable
+* 
+* @returns The result of the check
+*/
+bool 
+VulkanRenderer::IsDeviceSuitable(const VkPhysicalDevice& physicalDevice) {
+	QueueFamilyIndices indices = this->FindQueueFamilies(physicalDevice);
+
+	bool bExtensionsSupported = this->CheckDeviceExtensionSupport(physicalDevice);
+
+	bool bSwapChainAdequate = false;
+	if (bExtensionsSupported) {
+		SwapChainSupportDetails swapChainSupport = this->QuerySwapChainSupport(physicalDevice);
+		bSwapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
+	}
+
+	return indices.IsComplete() && bSwapChainAdequate;
+}
+
+/**
+* Finds queue family indices
+*
+* @returns Queue family indices
+*/
+QueueFamilyIndices 
+VulkanRenderer::FindQueueFamilies(const VkPhysicalDevice& physicalDevice) {
+	QueueFamilyIndices indices;
+
+	uint32_t nQueueFamilyCount = 0;
+	vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &nQueueFamilyCount, nullptr);
+
+	Vector<VkQueueFamilyProperties> queueFamilyProperties(nQueueFamilyCount);
+
+	vkGetPhysicalDeviceQueueFamilyProperties(
+		physicalDevice,
+		&nQueueFamilyCount,
+		queueFamilyProperties.data()
+	);
+
+	uint32_t i = 0;
+	for (const VkQueueFamilyProperties& queueFamily : queueFamilyProperties) {
+		if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+			indices.graphicsFamily = i;
+		}
+
+		VkBool32 bPresentSupport = false;
+		vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, i, this->m_surface, &bPresentSupport);
+
+		if (bPresentSupport) {
+			indices.presentFamily = i;
+		}
+
+		if (indices.IsComplete()) {
+			break;
+		}
+		i++;
+	}
+
+	return indices;
+}
+
+bool
+VulkanRenderer::CheckDeviceExtensionSupport(const VkPhysicalDevice& physicalDevice) {
+	uint32_t nExtensionCount = 0;
+	vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &nExtensionCount, nullptr);
+
+	Vector<VkExtensionProperties> extensions(nExtensionCount);
+	vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &nExtensionCount, extensions.data());
+
+	std::set<String> requiredExtensions(deviceExtensions.begin(), deviceExtensions.end());
+
+	for (const VkExtensionProperties& extension : extensions) {
+		requiredExtensions.erase(extension.extensionName);
+	}
+
+	return requiredExtensions.empty();
+}
+
+/**
+* Check if device supports swap chain
+* 
+* @returns Result of the check
+*/
+SwapChainSupportDetails 
+VulkanRenderer::QuerySwapChainSupport(const VkPhysicalDevice& physicalDevice) {
+	SwapChainSupportDetails details;
+
+	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, this->m_surface, &details.capabilities);
+
+	uint32_t nFormatCount = 0;
+	vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, this->m_surface, &nFormatCount, nullptr);
+
+	if (nFormatCount != 0) {
+		details.formats.resize(nFormatCount);
+		vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, this->m_surface, &nFormatCount, details.formats.data());
+	}
+
+	uint32_t nPresentModeCount = 0;
+	vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, this->m_surface, &nPresentModeCount, nullptr);
+
+	if (nPresentModeCount != 0) {
+		details.presentModes.resize(nPresentModeCount);
+		vkGetPhysicalDeviceSurfacePresentModesKHR(
+			physicalDevice, 
+			this->m_surface,
+			&nPresentModeCount, 
+			details.presentModes.data()
+		);
+	}
+
+	return details;
 }
 
 /**

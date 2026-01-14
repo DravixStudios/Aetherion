@@ -53,7 +53,8 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
         "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
-        "LOGGING_USE_SPDLOG": "1"
+        "LOGGING_USE_SPDLOG": "1",
+        "RENDERER_USE_VULKAN":  "1"
       }
     },
     {
@@ -76,7 +77,8 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
         "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
-        "LOGGING_USE_SPDLOG": "0"
+        "LOGGING_USE_SPDLOG": "0",
+        "RENDERER_USE_VULKAN": "1"
       }
     },
     {
@@ -94,7 +96,8 @@
       "inherits": "linux-base",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
-        "LOGGING_USE_SPDLOG": "1"
+        "LOGGING_USE_SPDLOG": "1",
+        "RENDERER_USE_VULKAN": "1"
       }
     },
     {
@@ -103,7 +106,8 @@
       "inherits": "linux-debug-spdlog",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
-        "LOGGING_USE_SPDLOG": "1"
+        "LOGGING_USE_SPDLOG": "1",
+        "RENDERER_USE_VULKAN": "1"
       }
     },
     {
@@ -112,7 +116,8 @@
       "inherits": "linux-base",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
-        "LOGGING_USE_SPDLOG": "0"
+        "LOGGING_USE_SPDLOG": "0",
+        "RENDERER_USE_VULKAN": "1"
       }
     },
     {
@@ -121,7 +126,8 @@
       "inherits": "linux-debug-no-spdlog",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
-        "LOGGING_USE_SPDLOG": "0"
+        "LOGGING_USE_SPDLOG": "0",
+        "RENDERER_USE_VULKAN": "1"
       }
     },
     {
@@ -130,7 +136,8 @@
       "inherits": "macos-base",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
-        "LOGGING_USE_SPDLOG": "1"
+        "LOGGING_USE_SPDLOG": "1",
+        "RENDERER_USE_VULKAN": "1"
       }
     },
     {
@@ -139,7 +146,8 @@
       "inherits": "macos-debug-spdlog",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
-        "LOGGING_USE_SPDLOG": "1"
+        "LOGGING_USE_SPDLOG": "1",
+        "RENDERER_USE_VULKAN": "1"
       }
     },
     {
@@ -148,7 +156,8 @@
       "inherits": "macos-base",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
-        "LOGGING_USE_SPDLOG": "0"
+        "LOGGING_USE_SPDLOG": "0",
+        "RENDERER_USE_VULKAN": "1"
       }
     },
     {
@@ -157,7 +166,8 @@
       "inherits": "macos-debug-no-spdlog",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
-        "LOGGING_USE_SPDLOG": "0"
+        "LOGGING_USE_SPDLOG": "0",
+        "RENDERER_USE_VULKAN": "1"
       }
     }
   ]

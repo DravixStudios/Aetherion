@@ -7,6 +7,7 @@ if (CMAKE_VERSION VERSION_GREATER 3.12)
 endif()
 
 target_compile_definitions(Aetherion PRIVATE $<$<BOOL:${LOGGING_USE_SPDLOG}>:LOGGING_USE_SPDLOG>)
+target_compile_definitions(Aetherion PRIVATE $<$<BOOL:${RENDERER_USE_VULKAN}>:RENDERER_USE_VULKAN>)
 
 set("PRIVATE_INCLUDES" "${CMAKE_CURRENT_SOURCE_DIR}/public")
 set("PUBLIC_INCLUDES" "${CMAKE_CURRENT_SOURCE_DIR}/../include" )

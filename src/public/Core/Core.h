@@ -4,6 +4,8 @@
 #include "Core/Input.h"
 #include "Core/Time.h"
 
+#include "Core/Containers.h"
+
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
@@ -31,7 +33,7 @@ public:
     void Init();
     void Update();
 
-    Renderer* GetRenderer() const { return this->m_renderer; }
+    Ref<Renderer> GetRenderer() const { return this->m_renderer; }
 
     static Core* GetInstance();
 private:
@@ -46,5 +48,5 @@ private:
     SceneManager* m_sceneMgr;
     ResourceManager* m_resMgr;
 
-    Renderer* m_renderer;
+    Ref<Renderer> m_renderer;
 };
