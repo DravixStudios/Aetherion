@@ -17,7 +17,8 @@ VulkanDevice::VulkanDevice(
 	m_instance(instance),
 	m_surface(surface), 
 	m_device(VK_NULL_HANDLE), 
-	m_devProperties(0) { }
+	m_devProperties(0),
+	m_graphicsQueue(VK_NULL_HANDLE), m_presentQueue(VK_NULL_HANDLE) { }
 
 VulkanDevice::~VulkanDevice() {
 	if (this->m_device != VK_NULL_HANDLE) {
