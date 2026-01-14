@@ -11,6 +11,7 @@
 #include "Core/Renderer/Vulkan/VulkanCommandPool.h"
 #include "Core/Renderer/Vulkan/VulkanCommandBuffer.h"
 #include "Core/Renderer/Vulkan/VulkanGraphicsContext.h"
+#include "Core/Renderer/Vulkan/VulkanPipelineLayout.h"
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
@@ -27,6 +28,8 @@ public:
 
 	Ref<CommandPool> CreateCommandPool(const CommandPoolCreateInfo& createInfo) override;
 	Ref<GraphicsContext> CreateContext(Ref<CommandPool>& commandPool) override;
+
+	Ref<PipelineLayout> CreatePipelineLayout(const PipelineLayoutCreateInfo& createInfo) override;
 
 	void GetLimits(
 		uint32_t& nMaxUniformBufferRange,

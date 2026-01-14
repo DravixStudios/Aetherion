@@ -154,6 +154,21 @@ VulkanDevice::CreateContext(Ref<CommandPool>& commandPool) {
 }
 
 /**
+* Creates a Vulkan pipeline layout
+* 
+* @param createInfo Pipeline layout create info
+* 
+* @returns Created pipeline layout
+*/
+Ref<PipelineLayout>
+VulkanDevice::CreatePipelineLayout(const PipelineLayoutCreateInfo& createInfo){
+	Ref<VulkanPipelineLayout> layout = VulkanPipelineLayout::CreateShared(this->m_device);
+	layout->Create(createInfo);
+
+	return layout.As<PipelineLayout>();
+}
+
+/**
 * Gets device limits
 */
 void 

@@ -3,6 +3,7 @@
 
 #include "Core/Containers.h"
 #include "Core/Renderer/CommandPool.h"
+#include "Core/Renderer/GraphicsContext.h"
 
 enum class EQueueType {
 	GRAPHICS,
@@ -44,6 +45,24 @@ public:
 	* @returns Created command pool
 	*/
 	virtual Ref<CommandPool> CreateCommandPool(const CommandPoolCreateInfo& createInfo);
+
+	/**
+	* Creates a graphics context
+	* 
+	* @param commandPool The command pool where the command buffer will live
+	* 
+	* @returns A graphics context
+	*/
+	virtual Ref<GraphicsContext> CreateContext(Ref<CommandPool>& commandPool);
+
+	/**
+	* Creates a pipeline layout
+	* 
+	* @param createInfo Pipeline layout create info
+	* 
+	* @returns Created pipeline layout
+	*/
+	virtual Ref<PipelineLayout> CreatePipelineLayout(const PipelineLayoutCreateInfo& createInfo);
 
 	/**
 	* Waits till device finishes all the operations
