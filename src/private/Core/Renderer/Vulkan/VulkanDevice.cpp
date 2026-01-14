@@ -137,6 +137,23 @@ VulkanDevice::CreateCommandPool(const CommandPoolCreateInfo& createInfo) {
 }
 
 /**
+* Creates a Vulkan graphics context
+*
+* @param commandPool The command pool where the command buffer will live
+*
+* @returns A Vulkan graphics context
+*/
+Ref<GraphicsContext> 
+VulkanDevice::CreateContext(Ref<CommandPool>& commandPool) {
+	Ref<CommandBuffer> commandBuff = commandPool->AllocateCommandBuffer();
+
+	Ref<VulkanCommandBuffer> vkCommandBuff = commandBuff.As<VulkanCommandBuffer>();
+
+	Ref<VulkanGraphicsContext> context = VulkanGraphicsContext::CreateShared(vkCommandBuff->GetVkCommandBuffer());
+	return context.As<GraphicsContext>();
+}
+
+/**
 * Gets device limits
 */
 void 
