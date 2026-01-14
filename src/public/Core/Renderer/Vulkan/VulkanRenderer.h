@@ -15,6 +15,9 @@ public:
 
 private:
 	bool m_bEnableValidationLayers;
+	VkInstance m_instance;
+
+	VkDebugUtilsMessengerEXT m_debugMessenger;
 
 	bool CheckValidationLayersSupport();
 	Vector<const char*> GetRequiredExtensions();
@@ -28,5 +31,11 @@ private:
 		void* pvUserData
 	);
 
-	VkInstance m_instance;
+	VkResult CreateDebugUtilsMessengerEXT(
+		VkInstance instance,
+		const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, 
+		VkAllocationCallbacks* pAllocator, 
+		VkDebugUtilsMessengerEXT* pDebugMessenger
+	);
+
 };

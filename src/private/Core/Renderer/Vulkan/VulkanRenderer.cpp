@@ -69,6 +69,16 @@ void VulkanRenderer::Create() {
 	}
 
 	VK_CHECK(vkCreateInstance(&instanceInfo, nullptr, &this->m_instance), "Failed creating Vulkan instance");
+
+	/* Setup debug messenger */
+	if (this->m_bEnableValidationLayers) {
+		VkDebugUtilsMessengerCreateInfoEXT messengerInfo = { };
+		messengerInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+
+		this->PopulateDebugMessengerCreateInfo(messengerInfo);
+
+		VK_CHECK(this->CreateDebugUtilsMessengerEXT(this->m_instance, &messengerInfo, nullptr, &this->m_debugMessenger), "Failed to setup Vulkan debug messenger");
+	}
 }
 
 /**
@@ -159,4 +169,21 @@ VulkanRenderer::DebugCallback(
 	}
 
 	return VK_FALSE;
+}
+
+VkResult 
+VulkanRenderer::CreateDebugUtilsMessengerEXT(
+	VkInstance instance,
+	const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
+	VkAllocationCallbacks* pAllocator,
+	VkDebugUtilsMessengerEXT* pDebugMessenger
+) {
+	PFN_vkCreateDebugUtilsMessengerEXT fn = 
+		(PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
+	if (fn != nullptr) {
+		return fn(instance, pCreateInfo, pAllocator, pDebugMessenger);
+	}
+	else {
+		return VK_ERROR_EXTENSION_NOT_PRESENT;
+	}
 }
