@@ -45,7 +45,6 @@ void VulkanRenderer::Create(GLFWwindow* pWindow) {
 	Vector<const char*> extensions = this->GetRequiredExtensions();
 
 #ifdef __APPLE__
-	extensions.push_back(VK_MVK_MACOS_SURFACE_EXTENSION_NAME);
 	extensions.push_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
 #endif // __APPLE__
 
@@ -263,12 +262,12 @@ VulkanRenderer::CheckDescirptorIndexingSupport() {
 
 	vkGetPhysicalDeviceFeatures2(this->m_physicalDevice, &features2);
 
-	spdlog::debug("=== Descriptor indexing features ===");
-	spdlog::debug("Descriptor binding partially bound: {0}", indexingFeatures.descriptorBindingPartiallyBound ? "Yes" : "No");
-	spdlog::debug("Descriptor binding update after bind: {0}", indexingFeatures.descriptorBindingUpdateUnusedWhilePending ? "Yes" : "No");
-	spdlog::debug("Descriptor binding varialble descriptor count: {0}", indexingFeatures.descriptorBindingVariableDescriptorCount ? "Yes" : "No");
-	spdlog::debug("Runtime descriptor array: {0}", indexingFeatures.runtimeDescriptorArray ? "Yes" : "No");
-	spdlog::debug("=== End descriptor indexing features ===");
+	Logger::Debug("=== Descriptor indexing features ===");
+	Logger::Debug("Descriptor binding partially bound: {0}", indexingFeatures.descriptorBindingPartiallyBound ? "Yes" : "No");
+	Logger::Debug("Descriptor binding update after bind: {0}", indexingFeatures.descriptorBindingUpdateUnusedWhilePending ? "Yes" : "No");
+	Logger::Debug("Descriptor binding varialble descriptor count: {0}", indexingFeatures.descriptorBindingVariableDescriptorCount ? "Yes" : "No");
+	Logger::Debug("Runtime descriptor array: {0}", indexingFeatures.runtimeDescriptorArray ? "Yes" : "No");
+	Logger::Debug("=== End descriptor indexing features ===");
 
 	if (!indexingFeatures.descriptorBindingPartiallyBound || !indexingFeatures.runtimeDescriptorArray) {
 		Logger::Error("VulkanRenderer::CheckDescriptorIndexingSupport: Required descriptor indexing features not available");
