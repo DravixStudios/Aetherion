@@ -4,7 +4,9 @@ Vector<const char*> validationLayers = {
 	"VK_LAYER_KHRONOS_validation"
 };
 
-VulkanRenderer::VulkanRenderer() : m_instance(VK_NULL_HANDLE), m_bEnableValidationLayers(false) {}
+VulkanRenderer::VulkanRenderer() 
+	: m_instance(VK_NULL_HANDLE), m_bEnableValidationLayers(false), m_debugMessenger(VK_NULL_HANDLE),
+	  m_pWindow(nullptr), m_surface(VK_NULL_HANDLE) {}
 
 VulkanRenderer::~VulkanRenderer() {
 	if (this->m_instance != VK_NULL_HANDLE) {
@@ -13,7 +15,7 @@ VulkanRenderer::~VulkanRenderer() {
 	}
 }
 
-void VulkanRenderer::Create() {
+void VulkanRenderer::Create(GLFWwindow* pWindow) {
 #ifndef NDEBUG
 	this->m_bEnableValidationLayers = true;
 #endif // NDEBUG
@@ -79,6 +81,15 @@ void VulkanRenderer::Create() {
 
 		VK_CHECK(this->CreateDebugUtilsMessengerEXT(this->m_instance, &messengerInfo, nullptr, &this->m_debugMessenger), "Failed to setup Vulkan debug messenger");
 	}
+
+	/* Create window surface */
+	VK_CHECK(
+		glfwCreateWindowSurface(
+			this->m_instance, 
+			this->m_pWindow, 
+			nullptr, 
+			&this->m_surface
+		), "Couldn't create window surface");
 }
 
 /**

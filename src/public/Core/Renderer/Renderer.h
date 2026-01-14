@@ -11,5 +11,5 @@ public:
     using Ptr = Ref<Renderer>;
 
     virtual ~Renderer() = default;
-    virtual void Create() = 0;
+    virtual void Create(GLFWwindow* pWindow) = 0;
 };

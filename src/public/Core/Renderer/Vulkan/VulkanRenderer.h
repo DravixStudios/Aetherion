@@ -11,11 +11,15 @@ public:
 	explicit VulkanRenderer();
 	~VulkanRenderer() override;
 
-	void Create() override;
+	void Create(GLFWwindow* pWindow) override;
 
 private:
+	GLFWwindow* m_pWindow;
+
 	bool m_bEnableValidationLayers;
 	VkInstance m_instance;
+	
+	VkSurfaceKHR m_surface;
 
 	VkDebugUtilsMessengerEXT m_debugMessenger;
 
