@@ -49,3 +49,22 @@ VulkanRenderer::CheckValidationLayersSupport() {
 
 	return true;
 }
+
+/**
+* Gets a list of required extensions
+* 
+* @returns A vector of required extension names
+*/
+Vector<const char*>
+VulkanRenderer::GetRequiredExtensions() {
+	uint32_t nGlfwExtensions;
+	const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&nGlfwExtensions);
+
+	Vector<const char*> extensions(glfwExtensions, glfwExtensions + nGlfwExtensions);
+
+	if (this->m_bEnableValidationLayers) {
+		extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+	}
+
+	return extensions;
+}

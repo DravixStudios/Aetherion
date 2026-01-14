@@ -17,6 +17,7 @@ private:
 	bool m_bEnableValidationLayers;
 
 	bool CheckValidationLayersSupport();
+	Vector<const char*> GetRequiredExtensions();
 
 	VkInstance m_instance;
 };
