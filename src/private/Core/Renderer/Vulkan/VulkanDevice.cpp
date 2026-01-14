@@ -148,6 +148,16 @@ VulkanDevice::GetLimits(
 }
 
 /**
+* Ges the device name
+* 
+* @returns Device name
+*/
+const char* 
+VulkanDevice::GetDeviceName() const {
+	return this->m_devProperties.deviceName;
+}
+
+/**
 * Caches queue family properties
 */
 void 
