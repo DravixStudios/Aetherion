@@ -101,6 +101,7 @@ void VulkanRenderer::Create(GLFWwindow* pWindow) {
 		), "Couldn't create window surface");
 
 	this->PickPhysicalDevice();
+	this->CheckDescirptorIndexingSupport();
 }
 
 /**
@@ -205,6 +206,53 @@ VulkanRenderer::FindQueueFamilies(const VkPhysicalDevice& physicalDevice) {
 	}
 
 	return indices;
+}
+
+/**
+* Check if device supports descriptor indexing
+*/
+void 
+VulkanRenderer::CheckDescirptorIndexingSupport() {
+	uint32_t nExtensionCount;
+	vkEnumerateDeviceExtensionProperties(this->m_physicalDevice, nullptr, &nExtensionCount, nullptr);
+
+	Vector<VkExtensionProperties> availableExtensions(nExtensionCount);
+	vkEnumerateDeviceExtensionProperties(this->m_physicalDevice, nullptr, &nExtensionCount, availableExtensions.data());
+
+	bool bDescriptorIndexingSupported = false;
+
+	for (const VkExtensionProperties& extension : availableExtensions) {
+		if (strcmp(extension.extensionName, VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME) == 0) {
+			bDescriptorIndexingSupported = true;
+			break;
+		}
+	}
+
+	if (!bDescriptorIndexingSupported) {
+		Logger::Error("VulkanRenderer::CheckDescriptorIndexingSupport: Descriptor indexing is not supported");
+		throw std::runtime_error("VulkanRenderer::CheckDescriptorIndexingSupport: Descriptor indexing is not supported");
+	}
+
+	VkPhysicalDeviceDescriptorIndexingFeatures indexingFeatures = { };
+	indexingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES;
+
+	VkPhysicalDeviceFeatures2 features2 = { };
+	features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+	features2.pNext = &indexingFeatures;
+
+	vkGetPhysicalDeviceFeatures2(this->m_physicalDevice, &features2);
+
+	spdlog::debug("=== Descriptor indexing features ===");
+	spdlog::debug("Descriptor binding partially bound: {0}", indexingFeatures.descriptorBindingPartiallyBound ? "Yes" : "No");
+	spdlog::debug("Descriptor binding update after bind: {0}", indexingFeatures.descriptorBindingUpdateUnusedWhilePending ? "Yes" : "No");
+	spdlog::debug("Descriptor binding varialble descriptor count: {0}", indexingFeatures.descriptorBindingVariableDescriptorCount ? "Yes" : "No");
+	spdlog::debug("Runtime descriptor array: {0}", indexingFeatures.runtimeDescriptorArray ? "Yes" : "No");
+	spdlog::debug("=== End descriptor indexing features ===");
+
+	if (!indexingFeatures.descriptorBindingPartiallyBound || !indexingFeatures.runtimeDescriptorArray) {
+		Logger::Error("VulkanRenderer::CheckDescriptorIndexingSupport: Required descriptor indexing features not available");
+		throw std::runtime_error("VulkanRenderer::CheckDescriptorIndexingSupport: Required descriptor indexing features not available");
+	}
 }
 
 bool

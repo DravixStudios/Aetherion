@@ -53,6 +53,7 @@ private:
 	void PickPhysicalDevice();
 	bool IsDeviceSuitable(const VkPhysicalDevice& physicalDevice);
 	QueueFamilyIndices FindQueueFamilies(const VkPhysicalDevice& physicalDevice);
+	void CheckDescirptorIndexingSupport();
 
 	bool CheckDeviceExtensionSupport(const VkPhysicalDevice& physicalDevice);
 	SwapChainSupportDetails QuerySwapChainSupport(const VkPhysicalDevice& physicalDevice);
