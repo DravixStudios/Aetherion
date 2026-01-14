@@ -18,7 +18,57 @@ void VulkanRenderer::Create() {
 	this->m_bEnableValidationLayers = true;
 #endif // NDEBUG
 
-	
+	if (this->m_bEnableValidationLayers && !this->CheckValidationLayersSupport()) {
+		Logger::Error("VulkanRenderer::Create: Validation layers enabled but not supported");
+		throw std::runtime_error("VulkanRenderer::Create: Validation layers enabled but not supported");
+	}
+
+	VkApplicationInfo appInfo = { };
+	appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+	appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
+	appInfo.pApplicationName = "N.A";
+	appInfo.engineVersion = VK_MAKE_VERSION(0, 1, 0);
+	appInfo.pEngineName = "Aetherion Engine";
+	appInfo.apiVersion = VK_API_VERSION_1_2;
+
+	Vector<const char*> extensions = this->GetRequiredExtensions();
+
+#ifdef __APPLE__
+	extensions.push_back(VK_MVK_MACOS_SURFACE_EXTENSION_NAME);
+	extensions.push_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
+#endif // __APPLE__
+
+	size_t nExtensionCount = extensions.size();
+
+	Logger::Debug("VulkanRenderer::Create: Required extension count {}", nExtensionCount);
+
+	VkInstanceCreateInfo instanceInfo = { };
+	instanceInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+	instanceInfo.pApplicationInfo = &appInfo;
+	instanceInfo.enabledExtensionCount = nExtensionCount;
+	instanceInfo.ppEnabledExtensionNames = extensions.data();
+
+#ifdef __APPLE__
+	instanceInfo.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
+#endif // __APPLE__
+
+	if (this->m_bEnableValidationLayers) {
+		VkDebugUtilsMessengerCreateInfoEXT messengerInfo = { };
+		messengerInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+
+		this->PopulateDebugMessengerCreateInfo(messengerInfo);
+
+		instanceInfo.enabledLayerCount = validationLayers.size();
+		instanceInfo.ppEnabledLayerNames = validationLayers.data();
+		instanceInfo.pNext = &messengerInfo;
+	}
+	else {
+		instanceInfo.enabledLayerCount = 0;
+		instanceInfo.ppEnabledExtensionNames = nullptr;
+		instanceInfo.pNext = nullptr;
+	}
+
+	VK_CHECK(vkCreateInstance(&instanceInfo, nullptr, &this->m_instance), "Failed creating Vulkan instance");
 }
 
 /**
