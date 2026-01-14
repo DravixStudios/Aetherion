@@ -130,6 +130,24 @@ VulkanDevice::WaitIdle() {
 }
 
 /**
+* Gets device limits
+*/
+void 
+VulkanDevice::GetLimits(
+	uint32_t& nMaxUniformBufferRange,
+	uint32_t& nMaxStorageBufferRange,
+	uint32_t& nMaxPushConstantSize,
+	uint32_t& nMaxBoundDescriptorSets
+) const {
+	VkPhysicalDeviceLimits limits = this->m_devProperties.limits;
+	
+	nMaxUniformBufferRange = limits.maxUniformBufferRange;
+	nMaxStorageBufferRange = limits.maxStorageBufferRange;
+	nMaxPushConstantSize = limits.maxPushConstantsSize;
+	nMaxBoundDescriptorSets = limits.maxBoundDescriptorSets;
+}
+
+/**
 * Caches queue family properties
 */
 void 
