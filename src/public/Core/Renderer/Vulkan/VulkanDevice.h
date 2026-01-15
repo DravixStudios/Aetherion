@@ -31,6 +31,9 @@ public:
 
 	Ref<PipelineLayout> CreatePipelineLayout(const PipelineLayoutCreateInfo& createInfo) override;
 
+	Ref<Pipeline> CreateGraphicsPipeline(const GraphicsPipelineCreateInfo& createInfo) override;
+	Ref<Pipeline> CreateComputePipeline(const ComputePipelineCreateInfo& createInfo) override;
+
 	void GetLimits(
 		uint32_t& nMaxUniformBufferRange,
 		uint32_t& nMaxStorageBufferRange,

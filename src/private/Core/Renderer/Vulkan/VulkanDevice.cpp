@@ -169,6 +169,36 @@ VulkanDevice::CreatePipelineLayout(const PipelineLayoutCreateInfo& createInfo){
 }
 
 /**
+* Creates a Vulkan graphics pipeline
+*
+* @param createInfo A graphics pipeline create info
+*
+* @returns Created Vulkan graphics pipeline
+*/
+Ref<Pipeline> 
+VulkanDevice::CreateGraphicsPipeline(const GraphicsPipelineCreateInfo& createInfo) {
+	Ref<VulkanPipeline> pipeline = VulkanPipeline::CreateShared(this->m_device);
+	pipeline->CreateGraphics(createInfo);
+
+	return pipeline.As<Pipeline>();
+}
+
+/**
+* Creates a Vulkan compute pipeline
+*
+* @param createInfo A compute pipeline create info
+*
+* @returns Created Vulkan compute pipeline
+*/
+Ref<Pipeline> 
+VulkanDevice::CreateComputePipeline(const ComputePipelineCreateInfo& createInfo) {
+	Ref<VulkanPipeline> pipeline = VulkanPipeline::CreateShared(this->m_device);
+	pipeline->CreateCompute(createInfo);
+	
+	return pipeline.As<Pipeline>();
+}
+
+/**
 * Gets device limits
 */
 void 

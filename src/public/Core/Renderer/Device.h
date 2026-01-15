@@ -65,6 +65,25 @@ public:
 	virtual Ref<PipelineLayout> CreatePipelineLayout(const PipelineLayoutCreateInfo& createInfo);
 
 	/**
+	* Creates a graphics pipeline
+	* 
+	* @param createInfo A graphics pipeline create info
+	* 
+	* @returns Created graphics pipeline
+	*/
+	virtual Ref<Pipeline> CreateGraphicsPipeline(const GraphicsPipelineCreateInfo& createInfo);
+
+	/**
+	* Creates a compute pipeline
+	*
+	* @param createInfo A compute pipeline create info
+	*
+	* @returns Created compute pipeline
+	*/
+	virtual Ref<Pipeline> CreateComputePipeline(const ComputePipelineCreateInfo& createInfo);
+
+
+	/**
 	* Waits till device finishes all the operations
 	*/
 	virtual void WaitIdle() = 0;
