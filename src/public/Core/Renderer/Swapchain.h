@@ -1,0 +1,91 @@
+#pragma once
+#include "Core/Containers.h"
+#include "Core/Renderer/GPUFormat.h"
+#include "Core/Renderer/GPUTexture.h"
+
+enum class EPresentMode {
+	IMMEDIATE, // No VSync
+	FIFO, // VSync, waits for the next vblank
+	FIFO_RELAXED, // Relaxed VSync, it may have tearing
+	MAILBOX // Triple buffering, replaces old frames
+};
+
+struct SwapchainCreateInfo {
+	uint32_t width = 0;
+	uint32_t height = 0;
+	GPUFormat format = GPUFormat::BGRA8_UNORM;
+	GPUFormat depthFormat = GPUFormat::D32_FLOAT;
+	EPresentMode presentMode = EPresentMode::FIFO;
+	uint32_t nImageCount = 3; // Default triple buffering
+	bool bEnableDepthStencil = true;
+
+	/* Swapchain reconstruct (resize) */
+	void* pOldSwapchain = nullptr;
+};
+
+class Swapchain {
+public:
+	using Ptr = Ref<Swapchain>;
+
+	virtual ~Swapchain() = default;
+
+	/**
+	* Creates a swapchain
+	*
+	* @param createInfo Swap chain create info
+	*/
+	virtual void Create(const SwapchainCreateInfo& createInfo) = 0;
+
+	/**
+	* Acquires the next available image for rendering
+	* 
+	* @param nTimeout Timeout in nanoseconds (UINT64_MAX = infinite)
+	* @param pSignalSemaphore Semaphore for when the image is available (optional)
+	* @param pSignalFence Fence for when the image is available (optional)
+	* 
+	* @returns Acquired image index or UINT32_MAX if failed
+	*/
+	virtual uint32_t AcquireNextImage(
+		uint64_t nTimeout = UINT64_MAX,
+		void* pSignalSemaphore = nullptr,
+		void* pSignalFence = nullptr
+	) = 0;
+
+	/**
+	* Presents the actual image in screen
+	* 
+	* @param nImageIndex Image index
+	* @param pWaitSemaphores Semaphore vector to wait before presenting (optional)
+	* 
+	* @returns True if presentation was successful
+	*/
+	virtual bool Present(
+		uint32_t nImageIndex,
+		const Vector<void*>& pWaitSemaphores = {}
+	) = 0;
+	/**
+	* Reconstructs the swap chain
+	* 
+	* @param nNewWidth New width
+	* @param nNewHeight New height
+	*/
+	virtual void Rebuild(uint32_t nNewWidth, uint32_t nNewHeight) = 0;
+
+	/**
+	* Gets swap chain's image count
+	* 
+	* @returns Swap chain image count
+	*/
+	virtual uint32_t GetImageCount() const = 0;
+
+	/**
+	* Gets a swap chain image by index
+	* 
+	* @param nIndex Image index
+	* 
+	* @returns The image on that index
+	*/
+	virtual Ref<GPUTexture> GetImage(uint32_t nIndex) const = 0;
+	
+
+};
