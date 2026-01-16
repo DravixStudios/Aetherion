@@ -42,6 +42,7 @@ public:
 	) const override;
 
 	const char* GetDeviceName() const override;
+	VkDevice GetVkDevice() const { return this->m_device; }
 
 	static Ptr
 	CreateShared(VkPhysicalDevice physicalDevice, VkInstance instance, VkSurfaceKHR surface = VK_NULL_HANDLE) {
