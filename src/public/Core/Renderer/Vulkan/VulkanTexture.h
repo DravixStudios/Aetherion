@@ -1,6 +1,8 @@
 #pragma once
 #include "Core/Renderer/GPUTexture.h"
 
+#include "Core/Renderer/Vulkan/VulkanHelpers.h"
+
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 #include <spdlog/spdlog.h>
@@ -8,32 +10,32 @@
 
 class VulkanTexture : public GPUTexture {
 public:
-	VulkanTexture(
-		VkDevice& dev, 
-		VkPhysicalDevice& physicalDev, 
-		VkImage& buffer, 
-		VkDeviceMemory& memory, 
-		uint32_t nSize, 
-		VkImageView& imageView, 
-		VkSampler& sampler,
-		ETextureType textureType = ETextureType::TEXTURE
-	);
+	using Ptr = Ref<VulkanTexture>;
 
-	VkDevice GetDevice();
-	VkPhysicalDevice GetPhysicalDevice();
-	VkImage GetBuffer();
-	VkDeviceMemory GetMemory();
-	VkImageView GetImageView();
-	VkSampler GetSampler();
+	explicit VulkanTexture(VkDevice device);
+	~VulkanTexture() override;
 
-	uint32_t GetSize() override;
+	void Create(const TextureCreateInfo& createInfo) override;
+
+	VkImage GetVkImage() const { return this->m_image; }
+
+	uint32_t GetSize() const { return this->m_nSize; };
+
+	static Ptr
+	CreateShared(VkDevice device) {
+		return CreateRef<VulkanTexture>(device);
+	}
 private:
-	VkDevice m_dev;
-	VkPhysicalDevice m_physicalDev;
-	VkImage m_buffer;
-	VkDeviceMemory m_memory;
-	VkImageView m_imageView;
-	VkSampler m_sampler;
+	VkDevice m_device;
+	VkImage m_image;
 
 	uint32_t m_nSize;
+
+	VkImageType ConvertTextureDimensions(ETextureDimensions dimensions);
+	VkImageTiling ConvertTextureTiling(ETextureTiling tiling);
+	VkImageUsageFlags ConvertTextureUsage(ETextureUsage usage);
+	VkSampleCountFlagBits ConvertSampleCount(ESampleCount samples);
+	VkSharingMode ConvertSharingMode(ESharingMode sharingMode);
+	VkImageCreateFlags ConvertTextureFlags(ETextureFlags flags);
+	VkImageLayout ConvertTextureLayout(ETextureLayout layout);
 };

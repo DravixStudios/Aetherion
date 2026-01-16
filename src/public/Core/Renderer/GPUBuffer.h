@@ -1,7 +1,9 @@
 #pragma once
 #include <iostream>
 
-enum EBufferType {
+#include "Core/Containers.h"
+
+enum class EBufferType {
 	VERTEX_BUFFER,
 	STAGING_BUFFER,
 	CONSTANT_BUFFER,
@@ -17,14 +19,12 @@ enum class EIndexType {
 };
 
 class GPUBuffer {
-	friend class Renderer;
-	friend class VulkanRenderer;
 public:
-	GPUBuffer(EBufferType bufferType = EBufferType::VERTEX_BUFFER) : m_bufferType(bufferType) {};
+	static constexpr const char* CLASS_NAME = "GPUBuffer";
+
+	using Ptr = Ref<GPUBuffer>;
+
 	virtual ~GPUBuffer() {};
 
-	virtual uint32_t GetSize() = 0;
-	EBufferType GetBufferType() const { return this->m_bufferType; }
-protected:
-	EBufferType m_bufferType;
+	virtual void Create(const void* pcData, uint32_t nSize, EBufferType bufferType = EBufferType::VERTEX_BUFFER) = 0;
 };

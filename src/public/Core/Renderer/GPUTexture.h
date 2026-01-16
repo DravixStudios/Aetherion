@@ -4,6 +4,7 @@
 #include "Core/Containers.h"
 #include "Core/Renderer/Extent3D.h"
 #include "Core/Renderer/GPUFormat.h"
+#include "Core/Renderer/GPUBuffer.h"
 
 enum class ETextureType {
 	TEXTURE,
@@ -76,7 +77,7 @@ enum class ESharingMode {
 	CONCURRENT
 };
 
-enum class EImageLayout {
+enum class ETextureLayout {
 	UNDEFINED,
 	GENERAL,
 	COLOR_ATTACHMENT_OPTIMAL,
@@ -94,15 +95,15 @@ struct TextureCreateInfo {
 	ETextureDimensions imageType;
 	GPUFormat format;
 	Extent3D extent;
-	uint32_t nMipLevels;
-	uint32_t nArrayLayers;
-	ESampleCount samples;
-	ETextureTiling tiling;
-	ETextureUsage usage;
-	ESharingMode sharingMode;
-	uint32_t nQueueFamilyIndexCount;
-	const uint32_t* pQueueFamilyIndices;
-	EImageLayout initialLayout;
+	uint32_t nMipLevels = 1;
+	uint32_t nArrayLayers = 1;
+	ESampleCount samples = ESampleCount::SAMPLE_1;
+	ETextureTiling tiling = ETextureTiling::OPTIMAL;
+	ETextureUsage usage = ETextureUsage::COLOR_ATTACHMENT;
+	ESharingMode sharingMode = ESharingMode::EXCLUSIVE;
+	uint32_t nQueueFamilyIndexCount = 0;
+	const uint32_t* pQueueFamilyIndices = nullptr;
+	ETextureLayout initialLayout = ETextureLayout::UNDEFINED;
 };
 
 class GPUTexture {
@@ -113,6 +114,11 @@ public:
 
 	virtual ~GPUTexture() = default;
 
+	/**
+	* Creates a GPU texture
+	* 
+	* @param createInfo Texture create info
+	*/
 	virtual void Create(const TextureCreateInfo& createInfo) = 0;
 
 	virtual uint32_t GetSize() const = 0;
