@@ -176,6 +176,32 @@ namespace VulkanHelpers {
 		}
 	}
 
+	/**
+	* (EImageAspect -> VkImageAspectFlags)
+	* 
+	* @param aspectMask Image aspect
+	* 
+	* @returns Vulkan image aspect
+	*/
+	inline VkImageAspectFlags
+	ConvertImageAspect(EImageAspect aspectMask) {
+		VkImageAspectFlags flags = 0;
+
+		if ((aspectMask & EImageAspect::COLOR) != static_cast<EImageAspect>(0)) {
+			flags |= VK_IMAGE_ASPECT_COLOR_BIT;
+		}
+
+		if ((aspectMask & EImageAspect::DEPTH) != static_cast<EImageAspect>(0)) {
+			flags |= VK_IMAGE_ASPECT_DEPTH_BIT;
+		}
+
+		if ((aspectMask & EImageAspect::STENCIL) != static_cast<EImageAspect>(0)) {
+			flags |= VK_IMAGE_ASPECT_STENCIL_BIT;
+		}
+
+		return flags;
+	}
+
 	inline VkBlendFactor
 	ConvertBlendFactor(EBlendFactor blendFactor) {
 		switch(blendFactor) {
