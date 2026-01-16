@@ -7,6 +7,7 @@
 #include "Core/Renderer/RenderPass.h"
 #include "Core/Renderer/Pipeline.h"
 #include "Core/Renderer/GPUBuffer.h"
+#include "Core/Renderer/ImageView.h"
 
 namespace VulkanHelpers {
 	/** 
@@ -139,7 +140,8 @@ namespace VulkanHelpers {
 	* 
 	* @returns Vulkan buffer usage flag
 	*/
-	VkBufferUsageFlagBits ConvertBufferUsage(EBufferType bufferType) {
+	inline VkBufferUsageFlagBits 
+	ConvertBufferUsage(EBufferType bufferType) {
 		switch (bufferType) {
 			case EBufferType::CONSTANT_BUFFER: return VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
 			case EBufferType::VERTEX_BUFFER: return VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
@@ -152,6 +154,26 @@ namespace VulkanHelpers {
 					);
 			default: return VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
 		};
+	}
+
+	/**
+	* (EImageViewType -> VkImageViewType)
+	* 
+	* @param viewType View type
+	*
+	* @returns Vulkan image view type
+	*/
+	inline VkImageViewType
+	ConvertImageViewType(EImageViewType viewType) {
+		switch(viewType) {
+			case EImageViewType::TYPE_1D: return VK_IMAGE_VIEW_TYPE_1D;
+			case EImageViewType::TYPE_2D: return VK_IMAGE_VIEW_TYPE_2D;
+			case EImageViewType::TYPE_CUBE: return VK_IMAGE_VIEW_TYPE_CUBE;
+			case EImageViewType::TYPE_1D_ARRAY: return VK_IMAGE_VIEW_TYPE_1D_ARRAY;
+			case EImageViewType::TYPE_2D_ARRAY: return VK_IMAGE_VIEW_TYPE_2D_ARRAY;
+			case EImageViewType::TYPE_CUBE_ARRAY: return VK_IMAGE_VIEW_TYPE_CUBE_ARRAY;
+			default: return VK_IMAGE_VIEW_TYPE_2D;
+		}
 	}
 
 	inline VkBlendFactor
