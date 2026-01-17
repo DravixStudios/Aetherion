@@ -58,6 +58,8 @@ private:
 
 	VkQueue m_graphicsQueue;
 	VkQueue m_presentQueue;
+
+	Ref<CommandPool> m_transferPool;
 	
 	Vector<VkQueueFamilyProperties> m_queueFamilyProperties;
 	void CacheQueueFamilyProperties();

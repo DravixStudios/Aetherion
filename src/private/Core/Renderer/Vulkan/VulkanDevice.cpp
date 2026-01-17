@@ -114,6 +114,13 @@ VulkanDevice::Create(const DeviceCreateInfo& createInfo) {
 	/* Store our graphics and present queues on it's respective class members */
 	vkGetDeviceQueue(this->m_device, indices.graphicsFamily.value(), 0, &this->m_graphicsQueue);
 	vkGetDeviceQueue(this->m_device, indices.presentFamily.value(), 0, &this->m_presentQueue);
+
+	/* Create transfer command pool */
+	CommandPoolCreateInfo poolInfo = { };
+	poolInfo.nQueueFamilyIndex = indices.graphicsFamily.value();
+	poolInfo.flags = ECommandPoolFlags::TRANSIENT;
+
+	this->m_transferPool = this->CreateCommandPool(poolInfo);
 }
 
 void 
