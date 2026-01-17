@@ -12,7 +12,7 @@ public:
 	/**
 	* Begins a command buffer
 	*/
-	virtual void Begin() = 0;
+	virtual void Begin(bool bSingleTime = false) = 0;
 
 	/**
 	* Ends a command buffer

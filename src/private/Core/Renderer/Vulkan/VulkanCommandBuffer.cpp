@@ -10,9 +10,10 @@ VulkanCommandBuffer::~VulkanCommandBuffer() {
 }
 
 void 
-VulkanCommandBuffer::Begin() {
+VulkanCommandBuffer::Begin(bool bSingleTime) {
 	VkCommandBufferBeginInfo beginInfo = { };
 	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	beginInfo.flags = bSingleTime ? VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT : 0;
 
 	VK_CHECK(vkBeginCommandBuffer(this->m_commandBuffer, &beginInfo), "Failed to begin a command buffer");
 }

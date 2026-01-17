@@ -11,7 +11,7 @@ public:
 	VulkanCommandBuffer(VkDevice device, VkCommandBuffer buffer);
 	~VulkanCommandBuffer() override;
 
-	void Begin() override;
+	void Begin(bool bSingleTime = false) override;
 	void End() override;
 	void Reset() override;
 
