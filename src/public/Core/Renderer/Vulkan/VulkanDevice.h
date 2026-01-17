@@ -44,6 +44,8 @@ public:
 	const char* GetDeviceName() const override;
 	VkDevice GetVkDevice() const { return this->m_device; }
 
+	uint32_t FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
+
 	static Ptr
 	CreateShared(VkPhysicalDevice physicalDevice, VkInstance instance, VkSurfaceKHR surface = VK_NULL_HANDLE) {
 		return CreateRef<VulkanDevice>(physicalDevice, instance, surface);

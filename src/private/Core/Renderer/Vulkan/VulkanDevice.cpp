@@ -227,6 +227,30 @@ VulkanDevice::GetDeviceName() const {
 }
 
 /**
+* Finds memory type
+* 
+* @param typeFilter Type filter
+* @param properties Memory property flags
+* 
+* @returns Memory type
+*/
+uint32_t 
+VulkanDevice::FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) {
+	VkPhysicalDeviceMemoryProperties memProps = { };
+	vkGetPhysicalDeviceMemoryProperties(this->m_physicalDevice, &memProps);
+
+	for (uint32_t i = 0; i < memProps.memoryTypeCount; i++) {
+		if ((typeFilter & (1 << i)) && (memProps.memoryTypes[i].propertyFlags & properties)) {
+			return i;
+		}
+	}
+
+	Logger::Error("VulkanDevice::FindMemoryType: Error finding memory type");
+	throw std::runtime_error("VulkanDevice::FindMemoryType: Error finding memory type");
+	return UINT32_MAX;
+}
+
+/**
 * Caches queue family properties
 */
 void 
