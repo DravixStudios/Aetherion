@@ -1,7 +1,10 @@
 #pragma once
 #include "Core/Containers.h"
+
 #include "Core/Renderer/GPUFormat.h"
 #include "Core/Renderer/GPUTexture.h"
+#include "Core/Renderer/ImageView.h"
+#include "Core/Renderer/Rect2D.h"
 
 enum class EPresentMode {
 	IMMEDIATE, // No VSync
@@ -87,5 +90,47 @@ public:
 	*/
 	virtual Ref<GPUTexture> GetImage(uint32_t nIndex) const = 0;
 	
+	/**
+	* Gets a swap chain image view by index
+	* 
+	* @param nIndex Image index
+	* 
+	* @returns The image view on that index
+	*/
+	virtual Ref<ImageView> GetImageView(uint32_t nIndex) const = 0;
 
+	/**
+	* Gets depth image
+	*
+	* @returns Depth image
+	*/
+	virtual Ref<GPUTexture> GetDepthImage() const = 0;
+
+	/**
+	* Gets depth image view if enabled
+	*
+	* @returns Depth image view
+	*/
+	virtual Ref<ImageView> GetDepthImageView() const = 0;
+
+	/**
+	* Gets depth format
+	* 
+	* @returns Depth format
+	*/
+	virtual GPUFormat GetDepthFormat() const = 0;
+
+	/**
+	* Gets the actual extent
+	* 
+	* @returns Extent2D
+	*/
+	virtual Extent2D GetExtent() const = 0;
+
+	/**
+	* Verifies if the swap chain needs to be rebuilt
+	* 
+	* @returns If needs to be rebuilt
+	*/
+	virtual bool NeedsRebuild() const = 0;
 };
