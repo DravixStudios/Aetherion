@@ -5,23 +5,26 @@
 
 #include "Core/Renderer/GPUBuffer.h"
 
+#include "Core/Renderer/Vulkan/VulkanHelpers.h"
+
 class VulkanBuffer : public GPUBuffer {
 public:
-	VulkanBuffer(VkDevice& dev, VkPhysicalDevice& physicalDev, VkBuffer& buffer, VkDeviceMemory& memory, uint32_t nSize, EBufferType bufferType);
-	~VulkanBuffer();
+	using Ptr = Ref<VulkanBuffer>;
 
-	VkDevice GetDevice();
-	VkPhysicalDevice GetPhysicalDevice();
-	VkBuffer GetBuffer();
-	VkDeviceMemory GetMemory();
+	explicit VulkanBuffer(VkDevice device);
+	~VulkanBuffer() override;
 
-	uint32_t GetSize() override;
+	void Create(const void* pcData, uint32_t nSize, EBufferType bufferType = EBufferType::VERTEX_BUFFER) override;
+
+	VkBuffer GetVkBuffer() const { return this->m_buffer; }
+
+	static Ptr
+	CreateShared(VkDevice device) {
+		return CreateRef<VulkanBuffer>(device);
+	}
 
 private:
-	VkDevice m_dev;
-	VkPhysicalDevice m_physicalDev;
+	VkDevice m_device;
 	VkBuffer m_buffer;
 	VkDeviceMemory m_memory;
-
-	uint32_t m_nSize;
 };

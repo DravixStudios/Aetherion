@@ -1,69 +1,45 @@
 #include "Core/Renderer/Vulkan/VulkanBuffer.h"
 
-VulkanBuffer::VulkanBuffer(
-	VkDevice& dev, 
-	VkPhysicalDevice& physicalDev, 
-	VkBuffer& buffer, 
-	VkDeviceMemory& memory, 
-	uint32_t nSize, 
-	EBufferType bufferType
-) : GPUBuffer::GPUBuffer(bufferType), 
-	m_dev(dev), m_physicalDev(physicalDev), m_buffer(buffer), 
-	m_memory(memory), m_nSize(nSize) {}
+VulkanBuffer::VulkanBuffer(VkDevice device) 
+	: m_device(device), m_buffer(VK_NULL_HANDLE), m_memory(VK_NULL_HANDLE) {}
 
 VulkanBuffer::~VulkanBuffer() {
-	if (this->m_buffer != VK_NULL_HANDLE) {
-		vkDestroyBuffer(this->m_dev, this->m_buffer, nullptr);
-		this->m_buffer = VK_NULL_HANDLE;
+	if (this->m_memory) {
+		vkFreeMemory(this->m_device, this->m_memory, nullptr);
 	}
 
-	if (this->m_memory != VK_NULL_HANDLE) {
-		vkFreeMemory(this->m_dev, this->m_memory, nullptr);
-		this->m_memory = VK_NULL_HANDLE;
+	if (this->m_buffer) {
+		vkDestroyBuffer(this->m_device, this->m_buffer, nullptr);
 	}
 }
 
-VkDevice 
-VulkanBuffer::GetDevice() {
-	if (this->m_dev == nullptr) {
-		spdlog::error("VulkanBuffer::GetDevice: Device not defined");
-	}
+/**
+* Creates a Vulkan buffer
+* 
+* @param pcData Constant pointer to the buffer data
+* @param nSize Size of the data
+* @param bufferType Type of buffer
+*/
+void VulkanBuffer::Create(const void* pcData, uint32_t nSize, EBufferType bufferType) {
+	VkBuffer vkBuffer = nullptr;
 
-	return this->m_dev;
-}
+	/* Buffer creation */
+	VkBufferCreateInfo bufferInfo = { };
+	bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+	bufferInfo.size = nSize;
+	bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	bufferInfo.usage = VulkanHelpers::ConvertBufferUsage(bufferType);
 
-VkPhysicalDevice 
-VulkanBuffer::GetPhysicalDevice() {
-	if (this->m_physicalDev == nullptr) {
-		spdlog::error("VulkanBuffer::GetPhysicalDevice: Physical not defined");
-	}
+	VK_CHECK(vkCreateBuffer(this->m_device, &bufferInfo, nullptr, &vkBuffer), "Failed creating a buffer");
 
-	return this->m_physicalDev;
-}
+	/* Query buffer memory requirements */
+	VkMemoryRequirements memReqs = { };
+	vkGetBufferMemoryRequirements(this->m_device, vkBuffer, &memReqs);
 
-VkBuffer 
-VulkanBuffer::GetBuffer() {
-	if (this->m_buffer == nullptr) {
-		spdlog::error("VulkanBuffer::GetBuffer: Buffer not defined");
-	}
-
-	return this->m_buffer;
-}
-
-VkDeviceMemory 
-VulkanBuffer::GetMemory() {
-	if (this->m_memory == nullptr) {
-		spdlog::error("VulkanBuffer::GetMemory: DeviceMemory not defined");
-	}
-
-	return this->m_memory;
-}
-
-uint32_t 
-VulkanBuffer::GetSize() {
-	if (this->m_nSize <= 0) {
-		spdlog::error("VulkanBuffer::GetSize: Buffer size is 0");
-	}
-
-	return this->m_nSize;
+	/* Allocate memory */
+	VkDeviceMemory vkMemory = { };
+	
+	VkMemoryAllocateInfo allocInfo = { };
+	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+	allocInfo.allocationSize = memReqs.size;
 }
