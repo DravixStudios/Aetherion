@@ -26,7 +26,11 @@ public:
 	void Create(const DeviceCreateInfo& createInfo) override;
 	void WaitIdle() override;
 
-	Ref<CommandPool> CreateCommandPool(const CommandPoolCreateInfo& createInfo) override;
+	Ref<CommandPool> CreateCommandPool(
+		const CommandPoolCreateInfo& createInfo, 
+		EQueueType queueType = EQueueType::GRAPHICS
+	) override;
+
 	Ref<GraphicsContext> CreateContext(Ref<CommandPool>& commandPool) override;
 
 	Ref<PipelineLayout> CreatePipelineLayout(const PipelineLayoutCreateInfo& createInfo) override;

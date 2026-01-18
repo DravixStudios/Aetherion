@@ -130,15 +130,28 @@ VulkanDevice::WaitIdle() {
 
 /**
 * Creates a Vulkan command pool
-*
+* 
+* Note: In the createInfo parameter, let nQueueFamilyIndex member
+* as 0, Device will resolve it from queueType
+* 
 * @param createInfo Command pool create info
 *
 * @returns Created command pool
 */
 Ref<CommandPool> 
-VulkanDevice::CreateCommandPool(const CommandPoolCreateInfo& createInfo) {
+VulkanDevice::CreateCommandPool(const CommandPoolCreateInfo& createInfo, EQueueType queueType) {
+	CommandPoolCreateInfo poolInfo = { };
+	memcpy(&poolInfo, &createInfo, sizeof(CommandPoolCreateInfo));
+
+	QueueFamilyIndices indices = this->FindQueueFamilies();
+	switch (queueType) {
+		case EQueueType::GRAPHICS: poolInfo.nQueueFamilyIndex = indices.graphicsFamily.value(); break;
+		case EQueueType::PRESENT: poolInfo.nQueueFamilyIndex = indices.presentFamily.value(); break;
+		default: poolInfo.nQueueFamilyIndex = indices.graphicsFamily.value(); break;
+	}
+
 	Ref<VulkanCommandPool> pool = VulkanCommandPool::CreateShared(this->m_device);
-	pool->Create(createInfo);
+	pool->Create(poolInfo);
 
 	return pool.As<CommandPool>();
 }

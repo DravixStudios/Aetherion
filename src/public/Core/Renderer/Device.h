@@ -44,7 +44,10 @@ public:
 	*
 	* @returns Created command pool
 	*/
-	virtual Ref<CommandPool> CreateCommandPool(const CommandPoolCreateInfo& createInfo);
+	virtual Ref<CommandPool> CreateCommandPool(
+		const CommandPoolCreateInfo& createInfo, 
+		EQueueType queueType = EQueueType::GRAPHICS
+	);
 
 	/**
 	* Creates a graphics context
