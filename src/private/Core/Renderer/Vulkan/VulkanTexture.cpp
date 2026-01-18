@@ -1,11 +1,12 @@
 #include "Core/Renderer/Vulkan/VulkanTexture.h"
+#include "Core/Renderer/Vulkan/VulkanDevice.h"
 
-VulkanTexture::VulkanTexture(VkDevice device) 
+VulkanTexture::VulkanTexture(Ref<VulkanDevice> device) 
 	: m_device(device), m_image(VK_NULL_HANDLE), m_nSize(0) {}
 
 VulkanTexture::~VulkanTexture() {
 	if (this->m_image != VK_NULL_HANDLE) {
-		vkDestroyImage(this->m_device, this->m_image, nullptr);
+		vkDestroyImage(this->m_device->GetVkDevice(), this->m_image, nullptr);
 	}
 }
 
@@ -16,6 +17,9 @@ VulkanTexture::~VulkanTexture() {
 */
 void 
 VulkanTexture::Create(const TextureCreateInfo& createInfo) {
+	VkDevice vkDevice = this->m_device->GetVkDevice();
+
+	/* Create image */
 	VkExtent3D extent = { };
 	extent.width = createInfo.extent.width;
 	extent.height = createInfo.extent.height;
@@ -37,8 +41,53 @@ VulkanTexture::Create(const TextureCreateInfo& createInfo) {
 	imageInfo.pQueueFamilyIndices = createInfo.pQueueFamilyIndices;
 	imageInfo.initialLayout = this->ConvertTextureLayout(createInfo.initialLayout);
 
-	VK_CHECK(vkCreateImage(this->m_device, &imageInfo, nullptr, &this->m_image), "Failed creating a image");
+	VK_CHECK(vkCreateImage(vkDevice, &imageInfo, nullptr, &this->m_image), "Failed creating a image");
 	
+	/* Allocate image memory */
+	Ref<VulkanBuffer> buffer = createInfo.buffer.As<VulkanBuffer>();
+
+	VkMemoryRequirements memReqs = { };
+	vkGetImageMemoryRequirements(vkDevice, this->m_image, &memReqs);
+
+	VkMemoryAllocateInfo allocInfo = { };
+	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+	allocInfo.allocationSize = memReqs.size;
+	allocInfo.memoryTypeIndex = this->m_device->FindMemoryType(
+		memReqs.memoryTypeBits, 
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
+	);
+
+	VK_CHECK(vkAllocateMemory(vkDevice, &allocInfo, nullptr, &this->m_memory), "Failed allocating image memory");
+
+	VK_CHECK(vkBindImageMemory(vkDevice, this->m_image, this->m_memory, 0), "Failed binding image memory");
+
+	/* Copy buffer to image */
+	Ref<CommandBuffer> commandBuff = this->m_device->BeginSingleTimeCommandBuffer();
+
+	VkBufferImageCopy region = { };
+	region.bufferOffset = 0;
+	region.bufferRowLength = 0;
+	region.bufferImageHeight = 0;
+
+	region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	region.imageSubresource.mipLevel = 0;
+	region.imageSubresource.baseArrayLayer = 0;
+	region.imageSubresource.layerCount = 1;
+
+	region.imageOffset = { 0, 0, 0 };
+	region.imageExtent = { createInfo.extent.width, createInfo.extent.height, 1 };
+
+	Ref<VulkanCommandBuffer> vkCommandBuff = commandBuff.As<VulkanCommandBuffer>();
+
+	vkCmdCopyBufferToImage(
+		vkCommandBuff->GetVkCommandBuffer(),
+		buffer->GetVkBuffer(), 
+		this->m_image, 
+		VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+		1, &region
+	);
+
+	this->m_device->EndSingleTimeCommandBuffer(commandBuff);
 }
 
 /**

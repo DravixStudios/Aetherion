@@ -7,12 +7,14 @@
 #include <GLFW/glfw3.h>
 #include <spdlog/spdlog.h>
 
+class Device;
+class VulkanDevice;
 
 class VulkanTexture : public GPUTexture {
 public:
 	using Ptr = Ref<VulkanTexture>;
 
-	explicit VulkanTexture(VkDevice device);
+	explicit VulkanTexture(Ref<VulkanDevice> device);
 	~VulkanTexture() override;
 
 	void Create(const TextureCreateInfo& createInfo) override;
@@ -26,8 +28,9 @@ public:
 		return CreateRef<VulkanTexture>(device);
 	}
 private:
-	VkDevice m_device;
+	Ref<VulkanDevice> m_device;
 	VkImage m_image;
+	VkDeviceMemory m_memory;
 
 	uint32_t m_nSize;
 
