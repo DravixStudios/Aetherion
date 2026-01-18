@@ -50,6 +50,7 @@ public:
 
 	const char* GetDeviceName() const override;
 	VkDevice GetVkDevice() const { return this->m_device; }
+	VkPhysicalDevice GetVkPhysicalDevice() const { return this->m_physicalDevice; }
 
 	/**
 	* Gets physical device properties
