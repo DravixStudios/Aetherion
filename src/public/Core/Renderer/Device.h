@@ -82,6 +82,18 @@ public:
 	*/
 	virtual Ref<Pipeline> CreateComputePipeline(const ComputePipelineCreateInfo& createInfo);
 
+	/**
+	* Begins a single time command buffer
+	*/
+	virtual Ref<CommandBuffer> BeginSingleTimeCommandBuffer() = 0;
+
+	/**
+	* Ends a single time command buffer
+	* 
+	* @param commandBuffer The command buffer to end
+	*/
+	virtual void EndSingleTimeCommandBuffer(Ref<CommandBuffer> commandBuffer) = 0;
+
 
 	/**
 	* Waits till device finishes all the operations

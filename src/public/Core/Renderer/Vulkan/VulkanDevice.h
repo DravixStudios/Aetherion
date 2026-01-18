@@ -34,6 +34,9 @@ public:
 	Ref<Pipeline> CreateGraphicsPipeline(const GraphicsPipelineCreateInfo& createInfo) override;
 	Ref<Pipeline> CreateComputePipeline(const ComputePipelineCreateInfo& createInfo) override;
 
+	Ref<CommandBuffer> BeginSingleTimeCommandBuffer() override;
+	void EndSingleTimeCommandBuffer(Ref<CommandBuffer> commandBuffer) override;
+
 	void GetLimits(
 		uint32_t& nMaxUniformBufferRange,
 		uint32_t& nMaxStorageBufferRange,
