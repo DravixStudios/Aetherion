@@ -17,10 +17,10 @@ VulkanFramebuffer::~VulkanFramebuffer() {
 void 
 VulkanFramebuffer:: Create(const FramebufferCreateInfo& createInfo) {
 	Vector<VkImageView> attachments;
-	for (const Ref<GPUTexture>& attachment : createInfo.attachments) {
-		Ref<VulkanTexture> vkAttachment = attachment.As<VulkanTexture>();
+	for (const Ref<ImageView>& attachment : createInfo.attachments) {
+		Ref<VulkanImageView> vkAttachment = attachment.As<VulkanImageView>();
 
-		attachments.push_back(vkAttachment->GetImageView());
+		attachments.push_back(vkAttachment->GetVkImageView());
 	}
 
 	VkFramebufferCreateInfo fbInfo = { };

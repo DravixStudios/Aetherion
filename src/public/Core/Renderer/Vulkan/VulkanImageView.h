@@ -20,6 +20,8 @@ public:
 	EImageViewType GetViewType() const override;
 	GPUFormat GetFormat() const override;
 
+	VkImageView GetVkImageView() const { return this->m_imageView; }
+
 	static Ptr
 	CreateShared(VkDevice device) {
 		return CreateRef<VulkanImageView>(device);

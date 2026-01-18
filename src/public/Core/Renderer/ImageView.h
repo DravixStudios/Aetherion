@@ -58,7 +58,7 @@ struct ImageSubresourceRange {
 struct ImageViewCreateInfo {
 	Ref<GPUTexture> image;
 	EImageViewType viewType = EImageViewType::TYPE_2D;
-	GPUFormat firnat = GPUFormat::UNDEFINED;
+	GPUFormat format = GPUFormat::UNDEFINED;
 	ComponentMapping components = {};
 	ImageSubresourceRange subresourceRange = {};
 };
@@ -66,6 +66,8 @@ struct ImageViewCreateInfo {
 class ImageView {
 public:
 	using Ptr = Ref<ImageView>;
+
+	static constexpr const char* CLASS_NAME = "ImageView";
 
 	virtual ~ImageView() = default;
 

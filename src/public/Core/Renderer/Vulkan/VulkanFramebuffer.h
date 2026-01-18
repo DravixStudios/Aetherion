@@ -1,7 +1,7 @@
 #pragma once
 #include "Core/Renderer/Framebuffer.h"
 
-#include "Core/Renderer/Vulkan/VulkanTexture.h"
+#include "Core/Renderer/Vulkan/VulkanImageView.h"
 #include "Core/Renderer/Vulkan/VulkanRenderPass.h"
 
 #define GLFW_INCLUDE_VULKAN
