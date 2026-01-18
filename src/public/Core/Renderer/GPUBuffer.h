@@ -25,6 +25,10 @@ public:
 	using Ptr = Ref<GPUBuffer>;
 
 	virtual ~GPUBuffer() {};
-
+	
 	virtual void Create(const void* pcData, uint32_t nSize, EBufferType bufferType = EBufferType::VERTEX_BUFFER) = 0;
+
+	EBufferType GetBufferType() const { return this->m_bufferType; }
+protected:
+	EBufferType m_bufferType = EBufferType::UNKNOWN_BUFFER;
 };

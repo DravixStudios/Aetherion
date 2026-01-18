@@ -6,12 +6,13 @@
 #include "Core/Renderer/GPUBuffer.h"
 
 #include "Core/Renderer/Vulkan/VulkanHelpers.h"
+#include "Core/Renderer/Vulkan/VulkanDevice.h"
 
 class VulkanBuffer : public GPUBuffer {
 public:
 	using Ptr = Ref<VulkanBuffer>;
 
-	explicit VulkanBuffer(VkDevice device);
+	explicit VulkanBuffer(Ref<VulkanDevice> device);
 	~VulkanBuffer() override;
 
 	void Create(const void* pcData, uint32_t nSize, EBufferType bufferType = EBufferType::VERTEX_BUFFER) override;
@@ -24,7 +25,7 @@ public:
 	}
 
 private:
-	VkDevice m_device;
+	Ref<VulkanDevice> m_device;
 	VkBuffer m_buffer;
 	VkDeviceMemory m_memory;
 };
