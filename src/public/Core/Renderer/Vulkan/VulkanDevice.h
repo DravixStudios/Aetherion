@@ -51,6 +51,13 @@ public:
 	const char* GetDeviceName() const override;
 	VkDevice GetVkDevice() const { return this->m_device; }
 
+	/**
+	* Gets physical device properties
+	*
+	* @returns Physical device prope
+	*/
+	VkPhysicalDeviceProperties GetPhysicalDeviceProperties() const { return this->m_devProperties; }
+
 	uint32_t FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 
 	static Ptr
