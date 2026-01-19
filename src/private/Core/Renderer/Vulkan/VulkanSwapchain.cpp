@@ -144,6 +144,33 @@ VulkanSwapchain::AcquireNextImage(
 }
 
 /**
+* Presents the actual image in screen
+*
+* @param nImageIndex Image index
+* @param pWaitSemaphores Semaphore vector to wait before presenting (optional)
+*
+* @returns True if presentation was successful
+*/
+bool 
+VulkanSwapchain::Present(
+	uint32_t nImageIndex,
+	const Vector<void*>& pWaitSemaphores
+) {
+	VkQueue queue = this->m_device->GetPresentQueue();
+
+	VkPresentInfoKHR presentInfo = { };
+	presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+	presentInfo.pImageIndices = &nImageIndex;
+	presentInfo.pWaitSemaphores = reinterpret_cast<const VkSemaphore*>(pWaitSemaphores.data());
+	presentInfo.waitSemaphoreCount = pWaitSemaphores.size();
+	presentInfo.pSwapchains = &this->m_swapchain;
+	presentInfo.swapchainCount = 1;
+
+	VkResult result = vkQueuePresentKHR(queue, &presentInfo);
+	return result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR;
+}
+
+/**
 * Queries swapchain support
 * 
 * @param physicalDevice Vulkan physical device
