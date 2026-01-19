@@ -91,6 +91,18 @@ VulkanTexture::Create(const TextureCreateInfo& createInfo) {
 }
 
 /**
+* Creates a VulkanTexture from VkImage
+* Note: This overload is exclusive for 
+* swapchain images.
+* 
+* @param image Vulkan image
+*/
+void 
+VulkanTexture::Create(const VkImage& image) {
+	this->m_image = image;
+}
+
+/**
 * (ETextureDimensions -> VkImageType)
 * 
 * @param dimensions Texture dimensions

@@ -18,6 +18,7 @@ public:
 	~VulkanTexture() override;
 
 	void Create(const TextureCreateInfo& createInfo) override;
+	void Create(const VkImage& image);
 
 	VkImage GetVkImage() const { return this->m_image; }
 
