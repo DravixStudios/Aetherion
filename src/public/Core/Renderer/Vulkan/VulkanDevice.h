@@ -52,6 +52,9 @@ public:
 	VkDevice GetVkDevice() const { return this->m_device; }
 	VkPhysicalDevice GetVkPhysicalDevice() const { return this->m_physicalDevice; }
 
+	VkQueue GetPresentQueue() const { return this->m_presentQueue; }
+	VkQueue GetGraphicsQueue() const { return this->m_graphicsQueue; }
+
 	/**
 	* Gets physical device properties
 	*
