@@ -115,6 +115,35 @@ VulkanSwapchain::Create(const SwapchainCreateInfo& createInfo) {
 }
 
 /**
+* Acquires the next available image for rendering
+*
+* @param nTimeout Timeout in nanoseconds (UINT64_MAX = infinite)
+* @param pSignalSemaphore Semaphore for when the image is available (optional)
+* @param pSignalFence Fence for when the image is available (optional)
+*
+* @returns Acquired image index or UINT32_MAX if failed
+*/
+uint32_t 
+VulkanSwapchain::AcquireNextImage(
+	uint64_t nTimeout,
+	void* pSignalSemaphore,
+	void* pSignalFence
+) {
+	uint32_t nImageIndex = 0;
+
+	VkDevice vkDevice = this->m_device->GetVkDevice();
+	vkAcquireNextImageKHR(
+		vkDevice,
+		this->m_swapchain,
+		nTimeout,
+		static_cast<VkSemaphore>(pSignalSemaphore), static_cast<VkFence>(pSignalFence),
+		&nImageIndex
+	);
+
+	return nImageIndex;
+}
+
+/**
 * Queries swapchain support
 * 
 * @param physicalDevice Vulkan physical device
