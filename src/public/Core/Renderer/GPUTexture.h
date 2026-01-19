@@ -123,5 +123,7 @@ public:
 
 	virtual uint32_t GetSize() const = 0;
 
+	virtual void Reset() = 0;
+
 	ETextureType textureType = ETextureType::UNDEFINED;
 };

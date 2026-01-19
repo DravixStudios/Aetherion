@@ -24,6 +24,8 @@ public:
 
 	uint32_t GetSize() const { return this->m_nSize; };
 
+	void Reset() override;
+
 	static Ptr
 	CreateShared(VkDevice device) {
 		return CreateRef<VulkanTexture>(device);

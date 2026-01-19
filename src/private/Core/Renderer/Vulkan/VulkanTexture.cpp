@@ -102,6 +102,27 @@ VulkanTexture::Create(const VkImage& image) {
 	this->m_image = image;
 }
 
+
+void
+VulkanTexture::Reset() {
+	if (!this->m_device) {
+		return;
+	}
+
+	VkDevice vkDevice = this->m_device->GetVkDevice();
+
+	if (this->m_memory != VK_NULL_HANDLE) {
+		vkFreeMemory(vkDevice, this->m_memory, nullptr);
+	}
+
+	if (this->m_image != VK_NULL_HANDLE) {
+		vkDestroyImage(vkDevice, this->m_image, nullptr);
+		this->m_image = VK_NULL_HANDLE;
+	}
+
+	this->m_nSize = 0;
+}
+
 /**
 * (ETextureDimensions -> VkImageType)
 * 
