@@ -98,4 +98,6 @@ public:
 	* @returns The view format
 	*/
 	virtual GPUFormat GetFormat() const = 0;
+
+	virtual void Reset() = 0;
 };

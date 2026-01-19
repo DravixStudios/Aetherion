@@ -17,11 +17,13 @@ public:
 	void Create(const ImageViewCreateInfo& createInfo) override;
 	void Create(const VkImageView& imageView);
 
-	Ref<GPUTexture> GetImage() const override;
-	EImageViewType GetViewType() const override;
-	GPUFormat GetFormat() const override;
+	Ref<GPUTexture> GetImage() const override { return this->m_image; }
+	EImageViewType GetViewType() const override { return this->m_viewType; }
+	GPUFormat GetFormat() const override { return this->m_format; }
 
 	VkImageView GetVkImageView() const { return this->m_imageView; }
+
+	void Reset() override;
 
 	static Ptr
 	CreateShared(VkDevice device) {
@@ -31,6 +33,10 @@ public:
 private:
 	VkDevice m_device;
 
+	EImageViewType m_viewType;
+	GPUFormat m_format;
+
+	Ref<GPUTexture> m_image;
 	VkImageView m_imageView;
 
 	VkComponentSwizzle ConvertSwizzle(ComponentMapping::ESwizzle swizzle);

@@ -37,6 +37,10 @@ VulkanImageView::Create(const ImageViewCreateInfo& createInfo) {
 	viewInfo.image = createInfo.image.As<VulkanTexture>()->GetVkImage();
 	
 	VK_CHECK(vkCreateImageView(this->m_device, &viewInfo, nullptr, &this->m_imageView), "Failed creating image view");
+
+	this->m_image = createInfo.image;
+	this->m_viewType = createInfo.viewType;
+	this->m_format = createInfo.format;
 }
 
 /**
@@ -49,6 +53,22 @@ VulkanImageView::Create(const ImageViewCreateInfo& createInfo) {
 void 
 VulkanImageView::Create(const VkImageView& imageView) {
 	this->m_imageView = imageView;
+}
+
+void 
+VulkanImageView::Reset() {
+	if (!this->m_device) {
+		return;
+	}
+
+	if (this->m_imageView != VK_NULL_HANDLE) {
+		vkDestroyImageView(this->m_device, this->m_imageView, nullptr);
+		this->m_imageView = VK_NULL_HANDLE;
+	}
+
+	this->m_image->Reset();
+	this->m_viewType = EImageViewType::TYPE_2D;
+	this->m_format = GPUFormat::UNDEFINED;
 }
 
 /**
