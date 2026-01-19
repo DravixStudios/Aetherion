@@ -41,6 +41,7 @@ VulkanSwapchain::Create(const SwapchainCreateInfo& createInfo) {
 	scInfo.imageColorSpace = format.colorSpace;
 	scInfo.imageExtent = extent;
 	scInfo.imageArrayLayers = 1;
+	scInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 	scInfo.minImageCount = this->m_nImageCount;
 	scInfo.surface = this->m_surface;
 	scInfo.presentMode = presentMode;
@@ -61,6 +62,15 @@ VulkanSwapchain::Create(const SwapchainCreateInfo& createInfo) {
 		scInfo.queueFamilyIndexCount = 0;
 		scInfo.pQueueFamilyIndices = nullptr;
 	}
+
+	VK_CHECK(
+		vkCreateSwapchainKHR(
+			this->m_device->GetVkDevice(), 
+			&scInfo,
+			nullptr, 
+			&this->m_swapchain
+		), 
+		"Failed creating swap chain");
 
 	uint32_t nImageCount;
 	vkGetSwapchainImagesKHR(this->m_device->GetVkDevice(), this->m_swapchain, &nImageCount, nullptr);
@@ -168,6 +178,141 @@ VulkanSwapchain::Present(
 
 	VkResult result = vkQueuePresentKHR(queue, &presentInfo);
 	return result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR;
+}
+
+/**
+* Reconstructs the swap chain
+*
+* @param nNewWidth New width
+* @param nNewHeight New height
+*/
+void 
+VulkanSwapchain::Rebuild(uint32_t nNewWidth, uint32_t nNewHeight) {
+	this->m_device->WaitIdle();
+
+	VkSwapchainKHR oldSwapchain = this->m_swapchain;
+
+	/* Clear old resources */
+	this->m_imageViews.clear();
+	this->m_images.clear();
+
+	this->m_depthImage->Reset();
+	this->m_depthImageView->Reset();
+
+	/* Update createInfo with new dimensions */
+	this->m_createInfo.width = nNewWidth;
+	this->m_createInfo.height = nNewHeight;
+	this->m_createInfo.pOldSwapchain = oldSwapchain;
+
+	/* Query updated capabilities */
+	VkPhysicalDevice physicalDevice = this->m_device->GetVkPhysicalDevice();
+	SwapchainSupportDetails details = this->QuerySwapchainSupport(physicalDevice);
+
+	VkSurfaceFormatKHR format = this->ChooseSurfaceFormat(details.formats);
+	VkPresentModeKHR presentMode = this->ChooseSwapPresentMode(details.presentModes);
+	VkExtent2D extent = this->ChooseSwapExtent(details.capabilities);
+
+	/* Determine image count */
+	if (details.capabilities.maxImageCount > 0 && this->m_nImageCount > details.capabilities.maxImageCount) {
+		this->m_nImageCount = details.capabilities.maxImageCount;
+	} 
+
+	if (this->m_nImageCount < details.capabilities.minImageCount) {
+		this->m_nImageCount = details.capabilities.minImageCount;
+	}
+
+	/* Create new swap chain */
+	VkSwapchainCreateInfoKHR scInfo = { };
+	scInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+	scInfo.imageFormat = format.format;
+	scInfo.imageColorSpace = format.colorSpace;
+	scInfo.imageExtent = extent;
+	scInfo.imageArrayLayers = 1;
+	scInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+	scInfo.minImageCount = this->m_nImageCount;
+	scInfo.surface = this->m_surface;
+	scInfo.presentMode = presentMode;
+	scInfo.oldSwapchain = oldSwapchain;
+	scInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+	scInfo.preTransform = details.capabilities.currentTransform;
+
+	QueueFamilyIndices indices = this->m_device->FindQueueFamilies();
+	uint32_t queueIndices[] = { indices.graphicsFamily.value(), indices.presentFamily.value() };
+
+	if (indices.graphicsFamily != indices.presentFamily) {
+		scInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
+		scInfo.queueFamilyIndexCount = 2;
+		scInfo.pQueueFamilyIndices = queueIndices;
+	}
+	else {
+		scInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+		scInfo.queueFamilyIndexCount = 0;
+		scInfo.pQueueFamilyIndices = nullptr;
+	}
+
+	VK_CHECK(
+		vkCreateSwapchainKHR(
+			this->m_device->GetVkDevice(),
+			&scInfo,
+			nullptr,
+			&this->m_swapchain
+		),
+		"Failed recreating swap chain");
+
+	if (oldSwapchain != VK_NULL_HANDLE) {
+		vkDestroySwapchainKHR(this->m_device->GetVkDevice(), oldSwapchain, nullptr);
+	}
+
+	uint32_t nImageCount;
+	vkGetSwapchainImagesKHR(this->m_device->GetVkDevice(), this->m_swapchain, &nImageCount, nullptr);
+
+	Vector<VkImage> images;
+	images.resize(nImageCount);
+	vkGetSwapchainImagesKHR(this->m_device->GetVkDevice(), this->m_swapchain, &nImageCount, images.data());
+
+	for (const VkImage& image : images) {
+		Ref<VulkanTexture> vkImage = VulkanTexture::CreateShared(this->m_device->GetVkDevice());
+		vkImage->Create(image);
+		this->m_images.push_back(vkImage.As<GPUTexture>());
+	}
+
+	this->m_nImageCount = nImageCount;
+	Logger::Debug("VulkanSwapchain::Create: Swapchain recreated. Image count: {}", this->m_nImageCount);
+
+	this->m_imageViews.resize(nImageCount);
+	for (uint32_t i = 0; i < nImageCount; i++) {
+		VkImageViewCreateInfo viewInfo = { };
+		viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+		viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+		viewInfo.format = format.format;
+		viewInfo.image = images[i];
+
+		viewInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+		viewInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+		viewInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+		viewInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+
+		viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		viewInfo.subresourceRange.baseArrayLayer = 0;
+		viewInfo.subresourceRange.baseMipLevel = 0;
+		viewInfo.subresourceRange.levelCount = 1;
+		viewInfo.subresourceRange.layerCount = 1;
+
+		VkImageView imageView;
+		VK_CHECK(
+			vkCreateImageView(
+				this->m_device->GetVkDevice(),
+				&viewInfo,
+				nullptr,
+				&imageView
+			),
+			"Failed creating swap chain image view");
+
+		Ref<VulkanImageView> vkView = VulkanImageView::CreateShared(this->m_device->GetVkDevice());
+		vkView->Create(imageView);
+
+		this->m_imageViews[i] = vkView.As<ImageView>();
+	}
 }
 
 /**
