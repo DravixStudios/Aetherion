@@ -15,6 +15,7 @@ public:
 	~VulkanImageView() override;
 
 	void Create(const ImageViewCreateInfo& createInfo) override;
+	void Create(const VkImageView& imageView);
 
 	Ref<GPUTexture> GetImage() const override;
 	EImageViewType GetViewType() const override;

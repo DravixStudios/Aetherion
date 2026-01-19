@@ -40,6 +40,18 @@ VulkanImageView::Create(const ImageViewCreateInfo& createInfo) {
 }
 
 /**
+* Creates a VulkanImageView from VkImageView
+* Note: This overload is exclusive for
+* swapchain image views.
+*
+* @param imageView Vulkan image view
+*/
+void 
+VulkanImageView::Create(const VkImageView& imageView) {
+	this->m_imageView = imageView;
+}
+
+/**
 * (ESwizzle -> VkComponentSwizzle)
 * 
 * @param swizzle Swizzle
