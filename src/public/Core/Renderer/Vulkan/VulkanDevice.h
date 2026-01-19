@@ -60,6 +60,8 @@ public:
 	VkPhysicalDeviceProperties GetPhysicalDeviceProperties() const { return this->m_devProperties; }
 
 	uint32_t FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
+	
+	QueueFamilyIndices FindQueueFamilies();
 
 	static Ptr
 	CreateShared(VkPhysicalDevice physicalDevice, VkInstance instance, VkSurfaceKHR surface = VK_NULL_HANDLE) {
@@ -79,7 +81,6 @@ private:
 	Vector<VkQueueFamilyProperties> m_queueFamilyProperties;
 	void CacheQueueFamilyProperties();
 
-	QueueFamilyIndices FindQueueFamilies();
 
 	VkPhysicalDeviceProperties m_devProperties;
 

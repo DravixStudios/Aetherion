@@ -2,6 +2,10 @@
 #include "Core/Renderer/Swapchain.h"
 
 #include "Core/Renderer/Vulkan/VulkanDevice.h"
+#include "Core/Renderer/Vulkan/VulkanImageView.h"
+#include "Core/Renderer/Vulkan/VulkanHelpers.h"
+
+struct SwapchainSupportDetails;
 
 class VulkanSwapchain : public Swapchain {
 public:
@@ -45,6 +49,10 @@ public:
 
 private:
 	Ref<VulkanDevice> m_device;
+	VkSwapchainKHR m_swapchain;
+	VkSurfaceKHR m_surface;
+
+	GLFWwindow* m_pWindow;
 	
 	Vector<Ref<GPUTexture>> m_images;
 	Vector<Ref<ImageView>> m_imageViews;
@@ -59,4 +67,12 @@ private:
 	EPresentMode m_presentMode;
 	uint32_t m_nImageCount;
 	bool m_bNeedsRebuild;
+
+	SwapchainCreateInfo m_createInfo; // Cached for rebuilds
+
+	SwapchainSupportDetails QuerySwapchainSupport(VkPhysicalDevice physicalDevice);
+
+	VkSurfaceFormatKHR ChooseSurfaceFormat(const Vector<VkSurfaceFormatKHR>& availableFormats) const;
+	VkPresentModeKHR ChooseSwapPresentMode(const Vector<VkPresentModeKHR>& presentModes);
+	VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
 };

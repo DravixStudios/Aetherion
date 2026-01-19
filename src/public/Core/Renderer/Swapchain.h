@@ -16,19 +16,20 @@ enum class EPresentMode {
 struct SwapchainCreateInfo {
 	uint32_t width = 0;
 	uint32_t height = 0;
-	GPUFormat format = GPUFormat::BGRA8_UNORM;
-	GPUFormat depthFormat = GPUFormat::D32_FLOAT;
-	EPresentMode presentMode = EPresentMode::FIFO;
 	uint32_t nImageCount = 3; // Default triple buffering
 	bool bEnableDepthStencil = true;
 
 	/* Swapchain reconstruct (resize) */
 	void* pOldSwapchain = nullptr;
+
+	GLFWwindow* pWindow = nullptr;
 };
 
 class Swapchain {
 public:
 	using Ptr = Ref<Swapchain>;
+
+	static constexpr const char* CLASS_NAME = "Swapchain";
 
 	virtual ~Swapchain() = default;
 
