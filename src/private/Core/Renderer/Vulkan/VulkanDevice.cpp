@@ -270,6 +270,39 @@ VulkanDevice::EndSingleTimeCommandBuffer(Ref<CommandBuffer> commandBuffer) {
 }
 
 /**
+* Finds a supported format between candidates
+* 
+* @param candidates Format candidates
+* @param tiling Image tiling
+* @param flags Format features
+* 
+* @returns Supported format
+* 
+* @throws std::runtime_error if no supported format found
+*/
+VkFormat 
+VulkanDevice::FindSupportedFormat(
+	const Vector<VkFormat&> candidates, 
+	VkImageTiling tiling, 
+	VkFormatFeatureFlags flags
+) {
+	for (const VkFormat& format : candidates) {
+		VkFormatProperties properties;
+		vkGetPhysicalDeviceFormatProperties(this->m_physicalDevice, format, &properties);
+
+		if (tiling == VK_IMAGE_TILING_LINEAR && (properties.linearTilingFeatures & flags) == flags) {
+			return format;
+		}
+		else if (tiling == VK_IMAGE_TILING_OPTIMAL && (properties.optimalTilingFeatures & flags) == flags) {
+			return format;
+		}
+	}
+
+	Logger::Error("VulkanDevice::FindSupportedFormat: Failed finding a optimal format candidate");
+	throw std::runtime_error("VulkanDevice::FindSupportedFormat: Failed finding a optimal format candidate");
+}
+
+/**
 * Gets device limits
 */
 void 

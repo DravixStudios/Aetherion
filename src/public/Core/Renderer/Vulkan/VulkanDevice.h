@@ -41,6 +41,8 @@ public:
 	Ref<CommandBuffer> BeginSingleTimeCommandBuffer() override;
 	void EndSingleTimeCommandBuffer(Ref<CommandBuffer> commandBuffer) override;
 
+	VkFormat FindSupportedFormat(const Vector<VkFormat&> candidates, VkImageTiling tiling, VkFormatFeatureFlags flags);
+
 	void GetLimits(
 		uint32_t& nMaxUniformBufferRange,
 		uint32_t& nMaxStorageBufferRange,
