@@ -389,6 +389,22 @@ VulkanSwapchain::ChooseSwapPresentMode(const Vector<VkPresentModeKHR>& presentMo
 }
 
 /**
+* Finds the depth format
+* 
+* @returns Vulkan depth format
+*/
+VkFormat 
+VulkanSwapchain::FindDepthFormat() {
+	Vector<VkFormat> candidates = { VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT };
+
+	return this->m_device->FindSupportedFormat(
+		candidates,
+		VK_IMAGE_TILING_OPTIMAL,
+		VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT
+	);
+}
+
+/**
 * Choose swap extent
 * If capabilities extent is not valid, create one
 * 

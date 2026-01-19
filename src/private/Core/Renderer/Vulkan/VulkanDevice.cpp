@@ -282,7 +282,7 @@ VulkanDevice::EndSingleTimeCommandBuffer(Ref<CommandBuffer> commandBuffer) {
 */
 VkFormat 
 VulkanDevice::FindSupportedFormat(
-	const Vector<VkFormat&> candidates, 
+	const Vector<VkFormat>& candidates, 
 	VkImageTiling tiling, 
 	VkFormatFeatureFlags flags
 ) {
