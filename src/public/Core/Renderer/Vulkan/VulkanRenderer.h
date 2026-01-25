@@ -81,9 +81,11 @@ private:
 	VkImage m_depthImage;
 	VkImageView m_depthImageView;
 	VkSampler m_depthSampler;
+	VkDeviceMemory m_depthMemory;
 
 	VkImage m_depthResolveImage;
 	VkImageView m_depthResolveImageView;
+	VkDeviceMemory m_depthResolveMemory;
 
 	/* ScreenQuad resources */
 	GPUBuffer* m_sqVBO;
@@ -164,6 +166,16 @@ private:
 	VkImage m_ormResolveBuffer;
 	VkImage m_emissiveResolveBuffer;
 	VkImage m_positionResolveBuffer;
+	VkDeviceMemory m_colorMemory;
+	VkDeviceMemory m_normalMemory;
+	VkDeviceMemory m_ormMemory;
+	VkDeviceMemory m_emissiveMemory;
+	VkDeviceMemory m_positionMemory;
+	VkDeviceMemory m_colorResolveMemory;
+	VkDeviceMemory m_normalResolveMemory;
+	VkDeviceMemory m_ormResolveMemory;
+	VkDeviceMemory m_emissiveResolveMemory;
+	VkDeviceMemory m_positionResolveMemory;
 
 	/* G-Buffer image view */
 	VkImageView m_colorBuffView;
@@ -218,6 +230,8 @@ private:
 	uint32_t m_nMaxPerStageDescriptorSamplers;
 	uint32_t m_nMaxTextures;
 
+	bool m_framebufferResized;
+
 	/* Main methods */
 	void CreateInstance();
 	void SetupDebugMessenger();
@@ -264,6 +278,10 @@ private:
 	void WriteSkyboxDescriptorSets();
 	void WriteCullingDescriptorSets();
 	void CreateCommandBuffer();
+	void CleanupSwapChain();
+	void RecreateSwapChain();
+	void UpdateViewportAndScissor();
+	static void FramebufferResizeCallback(GLFWwindow* window, int width, int height);
 	VkPipeline CreateGraphicsPipeline(
 		const String& vertPath,
 		const String& pixelPath,
