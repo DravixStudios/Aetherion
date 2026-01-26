@@ -110,12 +110,31 @@ VulkanRenderer::VulkanRenderer() : Renderer::Renderer() {
 	this->m_nMaxPerStageDescriptorSamplers = 0;
 	this->m_nMaxTextures = 0;
 	this->m_nCurrentFrameIndex = 0;
+	this->m_framebufferResized = false;
+	this->m_globalVBO = nullptr;
+	this->m_globalIBO = nullptr;
+
+	this->m_depthMemory = nullptr;
+	this->m_depthResolveMemory = nullptr;
+	this->m_colorMemory = nullptr;
+	this->m_normalMemory = nullptr;
+	this->m_ormMemory = nullptr;
+	this->m_emissiveMemory = nullptr;
+	this->m_positionMemory = nullptr;
+	this->m_colorResolveMemory = nullptr;
+	this->m_normalResolveMemory = nullptr;
+	this->m_ormResolveMemory = nullptr;
+	this->m_emissiveResolveMemory = nullptr;
+	this->m_positionResolveMemory = nullptr;
 }
 
 /* Renderer init method */
-void 
+void
 VulkanRenderer::Init() {
 	Renderer::Init();
+
+	glfwSetWindowUserPointer(this->m_pWindow, this);
+	glfwSetFramebufferSizeCallback(this->m_pWindow, VulkanRenderer::FramebufferResizeCallback);
 
 	this->CreateInstance();
 	this->SetupDebugMessenger();
@@ -531,7 +550,7 @@ VulkanRenderer::CreateLogicalDevice() {
 }
 
 /* Create our swap chain */
-void 
+void
 VulkanRenderer::CreateSwapChain() {
 	SwapChainSupportDetails details = this->QuerySwapChainSupport(this->m_physicalDevice);
 
@@ -597,6 +616,307 @@ VulkanRenderer::CreateSwapChain() {
 
 	this->m_surfaceFormat = format.format;
 	this->m_scExtent = extent;
+}
+
+void
+VulkanRenderer::CleanupSwapChain() {
+	if (this->m_device == nullptr) {
+		return;
+	}
+
+	if (this->m_gbufferFramebuffer != VK_NULL_HANDLE) {
+		vkDestroyFramebuffer(this->m_device, this->m_gbufferFramebuffer, nullptr);
+		this->m_gbufferFramebuffer = VK_NULL_HANDLE;
+	}
+
+	for (VkFramebuffer framebuffer : this->m_scFrameBuffers) {
+		vkDestroyFramebuffer(this->m_device, framebuffer, nullptr);
+	}
+	this->m_scFrameBuffers.clear();
+
+	for (VkFramebuffer framebuffer : this->m_skyboxFrameBuffers) {
+		vkDestroyFramebuffer(this->m_device, framebuffer, nullptr);
+	}
+	this->m_skyboxFrameBuffers.clear();
+
+	if (this->m_lightingPipeline != VK_NULL_HANDLE) {
+		vkDestroyPipeline(this->m_device, this->m_lightingPipeline, nullptr);
+		this->m_lightingPipeline = VK_NULL_HANDLE;
+	}
+	if (this->m_lightingPipelineLayout != VK_NULL_HANDLE) {
+		vkDestroyPipelineLayout(this->m_device, this->m_lightingPipelineLayout, nullptr);
+		this->m_lightingPipelineLayout = VK_NULL_HANDLE;
+	}
+	if (this->m_skyboxPipeline != VK_NULL_HANDLE) {
+		vkDestroyPipeline(this->m_device, this->m_skyboxPipeline, nullptr);
+		this->m_skyboxPipeline = VK_NULL_HANDLE;
+	}
+	if (this->m_skyboxPipelineLayout != VK_NULL_HANDLE) {
+		vkDestroyPipelineLayout(this->m_device, this->m_skyboxPipelineLayout, nullptr);
+		this->m_skyboxPipelineLayout = VK_NULL_HANDLE;
+	}
+
+	if (this->m_lightingRenderPass != VK_NULL_HANDLE) {
+		vkDestroyRenderPass(this->m_device, this->m_lightingRenderPass, nullptr);
+		this->m_lightingRenderPass = VK_NULL_HANDLE;
+	}
+	if (this->m_skyboxRenderPass != VK_NULL_HANDLE) {
+		vkDestroyRenderPass(this->m_device, this->m_skyboxRenderPass, nullptr);
+		this->m_skyboxRenderPass = VK_NULL_HANDLE;
+	}
+
+	if (this->m_baseColorSampler != VK_NULL_HANDLE) {
+		vkDestroySampler(this->m_device, this->m_baseColorSampler, nullptr);
+		this->m_baseColorSampler = VK_NULL_HANDLE;
+	}
+	if (this->m_normalSampler != VK_NULL_HANDLE) {
+		vkDestroySampler(this->m_device, this->m_normalSampler, nullptr);
+		this->m_normalSampler = VK_NULL_HANDLE;
+	}
+	if (this->m_ormSampler != VK_NULL_HANDLE) {
+		vkDestroySampler(this->m_device, this->m_ormSampler, nullptr);
+		this->m_ormSampler = VK_NULL_HANDLE;
+	}
+	if (this->m_emissiveSampler != VK_NULL_HANDLE) {
+		vkDestroySampler(this->m_device, this->m_emissiveSampler, nullptr);
+		this->m_emissiveSampler = VK_NULL_HANDLE;
+	}
+	if (this->m_positionSampler != VK_NULL_HANDLE) {
+		vkDestroySampler(this->m_device, this->m_positionSampler, nullptr);
+		this->m_positionSampler = VK_NULL_HANDLE;
+	}
+	if (this->m_depthSampler != VK_NULL_HANDLE) {
+		vkDestroySampler(this->m_device, this->m_depthSampler, nullptr);
+		this->m_depthSampler = VK_NULL_HANDLE;
+	}
+
+	if (this->m_colorBuffView != VK_NULL_HANDLE) {
+		vkDestroyImageView(this->m_device, this->m_colorBuffView, nullptr);
+		this->m_colorBuffView = VK_NULL_HANDLE;
+	}
+	if (this->m_normalBuffView != VK_NULL_HANDLE) {
+		vkDestroyImageView(this->m_device, this->m_normalBuffView, nullptr);
+		this->m_normalBuffView = VK_NULL_HANDLE;
+	}
+	if (this->m_ormBuffView != VK_NULL_HANDLE) {
+		vkDestroyImageView(this->m_device, this->m_ormBuffView, nullptr);
+		this->m_ormBuffView = VK_NULL_HANDLE;
+	}
+	if (this->m_emissiveBuffView != VK_NULL_HANDLE) {
+		vkDestroyImageView(this->m_device, this->m_emissiveBuffView, nullptr);
+		this->m_emissiveBuffView = VK_NULL_HANDLE;
+	}
+	if (this->m_positionBuffView != VK_NULL_HANDLE) {
+		vkDestroyImageView(this->m_device, this->m_positionBuffView, nullptr);
+		this->m_positionBuffView = VK_NULL_HANDLE;
+	}
+
+	if (this->m_colorResolveBuffView != VK_NULL_HANDLE) {
+		vkDestroyImageView(this->m_device, this->m_colorResolveBuffView, nullptr);
+		this->m_colorResolveBuffView = VK_NULL_HANDLE;
+	}
+	if (this->m_normalResolveBuffView != VK_NULL_HANDLE) {
+		vkDestroyImageView(this->m_device, this->m_normalResolveBuffView, nullptr);
+		this->m_normalResolveBuffView = VK_NULL_HANDLE;
+	}
+	if (this->m_ormResolveBuffView != VK_NULL_HANDLE) {
+		vkDestroyImageView(this->m_device, this->m_ormResolveBuffView, nullptr);
+		this->m_ormResolveBuffView = VK_NULL_HANDLE;
+	}
+	if (this->m_emissiveResolveBuffView != VK_NULL_HANDLE) {
+		vkDestroyImageView(this->m_device, this->m_emissiveResolveBuffView, nullptr);
+		this->m_emissiveResolveBuffView = VK_NULL_HANDLE;
+	}
+	if (this->m_positionResolveBuffView != VK_NULL_HANDLE) {
+		vkDestroyImageView(this->m_device, this->m_positionResolveBuffView, nullptr);
+		this->m_positionResolveBuffView = VK_NULL_HANDLE;
+	}
+
+	if (this->m_depthImageView != VK_NULL_HANDLE) {
+		vkDestroyImageView(this->m_device, this->m_depthImageView, nullptr);
+		this->m_depthImageView = VK_NULL_HANDLE;
+	}
+	if (this->m_depthResolveImageView != VK_NULL_HANDLE) {
+		vkDestroyImageView(this->m_device, this->m_depthResolveImageView, nullptr);
+		this->m_depthResolveImageView = VK_NULL_HANDLE;
+	}
+
+	if (this->m_colorBuffer != VK_NULL_HANDLE) {
+		vkDestroyImage(this->m_device, this->m_colorBuffer, nullptr);
+		this->m_colorBuffer = VK_NULL_HANDLE;
+	}
+	if (this->m_colorMemory != VK_NULL_HANDLE) {
+		vkFreeMemory(this->m_device, this->m_colorMemory, nullptr);
+		this->m_colorMemory = VK_NULL_HANDLE;
+	}
+	if (this->m_normalBuffer != VK_NULL_HANDLE) {
+		vkDestroyImage(this->m_device, this->m_normalBuffer, nullptr);
+		this->m_normalBuffer = VK_NULL_HANDLE;
+	}
+	if (this->m_normalMemory != VK_NULL_HANDLE) {
+		vkFreeMemory(this->m_device, this->m_normalMemory, nullptr);
+		this->m_normalMemory = VK_NULL_HANDLE;
+	}
+	if (this->m_ormBuffer != VK_NULL_HANDLE) {
+		vkDestroyImage(this->m_device, this->m_ormBuffer, nullptr);
+		this->m_ormBuffer = VK_NULL_HANDLE;
+	}
+	if (this->m_ormMemory != VK_NULL_HANDLE) {
+		vkFreeMemory(this->m_device, this->m_ormMemory, nullptr);
+		this->m_ormMemory = VK_NULL_HANDLE;
+	}
+	if (this->m_emissiveBuffer != VK_NULL_HANDLE) {
+		vkDestroyImage(this->m_device, this->m_emissiveBuffer, nullptr);
+		this->m_emissiveBuffer = VK_NULL_HANDLE;
+	}
+	if (this->m_emissiveMemory != VK_NULL_HANDLE) {
+		vkFreeMemory(this->m_device, this->m_emissiveMemory, nullptr);
+		this->m_emissiveMemory = VK_NULL_HANDLE;
+	}
+	if (this->m_positionBuffer != VK_NULL_HANDLE) {
+		vkDestroyImage(this->m_device, this->m_positionBuffer, nullptr);
+		this->m_positionBuffer = VK_NULL_HANDLE;
+	}
+	if (this->m_positionMemory != VK_NULL_HANDLE) {
+		vkFreeMemory(this->m_device, this->m_positionMemory, nullptr);
+		this->m_positionMemory = VK_NULL_HANDLE;
+	}
+
+	if (this->m_colorResolveBuffer != VK_NULL_HANDLE) {
+		vkDestroyImage(this->m_device, this->m_colorResolveBuffer, nullptr);
+		this->m_colorResolveBuffer = VK_NULL_HANDLE;
+	}
+	if (this->m_colorResolveMemory != VK_NULL_HANDLE) {
+		vkFreeMemory(this->m_device, this->m_colorResolveMemory, nullptr);
+		this->m_colorResolveMemory = VK_NULL_HANDLE;
+	}
+	if (this->m_normalResolveBuffer != VK_NULL_HANDLE) {
+		vkDestroyImage(this->m_device, this->m_normalResolveBuffer, nullptr);
+		this->m_normalResolveBuffer = VK_NULL_HANDLE;
+	}
+	if (this->m_normalResolveMemory != VK_NULL_HANDLE) {
+		vkFreeMemory(this->m_device, this->m_normalResolveMemory, nullptr);
+		this->m_normalResolveMemory = VK_NULL_HANDLE;
+	}
+	if (this->m_ormResolveBuffer != VK_NULL_HANDLE) {
+		vkDestroyImage(this->m_device, this->m_ormResolveBuffer, nullptr);
+		this->m_ormResolveBuffer = VK_NULL_HANDLE;
+	}
+	if (this->m_ormResolveMemory != VK_NULL_HANDLE) {
+		vkFreeMemory(this->m_device, this->m_ormResolveMemory, nullptr);
+		this->m_ormResolveMemory = VK_NULL_HANDLE;
+	}
+	if (this->m_emissiveResolveBuffer != VK_NULL_HANDLE) {
+		vkDestroyImage(this->m_device, this->m_emissiveResolveBuffer, nullptr);
+		this->m_emissiveResolveBuffer = VK_NULL_HANDLE;
+	}
+	if (this->m_emissiveResolveMemory != VK_NULL_HANDLE) {
+		vkFreeMemory(this->m_device, this->m_emissiveResolveMemory, nullptr);
+		this->m_emissiveResolveMemory = VK_NULL_HANDLE;
+	}
+	if (this->m_positionResolveBuffer != VK_NULL_HANDLE) {
+		vkDestroyImage(this->m_device, this->m_positionResolveBuffer, nullptr);
+		this->m_positionResolveBuffer = VK_NULL_HANDLE;
+	}
+	if (this->m_positionResolveMemory != VK_NULL_HANDLE) {
+		vkFreeMemory(this->m_device, this->m_positionResolveMemory, nullptr);
+		this->m_positionResolveMemory = VK_NULL_HANDLE;
+	}
+
+	if (this->m_depthImage != VK_NULL_HANDLE) {
+		vkDestroyImage(this->m_device, this->m_depthImage, nullptr);
+		this->m_depthImage = VK_NULL_HANDLE;
+	}
+	if (this->m_depthMemory != VK_NULL_HANDLE) {
+		vkFreeMemory(this->m_device, this->m_depthMemory, nullptr);
+		this->m_depthMemory = VK_NULL_HANDLE;
+	}
+	if (this->m_depthResolveImage != VK_NULL_HANDLE) {
+		vkDestroyImage(this->m_device, this->m_depthResolveImage, nullptr);
+		this->m_depthResolveImage = VK_NULL_HANDLE;
+	}
+	if (this->m_depthResolveMemory != VK_NULL_HANDLE) {
+		vkFreeMemory(this->m_device, this->m_depthResolveMemory, nullptr);
+		this->m_depthResolveMemory = VK_NULL_HANDLE;
+	}
+
+	for (VkImageView imageView : this->m_imageViews) {
+		vkDestroyImageView(this->m_device, imageView, nullptr);
+	}
+	this->m_imageViews.clear();
+
+	if (this->m_sc != VK_NULL_HANDLE) {
+		vkDestroySwapchainKHR(this->m_device, this->m_sc, nullptr);
+		this->m_sc = VK_NULL_HANDLE;
+	}
+}
+
+void
+VulkanRenderer::UpdateViewportAndScissor() {
+	this->m_viewport.x = 0.f;
+	this->m_viewport.y = static_cast<float>(this->m_scExtent.height);
+	this->m_viewport.width = static_cast<float>(this->m_scExtent.width);
+	this->m_viewport.height = -static_cast<float>(this->m_scExtent.height);
+	this->m_viewport.minDepth = 0.f;
+	this->m_viewport.maxDepth = 1.f;
+
+	this->m_scissor.offset = { 0, 0 };
+	this->m_scissor.extent = this->m_scExtent;
+}
+
+void
+VulkanRenderer::RecreateSwapChain() {
+	int nWidth = 0;
+	int nHeight = 0;
+	glfwGetFramebufferSize(this->m_pWindow, &nWidth, &nHeight);
+	while (nWidth == 0 || nHeight == 0) {
+		glfwWaitEvents();
+		glfwGetFramebufferSize(this->m_pWindow, &nWidth, &nHeight);
+	}
+
+	vkDeviceWaitIdle(this->m_device);
+	this->CleanupSwapChain();
+
+	this->CreateSwapChain();
+	this->CreateImageViews();
+	this->CreateLightingRenderPass();
+	this->CreateSkyboxRenderPass();
+	this->CreateGBufferResources();
+	this->CreateDepthResources();
+	this->CreateGBufferFrameBuffer();
+	this->CreateLightingFrameBuffer();
+	this->CreateSkyboxFrameBuffer();
+	this->CreateLightingPipeline();
+	this->CreateSkyboxPipeline();
+	this->UpdateViewportAndScissor();
+	if (this->m_commandBuffers.size() != this->m_nImageCount) {
+		if (!this->m_commandBuffers.empty()) {
+			vkFreeCommandBuffers(
+				this->m_device,
+				this->m_commandPool,
+				static_cast<uint32_t>(this->m_commandBuffers.size()),
+				this->m_commandBuffers.data()
+			);
+			this->m_commandBuffers.clear();
+		}
+		this->CreateCommandBuffer();
+	}
+	this->WriteLightDescriptorSets();
+	this->WriteSkyboxDescriptorSets();
+	this->m_framebufferResized = false;
+	this->m_nCurrentFrameIndex = 0;
+}
+
+void
+VulkanRenderer::FramebufferResizeCallback(GLFWwindow* window, int width, int height) {
+	if (width == 0 || height == 0) {
+		return;
+	}
+
+	VulkanRenderer* renderer = reinterpret_cast<VulkanRenderer*>(glfwGetWindowUserPointer(window));
+	if (renderer != nullptr) {
+		renderer->m_framebufferResized = true;
+	}
 }
 
 /* 
@@ -1167,9 +1487,6 @@ VulkanRenderer::CreateCommandPool() {
 */
 void 
 VulkanRenderer::CreateGBufferResources() {
-	VkDeviceMemory colorMemory, normalMemory, ormMemory, emissiveMemory, positionMemory = nullptr;
-	VkDeviceMemory colorResolveMemory, normalResolveMemory, ormResolveMemory, emissiveResolveMemory, positionResolveMemory = nullptr;
-
 	/* Base color G-Buffer (RGBA16_SFLOAT) */
 	this->CreateImage(
 		this->m_scExtent.width,
@@ -1180,7 +1497,7 @@ VulkanRenderer::CreateGBufferResources() {
 		VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
 		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 		this->m_colorBuffer,
-		colorMemory
+		this->m_colorMemory
 	);
 
 	/* Normal G-Buffer (RGBA16_SFLOAT) */
@@ -1193,7 +1510,7 @@ VulkanRenderer::CreateGBufferResources() {
 		VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
 		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 		this->m_normalBuffer,
-		normalMemory
+		this->m_normalMemory
 	);
 
 	/* ORM G-Buffer (RGBA16_SFLOAT) */
@@ -1206,7 +1523,7 @@ VulkanRenderer::CreateGBufferResources() {
 		VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
 		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 		this->m_ormBuffer,
-		ormMemory
+		this->m_ormMemory
 	);
 
 	/* Emissive G-Buffer (RGBA16_SFLOAT) */
@@ -1219,7 +1536,7 @@ VulkanRenderer::CreateGBufferResources() {
 		VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
 		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 		this->m_emissiveBuffer,
-		emissiveMemory
+		this->m_emissiveMemory
 	);
 
 	/* Position G-Buffer (RGBA16_SFLOAT) */
@@ -1232,7 +1549,7 @@ VulkanRenderer::CreateGBufferResources() {
 		VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
 		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 		this->m_positionBuffer,
-		positionMemory
+		this->m_positionMemory
 	);
 
 	/* Base color G-Buffer resolve (RGBA16_SFLOAT) */
@@ -1245,7 +1562,7 @@ VulkanRenderer::CreateGBufferResources() {
 		VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
 		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 		this->m_colorResolveBuffer,
-		colorResolveMemory
+		this->m_colorResolveMemory
 	);
 
 	/* Normal G-Buffer resolve (RGBA16_SFLOAT) */
@@ -1258,7 +1575,7 @@ VulkanRenderer::CreateGBufferResources() {
 		VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
 		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 		this->m_normalResolveBuffer,
-		normalResolveMemory
+		this->m_normalResolveMemory
 	);
 
 	/* ORM G-Buffer resolve (RGBA16_SFLOAT) */
@@ -1271,7 +1588,7 @@ VulkanRenderer::CreateGBufferResources() {
 		VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
 		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 		this->m_ormResolveBuffer,
-		ormResolveMemory
+		this->m_ormResolveMemory
 	);
 
 	/* Emissive G-Buffer resolve (RGBA16_SFLOAT) */
@@ -1284,7 +1601,7 @@ VulkanRenderer::CreateGBufferResources() {
 		VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
 		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 		this->m_emissiveResolveBuffer,
-		emissiveResolveMemory
+		this->m_emissiveResolveMemory
 	);
 
 	/* Position G-Buffer resolve (RGBA16_SFLOAT) */
@@ -1297,7 +1614,7 @@ VulkanRenderer::CreateGBufferResources() {
 		VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
 		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 		this->m_positionResolveBuffer,
-		positionResolveMemory
+		this->m_positionResolveMemory
 	);
 
 	/* Create our G-Buffer image views */
@@ -1333,9 +1650,11 @@ VulkanRenderer::CreateGBufferResources() {
 	this->TransitionImageLayout(this->m_emissiveResolveBuffer, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 	this->TransitionImageLayout(this->m_positionResolveBuffer, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 
-	spdlog::debug("VulkanRenderer::CreateGBufferResources: G-Buffers created");
+    spdlog::debug("VulkanRenderer::CreateGBufferResources: G-Buffers created");
 
-	this->CreateGlobalGeometryBuffers();
+	if (this->m_globalVBO == nullptr || this->m_globalIBO == nullptr) {
+		this->CreateGlobalGeometryBuffers();
+	}
 }
 
 void 
@@ -1360,9 +1679,6 @@ VulkanRenderer::CreateDepthResources() {
 	VkFormat depthFormat = this->FindDepthFormat();
 
 	/* Cretion of our depth image */
-	VkDeviceMemory depthMemory = nullptr;
-	VkImage depthImage = nullptr;
-
 	uint32_t nDepthImageSize = this->CreateImage(
 		this->m_scExtent.width, this->m_scExtent.height,
 		depthFormat,
@@ -1370,19 +1686,14 @@ VulkanRenderer::CreateDepthResources() {
 		VK_IMAGE_TILING_OPTIMAL,
 		VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
 		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-		depthImage,
-		depthMemory
+		this->m_depthImage,
+		this->m_depthMemory
 	);
 
 	/* Creation of our depth image view */
-	VkImageView imageView = this->CreateImageView(depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
-	this->TransitionImageLayout(depthImage, depthFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
-
-	this->m_depthImage = depthImage;
+	VkImageView imageView = this->CreateImageView(this->m_depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
+	this->TransitionImageLayout(this->m_depthImage, depthFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
 	this->m_depthImageView = imageView;
-
-	VkDeviceMemory depthResolveMemory = nullptr;
-	VkImage depthResolveImage = nullptr;
 
 	uint32_t nDepthResolveImageSize = this->CreateImage(
 		this->m_scExtent.width, this->m_scExtent.height,
@@ -1391,14 +1702,12 @@ VulkanRenderer::CreateDepthResources() {
 		VK_IMAGE_TILING_OPTIMAL,
 		VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
 		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-		depthResolveImage,
-		depthResolveMemory
+		this->m_depthResolveImage,
+		this->m_depthResolveMemory
 	);
 
-	VkImageView depthResolveImageView = this->CreateImageView(depthResolveImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
-	this->TransitionImageLayout(depthResolveImage, depthFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
-
-	this->m_depthResolveImage = depthResolveImage;
+	VkImageView depthResolveImageView = this->CreateImageView(this->m_depthResolveImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
+	this->TransitionImageLayout(this->m_depthResolveImage, depthFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
 	this->m_depthResolveImageView = depthResolveImageView;
 
 	this->m_depthSampler = this->CreateSampler();
@@ -5999,7 +6308,23 @@ VulkanRenderer::Update() {
 	vkResetFences(this->m_device, 1, &this->m_inFlightFences[this->m_nCurrentFrameIndex]);
 
 	uint32_t nImageIndex;
-	vkAcquireNextImageKHR(this->m_device, this->m_sc, UINT64_MAX, this->m_imageAvailableSemaphores[this->m_nCurrentFrameIndex], VK_NULL_HANDLE, &nImageIndex);
+	VkResult acquireResult = vkAcquireNextImageKHR(
+		this->m_device,
+		this->m_sc,
+		UINT64_MAX,
+		this->m_imageAvailableSemaphores[this->m_nCurrentFrameIndex],
+		VK_NULL_HANDLE,
+		&nImageIndex
+	);
+	if (acquireResult == VK_ERROR_OUT_OF_DATE_KHR) {
+		this->RecreateSwapChain();
+		return;
+	}
+	if (acquireResult != VK_SUCCESS && acquireResult != VK_SUBOPTIMAL_KHR) {
+		spdlog::error("Update: Failed to acquire swap chain image");
+		throw std::runtime_error("Update: Failed to acquire swap chain image");
+		return;
+	}
 
 	vkResetCommandBuffer(this->m_commandBuffers[this->m_nCurrentFrameIndex], 0);
 	this->RecordCommandBuffer(nImageIndex);
@@ -6041,6 +6366,17 @@ VulkanRenderer::Update() {
 	presentInfo.pSwapchains = swapChains;
 	presentInfo.pImageIndices = &nImageIndex;
 
-	vkQueuePresentKHR(this->m_presentQueue, &presentInfo);
-	this->m_nCurrentFrameIndex = (nImageIndex + 1) % this->m_nImageCount;
+	VkResult presentResult = vkQueuePresentKHR(this->m_presentQueue, &presentInfo);
+	if (presentResult == VK_ERROR_OUT_OF_DATE_KHR || presentResult == VK_SUBOPTIMAL_KHR || this->m_framebufferResized) {
+		this->m_framebufferResized = false;
+		this->RecreateSwapChain();
+		return;
+	}
+	if (presentResult != VK_SUCCESS) {
+		spdlog::error("Update: Failed to present swap chain image");
+		throw std::runtime_error("Update: Failed to present swap chain image");
+		return;
+	}
+
+	this->m_nCurrentFrameIndex = (this->m_nCurrentFrameIndex + 1) % this->m_nImageCount;
 }
