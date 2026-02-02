@@ -28,6 +28,7 @@ void VulkanRenderer::Create(GLFWwindow* pWindow) {
 #ifndef NDEBUG
 	this->m_bEnableValidationLayers = true;
 #endif // NDEBUG
+	this->m_pWindow = pWindow;
 
 	if (this->m_bEnableValidationLayers && !this->CheckValidationLayersSupport()) {
 		Logger::Error("VulkanRenderer::Create: Validation layers enabled but not supported");
