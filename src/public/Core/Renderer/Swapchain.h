@@ -6,6 +6,9 @@
 #include "Core/Renderer/ImageView.h"
 #include "Core/Renderer/Rect2D.h"
 
+#define GLFW_INCLUDE_VULKAN
+#include <GLFW/glfw3.h>
+
 enum class EPresentMode {
 	IMMEDIATE, // No VSync
 	FIFO, // VSync, waits for the next vblank

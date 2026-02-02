@@ -27,7 +27,7 @@ public:
 	void Reset() override;
 
 	static Ptr
-	CreateShared(VkDevice device) {
+	CreateShared(Ref<VulkanDevice> device) {
 		return CreateRef<VulkanTexture>(device);
 	}
 private:

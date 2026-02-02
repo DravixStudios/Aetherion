@@ -20,7 +20,7 @@ public:
 	VkBuffer GetVkBuffer() const { return this->m_buffer; }
 
 	static Ptr
-	CreateShared(VkDevice device) {
+	CreateShared(Ref<VulkanDevice> device) {
 		return CreateRef<VulkanBuffer>(device);
 	}
 

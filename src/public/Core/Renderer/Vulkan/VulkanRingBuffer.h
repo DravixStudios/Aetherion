@@ -26,6 +26,8 @@ public:
 	uint32_t GetPerFrameSize() const { return this->m_nPerFrameSize; }
 	uint32_t GetOffset() const { return this->m_nOffset; }
 
+	uint64_t GetSize() const override { return this->m_nBufferSize; }
+
 	static Ptr
 	CreateShared(Ref<VulkanDevice> device) {
 		return CreateRef<VulkanRingBuffer>(device);

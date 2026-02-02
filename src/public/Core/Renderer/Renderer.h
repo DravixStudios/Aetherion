@@ -15,5 +15,5 @@ public:
     virtual ~Renderer() = default;
     virtual void Create(GLFWwindow* pWindow) = 0;
 
-    virtual Ref<Device> CreateDevice();
+    virtual Ref<Device> CreateDevice() = 0;
 };

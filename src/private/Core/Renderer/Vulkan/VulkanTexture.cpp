@@ -62,32 +62,34 @@ VulkanTexture::Create(const TextureCreateInfo& createInfo) {
 	VK_CHECK(vkBindImageMemory(vkDevice, this->m_image, this->m_memory, 0), "Failed binding image memory");
 
 	/* Copy buffer to image */
-	Ref<CommandBuffer> commandBuff = this->m_device->BeginSingleTimeCommandBuffer();
+	if (createInfo.buffer) {
+		Ref<CommandBuffer> commandBuff = this->m_device->BeginSingleTimeCommandBuffer();
 
-	VkBufferImageCopy region = { };
-	region.bufferOffset = 0;
-	region.bufferRowLength = 0;
-	region.bufferImageHeight = 0;
+		VkBufferImageCopy region = { };
+		region.bufferOffset = 0;
+		region.bufferRowLength = 0;
+		region.bufferImageHeight = 0;
 
-	region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-	region.imageSubresource.mipLevel = 0;
-	region.imageSubresource.baseArrayLayer = 0;
-	region.imageSubresource.layerCount = 1;
+		region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		region.imageSubresource.mipLevel = 0;
+		region.imageSubresource.baseArrayLayer = 0;
+		region.imageSubresource.layerCount = 1;
 
-	region.imageOffset = { 0, 0, 0 };
-	region.imageExtent = { createInfo.extent.width, createInfo.extent.height, 1 };
+		region.imageOffset = { 0, 0, 0 };
+		region.imageExtent = { createInfo.extent.width, createInfo.extent.height, 1 };
 
-	Ref<VulkanCommandBuffer> vkCommandBuff = commandBuff.As<VulkanCommandBuffer>();
+		Ref<VulkanCommandBuffer> vkCommandBuff = commandBuff.As<VulkanCommandBuffer>();
 
-	vkCmdCopyBufferToImage(
-		vkCommandBuff->GetVkCommandBuffer(),
-		buffer->GetVkBuffer(), 
-		this->m_image, 
-		VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-		1, &region
-	);
+		vkCmdCopyBufferToImage(
+			vkCommandBuff->GetVkCommandBuffer(),
+			buffer->GetVkBuffer(), 
+			this->m_image, 
+			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			1, &region
+		);
 
-	this->m_device->EndSingleTimeCommandBuffer(commandBuff);
+		this->m_device->EndSingleTimeCommandBuffer(commandBuff);
+	}
 }
 
 /**

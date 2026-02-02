@@ -48,6 +48,8 @@ VulkanRingBuffer::~VulkanRingBuffer() {
 void 
 VulkanRingBuffer::Create(const RingBufferCreateInfo& createInfo) {
 	this->m_bufferType = createInfo.bufferType;
+	this->m_nBufferSize = createInfo.nBufferSize;
+	this->m_nFramesInFlight = createInfo.nFramesInFlight;
 
 	VkPhysicalDeviceProperties devProps = this->m_device->GetPhysicalDeviceProperties();
 	uint32_t nMinAlignment = createInfo.nAlignment;

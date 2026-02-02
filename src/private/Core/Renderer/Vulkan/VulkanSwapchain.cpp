@@ -80,7 +80,7 @@ VulkanSwapchain::Create(const SwapchainCreateInfo& createInfo) {
 	vkGetSwapchainImagesKHR(this->m_device->GetVkDevice(), this->m_swapchain, &nImageCount, images.data());
 
 	for (const VkImage& image : images) {
-		Ref<VulkanTexture> vkImage = VulkanTexture::CreateShared(this->m_device->GetVkDevice());
+		Ref<VulkanTexture> vkImage = VulkanTexture::CreateShared(this->m_device);
 		vkImage->Create(image);
 		this->m_images.push_back(vkImage.As<GPUTexture>());
 	}
@@ -271,7 +271,7 @@ VulkanSwapchain::Rebuild(uint32_t nNewWidth, uint32_t nNewHeight) {
 	vkGetSwapchainImagesKHR(this->m_device->GetVkDevice(), this->m_swapchain, &nImageCount, images.data());
 
 	for (const VkImage& image : images) {
-		Ref<VulkanTexture> vkImage = VulkanTexture::CreateShared(this->m_device->GetVkDevice());
+		Ref<VulkanTexture> vkImage = VulkanTexture::CreateShared(this->m_device);
 		vkImage->Create(image);
 		this->m_images.push_back(vkImage.As<GPUTexture>());
 	}
@@ -464,7 +464,7 @@ VulkanSwapchain::CreateDepthResources() {
 	textureInfo.imageType = ETextureDimensions::TYPE_2D;
 	textureInfo.initialLayout = ETextureLayout::UNDEFINED;
 
-	Ref<VulkanTexture> depthImage = VulkanTexture::CreateShared(this->m_device->GetVkDevice());
+	Ref<VulkanTexture> depthImage = VulkanTexture::CreateShared(this->m_device);
 	depthImage->Create(textureInfo);
 
 	ImageViewCreateInfo viewInfo = { };

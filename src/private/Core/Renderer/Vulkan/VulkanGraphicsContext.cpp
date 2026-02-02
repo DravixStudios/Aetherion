@@ -70,7 +70,7 @@ VulkanGraphicsContext::BindVertexBuffers(
 
 	for (uint32_t i = 0; i < nBufferCount; i++) {
 		const Ref<GPUBuffer>& buffer = buffers[i];
-		vkBuffers[i] = buffer.As<VulkanBuffer>()->GetBuffer();
+		vkBuffers[i] = buffer.As<VulkanBuffer>()->GetVkBuffer();
 	}
 
 	vkCmdBindVertexBuffers(this->m_commandBuffer, 0, nBufferCount, vkBuffers.data(), offsets.data());
@@ -86,7 +86,7 @@ void
 VulkanGraphicsContext::BindIndexBuffer(Ref<GPUBuffer> buffer, EIndexType indexType) {
 	VkIndexType vkIndexType = VulkanHelpers::ConvertIndexType(indexType);
 
-	VkBuffer vkBuffer = buffer.As<VulkanBuffer>()->GetBuffer();
+	VkBuffer vkBuffer = buffer.As<VulkanBuffer>()->GetVkBuffer();
 	vkCmdBindIndexBuffer(this->m_commandBuffer, vkBuffer, 0, vkIndexType);
 }
 
@@ -161,8 +161,8 @@ VulkanGraphicsContext::DrawIndexedIndirect(
 	uint32_t nMaxDrawCount,
 	uint32_t nStride
 ) {
-	VkBuffer vkBuffer = buffer.As<VulkanBuffer>()->GetBuffer();
-	VkBuffer vkCountBuffer = countBuffer.As<VulkanBuffer>()->GetBuffer();
+	VkBuffer vkBuffer = buffer.As<VulkanBuffer>()->GetVkBuffer();
+	VkBuffer vkCountBuffer = countBuffer.As<VulkanBuffer>()->GetVkBuffer();
 
 	vkCmdDrawIndexedIndirectCount(
 		this->m_commandBuffer,

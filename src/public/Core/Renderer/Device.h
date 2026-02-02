@@ -28,7 +28,7 @@ public:
 
 	using Ptr = Ref<Device>;
 
-	virtual ~Device();
+	virtual ~Device() = default;
 
 	/**
 	* Creates a logical device
@@ -47,7 +47,7 @@ public:
 	virtual Ref<CommandPool> CreateCommandPool(
 		const CommandPoolCreateInfo& createInfo, 
 		EQueueType queueType = EQueueType::GRAPHICS
-	);
+	) = 0;
 
 	/**
 	* Creates a graphics context
@@ -56,7 +56,7 @@ public:
 	* 
 	* @returns A graphics context
 	*/
-	virtual Ref<GraphicsContext> CreateContext(Ref<CommandPool>& commandPool);
+	virtual Ref<GraphicsContext> CreateContext(Ref<CommandPool>& commandPool) = 0;
 
 	/**
 	* Creates a pipeline layout
@@ -65,7 +65,7 @@ public:
 	* 
 	* @returns Created pipeline layout
 	*/
-	virtual Ref<PipelineLayout> CreatePipelineLayout(const PipelineLayoutCreateInfo& createInfo);
+	virtual Ref<PipelineLayout> CreatePipelineLayout(const PipelineLayoutCreateInfo& createInfo) = 0;
 
 	/**
 	* Creates a graphics pipeline
@@ -74,7 +74,7 @@ public:
 	* 
 	* @returns Created graphics pipeline
 	*/
-	virtual Ref<Pipeline> CreateGraphicsPipeline(const GraphicsPipelineCreateInfo& createInfo);
+	virtual Ref<Pipeline> CreateGraphicsPipeline(const GraphicsPipelineCreateInfo& createInfo) = 0;
 
 	/**
 	* Creates a compute pipeline
@@ -83,7 +83,7 @@ public:
 	*
 	* @returns Created compute pipeline
 	*/
-	virtual Ref<Pipeline> CreateComputePipeline(const ComputePipelineCreateInfo& createInfo);
+	virtual Ref<Pipeline> CreateComputePipeline(const ComputePipelineCreateInfo& createInfo) = 0;
 
 	/**
 	* Begins a single time command buffer
