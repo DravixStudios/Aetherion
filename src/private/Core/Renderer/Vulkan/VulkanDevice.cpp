@@ -331,6 +331,138 @@ VulkanDevice::GetDeviceName() const {
 }
 
 /**
+* Checks if the format has stencil component
+*
+* @param format Format
+*
+* @returns True if has stencil component
+*/
+bool 
+VulkanDevice::HasStencilComponent(GPUFormat format) {
+	return format == GPUFormat::D32_FLOAT_S8_UINT || format == GPUFormat::D24_UNORM_S8_UINT;
+}
+
+/**
+* Transitions a image layout to a new layout
+*
+* @param image The transitioned image
+* @param format Image format
+* @param oldLayout Old image layout
+* @param newLayout New image layout
+* 
+* @param nLayerCount Layer count (optional)
+* @param nBaseMipLevel Base mip level (optional)
+*/
+void 
+VulkanDevice::TransitionLayout(
+	Ref<GPUTexture> image,
+	GPUFormat format,
+	EImageLayout oldLayout,
+	EImageLayout newLayout,
+	uint32_t nLayerCount,
+	uint32_t nBaseMipLevel
+) {
+	Ref<VulkanCommandBuffer> commandBuffer = this->BeginSingleTimeCommandBuffer().As<VulkanCommandBuffer>();
+	VkImage vkImage = image.As<VulkanTexture>()->GetVkImage();
+
+	/* Create a barrier */
+	VkImageMemoryBarrier barrier = { };
+	barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+	barrier.oldLayout = VulkanHelpers::ConvertImageLayout(oldLayout);
+	barrier.newLayout = VulkanHelpers::ConvertImageLayout(newLayout);
+	barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	barrier.image = vkImage;
+
+	/* Barrier subresource range definition */
+	barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	barrier.subresourceRange.baseArrayLayer = 0;
+	barrier.subresourceRange.layerCount = nLayerCount;
+	barrier.subresourceRange.baseMipLevel = nBaseMipLevel;
+	barrier.subresourceRange.levelCount = 1;
+
+	VkPipelineStageFlags srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+	VkPipelineStageFlags dstStage = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+
+	if (oldLayout == EImageLayout::UNDEFINED && newLayout == EImageLayout::TRANSFER_DST) {
+		barrier.srcAccessMask = 0;
+		barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+
+		srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+		dstStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+	}
+	else if (oldLayout == EImageLayout::TRANSFER_DST && newLayout == EImageLayout::SHADER_READ_ONLY) {
+		barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+		barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+		srcStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+		dstStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+	}
+	else if (oldLayout == EImageLayout::UNDEFINED && newLayout == EImageLayout::DEPTH_STENCIL_ATTACHMENT) {
+		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+		
+		if (this->HasStencilComponent(format)) {
+			barrier.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
+		}
+
+		srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+		dstStage = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+	}
+	else if (oldLayout == EImageLayout::UNDEFINED && newLayout == EImageLayout::COLOR_ATTACHMENT) {
+		barrier.srcAccessMask = 0;
+		barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+		srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+		dstStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	}
+	else if (oldLayout == EImageLayout::COLOR_ATTACHMENT && newLayout == EImageLayout::TRANSFER_SRC) {
+		barrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+		barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+
+		srcStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		dstStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+	}
+	else if (oldLayout == EImageLayout::TRANSFER_DST && newLayout == EImageLayout::PRESENT_SRC) {
+		barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+		barrier.dstAccessMask = 0;
+
+		srcStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+		dstStage = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+	}
+	else if (oldLayout == EImageLayout::DEPTH_STENCIL_ATTACHMENT && newLayout == EImageLayout::SHADER_READ_ONLY) {
+		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+		barrier.srcAccessMask = 0;
+		barrier.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
+
+		srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+		dstStage = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+	}
+	else if (oldLayout == EImageLayout::COLOR_ATTACHMENT && newLayout == EImageLayout::SHADER_READ_ONLY) {
+		barrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+		barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+		srcStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		dstStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+	}
+	else {
+		Logger::Error("VulkanDevice::TransitionLayout: Unsupported layout transition");
+		throw std::runtime_error("VulkanDevice::TransitionLayout: Unsupported layout transition");
+	}
+
+	vkCmdPipelineBarrier(
+		commandBuffer->GetVkCommandBuffer(),
+		srcStage,
+		dstStage,
+		0,
+		0, nullptr,
+		0, nullptr,
+		1, &barrier
+	);
+
+	this->EndSingleTimeCommandBuffer(commandBuffer.As<CommandBuffer>());
+}
+
+/**
 * Finds memory type
 * 
 * @param typeFilter Type filter

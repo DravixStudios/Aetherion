@@ -119,4 +119,33 @@ public:
 	* @returns Device name
 	*/
 	virtual const char* GetDeviceName() const = 0;
+
+	/**
+	* Checks if the format has stencil component
+	* 
+	* @param format Format
+	* 
+	* @returns True if has stencil component
+	*/
+	virtual bool HasStencilComponent(GPUFormat format) = 0;
+
+	/**
+	* Transitions a image layout to a new layout
+	* 
+	* @param image The transitioned image
+	* @param format Image format
+	* @param oldLayout Old image layout
+	* @param newLayout New image layout
+	* 
+	* @param nLayerCount Layer count (optional)
+	* @param nBaseMipLevel Base mip level (optional)
+	*/
+	virtual void TransitionLayout(
+		Ref<GPUTexture> image,
+		GPUFormat format,
+		EImageLayout oldLayout,
+		EImageLayout newLayout,
+		uint32_t nLayerCount = 1,
+		uint32_t nBaseMipLevel = 0
+	) = 0;
 };

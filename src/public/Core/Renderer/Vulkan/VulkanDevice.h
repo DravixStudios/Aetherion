@@ -51,6 +51,17 @@ public:
 	) const override;
 
 	const char* GetDeviceName() const override;
+
+	bool HasStencilComponent(GPUFormat format) override;
+	void TransitionLayout(
+		Ref<GPUTexture> image,
+		GPUFormat format,
+		EImageLayout oldLayout, 
+		EImageLayout newLayout,
+		uint32_t nLayerCount = 1,
+		uint32_t nBaseMipLevel = 0
+	) override;
+
 	VkDevice GetVkDevice() const { return this->m_device; }
 	VkPhysicalDevice GetVkPhysicalDevice() const { return this->m_physicalDevice; }
 
@@ -85,7 +96,6 @@ private:
 	
 	Vector<VkQueueFamilyProperties> m_queueFamilyProperties;
 	void CacheQueueFamilyProperties();
-
 
 	VkPhysicalDeviceProperties m_devProperties;
 
