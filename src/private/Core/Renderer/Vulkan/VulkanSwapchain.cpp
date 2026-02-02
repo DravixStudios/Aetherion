@@ -441,3 +441,59 @@ VulkanSwapchain::ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities) 
 		return extent;
 	}
 }
+
+/**
+* Creates depth resources
+*/
+void 
+VulkanSwapchain::CreateDepthResources() {
+	VkFormat depthFormat = this->FindDepthFormat();
+
+	Extent3D extent = { };
+	extent.width = this->m_extent.width;
+	extent.height = this->m_extent.height;
+	extent.depth = 1;
+
+	TextureCreateInfo textureInfo = { };
+	textureInfo.usage = ETextureUsage::DEPTH_STENCIL_ATTACHMENT | ETextureUsage::SAMPLED;
+	textureInfo.extent = extent;
+	textureInfo.tiling = ETextureTiling::OPTIMAL;
+	textureInfo.sharingMode = ESharingMode::EXCLUSIVE;
+	textureInfo.format = VulkanHelpers::RevertFormat(depthFormat);
+	textureInfo.samples = ESampleCount::SAMPLE_1;
+	textureInfo.imageType = ETextureDimensions::TYPE_2D;
+	textureInfo.initialLayout = ETextureLayout::UNDEFINED;
+
+	Ref<VulkanTexture> depthImage = VulkanTexture::CreateShared(this->m_device->GetVkDevice());
+	depthImage->Create(textureInfo);
+
+	ImageViewCreateInfo viewInfo = { };
+	viewInfo.image = depthImage.As<GPUTexture>();
+	viewInfo.viewType = EImageViewType::TYPE_2D;
+	viewInfo.format = VulkanHelpers::RevertFormat(depthFormat);
+
+	viewInfo.subresourceRange.aspectMask = EImageAspect::DEPTH;
+	viewInfo.subresourceRange.nBaseArrayLayer = 0;
+	viewInfo.subresourceRange.nLayerCount = 1;
+	viewInfo.subresourceRange.nBaseMipLevel = 0;
+	viewInfo.subresourceRange.nLevelCount = 1;
+
+	viewInfo.components.r = ComponentMapping::ESwizzle::IDENTITY;
+	viewInfo.components.g = ComponentMapping::ESwizzle::IDENTITY;
+	viewInfo.components.b = ComponentMapping::ESwizzle::IDENTITY;
+	viewInfo.components.a = ComponentMapping::ESwizzle::IDENTITY;
+
+	Ref<VulkanImageView> depthImageView = VulkanImageView::CreateShared(this->m_device->GetVkDevice());
+	depthImageView->Create(viewInfo);
+
+	this->m_depthImage = depthImage.As<GPUTexture>();
+	this->m_depthImageView = depthImageView.As<ImageView>();
+	this->m_depthFormat = VulkanHelpers::RevertFormat(depthFormat);
+
+	this->m_device->TransitionLayout(
+		this->m_depthImage,
+		this->m_depthFormat, 
+		EImageLayout::UNDEFINED,
+		EImageLayout::DEPTH_STENCIL_ATTACHMENT
+	);
+}

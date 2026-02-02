@@ -76,4 +76,6 @@ private:
 	VkPresentModeKHR ChooseSwapPresentMode(const Vector<VkPresentModeKHR>& presentModes);
 	VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
 	VkFormat FindDepthFormat();
+
+	void CreateDepthResources();
 };
