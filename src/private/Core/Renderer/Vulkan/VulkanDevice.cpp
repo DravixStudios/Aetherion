@@ -463,6 +463,37 @@ VulkanDevice::TransitionLayout(
 }
 
 /**
+* Creates Vulkan a swapchain
+*
+* @param createInfo Swapchain create info
+*
+* @returns Created Vulkan swapchain
+*/
+Ref<Swapchain> 
+VulkanDevice::CreateSwapchain(const SwapchainCreateInfo& createInfo) {
+	if (!createInfo.pWindow) {
+		Logger::Error("VulkanDevice::CreateSwapchain: createInfo.pWindow is null");
+		throw std::runtime_error("VulkanDevice::CreateSwapchain: createInfo.pWindow is null");
+	}
+
+	VkSurfaceKHR surface = VK_NULL_HANDLE;
+	VK_CHECK(
+		glfwCreateWindowSurface(
+			this->m_instance,
+			createInfo.pWindow,
+			nullptr,
+			&surface),
+		"Failed to create window surface");
+
+	Ref<VulkanDevice> deviceRef = std::static_pointer_cast<VulkanDevice>(this->shared_from_this());
+
+	Ref<VulkanSwapchain> swapchain = VulkanSwapchain::CreateShared(deviceRef, surface);
+	swapchain->Create(createInfo);
+
+	return swapchain.As<Swapchain>();
+}
+
+/**
 * Finds memory type
 * 
 * @param typeFilter Type filter

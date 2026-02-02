@@ -1,9 +1,11 @@
 #pragma once
 #include <cstdint>
+#include <memory>
 
 #include "Core/Containers.h"
 #include "Core/Renderer/CommandPool.h"
 #include "Core/Renderer/GraphicsContext.h"
+#include "Core/Renderer/Swapchain.h"
 
 enum class EQueueType {
 	GRAPHICS,
@@ -22,7 +24,7 @@ struct DeviceCreateInfo {
 	Vector<const char*> validationLayers; // DEBUG ONLY
 };
 
-class Device {
+class Device : public std::enable_shared_from_this<Device> {
 public:
 	static constexpr const char* CLASS_NAME = "Device";
 
@@ -148,4 +150,13 @@ public:
 		uint32_t nLayerCount = 1,
 		uint32_t nBaseMipLevel = 0
 	) = 0;
+
+	/**
+	* Creates a swapchain
+	* 
+	* @param createInfo Swapchain create info
+	* 
+	* @returns Created swapchain
+	*/
+	virtual Ref<Swapchain> CreateSwapchain(const SwapchainCreateInfo& createInfo) = 0;
 };

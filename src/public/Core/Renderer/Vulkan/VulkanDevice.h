@@ -12,6 +12,7 @@
 #include "Core/Renderer/Vulkan/VulkanCommandBuffer.h"
 #include "Core/Renderer/Vulkan/VulkanGraphicsContext.h"
 #include "Core/Renderer/Vulkan/VulkanPipelineLayout.h"
+#include "Core/Renderer/Vulkan/VulkanSwapchain.h"
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
@@ -61,6 +62,8 @@ public:
 		uint32_t nLayerCount = 1,
 		uint32_t nBaseMipLevel = 0
 	) override;
+
+	Ref<Swapchain> CreateSwapchain(const SwapchainCreateInfo& createInfo) override;
 
 	VkDevice GetVkDevice() const { return this->m_device; }
 	VkPhysicalDevice GetVkPhysicalDevice() const { return this->m_physicalDevice; }
