@@ -42,7 +42,7 @@ VulkanDescriptorSet::WriteBuffer(
 	Ref<VulkanBuffer> vkBuffer = bufferInfo.buffer.As<VulkanBuffer>();
 
 	VkDescriptorBufferInfo buffInfo = { };
-	buffInfo.buffer = vkBuffer->GetBuffer();
+	buffInfo.buffer = vkBuffer->GetVkBuffer();
 	buffInfo.offset = bufferInfo.nOffset;
 	buffInfo.range = bufferInfo.nRange == 0 ? VK_WHOLE_SIZE : bufferInfo.nRange;
 
@@ -83,8 +83,8 @@ VulkanDescriptorSet::WriteTexture(
 
 	VkDescriptorImageInfo imgInfo = { };
 	imgInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-	imgInfo.imageView = vkTexture->GetImageView();
-	imgInfo.sampler = vkTexture->GetSampler();
+	imgInfo.imageView = imageInfo.imageView.As<VulkanImageView>()->GetVkImageView();
+	imgInfo.sampler = imageInfo.sampler.As<VulkanSampler>()->GetVkSampler();
 
 	this->m_imageInfos.push_back(imgInfo);
 
@@ -123,7 +123,7 @@ VulkanDescriptorSet::WriteBuffers(
 		Ref<VulkanBuffer> vkBuffer = bufferInfo.buffer.As<VulkanBuffer>();
 
 		VkDescriptorBufferInfo buffInfo = { };
-		buffInfo.buffer = vkBuffer->GetBuffer();
+		buffInfo.buffer = vkBuffer->GetVkBuffer();
 		buffInfo.offset = bufferInfo.nOffset;
 		buffInfo.range = bufferInfo.nRange == 0 ? VK_WHOLE_SIZE : bufferInfo.nRange;
 
@@ -172,8 +172,8 @@ VulkanDescriptorSet::WriteTextures(
 
 		VkDescriptorImageInfo imgInfo = { };
 		imgInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		imgInfo.imageView = vkTexture->GetImageView();
-		imgInfo.sampler = vkTexture->GetSampler();
+		imgInfo.imageView = imageInfo.imageView.As<VulkanImageView>()->GetVkImageView();
+		imgInfo.sampler = imageInfo.sampler.As<VulkanSampler>()->GetVkSampler();
 
 		this->m_imageInfos.push_back(imgInfo);
 	}

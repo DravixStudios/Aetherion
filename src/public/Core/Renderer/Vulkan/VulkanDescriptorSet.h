@@ -7,6 +7,8 @@
 
 #include "Core/Renderer/Vulkan/VulkanBuffer.h"
 #include "Core/Renderer/Vulkan/VulkanTexture.h"
+#include "Core/Renderer/Vulkan/VulkanImageView.h"
+#include "Core/Renderer/Vulkan/VulkanSampler.h"
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
