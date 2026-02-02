@@ -134,6 +134,7 @@ VulkanRenderer::PickPhysicalDevice() {
 	vkEnumeratePhysicalDevices(this->m_instance, &nPhysicalDeviceCount, nullptr);
 
 	Vector<VkPhysicalDevice> physicalDevices(nPhysicalDeviceCount);
+	vkEnumeratePhysicalDevices(this->m_instance, &nPhysicalDeviceCount, physicalDevices.data());
 
 	Logger::Debug("VulkanRenderer::PickPhysicalDevice: Available physical device count: {}", nPhysicalDeviceCount);
 
