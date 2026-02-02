@@ -47,7 +47,7 @@ enum class EBorderColor {
 	INT_OPAQUE_BLACK,
 	FLOAT_OPAQUE_WHITE,
 	INT_OPAQUE_WHITE,
-	FLOAT_CUSTTOM,
+	FLOAT_CUSTOM,
 	INT_CUSTOM
 };
 
@@ -79,7 +79,14 @@ class Sampler {
 public:
 	using Ptr = Ref<Sampler>;
 
+	static constexpr const char* CLASS_NAME = "Sampler";
+
 	virtual ~Sampler() = default;
 
-	virtual void Create(SamplerCreateInfo createInfo) = 0;
+	/**
+	* Creates a sampler
+	* 
+	* @param createInfo Sampler create info
+	*/
+	virtual void Create(const SamplerCreateInfo& createInfo) = 0;
 };
