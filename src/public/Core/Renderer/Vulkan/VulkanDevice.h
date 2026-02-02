@@ -65,6 +65,8 @@ public:
 
 	Ref<Swapchain> CreateSwapchain(const SwapchainCreateInfo& createInfo) override;
 
+	Ref<RenderPass> CreateRenderPass(const RenderPassCreateInfo& createInfo) override;
+
 	VkDevice GetVkDevice() const { return this->m_device; }
 	VkPhysicalDevice GetVkPhysicalDevice() const { return this->m_physicalDevice; }
 

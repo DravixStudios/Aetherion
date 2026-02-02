@@ -494,6 +494,21 @@ VulkanDevice::CreateSwapchain(const SwapchainCreateInfo& createInfo) {
 }
 
 /**
+* Creates a Vulkan render pass
+*
+* @param createInfo Render pass create info
+*
+* @returns Created Vulkan render pass
+*/
+Ref<RenderPass> 
+VulkanDevice::CreateRenderPass(const RenderPassCreateInfo& createInfo) {
+	Ref<VulkanRenderPass> renderPass = VulkanRenderPass::CreateShared(this->m_device);
+	renderPass->Create(createInfo);
+
+	return renderPass.As<RenderPass>();
+}
+
+/**
 * Finds memory type
 * 
 * @param typeFilter Type filter

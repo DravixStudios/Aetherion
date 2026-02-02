@@ -159,4 +159,13 @@ public:
 	* @returns Created swapchain
 	*/
 	virtual Ref<Swapchain> CreateSwapchain(const SwapchainCreateInfo& createInfo) = 0;
+
+	/**
+	* Creates a render pass
+	* 
+	* @param createInfo Render pass create info
+	* 
+	* @returns Created render pass
+	*/
+	virtual Ref<RenderPass> CreateRenderPass(const RenderPassCreateInfo& createInfo) = 0;
 };
