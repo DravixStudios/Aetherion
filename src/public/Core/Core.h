@@ -12,6 +12,10 @@
 #include "Renderer/Renderer.h"
 #include "Renderer/Vulkan/VulkanRenderer.h"
 
+/* TODO: Custom width */
+#define WIDTH 1600
+#define HEIGHT 900
+
 /* Forward declarations */
 class SceneManager;
 class ResourceManager;

@@ -25,7 +25,7 @@ VulkanRenderPass::Create(const RenderPassCreateInfo& createInfo) {
 		vkAttachment.stencilStoreOp = VulkanHelpers::ConvertStoreOp(attachment.stencilStoreOp); 
 		vkAttachment.loadOp = VulkanHelpers::ConvertLoadOp(attachment.loadOp);
 		vkAttachment.storeOp = VulkanHelpers::ConvertStoreOp(attachment.storeOp);
-		vkAttachment.samples = static_cast<VkSampleCountFlagBits>(attachment.nSampleCount);
+		vkAttachment.samples = static_cast<VkSampleCountFlagBits>(attachment.sampleCount);
 
 		attachments.push_back(vkAttachment);
 	}
@@ -71,10 +71,13 @@ VulkanRenderPass::Create(const RenderPassCreateInfo& createInfo) {
 		/* Depth stencil attachment */
 		VkAttachmentReference2* pDepthRef = nullptr;
 		if (subpass.bHasDepthStencil) {
-			depthRefs[i].sType = VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2;
+			depthRefs[i].sType = VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2;
 			depthRefs[i].attachment = subpass.depthStencilAttachment.nAttachment;
-			depthRefs[i].attachment = VulkanHelpers::ConvertImageLayout(subpass.depthStencilAttachment.layout);
+			depthRefs[i].layout = VulkanHelpers::ConvertImageLayout(subpass.depthStencilAttachment.layout);
 			depthRefs[i].aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+			if (this->HasStencil(attachments[subpass.depthStencilAttachment.nAttachment].format)) {
+				depthRefs[i].aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
+			}
 
 			pDepthRef = &depthRefs[i];
 		}
@@ -82,10 +85,13 @@ VulkanRenderPass::Create(const RenderPassCreateInfo& createInfo) {
 		/* Depth stencil resolve attachment */
 		VkSubpassDescriptionDepthStencilResolve* pDepthResolveRef = nullptr;
 		if (subpass.bHasDepthStencilResolve) {
-			depthResolveRefs[i].sType = VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2;
+			depthResolveRefs[i].sType = VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2;
 			depthResolveRefs[i].attachment = subpass.depthResolveAttachment.nAttachment;
-			depthResolveRefs[i].attachment = VulkanHelpers::ConvertImageLayout(subpass.depthResolveAttachment.layout);
+			depthResolveRefs[i].layout = VulkanHelpers::ConvertImageLayout(subpass.depthResolveAttachment.layout);
 			depthResolveRefs[i].aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+			if (this->HasStencil(attachments[subpass.depthResolveAttachment.nAttachment].format)) {
+				depthResolveRefs[i].aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
+			}
 
 			VkSubpassDescriptionDepthStencilResolve depthResolve = { };
 			depthResolve.sType = VK_STRUCTURE_TYPE_SUBPASS_DESCRIPTION_DEPTH_STENCIL_RESOLVE;
@@ -149,4 +155,8 @@ VulkanRenderPass::Create(const RenderPassCreateInfo& createInfo) {
 		attachments.size(), 
 		subpasses.size()
 	); 
+}
+
+bool VulkanRenderPass::HasStencil(VkFormat format) {
+	return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
 }

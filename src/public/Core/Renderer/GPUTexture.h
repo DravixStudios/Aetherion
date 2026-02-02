@@ -37,13 +37,13 @@ operator&(ETextureFlags a, ETextureFlags b) {
 }
 
 enum class ESampleCount {
-	SAMPLE_1,
-	SAMPLE_2,
-	SAMPLE_4,
-	SAMPLE_8,
-	SAMPLE_16,
-	SAMPLE_32,
-	SAMPLE_64
+	SAMPLE_1 = 1,
+	SAMPLE_2 = 2,
+	SAMPLE_4 = 4,
+	SAMPLE_8 = 8,
+	SAMPLE_16 = 16,
+	SAMPLE_32 = 32,
+	SAMPLE_64 = 64
 };
 
 enum class ETextureTiling {

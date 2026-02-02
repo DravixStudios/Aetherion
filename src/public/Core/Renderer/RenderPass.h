@@ -30,7 +30,7 @@ enum class EImageLayout {
 
 struct AttachmentDescription {
 	GPUFormat format;
-	uint32_t nSampleCount = 1;
+	ESampleCount sampleCount = ESampleCount::SAMPLE_1;
 	EAttachmentLoadOp loadOp = EAttachmentLoadOp::CLEAR;
 	EAttachmentStoreOp storeOp = EAttachmentStoreOp::STORE;
 	EAttachmentLoadOp stencilLoadOp = EAttachmentLoadOp::DONT_CARE;
