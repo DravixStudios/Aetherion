@@ -12,5 +12,5 @@ public:
 
 private:
 	friend class RenderGraph;
-	Ref<TransientResourcePool> m_pool;
+	TransientResourcePool* m_pool;
 };

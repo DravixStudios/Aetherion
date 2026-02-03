@@ -5,6 +5,7 @@
 #include "Core/Renderer/Rendering/TransientResourcePool.h"
 #include "Core/Renderer/Rendering/GraphNode.h"
 #include "Core/Renderer/Rendering/RenderGraphBuilder.h"
+#include "Core/Renderer/Rendering/RenderGraphContext.h"
 
 class RenderGraph {
 public:
