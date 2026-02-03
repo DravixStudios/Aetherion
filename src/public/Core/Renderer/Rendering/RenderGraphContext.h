@@ -7,7 +7,7 @@ class TransientResourcePool;
 
 class RenderGraphContext {
 public:
-	Ref<GPUTexture> GetTexutre(TextureHandle handle);
+	Ref<GPUTexture> GetTexture(TextureHandle handle);
 	Ref<ImageView> GetImageView(TextureHandle handle);
 
 private:
