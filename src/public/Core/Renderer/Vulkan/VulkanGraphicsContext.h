@@ -58,6 +58,10 @@ public:
 	void SetViewport(const Viewport& viewport) override;
 	void SetScissor(const Rect2D& scissor) override;
 
+	void BeginRenderPass(const RenderPassBeginInfo& beginInfo) override;
+	void EndRenderPass() override;
+	void NextSubpass() override;
+
 	static Ptr
 	CreateShared(VkCommandBuffer commandBuffer) {
 		return CreateRef<VulkanGraphicsContext>(commandBuffer);

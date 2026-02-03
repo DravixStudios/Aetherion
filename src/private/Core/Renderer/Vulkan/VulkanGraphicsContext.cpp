@@ -239,3 +239,62 @@ void VulkanGraphicsContext::SetScissor(const Rect2D& scissor) {
 
 	vkCmdSetScissor(this->m_commandBuffer, 0, 1, &vkScissor);
 }
+
+/**
+* Begins a Vulkan render pass
+*
+* @param beginInfo Render pass begin info
+*/
+void 
+VulkanGraphicsContext::BeginRenderPass(const RenderPassBeginInfo& beginInfo) {
+	VkRenderPass rp = beginInfo.renderPass.As<VulkanRenderPass>()->GetVkRenderPass();
+	VkFramebuffer fb = beginInfo.framebuffer.As<VulkanFramebuffer>()->GetVkFramebuffer();
+
+	VkRenderPassBeginInfo rpInfo = { };
+	rpInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+	rpInfo.renderPass = rp;
+	rpInfo.framebuffer = fb;
+	rpInfo.renderArea.extent = {
+		beginInfo.renderArea.extent.width,
+		beginInfo.renderArea.extent.height
+	};
+	rpInfo.renderArea.offset = {
+		static_cast<int32_t>(beginInfo.renderArea.offset.x),
+		static_cast<int32_t>(beginInfo.renderArea.offset.y)
+	};
+
+	Vector<VkClearValue> clearValues;
+	clearValues.reserve(beginInfo.clearValues.size());
+
+	for (const ClearValue& clear : beginInfo.clearValues) {
+		VkClearValue vkClear = { };
+		if (clear.type == ClearValue::Type::COLOR) {
+			vkClear.color = { { clear.color.r, clear.color.g, clear.color.b, clear.color.a } };
+		}
+		else {
+			vkClear.depthStencil = { clear.deptStencil.depth, clear.deptStencil.stencil };
+		}
+		clearValues.push_back(vkClear);
+	}
+
+	rpInfo.clearValueCount = clearValues.size();
+	rpInfo.pClearValues = clearValues.data();
+
+	vkCmdBeginRenderPass(this->m_commandBuffer, &rpInfo, VK_SUBPASS_CONTENTS_INLINE);
+}
+
+/**
+* Ends the current Vulkan render pass
+*/
+void
+VulkanGraphicsContext::EndRenderPass() {
+	vkCmdEndRenderPass(this->m_commandBuffer);
+}
+
+/**
+* Advances to the next Vulkan subpass
+*/
+void 
+VulkanGraphicsContext::NextSubpass() {
+	vkCmdNextSubpass(this->m_commandBuffer, VK_SUBPASS_CONTENTS_INLINE);
+}
