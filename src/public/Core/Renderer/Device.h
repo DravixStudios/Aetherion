@@ -168,4 +168,13 @@ public:
 	* @returns Created render pass
 	*/
 	virtual Ref<RenderPass> CreateRenderPass(const RenderPassCreateInfo& createInfo) = 0;
+
+	/**
+	* Creates a texture
+	* 
+	* @param createInfo Texture create info
+	* 
+	* @returns Created texture
+	*/
+	virtual Ref<GPUTexture> CreateTexture(const TextureCreateInfo& createInfo) = 0;
 };

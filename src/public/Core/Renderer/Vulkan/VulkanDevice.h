@@ -67,6 +67,8 @@ public:
 
 	Ref<RenderPass> CreateRenderPass(const RenderPassCreateInfo& createInfo) override;
 
+	Ref<GPUTexture> CreateTexture(const TextureCreateInfo& createInfo) override;
+
 	VkDevice GetVkDevice() const { return this->m_device; }
 	VkPhysicalDevice GetVkPhysicalDevice() const { return this->m_physicalDevice; }
 

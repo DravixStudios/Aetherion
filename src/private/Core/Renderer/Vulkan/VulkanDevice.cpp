@@ -509,6 +509,21 @@ VulkanDevice::CreateRenderPass(const RenderPassCreateInfo& createInfo) {
 }
 
 /**
+* Creates a Vulkan texture
+*
+* @param createInfo Texture create info
+*
+* @returns Created Vulkan texture
+*/
+Ref<GPUTexture> 
+VulkanDevice::CreateTexture(const TextureCreateInfo& createInfo) {
+	Ref<VulkanDevice> deviceRef = std::static_pointer_cast<VulkanDevice>(this->shared_from_this());
+
+	Ref<VulkanTexture> texture = VulkanTexture::CreateShared(deviceRef);
+	return texture.As<GPUTexture>();
+}
+
+/**
 * Finds memory type
 * 
 * @param typeFilter Type filter
