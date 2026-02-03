@@ -12,7 +12,6 @@ class GBufferManager {
 public:
 	void Init(Ref<Device> device, uint32_t nWidth, uint32_t nHeight);
 	void Resize(uint32_t nWidth, uint32_t nHeight);
-	void Shutdown();
 
 	Ref<GPUTexture> GetAlbedo() const { return this->m_albedo; }
 	Ref<GPUTexture> GetNormal() const { return this->m_normal; }
