@@ -7,7 +7,7 @@ struct GraphNode;
 class RenderGraphBuilder {
 public:
 	TextureHandle CreateColorOutput(const TextureDesc& desc);
-	TextureHandle CreasteDepthOutput(const TextureDesc& desc);
+	TextureHandle CreateDepthOutput(const TextureDesc& desc);
 	TextureHandle ReadTexture(TextureHandle handle);
 
 	void UseColorOutput(TextureHandle handle);
