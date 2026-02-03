@@ -17,7 +17,7 @@ public:
 
 	virtual void Init(Ref<Device> device) = 0;
 	virtual void SetupNode(RenderGraphBuilder& builder) = 0;
-	virtual void Execute(GraphicsContext& context, RenderGraphContext& graphCtx) = 0;
+	virtual void Execute(Ref<GraphicsContext> context, RenderGraphContext& graphCtx) = 0;
 
 	/**
 	* Sets pass dimensions

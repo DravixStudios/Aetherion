@@ -18,7 +18,7 @@ public:
 	VkSampler GetVkSampler() const { return this->m_sampler; }
 
 	static Ptr
-	CreateShader(Ref<VulkanDevice> device) {
+	CreateShared(Ref<VulkanDevice> device) {
 		return CreateRef<VulkanSampler>(device);
 	}
 
