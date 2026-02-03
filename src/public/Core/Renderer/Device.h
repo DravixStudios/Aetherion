@@ -177,4 +177,13 @@ public:
 	* @returns Created texture
 	*/
 	virtual Ref<GPUTexture> CreateTexture(const TextureCreateInfo& createInfo) = 0;
+	
+	/**
+	* Creates a image view
+	* 
+	* @param createInfo Image view create info
+	* 
+	* @returns Created image view
+	*/
+	virtual Ref<ImageView> CreateImageView(const ImageViewCreateInfo& createInfo) = 0;
 };

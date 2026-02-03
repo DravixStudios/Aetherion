@@ -524,6 +524,19 @@ VulkanDevice::CreateTexture(const TextureCreateInfo& createInfo) {
 }
 
 /**
+* Creates a Vulkan image view
+*
+* @param createInfo Image view create info
+*
+* @returns Created Vulkan image view
+*/
+Ref<ImageView> 
+VulkanDevice::CreateImageView(const ImageViewCreateInfo& createInfo) {
+	Ref<VulkanImageView> imageView = VulkanImageView::CreateShared(this->m_device);
+	return imageView.As<ImageView>();
+}
+
+/**
 * Finds memory type
 * 
 * @param typeFilter Type filter

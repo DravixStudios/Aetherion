@@ -69,6 +69,8 @@ public:
 
 	Ref<GPUTexture> CreateTexture(const TextureCreateInfo& createInfo) override;
 
+	Ref<ImageView> CreateImageView(const ImageViewCreateInfo& createInfo) override;
+
 	VkDevice GetVkDevice() const { return this->m_device; }
 	VkPhysicalDevice GetVkPhysicalDevice() const { return this->m_physicalDevice; }
 
