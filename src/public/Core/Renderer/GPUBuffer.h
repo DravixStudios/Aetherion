@@ -12,6 +12,27 @@ enum class EBufferType {
 	UNKNOWN_BUFFER 
 };
 
+enum class EBufferUsage : uint32_t {
+	NONE = 0,
+	TRANSFER_SRC = 1,
+	TRANSFER_DST = 1 << 1,
+	VERTEX_BUFFER = 1 << 2,
+	INDEX_BUFFER = 1 << 3,
+	UNIFORM_BUFFER = 1 << 4,
+	STORAGE_BUFFER = 1 << 5,
+	INDIRECT_BUFFER = 1 << 6
+};
+
+inline EBufferUsage
+operator|(EBufferUsage a, EBufferUsage b) {
+	return static_cast<EBufferUsage>(static_cast<uint32_t>(a) | static_cast<uint32_t>(b));
+}
+
+inline EBufferUsage
+operator&(EBufferUsage a, EBufferUsage b) {
+	return static_cast<EBufferUsage>(static_cast<uint32_t>(a) & static_cast<uint32_t>(b));
+}
+
 enum class EIndexType {
 	UINT8,
 	UINT16,
