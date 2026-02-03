@@ -131,4 +131,21 @@ public:
 	* @param scissor Scissor rect
 	*/
 	virtual void SetScissor(const Rect2D& scissor) = 0;
+
+	/**
+	* Begins a render pass
+	* 
+	* @param beginInfo Render pass begin info
+	*/
+	virtual void BeginRenderPass(const RenderPassBeginInfo& beginInfo) = 0;
+
+	/**
+	* Ends the current render pass
+	*/
+	virtual void EndRenderPass() = 0;
+
+	/**
+	* Advances to the next subpass
+	*/
+	virtual void NextSubpass() = 0;
 };
