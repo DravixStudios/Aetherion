@@ -34,6 +34,7 @@ VulkanSwapchain::Create(const SwapchainCreateInfo& createInfo) {
 	VkSurfaceFormatKHR format = this->ChooseSurfaceFormat(details.formats);
 	VkPresentModeKHR presentMode = this->ChooseSwapPresentMode(details.presentModes);
 	VkExtent2D extent = this->ChooseSwapExtent(details.capabilities);
+	this->m_extent = extent;
 
 	VkSwapchainCreateInfoKHR scInfo = { };
 	scInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
@@ -122,6 +123,8 @@ VulkanSwapchain::Create(const SwapchainCreateInfo& createInfo) {
 
 		this->m_imageViews[i] = vkView.As<ImageView>();
 	}
+
+	this->CreateDepthResources();
 }
 
 /**
