@@ -537,6 +537,79 @@ VulkanDevice::CreateImageView(const ImageViewCreateInfo& createInfo) {
 }
 
 /**
+* Creates a Vulkan framebuffer
+*
+* @param createInfo Framebuffer create info
+*
+* @returns Created Vulkan framebuffer
+*/
+Ref<Framebuffer> 
+VulkanDevice::CreateFramebuffer(const FramebufferCreateInfo& createInfo) {
+	Ref<VulkanFramebuffer> framebuffer = VulkanFramebuffer::CreateShared(this->m_device);
+	framebuffer->Create(createInfo);
+
+	return framebuffer.As<Framebuffer>();
+}
+
+/**
+* Creates a Vulkan sampler
+*
+* @param createInfo Sampler create info
+*
+* @returns Created Vulkan sampler
+*/
+Ref<Sampler> 
+VulkanDevice::CreateSampler(const SamplerCreateInfo& createInfo) {
+	Ref<VulkanDevice> deviceRef = std::static_pointer_cast<VulkanDevice>(this->shared_from_this());
+	Ref<VulkanSampler> sampler = VulkanSampler::CreateShared(deviceRef);
+
+	return sampler.As<Sampler>();
+}
+
+/**
+* Creates a Vulkan descriptor pool
+*
+* @param createInfo Descriptor pool create info
+*
+* @returns Created Vulkan descriptor pool
+*/
+Ref<DescriptorPool> 
+VulkanDevice::CreateDescriptorPool(const DescriptorPoolCreateInfo& createInfo) {
+	Ref<VulkanDescriptorPool> pool = VulkanDescriptorPool::CreateShared(this->m_device);
+	return pool.As<DescriptorPool>();
+}
+
+/**
+* Creates a Vulkan descriptor set layout
+*
+* @param createInfo Descriptor set layout create info
+*
+* @returns Created Vulkan descriptor set layout
+*/
+Ref<DescriptorSetLayout> 
+VulkanDevice::CreateDescriptorSetLayout(const DescriptorSetLayoutCreateInfo& createInfo) {
+	Ref<VulkanDescriptorSetLayout> layout = VulkanDescriptorSetLayout::CreateShared(this->m_device);
+	layout->Create(createInfo);
+
+	return layout.As<DescriptorSetLayout>();
+}
+
+/**
+* Creates a Vulkan descriptor set
+*
+* @param pool Descriptor pool to allocate from
+* @param layout Descriptor set layout
+*
+* @returns Created Vulkan descriptor set
+*/
+Ref<DescriptorSet> 
+VulkanDevice::CreateDescriptorSet(Ref<DescriptorPool> pool, Ref<DescriptorSetLayout> layout) {
+	Ref<VulkanDescriptorSet> set = VulkanDescriptorSet::CreateShared(this->m_device);
+
+	return set.As<DescriptorSet>();
+}
+
+/**
 * Finds memory type
 * 
 * @param typeFilter Type filter

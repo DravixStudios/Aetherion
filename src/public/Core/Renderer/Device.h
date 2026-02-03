@@ -6,6 +6,7 @@
 #include "Core/Renderer/CommandPool.h"
 #include "Core/Renderer/GraphicsContext.h"
 #include "Core/Renderer/Swapchain.h"
+#include "Core/Renderer/Framebuffer.h"
 
 enum class EQueueType {
 	GRAPHICS,
@@ -186,4 +187,50 @@ public:
 	* @returns Created image view
 	*/
 	virtual Ref<ImageView> CreateImageView(const ImageViewCreateInfo& createInfo) = 0;
+
+	/**
+	* Creates a framebuffer
+	* 
+	* @param createInfo Framebuffer create info
+	* 
+	* @returns Created framebuffer
+	*/
+	virtual Ref<Framebuffer> CreateFramebuffer(const FramebufferCreateInfo& createInfo) = 0;
+
+	/**
+	* Creates a sampler
+	* 
+	* @param createInfo Sampler create info
+	* 
+	* @returns Created sampler
+	*/
+	virtual Ref<Sampler> CreateSampler(const SamplerCreateInfo& createInfo) = 0;
+
+	/**
+	* Creates a descriptor pool
+	* 
+	* @param createInfo Descriptor pool create info
+	* 
+	* @returns Created descriptor pool
+	*/
+	virtual Ref<DescriptorPool> CreateDescriptorPool(const DescriptorPoolCreateInfo& createInfo) = 0;
+
+	/**
+	* Creates a descriptor set layout
+	* 
+	* @param createInfo Descriptor set layout create info
+	* 
+	* @returns Created descriptor set layout
+	*/
+	virtual Ref<DescriptorSetLayout> CreateDescriptorSetLayout(const DescriptorSetLayoutCreateInfo& createInfo) = 0;
+
+	/**
+	* Creates a descriptor set
+	* 
+	* @param pool Descriptor pool to allocate from
+	* @param layout Descriptor set layout
+	* 
+	* @returns Created descriptor set
+	*/
+	virtual Ref<DescriptorSet> CreateDescriptorSet(Ref<DescriptorPool> pool, Ref<DescriptorSetLayout> layout) = 0;
 };

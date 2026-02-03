@@ -13,6 +13,10 @@
 #include "Core/Renderer/Vulkan/VulkanGraphicsContext.h"
 #include "Core/Renderer/Vulkan/VulkanPipelineLayout.h"
 #include "Core/Renderer/Vulkan/VulkanSwapchain.h"
+#include "Core/Renderer/Vulkan/VulkanFramebuffer.h"
+#include "Core/Renderer/Vulkan/VulkanDescriptorSet.h"
+#include "Core/Renderer/Vulkan/VulkanDescriptorSetLayout.h"
+#include "Core/Renderer/Vulkan/VulkanSampler.h"
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
@@ -70,6 +74,16 @@ public:
 	Ref<GPUTexture> CreateTexture(const TextureCreateInfo& createInfo) override;
 
 	Ref<ImageView> CreateImageView(const ImageViewCreateInfo& createInfo) override;
+
+	Ref<Framebuffer> CreateFramebuffer(const FramebufferCreateInfo& createInfo) override;
+
+	Ref<Sampler> CreateSampler(const SamplerCreateInfo& createInfo) override;
+
+	Ref<DescriptorPool> CreateDescriptorPool(const DescriptorPoolCreateInfo& createInfo) override;
+
+	Ref<DescriptorSetLayout> CreateDescriptorSetLayout(const DescriptorSetLayoutCreateInfo& createInfo) override;
+
+	Ref<DescriptorSet> CreateDescriptorSet(Ref<DescriptorPool> pool, Ref<DescriptorSetLayout> layout) override;
 
 	VkDevice GetVkDevice() const { return this->m_device; }
 	VkPhysicalDevice GetVkPhysicalDevice() const { return this->m_physicalDevice; }
