@@ -59,7 +59,7 @@ public:
 	*/
 	EShaderStage GetStage() const { return this->m_stage; }
 
-	Ptr
+	static Ptr
 	CreateShared() {
 		return CreateRef<Shader>();
 	}

@@ -146,7 +146,7 @@ RenderGraph::Execute(Ref<GraphicsContext> context) {
         context->BeginRenderPass(beginInfo);
 
         /* Execute the graph node */
-        node.execute(*context, graphCtx);
+        node.execute(context, graphCtx);
 
         /* End the rennder pass */
         context->EndRenderPass();
