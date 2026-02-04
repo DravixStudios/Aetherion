@@ -187,6 +187,10 @@ struct GraphicsPipelineCreateInfo {
 	/* Pipeline layout */
 	Ref<PipelineLayout> pipelineLayout;
 
+	/* Color formats */
+	Vector<GPUFormat> colorFormats;
+	GPUFormat depthFormat;
+
 	/* Render pass (only for Vulkan, nullptr in D3D12 and others) */
 	Ref<RenderPass> renderPass { std::shared_ptr<RenderPass>(nullptr) };
 	uint32_t nSubpass;

@@ -60,10 +60,16 @@ VulkanDevice::Create(const DeviceCreateInfo& createInfo) {
 	deviceFeatures.depthClamp = createInfo.bEnableDepthClamp ? VK_TRUE : VK_FALSE;
 	deviceFeatures.sampleRateShading = VK_TRUE;
 
+	/* Vulkan 1.3 Features */
+	VkPhysicalDeviceVulkan13Features vulkan13Feats = { };
+	vulkan13Feats.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
+	vulkan13Feats.dynamicRendering = VK_TRUE;
+	vulkan13Feats.pNext = nullptr;
+
 	/* Vulkan 1.2 Features */
 	VkPhysicalDeviceVulkan12Features vulkan12Feats = { };
 	vulkan12Feats.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
-	vulkan12Feats.pNext = nullptr;
+	vulkan12Feats.pNext = &vulkan13Feats;
 	vulkan12Feats.descriptorIndexing = VK_TRUE;
 	vulkan12Feats.drawIndirectCount = VK_TRUE;
 	vulkan12Feats.descriptorBindingPartiallyBound = VK_TRUE;

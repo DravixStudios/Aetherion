@@ -157,14 +157,14 @@ VulkanRenderer::PickPhysicalDevice() {
 	uint32_t nApiMajor = VK_VERSION_MAJOR(deviceProperties.apiVersion);
 	uint32_t nApiMinor = VK_VERSION_MINOR(deviceProperties.apiVersion);
 
-	if (nApiMajor < 1 || (nApiMajor == 1 && nApiMinor < 2)) {
+	if (nApiMajor < 1 || (nApiMajor == 1 && nApiMinor < 3)) {
 		Logger::Error(
-			"VulkanRenderer::PickPhysicalDevice: Selected device does not support Vulkan 1.2 minimum. Found: {}.{}", 
+			"VulkanRenderer::PickPhysicalDevice: Selected device does not support Vulkan 1.3 minimum. Found: {}.{}", 
 			nApiMajor, 
 			nApiMinor
 		);
 
-		throw std::runtime_error("VulkanRenderer::PickPhysicalDevice: Vulkan 1.2 required");
+		throw std::runtime_error("VulkanRenderer::PickPhysicalDevice: Vulkan 1.3 required");
 	}
 }
 

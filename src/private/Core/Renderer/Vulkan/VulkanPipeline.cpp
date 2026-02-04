@@ -184,10 +184,27 @@ VulkanPipeline::CreateGraphics(const GraphicsPipelineCreateInfo& createInfo) {
 	pipelineInfo.pDynamicState = &dynamicState;
 	pipelineInfo.layout = this->m_pipelineLayout;
 
-	if (createInfo.renderPass) {
+	VkPipelineRenderingCreateInfo renderingInfo = { };
+	renderingInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
+	
+	Vector<VkFormat> vkColorFormats;
+	for (const GPUFormat& format : createInfo.colorFormats) {
+		vkColorFormats.push_back(VulkanHelpers::ConvertFormat(format));
+	}
+
+	renderingInfo.colorAttachmentCount = vkColorFormats.size();
+	renderingInfo.pColorAttachmentFormats = vkColorFormats.data();
+	renderingInfo.depthAttachmentFormat = VulkanHelpers::ConvertFormat(createInfo.depthFormat);
+
+	if (!createInfo.renderPass) {
+		pipelineInfo.pNext = &renderingInfo;
+		pipelineInfo.renderPass = VK_NULL_HANDLE;
+	}
+	else {
 		Ref<VulkanRenderPass> vkRenderPass = createInfo.renderPass.As<VulkanRenderPass>();
 		pipelineInfo.renderPass = vkRenderPass->GetVkRenderPass();
 		pipelineInfo.subpass = createInfo.nSubpass;
+
 	}
 
 	VK_CHECK(
