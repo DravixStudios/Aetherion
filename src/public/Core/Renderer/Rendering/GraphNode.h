@@ -23,7 +23,7 @@ struct GraphNode {
 	uint32_t nWidth = 0;
 	uint32_t nHeight = 0;
 
-	std::function<void(GraphicsContext&, RenderGraphContext&)> execute;
+	std::function<void(Ref<GraphicsContext>, RenderGraphContext&)> execute;
 
 	Vector<uint32_t> dependsOn; // Indices of the nodes that depends on
 };
