@@ -157,7 +157,7 @@ public:
 	* @param nSize Size of the fill
 	* @param nData Fill data 
 	*/
-	virtual void FillBuffer(Ref<GPUBuffer> buffer, uint32_t nOffset, uint32_t nSize, uint32_t nData);
+	virtual void FillBuffer(Ref<GPUBuffer> buffer, uint32_t nOffset, uint32_t nSize, uint32_t nData) = 0;
 
 	/**
 	* Dispatches compute work items
@@ -166,5 +166,14 @@ public:
 	* @param y Y dimension
 	* @param z Z dimension
 	*/
-	void Dispatch(uint32_t x, uint32_t y, uint32_t z);
+	virtual void Dispatch(uint32_t x, uint32_t y, uint32_t z) = 0;
+
+	/**
+	* Buffer memory barrier
+	* 
+	* @param buffer Buffer
+	* @param srcAccess Source access mask
+	* @param dstAccess Destination access mask
+	*/
+	virtual void BufferMemoryBarrier(Ref<GPUBuffer> buffer, EAccess srcAccess, EAccess dstAccess) = 0;
 };

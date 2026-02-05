@@ -325,3 +325,35 @@ void
 VulkanGraphicsContext::Dispatch(uint32_t x, uint32_t y, uint32_t z) {
 	vkCmdDispatch(this->m_commandBuffer, x, y, z);
 }
+
+/**
+* Buffer memory barrier
+*
+* @param buffer Buffer
+* @param srcAccess Source access mask
+* @param dstAccess Destination access mask
+*/
+void 
+VulkanGraphicsContext::BufferMemoryBarrier(Ref<GPUBuffer> buffer, EAccess srcAccess, EAccess dstAccess) {
+	VkBuffer vkBuffer = buffer.As<VulkanBuffer>()->GetVkBuffer();
+
+	VkBufferMemoryBarrier barrier = { };
+	barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+	
+	barrier.srcAccessMask = VulkanHelpers::ConvertAccess(srcAccess);
+	barrier.dstAccessMask = VulkanHelpers::ConvertAccess(dstAccess);
+
+	barrier.buffer = vkBuffer;
+
+	barrier.size = VK_WHOLE_SIZE;
+
+	vkCmdPipelineBarrier(
+		this->m_commandBuffer,
+		VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+		VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+		0, 
+		0, nullptr, 
+		1, &barrier,
+		0, nullptr
+	);
+}

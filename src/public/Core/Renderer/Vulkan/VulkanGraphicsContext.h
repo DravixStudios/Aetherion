@@ -66,6 +66,8 @@ public:
 
 	void Dispatch(uint32_t x, uint32_t y, uint32_t z) override;
 
+	void BufferMemoryBarrier(Ref<GPUBuffer> buffer, EAccess srcAccess, EAccess dstAccess) override;
+
 	static Ptr
 	CreateShared(VkCommandBuffer commandBuffer) {
 		return CreateRef<VulkanGraphicsContext>(commandBuffer);
