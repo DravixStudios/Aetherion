@@ -62,6 +62,8 @@ public:
 	void EndRenderPass() override;
 	void NextSubpass() override;
 
+	void FillBuffer(Ref<GPUBuffer> buffer, uint32_t nOffset, uint32_t nSize, uint32_t nData) override;
+
 	static Ptr
 	CreateShared(VkCommandBuffer commandBuffer) {
 		return CreateRef<VulkanGraphicsContext>(commandBuffer);

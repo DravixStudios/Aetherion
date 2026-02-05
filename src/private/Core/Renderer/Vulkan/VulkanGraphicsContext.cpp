@@ -298,3 +298,18 @@ void
 VulkanGraphicsContext::NextSubpass() {
 	vkCmdNextSubpass(this->m_commandBuffer, VK_SUBPASS_CONTENTS_INLINE);
 }
+
+/**
+* Fills a buffer
+*
+* @param buffer Buffer to fill
+* @param nOffset Offset
+* @param nSize Size of the fill
+* @param nData Fill data
+*/
+void 
+VulkanGraphicsContext::FillBuffer(Ref<GPUBuffer> buffer, uint32_t nOffset, uint32_t nSize, uint32_t nData) {
+	VkBuffer vkBuffer = buffer.As<VulkanBuffer>()->GetVkBuffer();
+
+	vkCmdFillBuffer(this->m_commandBuffer, vkBuffer, nOffset, nSize, nData);
+}

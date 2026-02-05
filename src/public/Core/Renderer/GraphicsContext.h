@@ -148,4 +148,14 @@ public:
 	* Advances to the next subpass
 	*/
 	virtual void NextSubpass() = 0;
+
+	/**
+	* Fills a buffer
+	* 
+	* @param buffer Buffer to fill
+	* @param nOffset Offset
+	* @param nSize Size of the fill
+	* @param nData Fill data 
+	*/
+	virtual void FillBuffer(Ref<GPUBuffer> buffer, uint32_t nOffset, uint32_t nSize, uint32_t nData);
 };
