@@ -202,6 +202,88 @@ namespace VulkanHelpers {
 		return flags;
 	}
 
+	/**
+	* (EAccess -> VkAccessFlags)
+	* 
+	* @param access Access flags
+	* 
+	* @returns Vulkan access flags
+	*/
+	inline VkAccessFlags
+	ConvertAccess(EAccess access) {
+		VkAccessFlags vkAccess = VK_ACCESS_NONE;
+
+		if ((access & EAccess::INDIRECT_COMMAND_READ) != EAccess::NONE) {
+			vkAccess |= VK_ACCESS_INDIRECT_COMMAND_READ_BIT;
+		}
+
+		if ((access & EAccess::INDEX_READ) != EAccess::NONE) {
+			vkAccess |= VK_ACCESS_INDEX_READ_BIT;
+		}
+
+		if ((access & EAccess::VERTEX_ATTRIBUTE_READ) != EAccess::NONE) {
+			vkAccess |= VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT;
+		}
+
+		if ((access & EAccess::UNIFORM_READ) != EAccess::NONE) {
+			vkAccess |= VK_ACCESS_UNIFORM_READ_BIT;
+		}
+
+		if ((access & EAccess::INPUT_ATTACHMENT_READ) != EAccess::NONE) {
+			vkAccess |= VK_ACCESS_INPUT_ATTACHMENT_READ_BIT;
+		}
+
+		if ((access & EAccess::SHADER_READ) != EAccess::NONE) {
+			vkAccess |= VK_ACCESS_SHADER_READ_BIT;
+		}
+		
+		if ((access & EAccess::SHADER_WRITE) != EAccess::NONE) {
+			vkAccess |= VK_ACCESS_SHADER_WRITE_BIT;
+		}
+
+		if ((access & EAccess::COLOR_ATTACHMENT_READ) != EAccess::NONE) {
+			vkAccess |= VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
+		}
+
+		if ((access & EAccess::COLOR_ATTACHMENT_WRITE) != EAccess::NONE) {
+			vkAccess |= VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+		}
+
+		if ((access & EAccess::DEPTH_STENCIL_READ) != EAccess::NONE) {
+			vkAccess |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
+		}
+
+		if ((access & EAccess::DEPTH_STENCIL_WRITE) != EAccess::NONE) {
+			vkAccess |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+		}
+
+		if ((access & EAccess::TRANSFER_READ) != EAccess::NONE) {
+			vkAccess |= VK_ACCESS_TRANSFER_READ_BIT;
+		}
+
+		if ((access & EAccess::TRANSFER_WRITE) != EAccess::NONE) {
+			vkAccess |= VK_ACCESS_TRANSFER_WRITE_BIT;
+		}
+
+		if ((access & EAccess::HOST_READ) != EAccess::NONE) {
+			vkAccess |= VK_ACCESS_HOST_READ_BIT;
+		}
+
+		if ((access & EAccess::HOST_WRITE) != EAccess::NONE) {
+			vkAccess |= VK_ACCESS_HOST_WRITE_BIT;
+		}
+
+		if ((access & EAccess::MEMORY_READ) != EAccess::NONE) {
+			vkAccess |= VK_ACCESS_MEMORY_READ_BIT;
+		}
+
+		if ((access & EAccess::MEMORY_WRITE) != EAccess::NONE) {
+			vkAccess |= VK_ACCESS_MEMORY_WRITE_BIT;
+		}
+
+		return vkAccess;
+	}
+
 	inline VkBlendFactor
 	ConvertBlendFactor(EBlendFactor blendFactor) {
 		switch(blendFactor) {
