@@ -14,7 +14,7 @@ public:
 	};
 
 	struct Output {
-		TextureHandle lightingOutput;
+		TextureHandle hdrOutput;
 	};
 
 	void Init(Ref<Device> device) override;

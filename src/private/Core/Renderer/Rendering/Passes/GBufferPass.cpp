@@ -113,14 +113,14 @@ GBufferPass::CreatePipeline() {
 		{ EShaderStage::VERTEX, 0, sizeof(uint32_t)} // wvpAlignment
 	};
 
-	this->m_device->CreatePipelineLayout(plInfo);
+	this->m_pipelineLayout = this->m_device->CreatePipelineLayout(plInfo);
 
 	/* Compile shaders (GLSL) */
 	Ref<Shader> vertexShader = Shader::CreateShared();
 	vertexShader->LoadFromGLSL("GBufferPass.vert", EShaderStage::VERTEX);
 
 	Ref<Shader> pixelShader = Shader::CreateShared();
-	vertexShader->LoadFromGLSL("GBufferPass.frag", EShaderStage::VERTEX);
+	vertexShader->LoadFromGLSL("GBufferPass.frag", EShaderStage::FRAGMENT);
 
 	/* Create graphics pipeline */
 	GraphicsPipelineCreateInfo pipelineInfo = { };
@@ -150,6 +150,15 @@ GBufferPass::CreatePipeline() {
 	ColorBlendAttachment colorBlend = { };
 	colorBlend.bBlendEnable = false;
 	colorBlend.bWriteR = colorBlend.bWriteG = colorBlend.bWriteB = colorBlend.bWriteA = true;
+
+	Vector<ColorBlendAttachment> colorBlendAttachments = {
+		colorBlend, colorBlend, colorBlend, colorBlend, colorBlend
+	};
+	
+	ColorBlendState colorBlendState = { };
+	colorBlendState.attachments = colorBlendAttachments;
+
+	pipelineInfo.colorBlendState = colorBlendState;
 
 	/* Create a compatible render pass */
 	/* TODO: Use dynamic rendering */
@@ -244,10 +253,6 @@ GBufferPass::CreatePipeline() {
 	this->m_compatRenderPass = this->m_device->CreateRenderPass(rpInfo);
 
 	/* Set color formats for Dynamic rendering */
-	pipelineInfo.colorBlendState.attachments = {
-		colorBlend, colorBlend, colorBlend, colorBlend, colorBlend
-	};
-
 	pipelineInfo.colorFormats = {
 		GBufferLayout::ALBEDO,
 		GBufferLayout::NORMAL,

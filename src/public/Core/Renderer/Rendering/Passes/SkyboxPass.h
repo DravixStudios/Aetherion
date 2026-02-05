@@ -15,12 +15,29 @@ public:
 
 	void SetInput(const Input& input) { this->m_input = input; }
 
-	void SetSkyboxData(Ref<DescriptorSet> skyboxSet, Ref<GPUBuffer> cubeVb, uint32_t nVertexCount);
+	void SetSkyboxData(
+		Ref<DescriptorSet> skyboxSet,
+		Ref<DescriptorSetLayout> skyboxSetLayout,
+		Ref<GPUBuffer> vertexBuffer, 
+		Ref<GPUBuffer> indexBuffer,
+		uint32_t nIndexCount
+	);
 private:
 	Input m_input;
 	
 	Ref<Device> m_device;
-	Ref<GPUBuffer> m_cubeVb;
+	Ref<GPUBuffer> m_vertexBuffer;
+	Ref<GPUBuffer> m_indexBuffer;
 
-	uint32_t m_nVertexCount = 0;
+	Ref<Pipeline> m_pipeline;
+	Ref<PipelineLayout> m_pipelineLayout;
+
+	Ref<RenderPass> m_compatRenderPass;
+
+	uint32_t m_nIndexCount = 0;
+
+	Ref<DescriptorSet> m_skyboxSet;
+	Ref<DescriptorSetLayout> m_skyboxSetLayout;
+
+	void CreatePipeline();
 };
