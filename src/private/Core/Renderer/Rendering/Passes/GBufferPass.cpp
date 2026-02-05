@@ -63,10 +63,18 @@ GBufferPass::Execute(Ref<GraphicsContext> context, RenderGraphContext& graphCtx)
 	context->SetViewport(vp);
 	context->SetScissor({ { 0, 0 }, { this->m_nWidth, this->m_nHeight } });
 
-	context->BindDescriptorSets(0, { this->m_sceneSet });
+	context->BindDescriptorSets(0, { this->m_sceneSet, this->m_bindlessSet });
 	context->BindVertexBuffers({ this->m_vertexBuffer });
 	context->BindIndexBuffer({ this->m_indexBuffer });
-	context->DrawIndexed(this->m_nIndexCount);
+
+	context->DrawIndexedIndirect(
+		this->m_indirectBuffer,
+		0,
+		this->m_countBuffer,
+		0,
+		0, // TODO: Set max commands
+		sizeof(DrawIndexedIndirectCommand)
+	);
 }
 
 /**
@@ -88,7 +96,9 @@ GBufferPass::SetSceneData(
 	Ref<DescriptorSetLayout> bindlessSetLayout,
 	Ref<GPUBuffer> vertexBuffer,
 	Ref<GPUBuffer> indexBuffer,
-	uint32_t nIndexCount
+	uint32_t nIndexCount,
+	Ref<GPUBuffer> countBuffer,
+	Ref<GPUBuffer> indirectBuffer
 ) {
 	this->m_sceneSet = sceneSet;
 	this->m_sceneSetLayout = sceneSetLayout;
@@ -99,6 +109,9 @@ GBufferPass::SetSceneData(
 	this->m_vertexBuffer = vertexBuffer;
 	this->m_indexBuffer = indexBuffer;
 	this->m_nIndexCount = nIndexCount;
+
+	this->m_countBuffer = countBuffer;
+	this->m_indirectBuffer = indirectBuffer;
 
 	if (this->m_device && !this->m_pipeline) {
 		this->CreatePipeline();

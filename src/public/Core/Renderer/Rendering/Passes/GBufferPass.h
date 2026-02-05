@@ -27,7 +27,9 @@ public:
 		Ref<DescriptorSetLayout> bindlessSetLayout,
 		Ref<GPUBuffer> vertexBuffer,
 		Ref<GPUBuffer> indexBuffer,
-		uint32_t nIndexCount
+		uint32_t nIndexCount,
+		Ref<GPUBuffer> countBuffer,
+		Ref<GPUBuffer> indirectBuffer
 	);
 
 	Output GetOutput() const { return this->m_output; }
@@ -44,6 +46,9 @@ private:
 	Ref<GPUBuffer> m_vertexBuffer;
 	Ref<GPUBuffer> m_indexBuffer;
 	uint32_t m_nIndexCount = 0;
+
+	Ref<GPUBuffer> m_countBuffer;
+	Ref<GPUBuffer> m_indirectBuffer;
 
 	void CreatePipeline();
 };
