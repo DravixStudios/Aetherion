@@ -64,6 +64,8 @@ public:
 
 	void FillBuffer(Ref<GPUBuffer> buffer, uint32_t nOffset, uint32_t nSize, uint32_t nData) override;
 
+	void Dispatch(uint32_t x, uint32_t y, uint32_t z) override;
+
 	static Ptr
 	CreateShared(VkCommandBuffer commandBuffer) {
 		return CreateRef<VulkanGraphicsContext>(commandBuffer);

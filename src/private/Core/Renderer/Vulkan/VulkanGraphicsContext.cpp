@@ -313,3 +313,15 @@ VulkanGraphicsContext::FillBuffer(Ref<GPUBuffer> buffer, uint32_t nOffset, uint3
 
 	vkCmdFillBuffer(this->m_commandBuffer, vkBuffer, nOffset, nSize, nData);
 }
+
+/**
+* Dispatches compute work items
+*
+* @param x X dimension
+* @param y Y dimension
+* @param z Z dimension
+*/
+void 
+VulkanGraphicsContext::Dispatch(uint32_t x, uint32_t y, uint32_t z) {
+	vkCmdDispatch(this->m_commandBuffer, x, y, z);
+}

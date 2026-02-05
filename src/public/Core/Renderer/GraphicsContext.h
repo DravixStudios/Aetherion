@@ -158,4 +158,13 @@ public:
 	* @param nData Fill data 
 	*/
 	virtual void FillBuffer(Ref<GPUBuffer> buffer, uint32_t nOffset, uint32_t nSize, uint32_t nData);
+
+	/**
+	* Dispatches compute work items
+	* 
+	* @param x X dimension
+	* @param y Y dimension
+	* @param z Z dimension
+	*/
+	void Dispatch(uint32_t x, uint32_t y, uint32_t z);
 };
