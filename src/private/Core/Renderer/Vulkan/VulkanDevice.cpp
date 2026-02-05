@@ -526,6 +526,7 @@ VulkanDevice::CreateTexture(const TextureCreateInfo& createInfo) {
 	Ref<VulkanDevice> deviceRef = std::static_pointer_cast<VulkanDevice>(this->shared_from_this());
 
 	Ref<VulkanTexture> texture = VulkanTexture::CreateShared(deviceRef);
+	texture->Create(createInfo);
 	return texture.As<GPUTexture>();
 }
 
@@ -539,6 +540,7 @@ VulkanDevice::CreateTexture(const TextureCreateInfo& createInfo) {
 Ref<ImageView> 
 VulkanDevice::CreateImageView(const ImageViewCreateInfo& createInfo) {
 	Ref<VulkanImageView> imageView = VulkanImageView::CreateShared(this->m_device);
+	imageView->Create(createInfo);
 	return imageView.As<ImageView>();
 }
 
@@ -568,6 +570,7 @@ Ref<Sampler>
 VulkanDevice::CreateSampler(const SamplerCreateInfo& createInfo) {
 	Ref<VulkanDevice> deviceRef = std::static_pointer_cast<VulkanDevice>(this->shared_from_this());
 	Ref<VulkanSampler> sampler = VulkanSampler::CreateShared(deviceRef);
+	sampler->Create(createInfo);
 
 	return sampler.As<Sampler>();
 }
@@ -582,6 +585,8 @@ VulkanDevice::CreateSampler(const SamplerCreateInfo& createInfo) {
 Ref<DescriptorPool> 
 VulkanDevice::CreateDescriptorPool(const DescriptorPoolCreateInfo& createInfo) {
 	Ref<VulkanDescriptorPool> pool = VulkanDescriptorPool::CreateShared(this->m_device);
+	pool->Create(createInfo);
+	
 	return pool.As<DescriptorPool>();
 }
 
@@ -611,6 +616,7 @@ VulkanDevice::CreateDescriptorSetLayout(const DescriptorSetLayoutCreateInfo& cre
 Ref<DescriptorSet> 
 VulkanDevice::CreateDescriptorSet(Ref<DescriptorPool> pool, Ref<DescriptorSetLayout> layout) {
 	Ref<VulkanDescriptorSet> set = VulkanDescriptorSet::CreateShared(this->m_device);
+	set->Allocate(pool, layout);
 
 	return set.As<DescriptorSet>();
 }
