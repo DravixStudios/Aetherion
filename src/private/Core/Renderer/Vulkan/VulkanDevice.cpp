@@ -622,6 +622,20 @@ VulkanDevice::CreateDescriptorSet(Ref<DescriptorPool> pool, Ref<DescriptorSetLay
 }
 
 /**
+* Creates a Vulkan semaphore
+*
+* @returns Created Vulkan semaphore
+*/
+Ref<Semaphore> 
+VulkanDevice::CreateSemaphore() {
+	Ref<VulkanDevice> deviceRef = std::static_pointer_cast<VulkanDevice>(this->shared_from_this());
+	Ref<VulkanSemaphore> semaphore = VulkanSemaphore::CreateShared(deviceRef);
+	semaphore->Create();
+
+	return semaphore.As<Semaphore>();
+}
+
+/**
 * Finds memory type
 * 
 * @param typeFilter Type filter

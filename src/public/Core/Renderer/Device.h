@@ -7,6 +7,7 @@
 #include "Core/Renderer/GraphicsContext.h"
 #include "Core/Renderer/Swapchain.h"
 #include "Core/Renderer/Framebuffer.h"
+#include "Core/Renderer/Semaphore.h"
 
 enum class EQueueType {
 	GRAPHICS,
@@ -233,4 +234,11 @@ public:
 	* @returns Created descriptor set
 	*/
 	virtual Ref<DescriptorSet> CreateDescriptorSet(Ref<DescriptorPool> pool, Ref<DescriptorSetLayout> layout) = 0;
+
+	/**
+	* Creates a semaphore
+	* 
+	* @returns Created semaphore
+	*/
+	virtual Ref<Semaphore> CreateSemaphore() = 0;
 };
