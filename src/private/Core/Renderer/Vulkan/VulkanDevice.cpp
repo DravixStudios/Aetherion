@@ -27,6 +27,7 @@ void
 VulkanDevice::Create(const DeviceCreateInfo& createInfo) {
 	this->CachePhysicalDeviceProperties();
 	this->CacheQueueFamilyProperties();
+	this->CacheExtensions();
 
 	QueueFamilyIndices indices = this->FindQueueFamilies();
 
@@ -72,7 +73,6 @@ VulkanDevice::Create(const DeviceCreateInfo& createInfo) {
 	vulkan12Feats.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
 	vulkan12Feats.pNext = &vulkan13Feats;
 	vulkan12Feats.descriptorIndexing = VK_TRUE;
-	vulkan12Feats.drawIndirectCount = VK_TRUE;
 	vulkan12Feats.descriptorBindingPartiallyBound = VK_TRUE;
 	vulkan12Feats.descriptorBindingUpdateUnusedWhilePending = VK_TRUE;
 	vulkan12Feats.descriptorBindingVariableDescriptorCount = VK_TRUE;
@@ -82,6 +82,13 @@ VulkanDevice::Create(const DeviceCreateInfo& createInfo) {
 	vulkan12Feats.descriptorBindingStorageImageUpdateAfterBind = VK_TRUE;
 	vulkan12Feats.descriptorBindingStorageBufferUpdateAfterBind = VK_TRUE;
 	vulkan12Feats.descriptorBindingUniformBufferUpdateAfterBind = VK_TRUE;
+
+	bool bIndirectCountSupported = this->IsExtensionSupported("VK_KHR_draw_indirect_count");
+	Logger::Debug(
+		"VulkanDevice::Create: VK_KHR_draw_indirect_count support: {}", 
+		bIndirectCountSupported ? "TRUE" : "FALSE"
+	);
+	vulkan12Feats.drawIndirectCount = bIndirectCountSupported ? VK_TRUE : VK_FALSE;
 
 	/* Vulkan 1.1 Features */
 	VkPhysicalDeviceVulkan11Features vulkan11Feats = { };
@@ -775,15 +782,9 @@ VulkanDevice::Submit(const SubmitInfo& submitInfo, Ref<Fence> fence) {
 */
 bool 
 VulkanDevice::IsExtensionSupported(const char* extensionName) {
-	uint32_t nExtensionCount = 0;
-	vkEnumerateDeviceExtensionProperties(this->m_physicalDevice, nullptr, &nExtensionCount, nullptr);
-
-	Vector<VkExtensionProperties> extensions(nExtensionCount);
-	vkEnumerateDeviceExtensionProperties(this->m_physicalDevice, nullptr, &nExtensionCount, extensions.data());
-
 	return std::any_of(
-		extensions.begin(),
-		extensions.end(),
+		this->m_extensions.begin(),
+		this->m_extensions.end(),
 		[&](const VkExtensionProperties& extension) {
 			return strcmp(extension.extensionName, extensionName) == 0;
 		}
@@ -871,4 +872,16 @@ VulkanDevice::CachePhysicalDeviceProperties() {
 	vkGetPhysicalDeviceProperties(this->m_physicalDevice, &devProps);
 
 	this->m_devProperties = devProps;
+}
+
+/**
+* Caches physical device extensions
+*/
+void 
+VulkanDevice::CacheExtensions() {
+	uint32_t nExtensionCount = 0;
+	vkEnumerateDeviceExtensionProperties(this->m_physicalDevice, nullptr, &nExtensionCount, nullptr);
+
+	this->m_extensions.resize(nExtensionCount);
+	vkEnumerateDeviceExtensionProperties(this->m_physicalDevice, nullptr, &nExtensionCount, this->m_extensions.data());
 }

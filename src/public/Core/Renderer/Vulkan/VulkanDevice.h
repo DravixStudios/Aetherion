@@ -98,6 +98,8 @@ public:
 
 	void Submit(const SubmitInfo& submitInfo, Ref<Fence> fence) override;
 
+	bool IsExtensionSupported(const char* extensionName);
+
 	VkDevice GetVkDevice() const { return this->m_device; }
 	VkPhysicalDevice GetVkPhysicalDevice() const { return this->m_physicalDevice; }
 
@@ -137,4 +139,6 @@ private:
 
 	void CachePhysicalDeviceProperties();
 
+	Vector<VkExtensionProperties> m_extensions;
+	void CacheExtensions();
 };
