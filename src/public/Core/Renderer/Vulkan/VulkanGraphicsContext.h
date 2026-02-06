@@ -4,6 +4,7 @@
 #include "Core/Renderer/Vulkan/VulkanHelpers.h"
 #include "Core/Renderer/Vulkan/VulkanPipeline.h"
 #include "Core/Renderer/Vulkan/VulkanDescriptorSet.h"
+#include "Core/Renderer/Vulkan/VulkanCommandBuffer.h"
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
@@ -12,7 +13,7 @@ class VulkanGraphicsContext : public GraphicsContext {
 public:
 	using Ptr = Ref<VulkanGraphicsContext>;
 
-	VulkanGraphicsContext(VkCommandBuffer commandBuffer);
+	explicit VulkanGraphicsContext(Ref<VulkanCommandBuffer> commandBuffer);
 	~VulkanGraphicsContext() override = default;
 
 	void BindPipeline(Ref<Pipeline> pipeline) override;
@@ -68,12 +69,14 @@ public:
 
 	void BufferMemoryBarrier(Ref<GPUBuffer> buffer, EAccess srcAccess, EAccess dstAccess) override;
 
+	Ref<CommandBuffer> GetCommandBuffer() override;
+
 	static Ptr
-	CreateShared(VkCommandBuffer commandBuffer) {
+	CreateShared(Ref<VulkanCommandBuffer> commandBuffer) {
 		return CreateRef<VulkanGraphicsContext>(commandBuffer);
 	}
 private:
-	VkCommandBuffer m_commandBuffer;
+	Ref<VulkanCommandBuffer> m_commandBuffer;
 	VkPipeline m_currentPipeline;
 	VkPipelineLayout m_currentPipelineLayout;
 	VkPipelineBindPoint m_currentBindPoint;

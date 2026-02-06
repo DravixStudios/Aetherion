@@ -1,4 +1,5 @@
 #include "Core/Renderer/Vulkan/VulkanDevice.h"
+#include "Core/Renderer/Vulkan/VulkanHelpers.h"
 
 VulkanDevice::VulkanDevice(
 	VkPhysicalDevice physicalDevice, 
@@ -186,7 +187,7 @@ VulkanDevice::CreateContext(Ref<CommandPool>& commandPool) {
 
 	Ref<VulkanCommandBuffer> vkCommandBuff = commandBuff.As<VulkanCommandBuffer>();
 
-	Ref<VulkanGraphicsContext> context = VulkanGraphicsContext::CreateShared(vkCommandBuff->GetVkCommandBuffer());
+	Ref<VulkanGraphicsContext> context = VulkanGraphicsContext::CreateShared(vkCommandBuff);
 	return context.As<GraphicsContext>();
 }
 

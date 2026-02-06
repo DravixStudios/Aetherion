@@ -1,6 +1,6 @@
 #include "Core/Renderer/Vulkan/VulkanGraphicsContext.h"
 
-VulkanGraphicsContext::VulkanGraphicsContext(VkCommandBuffer commandBuffer) 
+VulkanGraphicsContext::VulkanGraphicsContext(Ref<VulkanCommandBuffer> commandBuffer) 
 	: m_commandBuffer(commandBuffer), m_currentPipeline(VK_NULL_HANDLE), 
 	m_currentBindPoint(VK_PIPELINE_BIND_POINT_MAX_ENUM), m_currentPipelineLayout(VK_NULL_HANDLE) {}
 
@@ -15,7 +15,7 @@ VulkanGraphicsContext::BindPipeline(Ref<Pipeline> pipeline) {
 	this->m_currentPipeline = vkPipeline->GetVkPipeline();
 	this->m_currentBindPoint = vkPipeline->GetVkBindPoint();
 
-	vkCmdBindPipeline(this->m_commandBuffer, this->m_currentBindPoint, this->m_currentPipeline);
+	vkCmdBindPipeline(this->m_commandBuffer->GetVkCommandBuffer(), this->m_currentBindPoint, this->m_currentPipeline);
 }
 
 /**
@@ -42,7 +42,7 @@ VulkanGraphicsContext::BindDescriptorSets(
 	}
 
 	vkCmdBindDescriptorSets(
-		this->m_commandBuffer, 
+		this->m_commandBuffer->GetVkCommandBuffer(),
 		this->m_currentBindPoint, 
 		this->m_currentPipelineLayout, 
 		nFirstSet, 
@@ -73,7 +73,12 @@ VulkanGraphicsContext::BindVertexBuffers(
 		vkBuffers[i] = buffer.As<VulkanBuffer>()->GetVkBuffer();
 	}
 
-	vkCmdBindVertexBuffers(this->m_commandBuffer, 0, nBufferCount, vkBuffers.data(), offsets.data());
+	vkCmdBindVertexBuffers(
+		this->m_commandBuffer->GetVkCommandBuffer(), 
+		0,
+		nBufferCount, vkBuffers.data(), 
+		offsets.data()
+	);
 }
 
 /**
@@ -87,7 +92,7 @@ VulkanGraphicsContext::BindIndexBuffer(Ref<GPUBuffer> buffer, EIndexType indexTy
 	VkIndexType vkIndexType = VulkanHelpers::ConvertIndexType(indexType);
 
 	VkBuffer vkBuffer = buffer.As<VulkanBuffer>()->GetVkBuffer();
-	vkCmdBindIndexBuffer(this->m_commandBuffer, vkBuffer, 0, vkIndexType);
+	vkCmdBindIndexBuffer(this->m_commandBuffer->GetVkCommandBuffer(), vkBuffer, 0, vkIndexType);
 }
 
 /**
@@ -106,7 +111,7 @@ VulkanGraphicsContext::Draw(
 	uint32_t nFirstInstance
 ) {
 	vkCmdDraw(
-		this->m_commandBuffer, 
+		this->m_commandBuffer->GetVkCommandBuffer(),
 		nVertexCount, 
 		nInstanceCount, 
 		nFirstVertex, 
@@ -133,7 +138,7 @@ VulkanGraphicsContext::DrawIndexed(
 	uint32_t nFirstInstance
 ) {
 	vkCmdDrawIndexed(
-		this->m_commandBuffer,
+		this->m_commandBuffer->GetVkCommandBuffer(),
 		nIndexCount,
 		nInstanceCount,
 		nFirstIndex,
@@ -165,7 +170,7 @@ VulkanGraphicsContext::DrawIndexedIndirect(
 	VkBuffer vkCountBuffer = countBuffer.As<VulkanBuffer>()->GetVkBuffer();
 
 	vkCmdDrawIndexedIndirectCount(
-		this->m_commandBuffer,
+		this->m_commandBuffer->GetVkCommandBuffer(),
 		vkBuffer,
 		nOffset,
 		vkCountBuffer,
@@ -176,14 +181,14 @@ VulkanGraphicsContext::DrawIndexedIndirect(
 }
 
 /**
-	* Push constants to pipeline layout
-	*
-	* @param layout Pipeline layout
-	* @param stages Shader stage
-	* @param nOffset Push constant offset
-	* @param nSize Size of push constant data
-	* @param pcData Constant pointer to push constant data
-	*/
+* Push constants to pipeline layout
+*
+* @param layout Pipeline layout
+* @param stages Shader stage
+* @param nOffset Push constant offset
+* @param nSize Size of push constant data
+* @param pcData Constant pointer to push constant data
+*/
 void 
 VulkanGraphicsContext::PushConstants(
 	Ref<PipelineLayout> layout,
@@ -195,7 +200,7 @@ VulkanGraphicsContext::PushConstants(
 	VkPipelineLayout vkLayout = layout.As<VulkanPipelineLayout>()->GetVkLayout();
 
 	vkCmdPushConstants(
-		this->m_commandBuffer,
+		this->m_commandBuffer->GetVkCommandBuffer(),
 		vkLayout,
 		VulkanHelpers::ConvertShaderStage(stages),
 		nOffsets,
@@ -218,7 +223,7 @@ void VulkanGraphicsContext::SetViewport(const Viewport& viewport) {
 	vkViewport.minDepth = viewport.minDepth;
 	vkViewport.maxDepth = viewport.maxDepth;
 	
-	vkCmdSetViewport(this->m_commandBuffer, 0, 1, &vkViewport);
+	vkCmdSetViewport(this->m_commandBuffer->GetVkCommandBuffer(), 0, 1, &vkViewport);
 }
 
 /**
@@ -237,7 +242,7 @@ void VulkanGraphicsContext::SetScissor(const Rect2D& scissor) {
 
 	VkRect2D vkScissor = { offset, extent };
 
-	vkCmdSetScissor(this->m_commandBuffer, 0, 1, &vkScissor);
+	vkCmdSetScissor(this->m_commandBuffer->GetVkCommandBuffer(), 0, 1, &vkScissor);
 }
 
 /**
@@ -280,7 +285,7 @@ VulkanGraphicsContext::BeginRenderPass(const RenderPassBeginInfo& beginInfo) {
 	rpInfo.clearValueCount = clearValues.size();
 	rpInfo.pClearValues = clearValues.data();
 
-	vkCmdBeginRenderPass(this->m_commandBuffer, &rpInfo, VK_SUBPASS_CONTENTS_INLINE);
+	vkCmdBeginRenderPass(this->m_commandBuffer->GetVkCommandBuffer(), &rpInfo, VK_SUBPASS_CONTENTS_INLINE);
 }
 
 /**
@@ -288,7 +293,7 @@ VulkanGraphicsContext::BeginRenderPass(const RenderPassBeginInfo& beginInfo) {
 */
 void
 VulkanGraphicsContext::EndRenderPass() {
-	vkCmdEndRenderPass(this->m_commandBuffer);
+	vkCmdEndRenderPass(this->m_commandBuffer->GetVkCommandBuffer());
 }
 
 /**
@@ -296,7 +301,7 @@ VulkanGraphicsContext::EndRenderPass() {
 */
 void 
 VulkanGraphicsContext::NextSubpass() {
-	vkCmdNextSubpass(this->m_commandBuffer, VK_SUBPASS_CONTENTS_INLINE);
+	vkCmdNextSubpass(this->m_commandBuffer->GetVkCommandBuffer(), VK_SUBPASS_CONTENTS_INLINE);
 }
 
 /**
@@ -311,7 +316,7 @@ void
 VulkanGraphicsContext::FillBuffer(Ref<GPUBuffer> buffer, uint32_t nOffset, uint32_t nSize, uint32_t nData) {
 	VkBuffer vkBuffer = buffer.As<VulkanBuffer>()->GetVkBuffer();
 
-	vkCmdFillBuffer(this->m_commandBuffer, vkBuffer, nOffset, nSize, nData);
+	vkCmdFillBuffer(this->m_commandBuffer->GetVkCommandBuffer(), vkBuffer, nOffset, nSize, nData);
 }
 
 /**
@@ -323,7 +328,7 @@ VulkanGraphicsContext::FillBuffer(Ref<GPUBuffer> buffer, uint32_t nOffset, uint3
 */
 void 
 VulkanGraphicsContext::Dispatch(uint32_t x, uint32_t y, uint32_t z) {
-	vkCmdDispatch(this->m_commandBuffer, x, y, z);
+	vkCmdDispatch(this->m_commandBuffer->GetVkCommandBuffer(), x, y, z);
 }
 
 /**
@@ -348,7 +353,7 @@ VulkanGraphicsContext::BufferMemoryBarrier(Ref<GPUBuffer> buffer, EAccess srcAcc
 	barrier.size = VK_WHOLE_SIZE;
 
 	vkCmdPipelineBarrier(
-		this->m_commandBuffer,
+		this->m_commandBuffer->GetVkCommandBuffer(),
 		VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
 		VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
 		0, 

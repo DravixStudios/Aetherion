@@ -176,4 +176,6 @@ public:
 	* @param dstAccess Destination access mask
 	*/
 	virtual void BufferMemoryBarrier(Ref<GPUBuffer> buffer, EAccess srcAccess, EAccess dstAccess) = 0;
+
+	virtual Ref<CommandBuffer> GetCommandBuffer() = 0;
 };

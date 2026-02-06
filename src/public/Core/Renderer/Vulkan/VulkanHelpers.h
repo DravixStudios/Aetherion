@@ -1,6 +1,6 @@
 #pragma once
 #define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw3.h>
+#include <GLFW/glfw3.h>kanDevice(
 
 #include "Core/Renderer/DescriptorSetLayout.h"
 #include "Core/Renderer/DescriptorPool.h"
@@ -8,6 +8,7 @@
 #include "Core/Renderer/Pipeline.h"
 #include "Core/Renderer/GPUBuffer.h"
 #include "Core/Renderer/ImageView.h"
+#include "Core/Renderer/Device.h"
 
 namespace VulkanHelpers {
 	/** 
