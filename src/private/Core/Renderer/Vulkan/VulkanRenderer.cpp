@@ -41,7 +41,7 @@ void VulkanRenderer::Create(GLFWwindow* pWindow) {
 	appInfo.pApplicationName = "N.A";
 	appInfo.engineVersion = VK_MAKE_VERSION(0, 1, 0);
 	appInfo.pEngineName = "Aetherion Engine";
-	appInfo.apiVersion = VK_API_VERSION_1_2;
+	appInfo.apiVersion = VK_API_VERSION_1_3;
 
 	Vector<const char*> extensions = this->GetRequiredExtensions();
 
