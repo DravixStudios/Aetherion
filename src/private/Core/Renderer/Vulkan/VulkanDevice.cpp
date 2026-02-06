@@ -135,6 +135,17 @@ VulkanDevice::WaitIdle() {
 }
 
 /**
+* Waits for a fence
+* 
+* @param fence Fence
+*/
+void 
+VulkanDevice::WaitForFence(Ref<Fence> fence) {
+	VkFence vkFence = fence.As<VulkanFence>()->GetVkFence();
+	vkWaitForFences(this->m_device, 1, &vkFence, VK_TRUE, UINT64_MAX);
+}
+
+/**
 * Creates a Vulkan command pool
 * 
 * Note: In the createInfo parameter, let nQueueFamilyIndex member

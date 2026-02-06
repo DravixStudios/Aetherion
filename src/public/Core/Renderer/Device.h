@@ -109,6 +109,13 @@ public:
 	virtual void WaitIdle() = 0;
 
 	/**
+	* Waits for a fence
+	* 
+	* @param fence Fence
+	*/
+	virtual void WaitForFence(Ref<Fence> fence) = 0;
+
+	/**
 	* Gets device limits
 	*/
 	virtual void GetLimits(

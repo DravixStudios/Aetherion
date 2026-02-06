@@ -32,6 +32,7 @@ public:
 
 	void Create(const DeviceCreateInfo& createInfo) override;
 	void WaitIdle() override;
+	void WaitForFence(Ref<Fence> fence) override;
 
 	Ref<CommandPool> CreateCommandPool(
 		const CommandPoolCreateInfo& createInfo, 
