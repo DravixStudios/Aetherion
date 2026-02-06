@@ -70,3 +70,12 @@ RenderGraphBuilder::SetDimensions(uint32_t nWidth, uint32_t nHeight) {
     this->m_node->nWidth = nWidth;
     this->m_node->nHeight = nHeight;
 }
+
+/**
+* Marks the node as compute-only
+* (No render pass or framebuffer needed)
+*/
+void
+RenderGraphBuilder::SetComputeOnly() {
+    this->m_node->bIsComputeOnly = true;
+}

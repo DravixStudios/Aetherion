@@ -12,6 +12,8 @@ public:
 
 	void UseColorOutput(TextureHandle handle);
 	void SetDimensions(uint32_t nWidth, uint32_t nHeight);
+
+	void SetComputeOnly();
 	
 private:
 	friend class RenderGraph;
