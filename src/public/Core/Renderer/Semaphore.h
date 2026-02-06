@@ -1,16 +1,6 @@
 #pragma once
 #include "Core/Containers.h"
 
-enum class ESemaphoreType {
-	BINARY,
-	TIMELINE
-};
-
-struct SemaphoreCreateInfo {
-	ESemaphoreType type;
-	uint64_t nInitialValue = 0;
-};
-
 class Semaphore {
 public:
 	static constexpr const char* CLASS_NAME = "Semaphore";
@@ -19,5 +9,8 @@ public:
 
 	virtual ~Semaphore() = default;
 
-	virtual void Create(const SemaphoreCreateInfo& createInfo) = 0;
+	/**
+	* Creates a semaphore
+	*/
+	virtual void Create() = 0;
 };
