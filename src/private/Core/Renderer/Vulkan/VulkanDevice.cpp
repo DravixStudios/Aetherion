@@ -766,6 +766,31 @@ VulkanDevice::Submit(const SubmitInfo& submitInfo, Ref<Fence> fence) {
 }
 
 /**
+* Checks if a Vulkan extension
+* is supported
+* 
+* @param extensionName Extension name
+* 
+* @returns True if it is supported
+*/
+bool 
+VulkanDevice::IsExtensionSupported(const char* extensionName) {
+	uint32_t nExtensionCount = 0;
+	vkEnumerateDeviceExtensionProperties(this->m_physicalDevice, nullptr, &nExtensionCount, nullptr);
+
+	Vector<VkExtensionProperties> extensions(nExtensionCount);
+	vkEnumerateDeviceExtensionProperties(this->m_physicalDevice, nullptr, &nExtensionCount, extensions.data());
+
+	return std::any_of(
+		extensions.begin(),
+		extensions.end(),
+		[&](const VkExtensionProperties& extension) {
+			return strcmp(extension.extensionName, extensionName) == 0;
+		}
+	);
+}
+
+/**
 * Finds memory type
 * 
 * @param typeFilter Type filter
