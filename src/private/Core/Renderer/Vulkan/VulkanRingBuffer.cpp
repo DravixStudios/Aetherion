@@ -24,20 +24,11 @@ VkBufferUsageFlagBits ConvertTypeToUsage(EBufferType bufferType) {
 
 VulkanRingBuffer::VulkanRingBuffer(Ref<VulkanDevice> device) 
 	: m_device(device), 
-	m_nPerFrameSize(0), m_nOffset(0),
-	m_buffer(VK_NULL_HANDLE), m_memory(VK_NULL_HANDLE) {}
+	m_nPerFrameSize(0), m_nOffset(0) {}
 
 VulkanRingBuffer::~VulkanRingBuffer() {
-	VkDevice vkDevice = this->m_device->GetVkDevice();
-
-	if (this->m_buffer != VK_NULL_HANDLE) {
-		vkDestroyBuffer(vkDevice, this->m_buffer, nullptr);
-	}
-
-	if (this->m_memory != VK_NULL_HANDLE) {
-		vkUnmapMemory(vkDevice, this->m_memory);
-		vkFreeMemory(vkDevice, this->m_memory, nullptr);
-	}
+	this->m_buffer->Unmap();
+	this->pMap = nullptr;
 }
 
 /**
@@ -47,7 +38,7 @@ VulkanRingBuffer::~VulkanRingBuffer() {
 */
 void 
 VulkanRingBuffer::Create(const RingBufferCreateInfo& createInfo) {
-	this->m_bufferType = createInfo.bufferType;
+	this->m_usage = createInfo.usage;
 	this->m_nBufferSize = createInfo.nBufferSize;
 	this->m_nFramesInFlight = createInfo.nFramesInFlight;
 
@@ -55,15 +46,15 @@ VulkanRingBuffer::Create(const RingBufferCreateInfo& createInfo) {
 	uint32_t nMinAlignment = createInfo.nAlignment;
 
 	/* Different alignment depending on the buffer type */
-	switch (this->m_bufferType) {
-		case EBufferType::CONSTANT_BUFFER:
+	switch (this->m_usage) {
+		case EBufferUsage::UNIFORM_BUFFER:
 			nMinAlignment = std::max(static_cast<VkDeviceSize>(createInfo.nAlignment), devProps.limits.minUniformBufferOffsetAlignment);
 			break;
-		case EBufferType::STORAGE_BUFFER:
+		case EBufferUsage::STORAGE_BUFFER:
 			nMinAlignment = std::max(static_cast<VkDeviceSize>(createInfo.nAlignment), devProps.limits.minStorageBufferOffsetAlignment);
 			break;
-		case EBufferType::VERTEX_BUFFER:
-		case EBufferType::INDEX_BUFFER:
+		case EBufferUsage::VERTEX_BUFFER:
+		case EBufferUsage::INDEX_BUFFER:
 			nMinAlignment = createInfo.nAlignment;
 			break;
 		default:
@@ -76,43 +67,22 @@ VulkanRingBuffer::Create(const RingBufferCreateInfo& createInfo) {
 	this->m_nPerFrameSize = createInfo.nBufferSize / createInfo.nFramesInFlight;
 
 	/* Buffer creation */
-	VkDevice vkDevice = this->m_device->GetVkDevice();
+	BufferCreateInfo bufferInfo = { };
+	bufferInfo.nSize = createInfo.nBufferSize;
+	bufferInfo.usage = createInfo.usage;
+	bufferInfo.sharingMode = ESharingMode::EXCLUSIVE;
 
-	VkBufferUsageFlagBits usage = ConvertTypeToUsage(createInfo.bufferType);
-
-	VkBufferCreateInfo bufferInfo = { };
-	bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-	bufferInfo.size = createInfo.nBufferSize;
-	bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-	bufferInfo.usage = usage;
-
-	VK_CHECK(vkCreateBuffer(vkDevice, &bufferInfo, nullptr, &this->m_buffer), "Failed creating buffer");
-
-	/* Allocate buffer memory */
-	VkMemoryRequirements memReqs = { };
-	vkGetBufferMemoryRequirements(vkDevice, this->m_buffer, &memReqs);
-
-	VkMemoryAllocateInfo allocInfo = { };
-	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-	allocInfo.allocationSize = memReqs.size;
-	allocInfo.memoryTypeIndex = this->m_device->FindMemoryType(
-		memReqs.memoryTypeBits, 
-		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
-	);
-
-	VK_CHECK(vkAllocateMemory(vkDevice, &allocInfo, nullptr, &this->m_memory), "Failed allocating buffer memory");
-
-	VK_CHECK(vkBindBufferMemory(vkDevice, this->m_buffer, this->m_memory, 0), "Failed binding buffer memory");
+	this->m_buffer = this->m_device->CreateBuffer(bufferInfo);
 
 	/* Map the memory persistently */
-	vkMapMemory(vkDevice, this->m_memory, 0, VK_WHOLE_SIZE, 0, &this->pMap);
+	this->pMap = this->m_buffer->Map();
 
 	String bufferTypeName = "UNKNOWN";
-	switch (this->m_bufferType) {
-		case EBufferType::CONSTANT_BUFFER: bufferTypeName = "CONSTANT"; break;
-		case EBufferType::VERTEX_BUFFER: bufferTypeName = "VERTEX"; break;
-		case EBufferType::INDEX_BUFFER: bufferTypeName = "INDEX"; break;
-		case EBufferType::STORAGE_BUFFER: bufferTypeName = "STORAGE"; break;
+	switch (this->m_usage) {
+		case EBufferUsage::UNIFORM_BUFFER: bufferTypeName = "CONSTANT"; break;
+		case EBufferUsage::VERTEX_BUFFER: bufferTypeName = "VERTEX"; break;
+		case EBufferUsage::INDEX_BUFFER: bufferTypeName = "INDEX"; break;
+		case EBufferUsage::STORAGE_BUFFER: bufferTypeName = "STORAGE"; break;
 	}
 
 	Logger::Debug("VulkanUniformRingBuffeer::Init: {0} Ring buffer initialized", bufferTypeName);

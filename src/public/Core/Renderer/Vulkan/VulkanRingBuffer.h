@@ -22,7 +22,6 @@ public:
 	uint32_t Align(uint32_t nValue, uint32_t nAlignment) override;
 	void Reset(uint32_t nImageIndex) override;
 
-	VkBuffer GetVkBuffer() const { return this->m_buffer; }
 	uint32_t GetPerFrameSize() const { return this->m_nPerFrameSize; }
 	uint32_t GetOffset() const { return this->m_nOffset; }
 
@@ -37,9 +36,6 @@ private:
 
 	uint32_t m_nPerFrameSize;
 	uint32_t m_nOffset;
-
-	VkBuffer m_buffer;
-	VkDeviceMemory m_memory;
 
 	void* pMap;
 };

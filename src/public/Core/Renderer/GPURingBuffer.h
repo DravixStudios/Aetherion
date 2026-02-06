@@ -8,12 +8,12 @@ struct RingBufferCreateInfo {
     uint32_t nBufferSize;
     uint32_t nAlignment;
     uint32_t nFramesInFlight;
-    EBufferType bufferType = EBufferType::CONSTANT_BUFFER;
+    EBufferUsage usage = EBufferUsage::UNIFORM_BUFFER;
 };
 
 class GPURingBuffer {
 public:
-    using Ptr = Ref<GPUBuffer>;
+    using Ptr = Ref<GPURingBuffer>;
 
     static constexpr const char* CLASS_NAME = "GPURingBuffer";
 
@@ -26,9 +26,14 @@ public:
 
     virtual uint64_t GetSize() const = 0;
     virtual uint32_t GetAlignment() const { return this->m_nAlignment; }
+
+    Ref<GPUBuffer> GetBuffer() const { return this->m_buffer; }
+
 protected:
+    Ref<GPUBuffer> m_buffer;
+
     uint32_t m_nBufferSize;
     uint32_t m_nAlignment;
     uint32_t m_nFramesInFlight;
-    EBufferType m_bufferType;
+    EBufferUsage m_usage;
 };
