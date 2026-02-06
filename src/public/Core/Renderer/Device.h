@@ -8,6 +8,7 @@
 #include "Core/Renderer/Swapchain.h"
 #include "Core/Renderer/Framebuffer.h"
 #include "Core/Renderer/Semaphore.h"
+#include "Core/Renderer/Fence.h"
 
 enum class EQueueType {
 	GRAPHICS,
@@ -241,4 +242,13 @@ public:
 	* @returns Created semaphore
 	*/
 	virtual Ref<Semaphore> CreateSemaphore() = 0;
+
+	/**
+	* Creates a fence
+	* 
+	* @param createInfo Fence create info
+	* 
+	* @returns Created fence
+	*/
+	virtual Ref<Fence> CreateFence(const FenceCreateInfo& createInfo) = 0;
 };

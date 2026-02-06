@@ -18,6 +18,7 @@
 #include "Core/Renderer/Vulkan/VulkanDescriptorSetLayout.h"
 #include "Core/Renderer/Vulkan/VulkanSampler.h"
 #include "Core/Renderer/Vulkan/VulkanSemaphore.h"
+#include "Core/Renderer/Vulkan/VulkanFence.h"
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
@@ -87,6 +88,7 @@ public:
 	Ref<DescriptorSet> CreateDescriptorSet(Ref<DescriptorPool> pool, Ref<DescriptorSetLayout> layout) override;
 
 	Ref<Semaphore> CreateSemaphore() override;
+	Ref<Fence> CreateFence(const FenceCreateInfo& createInfo) override;
 
 	VkDevice GetVkDevice() const { return this->m_device; }
 	VkPhysicalDevice GetVkPhysicalDevice() const { return this->m_physicalDevice; }

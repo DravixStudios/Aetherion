@@ -636,6 +636,22 @@ VulkanDevice::CreateSemaphore() {
 }
 
 /**
+* Creates a Vulkan fence
+* 
+* @param createInfo Fence create info
+*
+* @returns Created Vulkan fence
+*/
+Ref<Fence> 
+VulkanDevice::CreateFence(const FenceCreateInfo& createInfo) {
+	Ref<VulkanDevice> deviceRef = std::static_pointer_cast<VulkanDevice>(this->shared_from_this());
+	Ref<VulkanFence> fence = VulkanFence::CreateShared(deviceRef);
+	fence->Create(createInfo);
+
+	return fence.As<Fence>();
+}
+
+/**
 * Finds memory type
 * 
 * @param typeFilter Type filter

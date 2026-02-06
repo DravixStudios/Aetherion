@@ -15,7 +15,7 @@ public:
 
 	using Ptr = Ref<Fence>;
 
-	~Fence() = default;
+	virtual ~Fence() = default;
 
 	virtual void Create(const FenceCreateInfo& createInfo) = 0;
 };
