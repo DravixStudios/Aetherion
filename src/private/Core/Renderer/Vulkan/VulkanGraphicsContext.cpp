@@ -74,11 +74,19 @@ VulkanGraphicsContext::BindVertexBuffers(
 		vkBuffers[i] = buffer.As<VulkanBuffer>()->GetVkBuffer();
 	}
 
+	Vector<VkDeviceSize> vkOffsets(offsets.size());
+	std::transform(
+		offsets.begin(),
+		offsets.end(),
+		vkOffsets.begin(),
+		[](size_t offset) { return static_cast<VkDeviceSize>(offset); }
+	);
+
 	vkCmdBindVertexBuffers(
 		this->m_commandBuffer->GetVkCommandBuffer(), 
 		0,
 		nBufferCount, vkBuffers.data(), 
-		offsets.data()
+		vkOffsets.data()
 	);
 }
 
