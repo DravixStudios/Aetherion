@@ -175,18 +175,48 @@ VulkanGraphicsContext::DrawIndexedIndirect(
 	uint32_t nMaxDrawCount,
 	uint32_t nStride
 ) {
+	Ref<VulkanDevice> device = this->m_commandBuffer->GetDevice();
 	VkBuffer vkBuffer = buffer.As<VulkanBuffer>()->GetVkBuffer();
-	VkBuffer vkCountBuffer = countBuffer.As<VulkanBuffer>()->GetVkBuffer();
 
-	vkCmdDrawIndexedIndirectCount(
-		this->m_commandBuffer->GetVkCommandBuffer(),
-		vkBuffer,
-		nOffset,
-		vkCountBuffer,
-		nCountBufferOffset,
-		nMaxDrawCount,
-		nStride
-	);
+	/* 
+		If draw indirect count is supported, use  
+		vkCmdDrawIndexedIndirectCount, if it is
+		not, we'll use a "simulation" of what it
+		does, but CPU-side.
+	*/
+	if (device->IsExtensionSupported("VK_KHR_draw_indirect_count")) {
+	
+		VkBuffer vkCountBuffer = countBuffer.As<VulkanBuffer>()->GetVkBuffer();
+
+		vkCmdDrawIndexedIndirectCount(
+			this->m_commandBuffer->GetVkCommandBuffer(),
+			vkBuffer,
+			nOffset,
+			vkCountBuffer,
+			nCountBufferOffset,
+			nMaxDrawCount,
+			nStride
+		);
+	}
+	else {
+		uint32_t nDrawCount = 0;
+
+		void* pMap = countBuffer->Map();
+		nDrawCount = *reinterpret_cast<uint32_t*>(reinterpret_cast<uint8_t*>(pMap) + nCountBufferOffset);
+		countBuffer->Unmap();
+		pMap = nullptr;
+
+		nDrawCount = std::min(nDrawCount, nMaxDrawCount);
+
+		vkCmdDrawIndexedIndirect(
+			this->m_commandBuffer->GetVkCommandBuffer(),
+			vkBuffer,
+			nCountBufferOffset,
+			nDrawCount,
+			nStride
+		);
+	}
+
 }
 
 /**
