@@ -139,17 +139,21 @@ VulkanSwapchain::Create(const SwapchainCreateInfo& createInfo) {
 uint32_t 
 VulkanSwapchain::AcquireNextImage(
 	uint64_t nTimeout,
-	void* pSignalSemaphore,
-	void* pSignalFence
+	Ref<Semaphore> signalSemaphore,
+	Ref<Fence> signalFence
 ) {
-	uint32_t nImageIndex = 0;
+	uint32_t nImageIndex = UINT32_MAX;
+
+	VkSemaphore semaphore = signalSemaphore.As<VulkanSemaphore>()->GetVkSemaphore();
+	VkFence fence = signalFence.As<VulkanFence>()->GetVkFence();
 
 	VkDevice vkDevice = this->m_device->GetVkDevice();
 	vkAcquireNextImageKHR(
 		vkDevice,
 		this->m_swapchain,
 		nTimeout,
-		static_cast<VkSemaphore>(pSignalSemaphore), static_cast<VkFence>(pSignalFence),
+		semaphore, 
+		fence,
 		&nImageIndex
 	);
 

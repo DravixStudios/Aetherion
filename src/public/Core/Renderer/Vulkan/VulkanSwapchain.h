@@ -4,6 +4,8 @@
 #include "Core/Renderer/Vulkan/VulkanDevice.h"
 #include "Core/Renderer/Vulkan/VulkanImageView.h"
 #include "Core/Renderer/Vulkan/VulkanHelpers.h"
+#include "Core/Renderer/Vulkan/VulkanSemaphore.h"
+#include "Core/Renderer/Vulkan/VulkanFence.h"
 
 struct SwapchainSupportDetails;
 
@@ -17,9 +19,9 @@ public:
 	void Create(const SwapchainCreateInfo& createInfo) override;
 
 	uint32_t AcquireNextImage(
-		uint64_t nTimeout = UINT64_MAX,
-		void* pSignalSemaphore = nullptr,
-		void* pSignalFence = nullptr
+		uint64_t nTimeout,
+		Ref<Semaphore> signalSemaphore,
+		Ref<Fence> signalFence
 	) override;
 
 	bool Present(

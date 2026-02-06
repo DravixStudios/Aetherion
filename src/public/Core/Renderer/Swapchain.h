@@ -5,6 +5,8 @@
 #include "Core/Renderer/GPUTexture.h"
 #include "Core/Renderer/ImageView.h"
 #include "Core/Renderer/Rect2D.h"
+#include "Core/Renderer/Semaphore.h"
+#include "Core/Renderer/Fence.h"
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
@@ -47,15 +49,15 @@ public:
 	* Acquires the next available image for rendering
 	* 
 	* @param nTimeout Timeout in nanoseconds (UINT64_MAX = infinite)
-	* @param pSignalSemaphore Semaphore for when the image is available (optional)
-	* @param pSignalFence Fence for when the image is available (optional)
+	* @param signalSemaphore Semaphore for when the image is available
+	* @param signalFence Fence for when the image is available
 	* 
 	* @returns Acquired image index or UINT32_MAX if failed
 	*/
 	virtual uint32_t AcquireNextImage(
-		uint64_t nTimeout = UINT64_MAX,
-		void* pSignalSemaphore = nullptr,
-		void* pSignalFence = nullptr
+		uint64_t nTimeout,
+		Ref<Semaphore> signalSemaphore,
+		Ref<Fence> signalFence
 	) = 0;
 
 	/**
