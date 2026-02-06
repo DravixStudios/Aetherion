@@ -69,7 +69,7 @@ public:
 
 	void BufferMemoryBarrier(Ref<GPUBuffer> buffer, EAccess srcAccess, EAccess dstAccess) override;
 
-	Ref<CommandBuffer> GetCommandBuffer() override;
+	Ref<CommandBuffer> GetCommandBuffer() const override { return this->m_commandBuffer.As<CommandBuffer>(); }
 
 	static Ptr
 	CreateShared(Ref<VulkanCommandBuffer> commandBuffer) {
