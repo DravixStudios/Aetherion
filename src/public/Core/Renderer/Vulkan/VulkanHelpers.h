@@ -8,6 +8,7 @@
 #include "Core/Renderer/Pipeline.h"
 #include "Core/Renderer/GPUBuffer.h"
 #include "Core/Renderer/ImageView.h"
+#include "Core/Renderer/Semaphore.h"
 
 namespace VulkanHelpers {
 	/** 
@@ -282,6 +283,22 @@ namespace VulkanHelpers {
 		}
 
 		return vkAccess;
+	}
+
+	/**
+	* (ESemaphoreType -> VkSemaphoreType)
+	* 
+	* @param type Semaphore type
+	* 
+	* @returns Vulkan semaphore type
+	*/
+	inline VkSemaphoreType
+	ConvertSemaphoreType(ESemaphoreType type) {
+		switch (type) {
+			case ESemaphoreType::BINARY: return VK_SEMAPHORE_TYPE_BINARY;
+			case ESemaphoreType::TIMELINE: return VK_SEMAPHORE_TYPE_TIMELINE;
+			default: return VK_SEMAPHORE_TYPE_BINARY;
+		}
 	}
 
 	inline VkBlendFactor
