@@ -663,6 +663,67 @@ VulkanDevice::CreateFence(const FenceCreateInfo& createInfo) {
 }
 
 /**
+* Submits a sequence of semaphores or
+* command buffers to a queue
+*
+* @param submitInfo Submit info
+* @param fence Fence
+*
+*/
+void 
+VulkanDevice::Submit(const SubmitInfo& submitInfo, Ref<Fence> fence) {
+	/* Command buffers */
+	Vector<VkCommandBuffer> commandBuffers;
+	
+	if (!submitInfo.commandBuffers.empty()) {
+		for (const Ref<CommandBuffer>& commandBuff : submitInfo.commandBuffers) {
+			VkCommandBuffer vkBuff = commandBuff.As<VulkanCommandBuffer>()->GetVkCommandBuffer();
+			commandBuffers.push_back(vkBuff);
+		}
+	}
+
+	/* Signal semaphores */
+	Vector<VkSemaphore> signalSemaphores;
+
+	if (!submitInfo.signalSemaphores.empty()) {
+		for (const Ref<Semaphore>& semaphore : submitInfo.signalSemaphores) {
+			VkSemaphore vkSemaphore = semaphore.As<VulkanSemaphore>()->GetVkSemaphore();
+			signalSemaphores.push_back(vkSemaphore);
+		}
+	}
+
+	/* Wait semaphores */
+	Vector<VkSemaphore> waitSemaphores;
+
+	if (!submitInfo.waitSemaphores.empty()) {
+		for (const Ref<Semaphore>& semaphore : submitInfo.waitSemaphores) {
+			VkSemaphore vkSemaphore = semaphore.As<VulkanSemaphore>()->GetVkSemaphore();
+			waitSemaphores.push_back(vkSemaphore);
+		}
+	}
+
+	/* Wait stages */
+	Vector<VkPipelineStageFlags> waitStages;
+
+	if (!submitInfo.waitStages.empty()) {
+		for (const EPipelineStage stage : submitInfo.waitStages) {
+			VkPipelineStageFlags vkStage = VulkanHelpers::ConvertPipelineStage(stage);
+			waitStages.push_back(vkStage);
+		}
+	}
+
+	VkSubmitInfo vkSubmit = { };
+	vkSubmit.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	vkSubmit.pCommandBuffers = commandBuffers.data();
+	vkSubmit.commandBufferCount = commandBuffers.size();
+	vkSubmit.pSignalSemaphores = signalSemaphores.data();
+	vkSubmit.signalSemaphoreCount = signalSemaphores.size();
+	vkSubmit.pWaitSemaphores = waitSemaphores.data();
+	vkSubmit.waitSemaphoreCount = waitSemaphores.size();
+	vkSubmit.pWaitDstStageMask = waitStages.data();
+}
+
+/**
 * Finds memory type
 * 
 * @param typeFilter Type filter

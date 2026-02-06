@@ -91,6 +91,8 @@ public:
 	Ref<Semaphore> CreateSemaphore() override;
 	Ref<Fence> CreateFence(const FenceCreateInfo& createInfo) override;
 
+	void Submit(const SubmitInfo& submitInfo, Ref<Fence> fence) override;
+
 	VkDevice GetVkDevice() const { return this->m_device; }
 	VkPhysicalDevice GetVkPhysicalDevice() const { return this->m_physicalDevice; }
 
