@@ -38,6 +38,10 @@ RenderGraph::Compile() {
 void
 RenderGraph::CreateRenderPasses() {
     for(GraphNode& node : this->m_nodes) {
+        if (node.bIsComputeOnly) {
+            continue;
+        }
+
         RenderPassCreateInfo rpInfo = { };
         
         /* Color attachments */
@@ -99,6 +103,10 @@ RenderGraph::CreateRenderPasses() {
 void
 RenderGraph::CreateFramebuffers() {
     for(GraphNode& node : this->m_nodes) {
+        if (node.bIsComputeOnly) {
+            continue;
+        }
+
         FramebufferCreateInfo fbInfo = { };
         fbInfo.renderPass = node.renderPass;
 
@@ -128,6 +136,11 @@ RenderGraph::Execute(Ref<GraphicsContext> context) {
     graphCtx.m_pool = &this->m_pool;
 
     for(GraphNode& node : this->m_nodes) {
+        if (node.bIsComputeOnly) {
+            node.execute(context, graphCtx);
+            continue;
+        }
+
         /* Prepare the render pass */
         RenderPassBeginInfo beginInfo = { };
         beginInfo.renderPass = node.renderPass;
