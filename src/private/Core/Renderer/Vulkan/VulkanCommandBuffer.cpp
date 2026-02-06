@@ -1,6 +1,7 @@
 #include "Core/Renderer/Vulkan/VulkanCommandBuffer.h"
+#include "Core/Renderer/Vulkan/VulkanDevice.h"
 
-VulkanCommandBuffer::VulkanCommandBuffer(VkDevice device, VkCommandBuffer buffer)
+VulkanCommandBuffer::VulkanCommandBuffer(Ref<VulkanDevice> device, VkCommandBuffer buffer)
 	: m_device(device), m_commandBuffer(buffer) { }
 
 VulkanCommandBuffer::~VulkanCommandBuffer() {
