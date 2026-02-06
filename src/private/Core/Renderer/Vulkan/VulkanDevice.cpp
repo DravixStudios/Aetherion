@@ -174,8 +174,9 @@ VulkanDevice::CreateCommandPool(const CommandPoolCreateInfo& createInfo, EQueueT
 		case EQueueType::PRESENT: poolInfo.nQueueFamilyIndex = indices.presentFamily.value(); break;
 		default: poolInfo.nQueueFamilyIndex = indices.graphicsFamily.value(); break;
 	}
-
-	Ref<VulkanCommandPool> pool = VulkanCommandPool::CreateShared(this->m_device);
+	
+	Ref<VulkanDevice> deviceRef = std::static_pointer_cast<VulkanDevice>(this->shared_from_this());
+	Ref<VulkanCommandPool> pool = VulkanCommandPool::CreateShared(deviceRef);
 	pool->Create(poolInfo);
 
 	return pool.As<CommandPool>();
