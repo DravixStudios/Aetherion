@@ -178,5 +178,21 @@ public:
 	*/
 	virtual void BufferMemoryBarrier(Ref<GPUBuffer> buffer, EAccess srcAccess, EAccess dstAccess) = 0;
 
+	/**
+	* Image memory barrier for layout transitions
+	* 
+	* @param image Image to transition
+	* @param oldLayout Old layout
+	* @param newLayout New layout
+	*/
+	virtual void ImageBarrier(
+		Ref<GPUTexture> image,
+		EImageLayout oldLayout,
+		EImageLayout newLayout
+	) = 0;
+
+	/**
+	* Gets the command buffer
+	*/
 	virtual Ref<CommandBuffer> GetCommandBuffer() const = 0;
 };

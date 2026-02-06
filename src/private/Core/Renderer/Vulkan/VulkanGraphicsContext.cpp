@@ -1,4 +1,5 @@
 #include "Core/Renderer/Vulkan/VulkanGraphicsContext.h"
+#include "Core/Renderer/Vulkan/VulkanTexture.h"
 
 VulkanGraphicsContext::VulkanGraphicsContext(Ref<VulkanCommandBuffer> commandBuffer) 
 	: m_commandBuffer(commandBuffer), m_currentPipeline(VK_NULL_HANDLE), 
@@ -360,5 +361,46 @@ VulkanGraphicsContext::BufferMemoryBarrier(Ref<GPUBuffer> buffer, EAccess srcAcc
 		0, nullptr, 
 		1, &barrier,
 		0, nullptr
+	);
+}
+
+/**
+* Image memory barrier for layout transitions
+*
+* @param image Image to transition
+* @param oldLayout Old layout
+* @param newLayout New layout
+*/
+void 
+VulkanGraphicsContext::ImageBarrier(
+	Ref<GPUTexture> image,
+	EImageLayout oldLayout,
+	EImageLayout newLayout
+) {
+	VkImage vkImage = image.As<VulkanTexture>()->GetVkImage();
+
+	VkImageMemoryBarrier barrier = {};
+	barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+	barrier.oldLayout = VulkanHelpers::ConvertImageLayout(oldLayout);
+	barrier.newLayout = VulkanHelpers::ConvertImageLayout(newLayout);
+	barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	barrier.image = vkImage;
+	barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	barrier.subresourceRange.baseMipLevel = 0;
+	barrier.subresourceRange.levelCount = 1;
+	barrier.subresourceRange.baseArrayLayer = 0;
+	barrier.subresourceRange.layerCount = 1;
+	barrier.srcAccessMask = 0;
+	barrier.dstAccessMask = 0;
+
+	vkCmdPipelineBarrier(
+		this->m_commandBuffer->GetVkCommandBuffer(),
+		VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+		VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+		0,
+		0, nullptr,
+		0, nullptr,
+		1, &barrier
 	);
 }
