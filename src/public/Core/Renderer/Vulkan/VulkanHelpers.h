@@ -359,6 +359,22 @@ namespace VulkanHelpers {
 		return vkStage;
 	}
 
+	/**
+	* (ESharingMode -> VkSharingMode)
+	* 
+	* @param sharingMode Sharing mode
+	* 
+	* @returns Vulkan sharing mode
+	*/
+	inline VkSharingMode
+	ConvertSharingMode(ESharingMode sharingMode) {
+		switch (sharingMode) {
+			case ESharingMode::CONCURRENT: return VK_SHARING_MODE_CONCURRENT;
+			case ESharingMode::EXCLUSIVE: return VK_SHARING_MODE_EXCLUSIVE;
+			default: return VK_SHARING_MODE_EXCLUSIVE;
+		}
+	}
+
 	inline VkBlendFactor
 	ConvertBlendFactor(EBlendFactor blendFactor) {
 		switch(blendFactor) {
