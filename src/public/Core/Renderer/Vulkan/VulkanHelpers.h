@@ -284,6 +284,80 @@ namespace VulkanHelpers {
 		return vkAccess;
 	}
 
+	/**
+	* (EPipelineStage -> VkPipelineStageFlags)
+	* 
+	* @param stage Pipeline stage
+	* 
+	* @returns Vulkan pipeline stage
+	*/
+	inline VkPipelineStageFlags
+	ConvertPipelineStage(EPipelineStage stage) {
+		VkPipelineStageFlags vkStage = 0;
+
+		if ((stage & EPipelineStage::TOP_OF_PIPE) != static_cast<EPipelineStage>(0)) {
+			vkStage |= VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+		}
+
+		if ((stage & EPipelineStage::DRAW_INDIRECT) != static_cast<EPipelineStage>(0)) {
+			vkStage |= VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT;
+		}
+
+		if ((stage & EPipelineStage::VERTEX_INPUT) != static_cast<EPipelineStage>(0)) {
+			vkStage |= VK_PIPELINE_STAGE_VERTEX_INPUT_BIT;
+		}
+
+		if ((stage & EPipelineStage::VERTEX_SHADER) != static_cast<EPipelineStage>(0)) {
+			vkStage |= VK_PIPELINE_STAGE_VERTEX_SHADER_BIT;
+		}
+
+		if ((stage & EPipelineStage::TESSELLATION_CONTROL) != static_cast<EPipelineStage>(0)) {
+			vkStage |= VK_PIPELINE_STAGE_TESSELLATION_CONTROL_SHADER_BIT;
+		}
+
+		if ((stage & EPipelineStage::TESSELLATION_EVAL) != static_cast<EPipelineStage>(0)) {
+			vkStage |= VK_PIPELINE_STAGE_TESSELLATION_EVALUATION_SHADER_BIT;
+		}
+
+		if ((stage & EPipelineStage::GEOMETRY) != static_cast<EPipelineStage>(0)) {
+			vkStage |= VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT;
+		}
+
+		if ((stage & EPipelineStage::FRAGMENT) != static_cast<EPipelineStage>(0)) {
+			vkStage |= VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+		}
+
+		if ((stage & EPipelineStage::EARLY_FRAGMENT_TESTS) != static_cast<EPipelineStage>(0)) {
+			vkStage |= VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+		}
+
+		if ((stage & EPipelineStage::LATE_FRAGMENT_TESTS) != static_cast<EPipelineStage>(0)) {
+			vkStage |= VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+		}
+
+		if ((stage & EPipelineStage::COLOR_ATTACHMENT_OUTPUT) != static_cast<EPipelineStage>(0)) {
+			vkStage |= VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		}
+
+		if ((stage & EPipelineStage::COMPUTE_SHADER) != static_cast<EPipelineStage>(0)) {
+			vkStage |= VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+		}
+
+		if ((stage & EPipelineStage::TRANSFER) != static_cast<EPipelineStage>(0)) {
+			vkStage |= VK_PIPELINE_STAGE_TRANSFER_BIT;
+		}
+
+		if ((stage & EPipelineStage::BOTTOM_OF_PIPE) != static_cast<EPipelineStage>(0)) {
+			vkStage |= VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+		}
+
+		if ((stage & EPipelineStage::HOST) != static_cast<EPipelineStage>(0)) {
+			vkStage |= VK_PIPELINE_STAGE_HOST_BIT;
+		}
+
+		return vkStage;
+	}
+
 	inline VkBlendFactor
 	ConvertBlendFactor(EBlendFactor blendFactor) {
 		switch(blendFactor) {

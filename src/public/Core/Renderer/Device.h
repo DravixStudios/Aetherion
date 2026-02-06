@@ -43,6 +43,16 @@ enum class EPipelineStage : uint32_t {
 	ALL_COMMANDS = ALL_GRAPHICS | COMPUTE_SHADER |TRANSFER | TOP_OF_PIPE | BOTTOM_OF_PIPE | HOST
 };
 
+inline EPipelineStage
+operator|(EPipelineStage a, EPipelineStage b) {
+	return static_cast<EPipelineStage>(static_cast<uint32_t>(a) | static_cast<uint32_t>(b));
+}
+
+inline EPipelineStage
+operator&(EPipelineStage a, EPipelineStage b) {
+	return static_cast<EPipelineStage>(static_cast<uint32_t>(a) & static_cast<uint32_t>(b));
+}
+
 struct SubmitInfo {
 	Vector<Ref<Semaphore>> waitSemaphores;
 	Vector<EPipelineStage> waitStages;
