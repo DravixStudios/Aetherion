@@ -58,7 +58,7 @@ VulkanDescriptorSet::WriteBuffer(
 
 	/* (EBufferType -> VkDescriptorType) */
 	switch (vkBuffer->GetBufferType()) {
-	case EBufferType::CONSTANT_BUFFER:
+	case EBufferType::UNIFORM_BUFFER:
 		write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		break;
 	case EBufferType::STORAGE_BUFFER:
@@ -140,7 +140,7 @@ VulkanDescriptorSet::WriteBuffers(
 
 	/* (EBufferType -> VkDescriptorType) */
 	switch (bufferType) {
-	case EBufferType::CONSTANT_BUFFER:
+	case EBufferType::UNIFORM_BUFFER:
 		write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		break;
 	case EBufferType::STORAGE_BUFFER:

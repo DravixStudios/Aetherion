@@ -6,7 +6,7 @@
 enum class EBufferType {
 	VERTEX_BUFFER,
 	STAGING_BUFFER,
-	CONSTANT_BUFFER,
+	UNIFORM_BUFFER,
 	INDEX_BUFFER ,
 	STORAGE_BUFFER,
 	UNKNOWN_BUFFER 
@@ -97,6 +97,7 @@ struct BufferCreateInfo {
 	uint32_t nSize; // ~0ULL = WHOLE_SIZE
 	EBufferUsage usage;
 	ESharingMode sharingMode;
+	EBufferType type = EBufferType::UNKNOWN_BUFFER;
 
 	const void* pcData = nullptr;
 };

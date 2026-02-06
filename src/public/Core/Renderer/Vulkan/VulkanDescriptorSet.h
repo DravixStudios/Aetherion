@@ -29,7 +29,7 @@ public:
 		uint32_t nBinding, 
 		uint32_t nFirstArrayElement,
 		const Vector<DescriptorBufferInfo>& bufferInfos,
-		EBufferType bufferType = EBufferType::CONSTANT_BUFFER
+		EBufferType bufferType = EBufferType::UNIFORM_BUFFER
 	) override;
 	void WriteTextures(uint32_t nBinding, uint32_t nFirstArrayElement, const Vector<DescriptorImageInfo>& imageInfos) override;
 
@@ -47,7 +47,7 @@ private:
 	VkDescriptorSet m_descriptorSet;
 	VkDescriptorPool m_pool;
 
-	Vector<VkDescriptorBufferInfo> m_bufferInfos;
-	Vector<VkDescriptorImageInfo> m_imageInfos;
+	Deque<VkDescriptorBufferInfo> m_bufferInfos;
+	Deque<VkDescriptorImageInfo> m_imageInfos;
 	Vector<VkWriteDescriptorSet> m_pendingWrites;
 };

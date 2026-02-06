@@ -42,7 +42,7 @@ public:
 		uint32_t nBinding, 
 		uint32_t nFirstArrayElement, 
 		const Vector<DescriptorBufferInfo>& bufferInfos,
-		EBufferType bufferType = EBufferType::CONSTANT_BUFFER
+		EBufferType bufferType = EBufferType::UNIFORM_BUFFER
 	) = 0;
 
 	virtual void WriteTextures(

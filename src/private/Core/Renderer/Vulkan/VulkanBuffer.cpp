@@ -95,6 +95,7 @@ VulkanBuffer::~VulkanBuffer() {
 void 
 VulkanBuffer::Create(const BufferCreateInfo& createInfo) {
 	VkDevice vkDevice = this->m_device->GetVkDevice();
+	this->m_bufferType = createInfo.type;
 
 	this->m_size = static_cast<VkDeviceSize>(createInfo.nSize);
 

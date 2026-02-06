@@ -1,25 +1,24 @@
 #include "Core/Renderer/Vulkan/VulkanRingBuffer.h"
 
-/**
-* Converts EBufferType to VkBufferUsageFlagBits
-* 
-* @param bufferType Buffer type
-* 
-* @returns Vulkan buffer usage
-*/
-VkBufferUsageFlagBits ConvertTypeToUsage(EBufferType bufferType) {
-	switch (bufferType) {
-	case EBufferType::CONSTANT_BUFFER: return VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-	case EBufferType::VERTEX_BUFFER: return VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-	case EBufferType::INDEX_BUFFER: return VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
-	case EBufferType::STORAGE_BUFFER:
-		return static_cast<VkBufferUsageFlagBits>(
-			VK_BUFFER_USAGE_STORAGE_BUFFER_BIT  |
-			VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT |
-			VK_BUFFER_USAGE_TRANSFER_DST_BIT
-		);
-	default: return VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-	}
+EBufferType
+ConvertUsageToType(EBufferUsage usage){
+	if ((usage & EBufferUsage::VERTEX_BUFFER) != static_cast<EBufferUsage>(0))
+		return EBufferType::VERTEX_BUFFER;
+
+	if ((usage & EBufferUsage::INDEX_BUFFER) != static_cast<EBufferUsage>(0))
+		return EBufferType::INDEX_BUFFER;
+
+	if ((usage & EBufferUsage::UNIFORM_BUFFER) != static_cast<EBufferUsage>(0))
+		return EBufferType::UNIFORM_BUFFER;
+
+	if ((usage & EBufferUsage::STORAGE_BUFFER) != static_cast<EBufferUsage>(0))
+		return EBufferType::STORAGE_BUFFER;
+
+	if (((usage & EBufferUsage::TRANSFER_SRC) != static_cast<EBufferUsage>(0)) ||
+		((usage & EBufferUsage::TRANSFER_DST) != static_cast<EBufferUsage>(0)))
+		return EBufferType::STAGING_BUFFER;
+
+	return EBufferType::UNKNOWN_BUFFER;
 }
 
 VulkanRingBuffer::VulkanRingBuffer(Ref<VulkanDevice> device) 
@@ -71,6 +70,7 @@ VulkanRingBuffer::Create(const RingBufferCreateInfo& createInfo) {
 	bufferInfo.nSize = createInfo.nBufferSize;
 	bufferInfo.usage = createInfo.usage;
 	bufferInfo.sharingMode = ESharingMode::EXCLUSIVE;
+	bufferInfo.type = ConvertUsageToType(createInfo.usage);
 
 	this->m_buffer = this->m_device->CreateBuffer(bufferInfo);
 
