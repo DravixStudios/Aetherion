@@ -116,6 +116,18 @@ public:
 	*/
 	virtual void Create(const BufferCreateInfo& createInfo) = 0;
 
+	/**
+	* Maps the buffer to CPU
+	*
+	* @returns A pointer to the map
+	*/
+	virtual void* Map() = 0;
+
+	/**
+	* Unmaps the buffer
+	*/
+	virtual void Unmap() = 0;
+
 	EBufferType GetBufferType() const { return this->m_bufferType; }
 protected:
 	EBufferType m_bufferType = EBufferType::UNKNOWN_BUFFER;

@@ -127,7 +127,6 @@ VulkanBuffer::Create(const BufferCreateInfo& createInfo) {
 	VK_CHECK(vkBindBufferMemory(vkDevice, this->m_buffer, this->m_memory, 0), "Failed binding buffer memory");
 
 	/* Copy data to buffer */
-
 	void* pMap = nullptr;
 	if (createInfo.pcData != nullptr && createInfo.nSize > 0) {
 		vkMapMemory(vkDevice, this->m_memory, 0, this->m_size, 0, &pMap);
@@ -136,9 +135,28 @@ VulkanBuffer::Create(const BufferCreateInfo& createInfo) {
 
 		vkUnmapMemory(vkDevice, this->m_memory);
 	}
-	else {
-		Logger::Error("VulkanBuffer::Create: Data or size not specified");
-	}
 	
 	pMap = nullptr;
+}
+
+/**
+* Maps the buffer to CPU
+*
+* @returns A pointer to the map
+*/
+void* 
+VulkanBuffer::Map() {
+	void* pMap = nullptr;
+
+	vkMapMemory(this->m_device->GetVkDevice(), this->m_memory, 0, this->m_size, 0, &pMap);
+
+	return pMap;
+}
+
+/**
+* Unmaps the buffer
+*/
+void
+VulkanBuffer::Unmap() {
+	vkUnmapMemory(this->m_device->GetVkDevice(), this->m_memory);
 }

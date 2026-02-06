@@ -17,6 +17,9 @@ public:
 
 	void Create(const BufferCreateInfo& createInfo) override;
 
+	void* Map() override;
+	void Unmap() override;
+
 	VkBuffer GetVkBuffer() const { return this->m_buffer; }
 
 	static Ptr
