@@ -212,6 +212,8 @@ public:
 	virtual void CreateCompute(const ComputePipelineCreateInfo& createInfo) = 0;
 
 	EPipelineType GetType() const { return this->m_type; }
+	Ref<PipelineLayout> GetLayout() const { return this->m_layout; }
 protected:
 	EPipelineType m_type;
+	Ref<PipelineLayout> m_layout;
 };
