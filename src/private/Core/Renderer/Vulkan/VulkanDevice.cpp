@@ -544,6 +544,23 @@ VulkanDevice::CreateBuffer(const BufferCreateInfo& createInfo) {
 }
 
 /**
+* Creates a Vulkan ring buffer
+*
+* @param createInfo Ring buffer create info
+*
+* @returns Created Vulkan ring buffer
+*/
+Ref<GPURingBuffer> 
+VulkanDevice::CreateRingBuffer(const RingBufferCreateInfo& createInfo) {
+	Ref<VulkanDevice> deviceRef = std::static_pointer_cast<VulkanDevice>(this->shared_from_this());
+
+	Ref<VulkanRingBuffer> ringBuffer = VulkanRingBuffer::CreateShared(deviceRef);
+	ringBuffer->Create(createInfo);
+
+	return ringBuffer.As<GPURingBuffer>();
+}
+
+/**
 * Creates a Vulkan texture
 *
 * @param createInfo Texture create info

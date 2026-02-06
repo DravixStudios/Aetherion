@@ -19,6 +19,7 @@
 #include "Core/Renderer/Vulkan/VulkanSampler.h"
 #include "Core/Renderer/Vulkan/VulkanSemaphore.h"
 #include "Core/Renderer/Vulkan/VulkanFence.h"
+#include "Core/Renderer/Vulkan/VulkanRingBuffer.h"
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
@@ -75,6 +76,8 @@ public:
 	Ref<RenderPass> CreateRenderPass(const RenderPassCreateInfo& createInfo) override;
 
 	Ref<GPUBuffer> CreateBuffer(const BufferCreateInfo& createInfo) override;
+
+	Ref<GPURingBuffer> CreateRingBuffer(const RingBufferCreateInfo& createInfo) override;
 
 	Ref<GPUTexture> CreateTexture(const TextureCreateInfo& createInfo) override;
 

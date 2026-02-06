@@ -225,11 +225,20 @@ public:
 	/**
 	* Creates a buffer
 	* 
-	* @param createInfo Buffer createInfo
+	* @param createInfo Buffer create info
 	* 
 	* @returns Created buffer
 	*/
 	virtual Ref<GPUBuffer> CreateBuffer(const BufferCreateInfo& createInfo) = 0;
+
+	/**
+	* Creates a ring buffer
+	* 
+	* @param createInfo Ring buffer create info
+	* 
+	* @returns Created ring buffer
+	*/
+	virtual Ref<GPURingBuffer> CreateRingBuffer(const RingBufferCreateInfo& createInfo) = 0;
 
 	/**
 	* Creates a texture
