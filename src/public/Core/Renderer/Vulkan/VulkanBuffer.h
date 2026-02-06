@@ -15,7 +15,7 @@ public:
 	explicit VulkanBuffer(Ref<VulkanDevice> device);
 	~VulkanBuffer() override;
 
-	void Create(const void* pcData, uint32_t nSize, EBufferType bufferType = EBufferType::VERTEX_BUFFER) override;
+	void Create(const BufferCreateInfo& createInfo) override;
 
 	VkBuffer GetVkBuffer() const { return this->m_buffer; }
 
@@ -28,4 +28,6 @@ private:
 	Ref<VulkanDevice> m_device;
 	VkBuffer m_buffer;
 	VkDeviceMemory m_memory;
+
+	VkDeviceSize m_size = 0;
 };

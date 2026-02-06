@@ -1,5 +1,77 @@
 #include "Core/Renderer/Vulkan/VulkanBuffer.h"
 
+/**
+* (EBufferUsage -> VkBufferUsageFlags)
+* 
+* @param usage Buffer usage
+* 
+* @returns Vulkan buffer usage
+*/
+VkBufferUsageFlags
+ConvertBufferUsage(EBufferUsage usage) {
+	VkBufferUsageFlags vkUsage = 0;
+
+	if ((usage & EBufferUsage::TRANSFER_SRC) != EBufferUsage::NONE) {
+		vkUsage |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+	}
+
+	if ((usage & EBufferUsage::TRANSFER_DST) != EBufferUsage::NONE) {
+		vkUsage |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+	}
+
+	if ((usage & EBufferUsage::VERTEX_BUFFER) != EBufferUsage::NONE) {
+		vkUsage |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+	}
+
+	if ((usage & EBufferUsage::INDEX_BUFFER) != EBufferUsage::NONE) {
+		vkUsage |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+	}
+
+	if ((usage & EBufferUsage::UNIFORM_BUFFER) != EBufferUsage::NONE) {
+		vkUsage |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+	}
+
+	if ((usage & EBufferUsage::STORAGE_BUFFER) != EBufferUsage::NONE) {
+		vkUsage |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+	}
+
+	if ((usage & EBufferUsage::INDIRECT_BUFFER) != EBufferUsage::NONE) {
+		vkUsage |= VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
+	}
+
+	return vkUsage;
+}
+
+/**
+* (EBufferCreateFlags -> VkBufferCreateFlags)
+* 
+* @param flags Buffer create flags
+* 
+* @returns Vulkan buffer create flags
+*/
+VkBufferCreateFlags
+ConvertBufferFlags(EBufferCreateFlags flags) {
+	VkBufferCreateFlags vkFlags = 0;
+
+	if ((flags & EBufferCreateFlags::SPARSE_BINDING) != static_cast<EBufferCreateFlags>(0)) {
+		vkFlags |= VK_BUFFER_CREATE_SPARSE_BINDING_BIT;
+	}
+
+	if ((flags & EBufferCreateFlags::SPARSE_RESIDENCY) != static_cast<EBufferCreateFlags>(0)) {
+		vkFlags |= VK_BUFFER_CREATE_SPARSE_RESIDENCY_BIT;
+	}
+
+	if ((flags & EBufferCreateFlags::SPARSE_ALIASED) != static_cast<EBufferCreateFlags>(0)) {
+		vkFlags |= VK_BUFFER_CREATE_SPARSE_ALIASED_BIT;
+	}
+
+	if ((flags & EBufferCreateFlags::PROTECTED) != static_cast<EBufferCreateFlags>(0)) {
+		vkFlags |= VK_BUFFER_CREATE_PROTECTED_BIT;
+	}
+
+	return vkFlags;
+}
+
 VulkanBuffer::VulkanBuffer(Ref<VulkanDevice> device) 
 	: m_device(device), m_buffer(VK_NULL_HANDLE), m_memory(VK_NULL_HANDLE) {}
 
@@ -16,21 +88,23 @@ VulkanBuffer::~VulkanBuffer() {
 }
 
 /**
-* Creates a Vulkan buffer
+* Creates the Vulkan buffer
 * 
-* @param pcData Constant pointer to the buffer data
-* @param nSize Size of the data
-* @param bufferType Type of buffer
+* @param createInfo Buffer create info
 */
-void VulkanBuffer::Create(const void* pcData, uint32_t nSize, EBufferType bufferType) {
+void 
+VulkanBuffer::Create(const BufferCreateInfo& createInfo) {
 	VkDevice vkDevice = this->m_device->GetVkDevice();
+
+	this->m_size = static_cast<VkDeviceSize>(createInfo.nSize);
 
 	/* Buffer creation */
 	VkBufferCreateInfo bufferInfo = { };
 	bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-	bufferInfo.size = nSize;
-	bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-	bufferInfo.usage = VulkanHelpers::ConvertBufferUsage(bufferType);
+	bufferInfo.size = this->m_size;
+	bufferInfo.sharingMode = VulkanHelpers::ConvertSharingMode(createInfo.sharingMode);
+	bufferInfo.usage = ConvertBufferUsage(createInfo.usage);
+	bufferInfo.flags = ConvertBufferFlags(createInfo.flags);
 
 	VK_CHECK(vkCreateBuffer(vkDevice, &bufferInfo, nullptr, &this->m_buffer), "Failed creating a buffer");
 
@@ -53,9 +127,18 @@ void VulkanBuffer::Create(const void* pcData, uint32_t nSize, EBufferType buffer
 	VK_CHECK(vkBindBufferMemory(vkDevice, this->m_buffer, this->m_memory, 0), "Failed binding buffer memory");
 
 	/* Copy data to buffer */
+
 	void* pMap = nullptr;
-	vkMapMemory(vkDevice, this->m_memory, 0, VK_WHOLE_SIZE, 0, &pMap);
-	memcpy(pMap, pcData, nSize);
-	vkUnmapMemory(vkDevice, this->m_memory);
+	if (createInfo.pcData != nullptr && createInfo.nSize > 0) {
+		vkMapMemory(vkDevice, this->m_memory, 0, this->m_size, 0, &pMap);
+		
+		memcpy(pMap, createInfo.pcData, createInfo.nSize);
+
+		vkUnmapMemory(vkDevice, this->m_memory);
+	}
+	else {
+		Logger::Error("VulkanBuffer::Create: Data or size not specified");
+	}
+	
 	pMap = nullptr;
 }

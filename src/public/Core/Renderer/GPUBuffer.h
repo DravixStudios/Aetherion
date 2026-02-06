@@ -70,6 +70,37 @@ operator&(EAccess a, EAccess b) {
 	return static_cast<EAccess>(static_cast<uint32_t>(a) & static_cast<uint32_t>(b));
 }
 
+enum class EBufferCreateFlags : uint32_t {
+	SPARSE_BINDING = 1,
+	SPARSE_RESIDENCY = 1 << 1,
+	SPARSE_ALIASED = 1 << 2,
+	PROTECTED = 1 << 3
+};
+
+inline EBufferCreateFlags
+operator|(EBufferCreateFlags a, EBufferCreateFlags b) {
+	return static_cast<EBufferCreateFlags>(static_cast<uint32_t>(a) | static_cast<uint32_t>(b));
+}
+
+inline EBufferCreateFlags
+operator&(EBufferCreateFlags a, EBufferCreateFlags b) {
+	return static_cast<EBufferCreateFlags>(static_cast<uint32_t>(a) & static_cast<uint32_t>(b));
+}
+
+enum class ESharingMode {
+	EXCLUSIVE,
+	CONCURRENT
+};
+
+struct BufferCreateInfo {
+	EBufferCreateFlags flags;
+	uint32_t nSize; // ~0ULL = WHOLE_SIZE
+	EBufferUsage usage;
+	ESharingMode sharingMode;
+
+	const void* pcData = nullptr;
+};
+
 class GPUBuffer {
 public:
 	static constexpr const char* CLASS_NAME = "GPUBuffer";
@@ -78,7 +109,12 @@ public:
 
 	virtual ~GPUBuffer() {};
 	
-	virtual void Create(const void* pcData, uint32_t nSize, EBufferType bufferType = EBufferType::VERTEX_BUFFER) = 0;
+	/**
+	* Creates the buffer
+	* 
+	* @param createInfo Buffer create info
+	*/
+	virtual void Create(const BufferCreateInfo& createInfo) = 0;
 
 	EBufferType GetBufferType() const { return this->m_bufferType; }
 protected:

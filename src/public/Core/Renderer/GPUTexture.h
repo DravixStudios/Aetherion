@@ -72,11 +72,6 @@ operator&(ETextureUsage a, ETextureUsage b) {
 	return static_cast<ETextureUsage>(static_cast<uint32_t>(a) & static_cast<uint32_t>(b));
 }
 
-enum class ESharingMode {
-	EXCLUSIVE,
-	CONCURRENT
-};
-
 enum class ETextureLayout {
 	UNDEFINED,
 	GENERAL,
