@@ -11,6 +11,7 @@
 #include "Core/Renderer/Viewport.h"
 #include "Core/Renderer/Rect2D.h"
 #include "Core/Renderer/RenderPass.h"
+#include "Core/Renderer/CommandBuffer.h"
 
 class GraphicsContext {
 public:
@@ -177,5 +178,5 @@ public:
 	*/
 	virtual void BufferMemoryBarrier(Ref<GPUBuffer> buffer, EAccess srcAccess, EAccess dstAccess) = 0;
 
-	virtual Ref<CommandBuffer> GetCommandBuffer() = 0;
+	virtual Ref<CommandBuffer> GetCommandBuffer() const = 0;
 };

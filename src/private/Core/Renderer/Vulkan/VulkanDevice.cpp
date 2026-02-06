@@ -722,6 +722,13 @@ VulkanDevice::Submit(const SubmitInfo& submitInfo, Ref<Fence> fence) {
 	vkSubmit.pWaitSemaphores = waitSemaphores.data();
 	vkSubmit.waitSemaphoreCount = waitSemaphores.size();
 	vkSubmit.pWaitDstStageMask = waitStages.data();
+
+	VkFence vkFence = fence ? fence.As<VulkanFence>()->GetVkFence() : VK_NULL_HANDLE;
+
+	VK_CHECK(
+		vkQueueSubmit(this->m_graphicsQueue, 1, &vkSubmit, vkFence),
+		"Failed to submit to graphics queue"
+	);
 }
 
 /**

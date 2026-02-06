@@ -145,7 +145,7 @@ VulkanSwapchain::AcquireNextImage(
 	uint32_t nImageIndex = UINT32_MAX;
 
 	VkSemaphore semaphore = signalSemaphore.As<VulkanSemaphore>()->GetVkSemaphore();
-	VkFence fence = signalFence.As<VulkanFence>()->GetVkFence();
+	VkFence fence = signalFence ? signalFence.As<VulkanFence>()->GetVkFence() : VK_NULL_HANDLE;
 
 	VkDevice vkDevice = this->m_device->GetVkDevice();
 	vkAcquireNextImageKHR(
@@ -171,15 +171,22 @@ VulkanSwapchain::AcquireNextImage(
 bool 
 VulkanSwapchain::Present(
 	uint32_t nImageIndex,
-	const Vector<void*>& pWaitSemaphores
+	const Vector<Ref<Semaphore>>& pWaitSemaphores
 ) {
+	Vector<VkSemaphore> semaphores;
+	semaphores.resize(pWaitSemaphores.size());
+
+	for (uint32_t i = 0; i < pWaitSemaphores.size(); i++) {
+		semaphores[i] = pWaitSemaphores[i].As<VulkanSemaphore>()->GetVkSemaphore();
+	}
+
 	VkQueue queue = this->m_device->GetPresentQueue();
 
 	VkPresentInfoKHR presentInfo = { };
 	presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 	presentInfo.pImageIndices = &nImageIndex;
-	presentInfo.pWaitSemaphores = reinterpret_cast<const VkSemaphore*>(pWaitSemaphores.data());
-	presentInfo.waitSemaphoreCount = pWaitSemaphores.size();
+	presentInfo.pWaitSemaphores = semaphores.data();
+	presentInfo.waitSemaphoreCount = semaphores.size();
 	presentInfo.pSwapchains = &this->m_swapchain;
 	presentInfo.swapchainCount = 1;
 

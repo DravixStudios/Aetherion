@@ -26,7 +26,7 @@ public:
 
 	bool Present(
 		uint32_t nImageIndex,
-		const Vector<void*>& pWaitSemaphores = {}
+		const Vector<Ref<Semaphore>>& pWaitSemaphores = {}
 	) override;
 
 	void Rebuild(uint32_t nNewWidth, uint32_t nNewHeight) override;

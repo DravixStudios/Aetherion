@@ -70,7 +70,7 @@ public:
 	*/
 	virtual bool Present(
 		uint32_t nImageIndex,
-		const Vector<void*>& pWaitSemaphores = {}
+		const Vector<Ref<Semaphore>>& pWaitSemaphores = {}
 	) = 0;
 	/**
 	* Reconstructs the swap chain
