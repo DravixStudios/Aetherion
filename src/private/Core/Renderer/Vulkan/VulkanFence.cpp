@@ -44,3 +44,13 @@ VulkanFence::Create(const FenceCreateInfo& createInfo) {
 		),
 		"Failed to create fence");
 }
+
+/**
+* Resets the fence
+*/
+void 
+VulkanFence::Reset() {
+	VkDevice vkDevice = this->m_device.As<VulkanDevice>()->GetVkDevice();
+
+	vkResetFences(vkDevice, 1, &this->m_fence);
+}

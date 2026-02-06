@@ -15,6 +15,8 @@ public:
 
 	void Create(const FenceCreateInfo& createInfo) override;
 
+	void Reset() override;
+
 	VkFence GetVkFence() const { return this->m_fence; }
 
 	static Ptr

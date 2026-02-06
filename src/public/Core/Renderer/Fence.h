@@ -17,5 +17,15 @@ public:
 
 	virtual ~Fence() = default;
 
+	/**
+	* Creates a fence
+	* 
+	* @param createInfo Fence create info
+	*/
 	virtual void Create(const FenceCreateInfo& createInfo) = 0;
+
+	/**
+	* Resets the fence
+	*/
+	virtual void Reset() = 0;
 };
