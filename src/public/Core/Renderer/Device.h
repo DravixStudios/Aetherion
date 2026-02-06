@@ -223,6 +223,15 @@ public:
 	virtual Ref<RenderPass> CreateRenderPass(const RenderPassCreateInfo& createInfo) = 0;
 
 	/**
+	* Creates a buffer
+	* 
+	* @param createInfo Buffer createInfo
+	* 
+	* @returns Created buffer
+	*/
+	virtual Ref<GPUBuffer> CreateBuffer(const BufferCreateInfo& createInfo) = 0;
+
+	/**
 	* Creates a texture
 	* 
 	* @param createInfo Texture create info

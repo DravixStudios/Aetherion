@@ -527,6 +527,23 @@ VulkanDevice::CreateRenderPass(const RenderPassCreateInfo& createInfo) {
 }
 
 /**
+* Creates a Vulkan buffer
+*
+* @param createInfo Buffer createInfo
+*
+* @returns Created Vulkan buffer
+*/
+Ref<GPUBuffer> 
+VulkanDevice::CreateBuffer(const BufferCreateInfo& createInfo) {
+	Ref<VulkanDevice> deviceRef = std::static_pointer_cast<VulkanDevice>(this->shared_from_this());
+
+	Ref<VulkanBuffer> buffer = VulkanBuffer::CreateShared(deviceRef);
+	buffer->Create(createInfo);
+
+	return buffer.As<GPUBuffer>();
+}
+
+/**
 * Creates a Vulkan texture
 *
 * @param createInfo Texture create info

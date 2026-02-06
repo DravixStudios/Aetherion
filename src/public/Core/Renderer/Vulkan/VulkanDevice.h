@@ -74,6 +74,8 @@ public:
 
 	Ref<RenderPass> CreateRenderPass(const RenderPassCreateInfo& createInfo) override;
 
+	Ref<GPUBuffer> CreateBuffer(const BufferCreateInfo& createInfo) override;
+
 	Ref<GPUTexture> CreateTexture(const TextureCreateInfo& createInfo) override;
 
 	Ref<ImageView> CreateImageView(const ImageViewCreateInfo& createInfo) override;
