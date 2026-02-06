@@ -93,6 +93,7 @@ VulkanRingBuffer::Create(const RingBufferCreateInfo& createInfo) {
 	vkGetBufferMemoryRequirements(vkDevice, this->m_buffer, &memReqs);
 
 	VkMemoryAllocateInfo allocInfo = { };
+	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 	allocInfo.allocationSize = memReqs.size;
 	allocInfo.memoryTypeIndex = this->m_device->FindMemoryType(
 		memReqs.memoryTypeBits, 
