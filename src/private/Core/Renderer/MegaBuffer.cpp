@@ -59,7 +59,7 @@ MegaBuffer::Upload(const Vector<Vertex>& vertices, const Vector<uint16_t>& indic
 	);
 
 	memcpy(
-		static_cast<char*>(this->m_pVertexMap) + (this->m_nCurrentIndexOffset * sizeof(uint16_t)),
+		static_cast<char*>(this->m_pIndexMap) + (this->m_nCurrentIndexOffset * sizeof(uint16_t)),
 		indices.data(),
 		indexSize
 	);
