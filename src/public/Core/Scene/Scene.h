@@ -19,13 +19,6 @@ public:
 
 	Camera* GetCurrentCamera();
 
-	void CollectDrawData(
-		Vector<ObjectInstanceData>& instances,
-		Vector<DrawBatch>& batches,
-		Vector<glm::mat4>& wvpMatrices,
-		const glm::mat4 viewProj
-	);
-
 	void Start();
 	void Update();
 
