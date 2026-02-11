@@ -16,6 +16,8 @@ public:
 	void Create(const RenderPassCreateInfo& createInfo) override;
 
 	VkRenderPass GetVkRenderPass()  const { return this->m_renderPass; }
+
+	bool HasStencil(VkFormat format);
 	
 	static Ptr 
 	CreateShared(VkDevice device) {

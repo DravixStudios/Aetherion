@@ -7,11 +7,13 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
+class VulkanDevice;
+
 class VulkanCommandPool : public CommandPool {
 public:
 	using Ptr = Ref<VulkanCommandPool>;
 
-	explicit VulkanCommandPool(VkDevice device);
+	explicit VulkanCommandPool(Ref<VulkanDevice> device);
 	~VulkanCommandPool() override;
 
 	void Create(const CommandPoolCreateInfo& createInfo) override;
@@ -27,12 +29,12 @@ public:
 	VkCommandPool GetVkCommandPool() const { return this->m_pool; }
 
 	static Ptr
-	CreateShared(VkDevice device) {
+	CreateShared(Ref<VulkanDevice> device) {
 		return CreateRef<VulkanCommandPool>(device);
 	}
 
 private:
-	VkDevice m_device;
+	Ref<VulkanDevice> m_device;
 	VkCommandPool m_pool;
 
 	VkCommandPoolCreateFlags ConvertCommandPoolFlags(ECommandPoolFlags flags);

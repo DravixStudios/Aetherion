@@ -1,6 +1,7 @@
 #include "Core/Renderer/Vulkan/VulkanCommandBuffer.h"
+#include "Core/Renderer/Vulkan/VulkanDevice.h"
 
-VulkanCommandBuffer::VulkanCommandBuffer(VkDevice device, VkCommandBuffer buffer)
+VulkanCommandBuffer::VulkanCommandBuffer(Ref<VulkanDevice> device, VkCommandBuffer buffer)
 	: m_device(device), m_commandBuffer(buffer) { }
 
 VulkanCommandBuffer::~VulkanCommandBuffer() {
@@ -10,9 +11,10 @@ VulkanCommandBuffer::~VulkanCommandBuffer() {
 }
 
 void 
-VulkanCommandBuffer::Begin() {
+VulkanCommandBuffer::Begin(bool bSingleTime) {
 	VkCommandBufferBeginInfo beginInfo = { };
 	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	beginInfo.flags = bSingleTime ? VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT : 0;
 
 	VK_CHECK(vkBeginCommandBuffer(this->m_commandBuffer, &beginInfo), "Failed to begin a command buffer");
 }

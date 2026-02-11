@@ -1,95 +1,42 @@
 #include "Core/Renderer/ResourceManager.h"
-#include "Core/Renderer/Renderer.h"
-
-#include <stb/stb_image.h>
 
 ResourceManager* ResourceManager::m_instance;
 
-ResourceManager::ResourceManager() {
-	this->m_renderer = nullptr;
-}
-
-GPUTexture* 
-ResourceManager::GetTexture(String textureName) {
-	if (!this->TextureExists(textureName)) {
-		spdlog::error("ResourceManager::GetTexture: Texture with name {0} not found.", textureName);
-		return nullptr;
-	}
-
-	return this->m_textures[textureName];
-}
-
+/**
+* Checks if the texture is registered
+* 
+* @param name Texture name
+* 
+* @returns True if texture is registered
+*/
 bool 
-ResourceManager::AddTexture(String textureName, GPUTexture* pTexture) {
-	if (this->TextureExists(textureName)) {
-		spdlog::error("ResourceManager::AddTexture: Couldn't add texture {0}. Already exists", textureName);
-		return false;
-	}
-
-	this->m_textures[textureName] = pTexture;
-
-	return true;
+ResourceManager::IsTextureRegistered(const String& name) const {
+	return this->m_textureIndices.count(name) > 0;
 }
 
-bool 
-ResourceManager::TextureExists(String textureName) {
-	if (this->m_textures.count(textureName) > 0)
-		return true;
-	
-	return false;
+/**
+* Registers the texture in the
+* resource manager
+* 
+* @param name Texture name
+* @param nBindlessIndex Bindless index
+*/
+void
+ResourceManager::RegisterTexture(const String& name, uint32_t nBindlessIndex) {
+	this->m_textureIndices[name] = nBindlessIndex;
 }
 
-GPUTexture* 
-ResourceManager::UploadTexture(String textureName, const unsigned char* pData, int nWidth, int nHeight) {
-	if (this->TextureExists(textureName)) {
-		spdlog::error("ResourceManager::UploadTexture: Couldn't add texture {0}. Already exists", textureName);
-		return this->m_textures[textureName];
-	}
-	unsigned char* pixelData = nullptr;
-
-	if (nHeight == 0) {
-		int nChannels = 0;
-
-		/* Load image from memory with STB_image */
-		pixelData = stbi_load_from_memory(
-			pData, // Buffer
-			nWidth,  // Size of the file
-			&nWidth, // Pointer to width
-			&nHeight, // Pointer to height
-			&nChannels, // Pointer to channels
-			4 // Desired channels
-		);
-
-		if (pixelData == nullptr) {
-			spdlog::error("ResourceManager::UploadTexture: Failed loading texture from memory");
-			throw std::runtime_error("ResourceManager::UploadTexture: Failed loading texture from memory");
-			return nullptr;
-		}
-
-		GPUBuffer* stagingBuffer = this->m_renderer->CreateStagingBuffer(pixelData, (nWidth * nHeight) * 4);
-		GPUTexture* gpuTexture = this->m_renderer->CreateTexture(stagingBuffer, nWidth, nHeight, GPUFormat::RGBA8_UNORM);
-
-		/* Free image data */
-		stbi_image_free(pixelData);
-		pixelData = nullptr;
-
-		/* Delete staging buffer */
-		delete stagingBuffer;
-		stagingBuffer = nullptr;
-
-		this->AddTexture(textureName, gpuTexture);
-
-		return gpuTexture;
-	}
-	else {
-		/* TODO: Load uncompressed textures */
-		return nullptr;
-	}
-}
-
-void 
-ResourceManager::SetRenderer(Renderer* pRenderer) {
-	this->m_renderer = pRenderer;
+/**
+* Get texture index
+* 
+* @param name Texture name
+* 
+* @returns Texture index
+*/
+uint32_t
+ResourceManager::GetTextureIndex(const String& name) const {
+	std::map<String, uint32_t>::const_iterator it = this->m_textureIndices.find(name);
+	return (it != this->m_textureIndices.end()) ? it->second : UINT32_MAX;
 }
 
 ResourceManager* 

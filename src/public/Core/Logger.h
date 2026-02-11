@@ -44,6 +44,12 @@ namespace Logger {
 	}
 
 	template<typename... Args>
+	inline void
+	Warn(const char* fmt, Args&&... args) {
+		spdlog::warn(fmt::runtime(fmt), std::forward<Args>(args)...);
+	}
+
+	template<typename... Args>
 	inline void Error(const char* fmt, Args&&... args) {
 		spdlog::error(fmt::runtime(fmt), std::forward<Args>(args)...);
 	}
@@ -60,6 +66,14 @@ namespace Logger {
 	inline void
 	Info(const char* fmt_str, Args&&... args) {
 		std::cout << GREEN << "[Info] " << WHITE
+			<< fmt::vformat(fmt::runtime(fmt_str), fmt::make_format_args(std::forward<Args>(args)...))
+			<< std::endl;
+	}
+
+	template<typename... Args>
+	inline void
+	Warn(const char* fmt_str, Args&&... args) {
+		std::cout << GREEN << "[Warning] " << YELLOW
 			<< fmt::vformat(fmt::runtime(fmt_str), fmt::make_format_args(std::forward<Args>(args)...))
 			<< std::endl;
 	}

@@ -4,8 +4,10 @@
 #include <spdlog/spdlog.h>
 
 #include "Core/GameObject/GameObject.h"
+#include "Core/GameObject/Components/Mesh.h"
 #include "Core/Camera/Camera.h"
 #include "Core/Camera/EditorCamera.h"
+#include "Utils.h"
 
 class Scene {
 	friend class SceneManager;

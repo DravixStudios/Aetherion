@@ -1,6 +1,7 @@
 #include "Core/Renderer/Vulkan/VulkanGraphicsContext.h"
+#include "Core/Renderer/Vulkan/VulkanTexture.h"
 
-VulkanGraphicsContext::VulkanGraphicsContext(VkCommandBuffer commandBuffer) 
+VulkanGraphicsContext::VulkanGraphicsContext(Ref<VulkanCommandBuffer> commandBuffer) 
 	: m_commandBuffer(commandBuffer), m_currentPipeline(VK_NULL_HANDLE), 
 	m_currentBindPoint(VK_PIPELINE_BIND_POINT_MAX_ENUM), m_currentPipelineLayout(VK_NULL_HANDLE) {}
 
@@ -14,8 +15,9 @@ VulkanGraphicsContext::BindPipeline(Ref<Pipeline> pipeline) {
 	Ref<VulkanPipeline> vkPipeline = pipeline.As<VulkanPipeline>();
 	this->m_currentPipeline = vkPipeline->GetVkPipeline();
 	this->m_currentBindPoint = vkPipeline->GetVkBindPoint();
+	this->m_currentPipelineLayout = vkPipeline->GetVkPipelineLayout();
 
-	vkCmdBindPipeline(this->m_commandBuffer, this->m_currentBindPoint, this->m_currentPipeline);
+	vkCmdBindPipeline(this->m_commandBuffer->GetVkCommandBuffer(), this->m_currentBindPoint, this->m_currentPipeline);
 }
 
 /**
@@ -42,7 +44,7 @@ VulkanGraphicsContext::BindDescriptorSets(
 	}
 
 	vkCmdBindDescriptorSets(
-		this->m_commandBuffer, 
+		this->m_commandBuffer->GetVkCommandBuffer(),
 		this->m_currentBindPoint, 
 		this->m_currentPipelineLayout, 
 		nFirstSet, 
@@ -70,10 +72,28 @@ VulkanGraphicsContext::BindVertexBuffers(
 
 	for (uint32_t i = 0; i < nBufferCount; i++) {
 		const Ref<GPUBuffer>& buffer = buffers[i];
-		vkBuffers[i] = buffer.As<VulkanBuffer>()->GetBuffer();
+		vkBuffers[i] = buffer.As<VulkanBuffer>()->GetVkBuffer();
 	}
 
-	vkCmdBindVertexBuffers(this->m_commandBuffer, 0, nBufferCount, vkBuffers.data(), offsets.data());
+	Vector<VkDeviceSize> vkOffsets;
+	if (offsets.empty()) {
+		vkOffsets.resize(nBufferCount, 0);
+	} else {
+		vkOffsets.resize(offsets.size());
+		std::transform(
+			offsets.begin(),
+			offsets.end(),
+			vkOffsets.begin(),
+			[](size_t offset) { return static_cast<VkDeviceSize>(offset); }
+		);
+	}
+
+	vkCmdBindVertexBuffers(
+		this->m_commandBuffer->GetVkCommandBuffer(), 
+		0,
+		nBufferCount, vkBuffers.data(), 
+		vkOffsets.data()
+	);
 }
 
 /**
@@ -83,11 +103,11 @@ VulkanGraphicsContext::BindVertexBuffers(
 * @param indexType Index type (default = UINT16)
 */
 void 
-VulkanGraphicsContext::BindIndexBuffer(Ref<GPUBuffer> buffer, EIndexType indexType = EIndexType::UINT16) {
+VulkanGraphicsContext::BindIndexBuffer(Ref<GPUBuffer> buffer, EIndexType indexType) {
 	VkIndexType vkIndexType = VulkanHelpers::ConvertIndexType(indexType);
 
-	VkBuffer vkBuffer = buffer.As<VulkanBuffer>()->GetBuffer();
-	vkCmdBindIndexBuffer(this->m_commandBuffer, vkBuffer, 0, vkIndexType);
+	VkBuffer vkBuffer = buffer.As<VulkanBuffer>()->GetVkBuffer();
+	vkCmdBindIndexBuffer(this->m_commandBuffer->GetVkCommandBuffer(), vkBuffer, 0, vkIndexType);
 }
 
 /**
@@ -106,7 +126,7 @@ VulkanGraphicsContext::Draw(
 	uint32_t nFirstInstance
 ) {
 	vkCmdDraw(
-		this->m_commandBuffer, 
+		this->m_commandBuffer->GetVkCommandBuffer(),
 		nVertexCount, 
 		nInstanceCount, 
 		nFirstVertex, 
@@ -133,7 +153,7 @@ VulkanGraphicsContext::DrawIndexed(
 	uint32_t nFirstInstance
 ) {
 	vkCmdDrawIndexed(
-		this->m_commandBuffer,
+		this->m_commandBuffer->GetVkCommandBuffer(),
 		nIndexCount,
 		nInstanceCount,
 		nFirstIndex,
@@ -161,29 +181,59 @@ VulkanGraphicsContext::DrawIndexedIndirect(
 	uint32_t nMaxDrawCount,
 	uint32_t nStride
 ) {
-	VkBuffer vkBuffer = buffer.As<VulkanBuffer>()->GetBuffer();
-	VkBuffer vkCountBuffer = countBuffer.As<VulkanBuffer>()->GetBuffer();
+	Ref<VulkanDevice> device = this->m_commandBuffer->GetDevice();
+	VkBuffer vkBuffer = buffer.As<VulkanBuffer>()->GetVkBuffer();
 
-	vkCmdDrawIndexedIndirectCount(
-		this->m_commandBuffer,
-		vkBuffer,
-		nOffset,
-		vkCountBuffer,
-		nCountBufferOffset,
-		nMaxDrawCount,
-		nStride
-	);
+	/* 
+		If draw indirect count is supported, use  
+		vkCmdDrawIndexedIndirectCount, if it is
+		not, we'll use a "simulation" of what it
+		does, but CPU-side.
+	*/
+	if (device->IsExtensionSupported("VK_KHR_draw_indirect_count")) {
+	
+		VkBuffer vkCountBuffer = countBuffer.As<VulkanBuffer>()->GetVkBuffer();
+
+		vkCmdDrawIndexedIndirectCount(
+			this->m_commandBuffer->GetVkCommandBuffer(),
+			vkBuffer,
+			nOffset,
+			vkCountBuffer,
+			nCountBufferOffset,
+			nMaxDrawCount,
+			nStride
+		);
+	}
+	else {
+		uint32_t nDrawCount = 0;
+
+		void* pMap = countBuffer->Map();
+		nDrawCount = *reinterpret_cast<uint32_t*>(reinterpret_cast<uint8_t*>(pMap) + nCountBufferOffset);
+		countBuffer->Unmap();
+		pMap = nullptr;
+
+		nDrawCount = std::min(nDrawCount, nMaxDrawCount);
+
+		vkCmdDrawIndexedIndirect(
+			this->m_commandBuffer->GetVkCommandBuffer(),
+			vkBuffer,
+			nCountBufferOffset,
+			nDrawCount,
+			nStride
+		);
+	}
+
 }
 
 /**
-	* Push constants to pipeline layout
-	*
-	* @param layout Pipeline layout
-	* @param stages Shader stage
-	* @param nOffset Push constant offset
-	* @param nSize Size of push constant data
-	* @param pcData Constant pointer to push constant data
-	*/
+* Push constants to pipeline layout
+*
+* @param layout Pipeline layout
+* @param stages Shader stage
+* @param nOffset Push constant offset
+* @param nSize Size of push constant data
+* @param pcData Constant pointer to push constant data
+*/
 void 
 VulkanGraphicsContext::PushConstants(
 	Ref<PipelineLayout> layout,
@@ -195,7 +245,7 @@ VulkanGraphicsContext::PushConstants(
 	VkPipelineLayout vkLayout = layout.As<VulkanPipelineLayout>()->GetVkLayout();
 
 	vkCmdPushConstants(
-		this->m_commandBuffer,
+		this->m_commandBuffer->GetVkCommandBuffer(),
 		vkLayout,
 		VulkanHelpers::ConvertShaderStage(stages),
 		nOffsets,
@@ -218,7 +268,7 @@ void VulkanGraphicsContext::SetViewport(const Viewport& viewport) {
 	vkViewport.minDepth = viewport.minDepth;
 	vkViewport.maxDepth = viewport.maxDepth;
 	
-	vkCmdSetViewport(this->m_commandBuffer, 0, 1, &vkViewport);
+	vkCmdSetViewport(this->m_commandBuffer->GetVkCommandBuffer(), 0, 1, &vkViewport);
 }
 
 /**
@@ -237,5 +287,238 @@ void VulkanGraphicsContext::SetScissor(const Rect2D& scissor) {
 
 	VkRect2D vkScissor = { offset, extent };
 
-	vkCmdSetScissor(this->m_commandBuffer, 0, 1, &vkScissor);
+	vkCmdSetScissor(this->m_commandBuffer->GetVkCommandBuffer(), 0, 1, &vkScissor);
 }
+
+/**
+* Begins a Vulkan render pass
+*
+* @param beginInfo Render pass begin info
+*/
+void 
+VulkanGraphicsContext::BeginRenderPass(const RenderPassBeginInfo& beginInfo) {
+	VkRenderPass rp = beginInfo.renderPass.As<VulkanRenderPass>()->GetVkRenderPass();
+	VkFramebuffer fb = beginInfo.framebuffer.As<VulkanFramebuffer>()->GetVkFramebuffer();
+
+	VkRenderPassBeginInfo rpInfo = { };
+	rpInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+	rpInfo.renderPass = rp;
+	rpInfo.framebuffer = fb;
+	rpInfo.renderArea.extent = {
+		beginInfo.renderArea.extent.width,
+		beginInfo.renderArea.extent.height
+	};
+	rpInfo.renderArea.offset = {
+		static_cast<int32_t>(beginInfo.renderArea.offset.x),
+		static_cast<int32_t>(beginInfo.renderArea.offset.y)
+	};
+
+	Vector<VkClearValue> clearValues;
+	clearValues.reserve(beginInfo.clearValues.size());
+
+	for (const ClearValue& clear : beginInfo.clearValues) {
+		VkClearValue vkClear = { };
+		if (clear.type == ClearValue::Type::COLOR) {
+			vkClear.color = { { clear.color.r, clear.color.g, clear.color.b, clear.color.a } };
+		}
+		else {
+			vkClear.depthStencil = { clear.deptStencil.depth, clear.deptStencil.stencil };
+		}
+		clearValues.push_back(vkClear);
+	}
+
+	rpInfo.clearValueCount = clearValues.size();
+	rpInfo.pClearValues = clearValues.data();
+
+	vkCmdBeginRenderPass(this->m_commandBuffer->GetVkCommandBuffer(), &rpInfo, VK_SUBPASS_CONTENTS_INLINE);
+}
+
+/**
+* Ends the current Vulkan render pass
+*/
+void
+VulkanGraphicsContext::EndRenderPass() {
+	vkCmdEndRenderPass(this->m_commandBuffer->GetVkCommandBuffer());
+}
+
+/**
+* Advances to the next Vulkan subpass
+*/
+void 
+VulkanGraphicsContext::NextSubpass() {
+	vkCmdNextSubpass(this->m_commandBuffer->GetVkCommandBuffer(), VK_SUBPASS_CONTENTS_INLINE);
+}
+
+/**
+* Fills a buffer
+*
+* @param buffer Buffer to fill
+* @param nOffset Offset
+* @param nSize Size of the fill
+* @param nData Fill data
+*/
+void 
+VulkanGraphicsContext::FillBuffer(Ref<GPUBuffer> buffer, uint32_t nOffset, uint32_t nSize, uint32_t nData) {
+	VkBuffer vkBuffer = buffer.As<VulkanBuffer>()->GetVkBuffer();
+
+	vkCmdFillBuffer(this->m_commandBuffer->GetVkCommandBuffer(), vkBuffer, nOffset, nSize, nData);
+}
+
+/**
+* Dispatches compute work items
+*
+* @param x X dimension
+* @param y Y dimension
+* @param z Z dimension
+*/
+void 
+VulkanGraphicsContext::Dispatch(uint32_t x, uint32_t y, uint32_t z) {
+	vkCmdDispatch(this->m_commandBuffer->GetVkCommandBuffer(), x, y, z);
+}
+
+/**
+* Buffer memory barrier
+*
+* @param buffer Buffer
+* @param srcAccess Source access mask
+* @param dstAccess Destination access mask
+*/
+void 
+VulkanGraphicsContext::BufferMemoryBarrier(Ref<GPUBuffer> buffer, EAccess srcAccess, EAccess dstAccess) {
+	VkBuffer vkBuffer = buffer.As<VulkanBuffer>()->GetVkBuffer();
+
+	VkBufferMemoryBarrier barrier = { };
+	barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+	
+	barrier.srcAccessMask = VulkanHelpers::ConvertAccess(srcAccess);
+	barrier.dstAccessMask = VulkanHelpers::ConvertAccess(dstAccess);
+
+	barrier.buffer = vkBuffer;
+
+	barrier.size = VK_WHOLE_SIZE;
+
+	vkCmdPipelineBarrier(
+		this->m_commandBuffer->GetVkCommandBuffer(),
+		VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+		VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+		0, 
+		0, nullptr, 
+		1, &barrier,
+		0, nullptr
+	);
+}
+
+/**
+* Image memory barrier for layout transitions
+*
+* @param image Image to transition
+* @param oldLayout Old layout
+* @param newLayout New layout
+*/
+void 
+VulkanGraphicsContext::ImageBarrier(
+	Ref<GPUTexture> image,
+	EImageLayout oldLayout,
+	EImageLayout newLayout
+) {
+	this->ImageBarrier(image, oldLayout, newLayout, 1, 0, 0);
+}
+
+void 
+VulkanGraphicsContext::ImageBarrier(
+	Ref<GPUTexture> image,
+	EImageLayout oldLayout,
+	EImageLayout newLayout,
+	uint32_t nLayerCount,
+	uint32_t nBaseMipLevel,
+	uint32_t nBaseArrayLayer
+) {
+	VkImage vkImage = image.As<VulkanTexture>()->GetVkImage();
+
+	VkImageMemoryBarrier barrier = {};
+	barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+	barrier.oldLayout = VulkanHelpers::ConvertImageLayout(oldLayout);
+	barrier.newLayout = VulkanHelpers::ConvertImageLayout(newLayout);
+	barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	barrier.image = vkImage;
+	barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	barrier.subresourceRange.baseMipLevel = nBaseMipLevel;
+	barrier.subresourceRange.levelCount = 1;
+	barrier.subresourceRange.baseArrayLayer = nBaseArrayLayer;
+	barrier.subresourceRange.layerCount = nLayerCount;
+
+	VkPipelineStageFlags srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+	VkPipelineStageFlags dstStage = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+
+	/* Infer access masks and pipeline stages from layouts */
+	if (oldLayout == EImageLayout::UNDEFINED) {
+		barrier.srcAccessMask = 0;
+		srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+	} else if (oldLayout == EImageLayout::COLOR_ATTACHMENT) {
+		barrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+		srcStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	} else if (oldLayout == EImageLayout::TRANSFER_DST) {
+		barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+		srcStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+	}
+
+	if (newLayout == EImageLayout::SHADER_READ_ONLY) {
+		barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+		dstStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+	} else if (newLayout == EImageLayout::COLOR_ATTACHMENT) {
+		barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+		dstStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	} else if (newLayout == EImageLayout::TRANSFER_DST) {
+		barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+		dstStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+	}
+
+	vkCmdPipelineBarrier(
+		this->m_commandBuffer->GetVkCommandBuffer(),
+		srcStage,
+		dstStage,
+		0,
+		0, nullptr,
+		0, nullptr,
+		1, &barrier
+	);
+}
+
+/**
+* Inserts a global memory barrier to synchronize all operations.
+* This is a simple but expensive synchronization method.
+*/
+void 
+VulkanGraphicsContext::GlobalBarrier() {
+	VkMemoryBarrier barrier = { };
+	barrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+	barrier.srcAccessMask = VK_ACCESS_INDIRECT_COMMAND_READ_BIT |
+		VK_ACCESS_INDEX_READ_BIT |
+		VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT |
+		VK_ACCESS_UNIFORM_READ_BIT |
+		VK_ACCESS_INPUT_ATTACHMENT_READ_BIT |
+		VK_ACCESS_SHADER_READ_BIT |
+		VK_ACCESS_SHADER_WRITE_BIT |
+		VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |
+		VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
+		VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
+		VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT |
+		VK_ACCESS_TRANSFER_READ_BIT |
+		VK_ACCESS_TRANSFER_WRITE_BIT |
+		VK_ACCESS_HOST_READ_BIT |
+		VK_ACCESS_HOST_WRITE_BIT;
+
+	barrier.dstAccessMask = barrier.srcAccessMask;
+
+	vkCmdPipelineBarrier(
+		this->m_commandBuffer->GetVkCommandBuffer(),
+		VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+		VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+		0,
+		1, &barrier,
+		0, nullptr,
+		0, nullptr
+	);
+}
+

@@ -1,9 +1,11 @@
 #pragma once
 #include "Core/Containers.h"
 #include "Core/Renderer/GPUTexture.h"
+#include "Core/Renderer/ImageView.h"
 #include "Core/Renderer/GPUBuffer.h"
 #include "Core/Renderer/DescriptorPool.h"
 #include "Core/Renderer/DescriptorSetLayout.h"
+#include "Core/Renderer/Sampler.h"
 
 struct DescriptorBufferInfo {
 	Ref<GPUBuffer> buffer;
@@ -13,6 +15,8 @@ struct DescriptorBufferInfo {
 
 struct DescriptorImageInfo {
 	Ref<GPUTexture> texture;
+	Ref<ImageView> imageView;
+	Ref<Sampler> sampler;
 };
 
 class DescriptorSet {
@@ -38,7 +42,7 @@ public:
 		uint32_t nBinding, 
 		uint32_t nFirstArrayElement, 
 		const Vector<DescriptorBufferInfo>& bufferInfos,
-		EBufferType bufferType = EBufferType::CONSTANT_BUFFER
+		EBufferType bufferType = EBufferType::UNIFORM_BUFFER
 	) = 0;
 
 	virtual void WriteTextures(
@@ -48,4 +52,6 @@ public:
 	) = 0;
 
 	virtual void UpdateWrites() = 0;
+
+	virtual Ref<DescriptorSetLayout> GetLayout() const = 0;
 };

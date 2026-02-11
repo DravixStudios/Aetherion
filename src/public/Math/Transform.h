@@ -25,4 +25,6 @@ struct Transform {
 	Vector3 Right();
 
 	Vector3 RotatePoint(Vector3& point);
+
+	glm::mat4 GetWorldMatrix() const;
 };

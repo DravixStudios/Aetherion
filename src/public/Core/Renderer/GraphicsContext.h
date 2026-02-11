@@ -11,6 +11,7 @@
 #include "Core/Renderer/Viewport.h"
 #include "Core/Renderer/Rect2D.h"
 #include "Core/Renderer/RenderPass.h"
+#include "Core/Renderer/CommandBuffer.h"
 
 class GraphicsContext {
 public:
@@ -131,4 +132,92 @@ public:
 	* @param scissor Scissor rect
 	*/
 	virtual void SetScissor(const Rect2D& scissor) = 0;
+
+	/**
+	* Begins a render pass
+	* 
+	* @param beginInfo Render pass begin info
+	*/
+	virtual void BeginRenderPass(const RenderPassBeginInfo& beginInfo) = 0;
+
+	/**
+	* Ends the current render pass
+	*/
+	virtual void EndRenderPass() = 0;
+
+	/**
+	* Advances to the next subpass
+	*/
+	virtual void NextSubpass() = 0;
+
+	/**
+	* Fills a buffer
+	* 
+	* @param buffer Buffer to fill
+	* @param nOffset Offset
+	* @param nSize Size of the fill
+	* @param nData Fill data 
+	*/
+	virtual void FillBuffer(Ref<GPUBuffer> buffer, uint32_t nOffset, uint32_t nSize, uint32_t nData) = 0;
+
+	/**
+	* Dispatches compute work items
+	* 
+	* @param x X dimension
+	* @param y Y dimension
+	* @param z Z dimension
+	*/
+	virtual void Dispatch(uint32_t x, uint32_t y, uint32_t z) = 0;
+
+	/**
+	* Buffer memory barrier
+	* 
+	* @param buffer Buffer
+	* @param srcAccess Source access mask
+	* @param dstAccess Destination access mask
+	*/
+	virtual void BufferMemoryBarrier(Ref<GPUBuffer> buffer, EAccess srcAccess, EAccess dstAccess) = 0;
+
+	/**
+	* Image memory barrier for layout transitions
+	* 
+	* @param image Image to transition
+	* @param oldLayout Old layout
+	* @param newLayout New layout
+	*/
+	virtual void ImageBarrier(
+		Ref<GPUTexture> image,
+		EImageLayout oldLayout,
+		EImageLayout newLayout
+	) = 0;
+
+	/**
+	* Image memory barrier for layout transitions (extended)
+	* 
+	* @param image Image to transition
+	* @param oldLayout Old layout
+	* @param newLayout New layout
+	* @param nLayerCount Number of array layers
+	* @param nBaseMipLevel Base mip level
+	* @param nBaseArrayLayer Base array layer
+	*/
+	virtual void ImageBarrier(
+		Ref<GPUTexture> image,
+		EImageLayout oldLayout,
+		EImageLayout newLayout,
+		uint32_t nLayerCount,
+		uint32_t nBaseMipLevel,
+		uint32_t nBaseArrayLayer = 0
+	) = 0;
+
+	/**
+	* Gets the command buffer
+	*/
+	virtual Ref<CommandBuffer> GetCommandBuffer() const = 0;
+
+	/**
+	* Inserts a global memory barrier to synchronize all operations.
+	* This is a simple but expensive synchronization method.
+	*/
+	virtual void GlobalBarrier() = 0;
 };
