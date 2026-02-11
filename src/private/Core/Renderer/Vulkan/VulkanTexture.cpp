@@ -2,12 +2,10 @@
 #include "Core/Renderer/Vulkan/VulkanDevice.h"
 
 VulkanTexture::VulkanTexture(Ref<VulkanDevice> device) 
-	: m_device(device), m_image(VK_NULL_HANDLE), m_nSize(0) {}
+	: m_device(device), m_image(VK_NULL_HANDLE), m_memory(VK_NULL_HANDLE) {}
 
 VulkanTexture::~VulkanTexture() {
-	if (this->m_image != VK_NULL_HANDLE) {
-		vkDestroyImage(this->m_device->GetVkDevice(), this->m_image, nullptr);
-	}
+	this->Reset();
 }
 
 /**
@@ -139,6 +137,8 @@ VulkanTexture::Create(const TextureCreateInfo& createInfo) {
 void 
 VulkanTexture::Create(const VkImage& image) {
 	this->m_image = image;
+	this->m_bOwnsImage = false;
+	this->m_memory = VK_NULL_HANDLE;
 }
 
 
@@ -152,9 +152,10 @@ VulkanTexture::Reset() {
 
 	if (this->m_memory != VK_NULL_HANDLE) {
 		vkFreeMemory(vkDevice, this->m_memory, nullptr);
+		this->m_memory = VK_NULL_HANDLE;
 	}
 
-	if (this->m_image != VK_NULL_HANDLE) {
+	if (this->m_image != VK_NULL_HANDLE && this->m_bOwnsImage) {
 		vkDestroyImage(vkDevice, this->m_image, nullptr);
 		this->m_image = VK_NULL_HANDLE;
 	}
