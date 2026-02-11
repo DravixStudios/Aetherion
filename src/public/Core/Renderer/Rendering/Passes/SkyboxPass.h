@@ -11,7 +11,7 @@ public:
 
 	void Init(Ref<Device>) override;
 	void SetupNode(RenderGraphBuilder& builder) override;
-	void Execute(Ref<GraphicsContext> context, RenderGraphContext& graphCtx) override;
+	void Execute(Ref<GraphicsContext> context, RenderGraphContext& graphCtx, uint32_t nFrameIndex = 0) override;
 
 	void SetInput(const Input& input) { this->m_input = input; }
 
@@ -22,6 +22,9 @@ public:
 		Ref<GPUBuffer> indexBuffer,
 		uint32_t nIndexCount
 	);
+
+	Ref<PipelineLayout> GetPipelineLayout() const { return this->m_pipelineLayout; }
+
 private:
 	Input m_input;
 	
@@ -40,4 +43,15 @@ private:
 	Ref<DescriptorSetLayout> m_skyboxSetLayout;
 
 	void CreatePipeline();
+
+	glm::mat4 m_view;
+	glm::mat4 m_proj;
+	glm::vec3 m_cameraPosition;
+
+public:
+	void UpdateCamera(const glm::mat4& view, const glm::mat4& proj, const glm::vec3& cameraPos) {
+		this->m_view = view;
+		this->m_proj = proj;
+		this->m_cameraPosition = cameraPos;
+	}
 };

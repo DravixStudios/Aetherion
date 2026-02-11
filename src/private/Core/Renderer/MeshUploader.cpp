@@ -83,6 +83,7 @@ MeshUploader::UploadTexture(const TextureData& textureData) {
 	TextureCreateInfo textureInfo = { };
 	textureInfo.extent.width = nWidth;
 	textureInfo.extent.height = nHeight;
+	textureInfo.extent.depth = 1;
 	textureInfo.format = GPUFormat::RGBA8_UNORM;
 	textureInfo.imageType = ETextureDimensions::TYPE_2D;
 	textureInfo.initialLayout = ETextureLayout::UNDEFINED;
@@ -94,13 +95,6 @@ MeshUploader::UploadTexture(const TextureData& textureData) {
 	textureInfo.nMipLevels = 1;
 	
 	Ref<GPUTexture> texture = this->m_device->CreateTexture(textureInfo);
-
-	this->m_device->TransitionLayout(
-		texture, 
-		GPUFormat::RGBA8_UNORM, 
-		EImageLayout::TRANSFER_DST, 
-		EImageLayout::SHADER_READ_ONLY
-	);
 
 	ImageViewCreateInfo viewInfo = { };
 	viewInfo.image = texture;
@@ -119,6 +113,9 @@ MeshUploader::UploadTexture(const TextureData& textureData) {
 	this->m_bindlessSet->WriteTexture(0, nTextureIndex, imgInfo);
 
 	this->m_resourceMgr->RegisterTexture(textureData.name, nTextureIndex);
+
+	this->m_textures.push_back(texture);
+	this->m_imageViews.push_back(view);
 
 	if (bNeedsFree) {
 		stbi_image_free(pixels);

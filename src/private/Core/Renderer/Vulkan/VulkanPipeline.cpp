@@ -31,6 +31,7 @@ VulkanPipeline::CreateGraphics(const GraphicsPipelineCreateInfo& createInfo) {
 	for (const Ref<Shader>& shader : createInfo.shaders) {
 		VkPipelineShaderStageCreateInfo stageInfo = { };
 		stageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+
 		stageInfo.stage = VulkanHelpers::ConvertSingleShaderStage(shader->GetStage());
 		stageInfo.module = this->CreateShaderModule(shader->GetSPIRV());
 		stageInfo.pName = "main";

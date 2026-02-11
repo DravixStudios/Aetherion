@@ -5,9 +5,10 @@
 * @param device Logical device
 */
 void 
-RenderGraph::Setup(Ref<Device> device){
+RenderGraph::Setup(Ref<Device> device, uint32_t nFramesInFlight){
     this->m_device = device;
     this->m_pool.Init(device);
+    this->m_nFramesInFlight = nFramesInFlight;
 }
 
 /**
@@ -24,12 +25,28 @@ RenderGraph::ImportBackbuffer(Ref<GPUTexture> image, Ref<ImageView> view) {
 }
 
 /**
+* Imports a texture
+*
+* @param image Image to import
+* @param view Image view to import
+*
+* @returns Texture handle
+*/
+TextureHandle
+RenderGraph::ImportTexture(Ref<GPUTexture> image, Ref<ImageView> view) {
+    return this->m_pool.ImportTexture(image, view);
+}
+
+/**
 * Compiles the render graph
 */
 void
 RenderGraph::Compile() {
-    this->CreateRenderPasses();
-    this->CreateFramebuffers();
+    if (!this->m_bCompiled) {
+        this->CreateRenderPasses();
+        this->CreateFramebuffers();
+        this->m_bCompiled = true;
+    }
 }
 
 /**
@@ -39,21 +56,27 @@ void
 RenderGraph::CreateRenderPasses() {
     for(GraphNode& node : this->m_nodes) {
         if (node.bIsComputeOnly) {
-            continue;
+             continue;
+        }
+
+        // Reuse cached render pass if available
+        if (node.renderPass) {
+             continue;
         }
 
         RenderPassCreateInfo rpInfo = { };
         
         /* Color attachments */
-        for(TextureHandle& color : node.colorOutputs) {
+        for(uint32_t i = 0; i < node.colorOutputs.size(); ++i) {
+            TextureHandle& color = node.colorOutputs[i];
             Ref<ImageView> view = this->m_pool.GetImageView(color);
 
             AttachmentDescription attachment = { };
             attachment.format = view->GetFormat();
             attachment.sampleCount = ESampleCount::SAMPLE_1;
             attachment.initialLayout = EImageLayout::UNDEFINED;
-            attachment.finalLayout = EImageLayout::COLOR_ATTACHMENT;
-            attachment.loadOp = EAttachmentLoadOp::CLEAR;
+            attachment.finalLayout = node.colorFinalLayouts[i];
+            attachment.loadOp = node.colorLoadOps[i];
             attachment.storeOp = EAttachmentStoreOp::STORE;
             attachment.stencilLoadOp = EAttachmentLoadOp::DONT_CARE;
             attachment.stencilStoreOp = EAttachmentStoreOp::DONT_CARE;
@@ -69,8 +92,8 @@ RenderGraph::CreateRenderPasses() {
             depthAttachment.format = depthView->GetFormat();
             depthAttachment.sampleCount = ESampleCount::SAMPLE_1;
             depthAttachment.initialLayout = EImageLayout::UNDEFINED;
-            depthAttachment.finalLayout = EImageLayout::DEPTH_STENCIL_ATTACHMENT;
-            depthAttachment.loadOp = EAttachmentLoadOp::CLEAR;
+            depthAttachment.finalLayout = node.depthFinalLayout;
+            depthAttachment.loadOp = node.depthLoadOp;
             depthAttachment.storeOp = EAttachmentStoreOp::STORE;
             depthAttachment.stencilLoadOp = EAttachmentLoadOp::DONT_CARE;
             depthAttachment.stencilStoreOp = EAttachmentStoreOp::DONT_CARE;
@@ -93,7 +116,10 @@ RenderGraph::CreateRenderPasses() {
         }
 
         rpInfo.subpasses.push_back(subpass);
+
         node.renderPass = this->m_device->CreateRenderPass(rpInfo);
+
+        this->m_cachedRenderPasses[String(node.name)] = node.renderPass;
     }
 }
 
@@ -122,16 +148,23 @@ RenderGraph::CreateFramebuffers() {
         fbInfo.nHeight = node.nHeight;
 
         node.framebuffer = this->m_device->CreateFramebuffer(fbInfo);
+
+        String nodeName(node.name);
+        if (this->m_cachedFramebuffers[nodeName].size() < this->m_nFramesInFlight) {
+            this->m_cachedFramebuffers[nodeName].resize(this->m_nFramesInFlight);
+        }
+
+        this->m_cachedFramebuffers[nodeName][this->m_nFrameIndex] = node.framebuffer;
     }
 }
 
 /**
 * Executes the render graph
+* 
+* @param context Graphics context
 */
 void 
 RenderGraph::Execute(Ref<GraphicsContext> context) {
-    this->m_pool.BeginFrame();
-
     RenderGraphContext graphCtx;
     graphCtx.m_pool = &this->m_pool;
 
@@ -140,6 +173,9 @@ RenderGraph::Execute(Ref<GraphicsContext> context) {
             node.execute(context, graphCtx);
             continue;
         }
+
+        /* Synchronization */
+        context->GlobalBarrier();
 
         /* Prepare the render pass */
         RenderPassBeginInfo beginInfo = { };
@@ -161,7 +197,7 @@ RenderGraph::Execute(Ref<GraphicsContext> context) {
         /* Execute the graph node */
         node.execute(context, graphCtx);
 
-        /* End the rennder pass */
+        /* End the render pass */
         context->EndRenderPass();
     }
 
@@ -172,6 +208,18 @@ RenderGraph::Execute(Ref<GraphicsContext> context) {
 * Resets the render graph
 */
 void
-RenderGraph::Reset() {
+RenderGraph::Reset(uint32_t nFrameIndex) {
     this->m_nodes.clear();
+    this->m_pool.BeginFrame();
+    this->m_nFrameIndex = nFrameIndex;
+    this->m_bCompiled = false;
+}
+
+/**
+* Invalidates the render graph
+*/
+void
+RenderGraph::Invalidate() {
+    this->m_nodes.clear();
+    this->m_bCompiled = false;
 }

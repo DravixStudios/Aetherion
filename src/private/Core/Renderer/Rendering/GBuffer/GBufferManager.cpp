@@ -100,6 +100,13 @@ GBufferManager::CreateTextures() {
 */
 void 
 GBufferManager::CreateDescriptors() {
+	if (this->m_readSet) {
+		this->m_readSet = Ref<DescriptorSet>();
+		this->m_pool = Ref<DescriptorPool>();
+		this->m_readLayout = Ref<DescriptorSetLayout>();
+		this->m_sampler = Ref<Sampler>();
+	}
+
 	/* Create sampler */
 	SamplerCreateInfo samplerInfo = { };
 	samplerInfo.magFilter = EFilter::LINEAR;
@@ -115,11 +122,7 @@ GBufferManager::CreateDescriptors() {
 	/* Create descriptor set layout */
 	DescriptorSetLayoutCreateInfo layoutInfo = { };
 	layoutInfo.bindings = {
-		{ 0, EDescriptorType::COMBINED_IMAGE_SAMPLER, 1, EShaderStage::FRAGMENT },
-		{ 1, EDescriptorType::COMBINED_IMAGE_SAMPLER, 1, EShaderStage::FRAGMENT },
-		{ 2, EDescriptorType::COMBINED_IMAGE_SAMPLER, 1, EShaderStage::FRAGMENT },
-		{ 3, EDescriptorType::COMBINED_IMAGE_SAMPLER, 1, EShaderStage::FRAGMENT },
-		{ 4, EDescriptorType::COMBINED_IMAGE_SAMPLER, 1, EShaderStage::FRAGMENT },
+		{ 0, EDescriptorType::COMBINED_IMAGE_SAMPLER, 5, EShaderStage::FRAGMENT },
 	};
 	
 	this->m_readLayout = this->m_device->CreateDescriptorSetLayout(layoutInfo);
@@ -135,11 +138,16 @@ GBufferManager::CreateDescriptors() {
 	this->m_readSet = this->m_device->CreateDescriptorSet(this->m_pool, this->m_readLayout);
 
 	/* Write descriptors */
-	this->m_readSet->WriteTexture(0, 0, { this->m_albedo, this->m_albedoView, this->m_sampler });
-	this->m_readSet->WriteTexture(1, 0, { this->m_normal, this->m_normalView, this->m_sampler });
-	this->m_readSet->WriteTexture(2, 0, { this->m_orm, this->m_ormView, this->m_sampler });
-	this->m_readSet->WriteTexture(3, 0, { this->m_emissive, this->m_emissiveView, this->m_sampler });
-	this->m_readSet->WriteTexture(4, 0, { this->m_position, this->m_positionView, this->m_sampler });
+	/* Write G-Buffer textures (binding 0, array 0..4) */
+	Vector<DescriptorImageInfo> gbufferInfos = {
+		{ this->m_albedo, this->m_albedoView, this->m_sampler },
+		{ this->m_normal, this->m_normalView, this->m_sampler },
+		{ this->m_orm, this->m_ormView, this->m_sampler },
+		{ this->m_emissive, this->m_emissiveView, this->m_sampler },
+		{ this->m_position, this->m_positionView, this->m_sampler }
+	};
+
+	this->m_readSet->WriteTextures(0, 0, gbufferInfos);
 
 	this->m_readSet->UpdateWrites();
 }

@@ -13,7 +13,11 @@ struct GraphNode {
 	const char* name = nullptr;
 
 	Vector<TextureHandle> colorOutputs;
+	Vector<EImageLayout> colorFinalLayouts;
+	Vector<EAttachmentLoadOp> colorLoadOps;
 	TextureHandle depthOutput;
+	EImageLayout depthFinalLayout = EImageLayout::DEPTH_STENCIL_ATTACHMENT;
+	EAttachmentLoadOp depthLoadOp = EAttachmentLoadOp::CLEAR;
 	bool bHasDepth = false;
 	Vector<TextureHandle> textureInputs;
 

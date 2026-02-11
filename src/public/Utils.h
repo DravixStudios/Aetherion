@@ -94,6 +94,18 @@ struct FrameIndirectData {
     uint32_t objectCount;
 };
 
+struct CollectedDrawData {
+    Vector<ObjectInstanceData> instances;
+    Vector<DrawBatch> batches;
+    Vector<WVP> wvps;
+    uint32_t nTotalBatches = 0;
+
+    glm::mat4 viewProj = glm::mat4(1.f);
+    glm::mat4 view = glm::mat4(1.f);
+    glm::mat4 proj = glm::mat4(1.f);
+    glm::vec3 cameraPosition = glm::vec3(0.f);
+};
+
 inline String GetExecutableDir() {
     char buffer[4096];
 

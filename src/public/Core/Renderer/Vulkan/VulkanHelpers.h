@@ -312,19 +312,19 @@ namespace VulkanHelpers {
 			vkStage |= VK_PIPELINE_STAGE_VERTEX_SHADER_BIT;
 		}
 
-		if ((stage & EPipelineStage::TESSELLATION_CONTROL) != static_cast<EPipelineStage>(0)) {
+		if ((stage & EPipelineStage::TESSELLATION_CONTROL_SHADER) != static_cast<EPipelineStage>(0)) {
 			vkStage |= VK_PIPELINE_STAGE_TESSELLATION_CONTROL_SHADER_BIT;
 		}
 
-		if ((stage & EPipelineStage::TESSELLATION_EVAL) != static_cast<EPipelineStage>(0)) {
+		if ((stage & EPipelineStage::TESSELLATION_EVALUATION_SHADER) != static_cast<EPipelineStage>(0)) {
 			vkStage |= VK_PIPELINE_STAGE_TESSELLATION_EVALUATION_SHADER_BIT;
 		}
 
-		if ((stage & EPipelineStage::GEOMETRY) != static_cast<EPipelineStage>(0)) {
+		if ((stage & EPipelineStage::GEOMETRY_SHADER) != static_cast<EPipelineStage>(0)) {
 			vkStage |= VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT;
 		}
 
-		if ((stage & EPipelineStage::FRAGMENT) != static_cast<EPipelineStage>(0)) {
+		if ((stage & EPipelineStage::FRAGMENT_SHADER) != static_cast<EPipelineStage>(0)) {
 			vkStage |= VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
 		}
 
@@ -354,6 +354,14 @@ namespace VulkanHelpers {
 
 		if ((stage & EPipelineStage::HOST) != static_cast<EPipelineStage>(0)) {
 			vkStage |= VK_PIPELINE_STAGE_HOST_BIT;
+		}
+
+		if ((stage & EPipelineStage::ALL_GRAPHICS) != static_cast<EPipelineStage>(0)) {
+			vkStage |= VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT;
+		}
+
+		if ((stage & EPipelineStage::ALL_COMMANDS) != static_cast<EPipelineStage>(0)) {
+			vkStage |= VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
 		}
 
 		return vkStage;
@@ -443,6 +451,7 @@ namespace VulkanHelpers {
 			case GPUFormat::D32_FLOAT: return VK_FORMAT_D32_SFLOAT;
 			case GPUFormat::D32_FLOAT_S8_UINT: return VK_FORMAT_D32_SFLOAT_S8_UINT;
 			case GPUFormat::R8_UNORM: return VK_FORMAT_R8_UNORM;
+			case GPUFormat::RG16_FLOAT: return VK_FORMAT_R16G16_SFLOAT;
 			default: return VK_FORMAT_R8G8B8A8_UNORM;
 		}
 	}
@@ -461,7 +470,34 @@ namespace VulkanHelpers {
 			case VK_FORMAT_D32_SFLOAT: return GPUFormat::D32_FLOAT;
 			case VK_FORMAT_D32_SFLOAT_S8_UINT: return GPUFormat::D32_FLOAT_S8_UINT;
 			case VK_FORMAT_R8_UNORM: return GPUFormat::R8_UNORM;
+			case VK_FORMAT_R16G16_SFLOAT: return GPUFormat::RG16_FLOAT;
 			default: return GPUFormat::RGBA8_UNORM;
+		}
+	}
+
+	/**
+	* Returns the size in bytes per pixel for a given GPUFormat
+	* 
+	* @param format GPU format
+	* 
+	* @returns Bytes per pixel
+	*/
+	inline uint32_t
+	GetFormatSize(GPUFormat format) {
+		switch (format) {
+			case GPUFormat::R8_UNORM:              return 1;
+			case GPUFormat::RG16_FLOAT:            return 4;
+			case GPUFormat::RGBA8_UNORM:           return 4;
+			case GPUFormat::BGRA8_UNORM:           return 4;
+			case GPUFormat::RGBA8_SRGB:            return 4;
+			case GPUFormat::RG32_FLOAT:            return 8;
+			case GPUFormat::RGBA16_FLOAT:          return 8;
+			case GPUFormat::RGB32_FLOAT:           return 12;
+			case GPUFormat::RGBA32_FLOAT:          return 16;
+			case GPUFormat::D24_UNORM_S8_UINT:     return 4;
+			case GPUFormat::D32_FLOAT:             return 4;
+			case GPUFormat::D32_FLOAT_S8_UINT:     return 8;
+			default:                               return 4;
 		}
 	}
 

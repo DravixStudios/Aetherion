@@ -75,7 +75,18 @@ public:
 		EImageLayout newLayout
 	) override;
 
+	void ImageBarrier(
+		Ref<GPUTexture> image,
+		EImageLayout oldLayout,
+		EImageLayout newLayout,
+		uint32_t nLayerCount,
+		uint32_t nBaseMipLevel,
+		uint32_t nBaseArrayLayer = 0
+	) override;
+
 	Ref<CommandBuffer> GetCommandBuffer() const override { return this->m_commandBuffer.As<CommandBuffer>(); }
+
+	void GlobalBarrier() override;
 
 	static Ptr
 	CreateShared(Ref<VulkanCommandBuffer> commandBuffer) {

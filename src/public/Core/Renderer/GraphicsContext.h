@@ -192,7 +192,32 @@ public:
 	) = 0;
 
 	/**
+	* Image memory barrier for layout transitions (extended)
+	* 
+	* @param image Image to transition
+	* @param oldLayout Old layout
+	* @param newLayout New layout
+	* @param nLayerCount Number of array layers
+	* @param nBaseMipLevel Base mip level
+	* @param nBaseArrayLayer Base array layer
+	*/
+	virtual void ImageBarrier(
+		Ref<GPUTexture> image,
+		EImageLayout oldLayout,
+		EImageLayout newLayout,
+		uint32_t nLayerCount,
+		uint32_t nBaseMipLevel,
+		uint32_t nBaseArrayLayer = 0
+	) = 0;
+
+	/**
 	* Gets the command buffer
 	*/
 	virtual Ref<CommandBuffer> GetCommandBuffer() const = 0;
+
+	/**
+	* Inserts a global memory barrier to synchronize all operations.
+	* This is a simple but expensive synchronization method.
+	*/
+	virtual void GlobalBarrier() = 0;
 };

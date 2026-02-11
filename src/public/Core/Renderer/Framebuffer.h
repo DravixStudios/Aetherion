@@ -9,6 +9,7 @@ struct FramebufferCreateInfo {
 	Vector<Ref<ImageView>> attachments;
 	uint32_t nWidth;
 	uint32_t nHeight;
+	uint32_t nLayers = 1;
 };
 
 class Framebuffer {

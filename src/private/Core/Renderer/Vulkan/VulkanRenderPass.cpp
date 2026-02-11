@@ -124,16 +124,11 @@ VulkanRenderPass::Create(const RenderPassCreateInfo& createInfo) {
 		vkDependency.srcSubpass = dependency.nSrcSubpass;
 		vkDependency.dstSubpass = dependency.nDstSubpass;
 
-		vkDependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
-									| VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT
-									| VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
-		vkDependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
-									| VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT
-									| VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+		vkDependency.srcStageMask = VulkanHelpers::ConvertPipelineStage(dependency.srcStageMask);
+		vkDependency.dstStageMask = VulkanHelpers::ConvertPipelineStage(dependency.dstStageMask);
 
-		vkDependency.srcAccessMask = 0;
-		vkDependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT
-									| VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+		vkDependency.srcAccessMask = VulkanHelpers::ConvertAccess(dependency.srcAccessMask);
+		vkDependency.dstAccessMask = VulkanHelpers::ConvertAccess(dependency.dstAccessMask);
 
 		vkDependencies.push_back(vkDependency);
 	}
@@ -149,12 +144,6 @@ VulkanRenderPass::Create(const RenderPassCreateInfo& createInfo) {
 	rpInfo.pSubpasses = subpasses.data();
 
 	VK_CHECK(vkCreateRenderPass2(this->m_device, &rpInfo, nullptr, &this->m_renderPass), "Failed creating render pass");
-
-	Logger::Debug(
-		"VulkanRenderPass::Create: Render pass created with {} attachments and {} subpasses", 
-		attachments.size(), 
-		subpasses.size()
-	); 
 }
 
 bool VulkanRenderPass::HasStencil(VkFormat format) {

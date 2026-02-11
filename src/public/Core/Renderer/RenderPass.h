@@ -44,6 +44,8 @@ struct AttachmentReference {
 	EImageLayout layout;
 };
 
+#include "Core/Renderer/PipelineStage.h"
+
 struct SubpassDescription {
 	Vector<AttachmentReference> colorAttachments;
 	Vector<AttachmentReference> resolveAttachments; // For MSAA
@@ -54,16 +56,17 @@ struct SubpassDescription {
 	Vector<uint32_t> preserveAttachments;
 };
 
-/* 
-	Simplified subpass dependency implementation
-	Full implementation will be done during the
-	development.
+constexpr uint32_t SUBPASS_EXTERNAL = ~0U;
 
-	TODO: Finish subpass dependency implementation
-*/
 struct SubpassDependency {
-	uint32_t nSrcSubpass; // VK_SUBPASS_EXTERNAL = ~0U for external dependencies
-	uint32_t nDstSubpass;
+	uint32_t nSrcSubpass = SUBPASS_EXTERNAL;
+	uint32_t nDstSubpass = 0;
+
+	EPipelineStage srcStageMask = EPipelineStage::BOTTOM_OF_PIPE;
+	EPipelineStage dstStageMask = EPipelineStage::TOP_OF_PIPE;
+
+	EAccess srcAccessMask = EAccess::NONE;
+	EAccess dstAccessMask = EAccess::NONE;
 };
 
 struct RenderPassCreateInfo {

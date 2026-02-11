@@ -68,7 +68,8 @@ public:
 		EImageLayout oldLayout, 
 		EImageLayout newLayout,
 		uint32_t nLayerCount = 1,
-		uint32_t nBaseMipLevel = 0
+		uint32_t nBaseMipLevel = 0,
+		uint32_t nBaseArrayLayer = 0
 	) override;
 
 	Ref<Swapchain> CreateSwapchain(const SwapchainCreateInfo& createInfo) override;

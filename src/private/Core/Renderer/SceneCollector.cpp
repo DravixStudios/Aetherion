@@ -18,6 +18,11 @@ SceneCollector::Collect(Scene* scene) {
 	glm::mat4 view = cam->GetView();
 	glm::mat4 proj = cam->GetProjection();
 
+	result.viewProj = view * proj;
+	result.view = view;
+	result.proj = proj;
+	result.cameraPosition = glm::vec3(cam->transform.location.x, cam->transform.location.y, cam->transform.location.z);
+
 	for (auto& [name, gameObject] : scene->GetObjects()) {
 		/* Find a mesh component on the current GameObject */
 		std::map<String, Component*> components = gameObject->GetComponents();
@@ -44,8 +49,10 @@ SceneCollector::Collect(Scene* scene) {
 			wvp.View = view;
 			wvp.Projection = proj;
 
+			result.wvps.push_back(wvp);
+
 			ObjectInstanceData instance = { };
-			instance.wvpOffset = nWvpIdx;
+			instance.wvpOffset = nWvpIdx * sizeof(WVP);
 			instance.textureIndex = subMesh.nAlbedoIndex;
 			instance.ormTextureIndex = subMesh.nORMIndex;
 			instance.emissiveTextureIndex = subMesh.nEmissiveIndex;
