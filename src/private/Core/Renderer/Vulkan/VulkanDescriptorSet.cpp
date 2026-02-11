@@ -2,11 +2,12 @@
 
 VulkanDescriptorSet::VulkanDescriptorSet(VkDevice device) 
 	: DescriptorSet::DescriptorSet(), 
-	m_device(device), m_descriptorSet(VK_NULL_HANDLE), m_pool(VK_NULL_HANDLE) {}
+	m_device(device), m_descriptorSet(VK_NULL_HANDLE) {}
 
 VulkanDescriptorSet::~VulkanDescriptorSet() {
-	if (this->m_descriptorSet != VK_NULL_HANDLE) {
-		vkFreeDescriptorSets(this->m_device, this->m_pool, 1, &this->m_descriptorSet);
+	if (this->m_descriptorSet != VK_NULL_HANDLE && this->m_poolRef) {
+		VkDescriptorPool vkPool = this->m_poolRef.As<VulkanDescriptorPool>()->GetVkPool();
+		vkFreeDescriptorSets(this->m_device, vkPool, 1, &this->m_descriptorSet);
 	}
 }
 
@@ -16,13 +17,14 @@ VulkanDescriptorSet::Allocate(Ref<DescriptorPool> pool, Ref<DescriptorSetLayout>
 	Ref<VulkanDescriptorPool> vkDescriptorPool = pool.As<VulkanDescriptorPool>();
 	Ref<VulkanDescriptorSetLayout> vkLayout = layout.As<VulkanDescriptorSetLayout>();
 
-	this->m_pool = vkDescriptorPool->GetVkPool();
+	this->m_poolRef = pool;
+	VkDescriptorPool vkPool = vkDescriptorPool->GetVkPool();
 	VkDescriptorSetLayout vkLayoutHandle = vkLayout->GetVkLayout();
 
 	/* Descriptor set allocation */
 	VkDescriptorSetAllocateInfo allocInfo = { };
 	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-	allocInfo.descriptorPool = this->m_pool;
+	allocInfo.descriptorPool = vkPool;
 	allocInfo.descriptorSetCount = 1;
 	allocInfo.pSetLayouts = &vkLayoutHandle;
 
