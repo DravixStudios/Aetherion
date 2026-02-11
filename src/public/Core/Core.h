@@ -23,8 +23,8 @@
 #include "Core/Renderer/Fence.h"
 
 /* TODO: Custom width */
-#define WIDTH 1600
-#define HEIGHT 900
+#define WIDTH 1920
+#define HEIGHT 1080
 
 /* Forward declarations */
 class SceneManager;
@@ -82,6 +82,16 @@ private:
     SceneCollector m_sceneCollector;
 
     uint32_t m_nImageIndex = 0;
+
+    bool m_bWindowResized = false;
+
+    static void 
+    FramebufferSizeCallback(GLFWwindow* pWindow, int nWidth, int nHeight) {
+        Core* core = reinterpret_cast<Core*>(glfwGetWindowUserPointer(pWindow));
+        if (core) {
+            core->m_bWindowResized = true;
+        }
+    }
 
     void CreateSwapchain();
     void CreateSyncObjects();

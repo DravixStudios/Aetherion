@@ -22,13 +22,15 @@ Core::Init() {
     /* 
         GLFW Window hints:
             We don't want OpenGL. WE WANT VULKAN!!!!
-            We don't want to resize our window (for the moment)
     */
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+    glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
-    /* TODO: Make window resizable */
+   
     this->m_pWindow = glfwCreateWindow(WIDTH, HEIGHT, "Aetherion Engine", nullptr, nullptr); // GLFW Window creation
+    glfwSetWindowUserPointer(this->m_pWindow, this);
+
+    glfwSetFramebufferSizeCallback(this->m_pWindow, FramebufferSizeCallback);
 
     /* Assert window is not null */
     if (this->m_pWindow == nullptr) {
@@ -93,6 +95,28 @@ void
 Core::Update() {
     /* While window should not close */
     while (!glfwWindowShouldClose(this->m_pWindow)) {
+        /* Manage window resizing */
+        if (this->m_bWindowResized) {
+            int nWidth = 0;
+            int nHeight = 0;
+
+            glfwGetFramebufferSize(this->m_pWindow, &nWidth, &nHeight);
+
+            /* If window is minimized, wait till has dimensions again */
+            while (nWidth == 0 || nHeight == 0) {
+                glfwGetFramebufferSize(this->m_pWindow, &nWidth, &nHeight);
+                glfwWaitEvents();
+            }
+
+            this->m_device->WaitIdle();
+
+            this->m_deferredRenderer.Invalidate();
+            this->m_swapchain->Rebuild(static_cast<uint32_t>(nWidth), static_cast<uint32_t>(nHeight));
+            this->m_deferredRenderer.Resize(nWidth, nHeight);
+
+            this->m_bWindowResized = false;
+        }
+
         this->m_device->WaitForFence(this->m_inFlightFences[this->m_nImageIndex]);
         this->m_inFlightFences[this->m_nImageIndex]->Reset();
 
