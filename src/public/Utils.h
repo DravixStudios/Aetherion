@@ -106,6 +106,11 @@ struct CollectedDrawData {
     glm::vec3 cameraPosition = glm::vec3(1.f);
 };
 
+struct FrustumData {
+    glm::mat4 viewProj = glm::mat4(1.f);
+    glm::vec4 frustumPlanes[6];
+};
+
 inline String GetExecutableDir() {
     char buffer[4096];
 
@@ -134,4 +139,19 @@ inline String GetExecutableDir() {
 	Logger::Error("GetExecutableDir: Unsupported platform");
     throw std::runtime_error("GetExecutableDir: Unsupported platform");
 #endif
+}
+
+inline uint32_t 
+NextPowerOf2(uint32_t x) {
+    if (x == 0) return 1;
+
+    x--;
+    x |= x >> 1;
+    x |= x >> 2;
+    x |= x >> 4;
+    x |= x >> 8;
+    x |= x >> 16;
+    x++;
+
+    return x;
 }

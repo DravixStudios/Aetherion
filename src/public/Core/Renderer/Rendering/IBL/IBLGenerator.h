@@ -36,6 +36,11 @@ private:
 	void CreatePipelines();
 	void CreateResources();
 
+	struct ViewProjection {
+		glm::mat4 View;
+		glm::mat4 Projection;
+	};
+
 	Ref<Device> m_device;
 
 	Ref<RenderPass> m_irradianceRP;
@@ -81,4 +86,9 @@ private:
 
 	Vector<Ref<ImageView>> m_genViews;
 	Vector<Ref<Framebuffer>> m_genFramebuffers;
+
+	Ref<GPURingBuffer> m_viewProjBuffer;
+	Ref<DescriptorSet> m_viewProjSet;
+	Ref<DescriptorSetLayout> m_viewProjSetLayout;
+	Ref<DescriptorPool> m_viewProjPool;
 };

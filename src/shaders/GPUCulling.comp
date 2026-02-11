@@ -30,6 +30,11 @@ struct WVP {
     mat4 Projection;
 };
 
+struct FrustumData {
+    mat4 viewProj;
+    vec4 frustumPlanes[6];
+};
+
 /* Bindings */ 
 layout(set = 0, binding = 0) buffer InputInstances {
     ObjectInstanceData instances[];
@@ -52,11 +57,15 @@ layout(set = 0, binding = 4) readonly buffer WVPBuffer {
     WVP wvpData[];
 };
 
+layout(set = 0, binding = 5) buffer FrustumDataBuffer {
+    FrustumData frustumData[];
+};
+
 layout(push_constant) uniform PushConstants {
-    mat4 viewProj;
-    vec4 frustumPlanes[6];
     uint totalBatches;
     uint wvpAlignment; // Ring buffer alignment
+    uint frustumOffset;
+    uint frustumAlignment;
 } pc;
 
 /* Frustum culling using world matrix position */ 
@@ -93,8 +102,11 @@ void main() {
     uint wvpIndex = instance.wvpOffset / pc.wvpAlignment;
     WVP wvp = wvpData[wvpIndex];
 
+    uint frustumIndex = pc.frustumOffset / pc.frustumAlignment;
+    FrustumData frustum = frustumData[frustumIndex];
+
     /* Frustum culling */
-    if(IsVisible(wvp.World, pc.frustumPlanes)) {
+    if(IsVisible(wvp.World, frustum.frustumPlanes)) {
         /* Atomic increment for getting the write index */
         uint drawIndex = atomicAdd(count, 1);
 

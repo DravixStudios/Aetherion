@@ -126,6 +126,14 @@ IBLGenerator::Generate(Ref<GraphicsContext> context) {
     /* Render each irradiance map face */
     ClearValue clearValue{ { 0.f, 0.f, 0.f, 1.f } };
 
+    DescriptorBufferInfo viewProjInfo = { };
+    viewProjInfo.buffer = this->m_viewProjBuffer->GetBuffer();
+    viewProjInfo.nOffset = 0;
+    viewProjInfo.nRange = sizeof(ViewProjection);
+
+    this->m_viewProjSet->WriteBuffer(0, 0, viewProjInfo);
+    this->m_viewProjSet->UpdateWrites();
+
     for (uint32_t nFace = 0; nFace < 6; nFace++) {        
         RenderPassBeginInfo beginInfo = { };
         beginInfo.renderPass = this->m_irradianceRP;
@@ -228,17 +236,33 @@ IBLGenerator::Generate(Ref<GraphicsContext> context) {
             context->BeginRenderPass(beginInfo);
 
             context->BindPipeline(this->m_prefilterPipeline);
-            context->BindDescriptorSets(0, Vector{ this->m_prefilterSet });
 
+            /* Copy view projection to uniform buffer */
+            ViewProjection viewProj = {
+               captureViews[nFace],
+               captureProjection
+            };
+
+            uint32_t nViewProjectionOffset = 0;
+            void* pViewProjection = this->m_viewProjBuffer->Allocate(sizeof(viewProj), nViewProjectionOffset);
+            memcpy(pViewProjection, &viewProj, sizeof(viewProj));
+
+            context->BindDescriptorSets(
+                0, 
+                Vector{ this->m_prefilterSet }
+            );
+
+            context->BindDescriptorSets(
+                1,
+                Vector{ this->m_viewProjSet },
+                Vector{ nViewProjectionOffset }
+            );
+            
             struct {
-                glm::mat4 View;
-                glm::mat4 Projection;
                 float roughness;
                 uint32_t nMipLevel;
             } pushData;
 
-            pushData.View = captureViews[nFace];
-            pushData.Projection = captureProjection;
             pushData.roughness = roughness;
             pushData.nMipLevel = nMip;
 
@@ -423,6 +447,30 @@ IBLGenerator::CreateDescriptors() {
 
     this->m_irradianceSet = this->m_device->CreateDescriptorSet(this->m_irradiancePool, this->m_irradianceSetLayout);
     this->m_prefilterSet = this->m_device->CreateDescriptorSet(this->m_prefilterPool, this->m_prefilterSetLayout);
+
+    /* View projection descriptor set */
+    DescriptorSetLayoutBinding viewProjBinding = { };
+    viewProjBinding.descriptorType = EDescriptorType::UNIFORM_BUFFER_DYNAMIC;
+    viewProjBinding.nBinding = 0;
+    viewProjBinding.nDescriptorCount = 1;
+    viewProjBinding.stageFlags = EShaderStage::VERTEX;
+
+    DescriptorSetLayoutCreateInfo vpLayoutInfo = { };
+    vpLayoutInfo.bindings = Vector{ viewProjBinding };
+    
+    this->m_viewProjSetLayout = this->m_device->CreateDescriptorSetLayout(vpLayoutInfo);
+
+    DescriptorPoolSize vpPoolSize = { };
+    vpPoolSize.nDescriptorCount = 1;
+    vpPoolSize.type = EDescriptorType::UNIFORM_BUFFER_DYNAMIC;
+
+    DescriptorPoolCreateInfo vpPoolInfo = { };
+    vpPoolInfo.nMaxSets = 1;
+    vpPoolInfo.poolSizes = Vector{ vpPoolSize };
+
+    this->m_viewProjPool = this->m_device->CreateDescriptorPool(vpPoolInfo);
+
+    this->m_viewProjSet = this->m_device->CreateDescriptorSet(this->m_viewProjPool, this->m_viewProjSetLayout);
 }
 
 void 
@@ -588,10 +636,10 @@ IBLGenerator::CreatePipelines() {
     prefilterPS->LoadFromGLSL("PrefilterEnvMap.frag", EShaderStage::FRAGMENT);
 
     pushRange.stage = EShaderStage::VERTEX | EShaderStage::FRAGMENT;
-    pushRange.nSize += 8;
+    pushRange.nSize = sizeof(uint32_t) * 2;
 
     PipelineLayoutCreateInfo prefilterLayoutInfo = { };
-    prefilterLayoutInfo.setLayouts = { this->m_prefilterSetLayout };
+    prefilterLayoutInfo.setLayouts = { this->m_prefilterSetLayout, this->m_viewProjSetLayout };
     prefilterLayoutInfo.pushConstantRanges = { pushRange };
 
     this->m_prefilterLayout = this->m_device->CreatePipelineLayout(prefilterLayoutInfo);
@@ -700,4 +748,15 @@ IBLGenerator::CreateResources() {
     this->m_cubeIBO = this->m_device->CreateBuffer(iboInfo);
 
     this->m_nIndexCount = indices.size();
+
+    /* Create view projection buffer */
+    uint32_t nViewProjectionSize = sizeof(ViewProjection);
+
+    RingBufferCreateInfo viewProjInfo = { };
+    viewProjInfo.nAlignment = nViewProjectionSize;
+    viewProjInfo.nFramesInFlight = 1;
+    viewProjInfo.nBufferSize = nViewProjectionSize * 36; // One per cube face (6 for irradiance + 30 for prefilter)
+    viewProjInfo.usage = EBufferUsage::UNIFORM_BUFFER;
+
+    this->m_viewProjBuffer = this->m_device->CreateRingBuffer(viewProjInfo);
 }
