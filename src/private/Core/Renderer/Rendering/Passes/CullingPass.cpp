@@ -168,6 +168,18 @@ CullingPass::CreateResources() {
 
 	this->m_countBuffer = this->m_device->CreateBuffer(countInfo);
 
+	/* Frustum data ring buffer */
+	uint32_t nFrustumDataSize = sizeof(FrustumData);
+	uint32_t nAlignedFrustumSize = NextPowerOf2(nFrustumDataSize);
+
+	RingBufferCreateInfo frustumInfo = { };
+	frustumInfo.nAlignment = nAlignedFrustumSize;
+	frustumInfo.usage = EBufferUsage::UNIFORM_BUFFER;
+	frustumInfo.nFramesInFlight = this->m_nFramesInFlight;
+	frustumInfo.nBufferSize = nAlignedFrustumSize * this->m_nFramesInFlight;
+
+	this->m_frustumBuffer = this->m_device->CreateRingBuffer(frustumInfo);
+
 	/* Initialize FrameIndirectData */
 	this->m_frameData.resize(this->m_nFramesInFlight);
 	for (FrameIndirectData& frameData : this->m_frameData) {
