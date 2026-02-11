@@ -1,0 +1,80 @@
+name: CMake Preset Build
+
+on:
+  pull_request:
+    branches: [master, refactor/domain-driven-design]
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Windows
+          - os: windows-latest
+            preset: x64-debug-spdlog
+          - os: windows-latest
+            preset: x64-release-spdlog
+
+          # Linux
+          - os: ubuntu-latest
+            preset: linux-debug-spdlog
+          - os: ubuntu-latest
+            preset: linux-release-spdlog
+
+          # macOS
+          - os: macos-latest
+            preset: macos-debug-spdlog
+          - os: macos-latest
+            preset: macos-release-spdlog
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+    
+      - name: Setup vcpkg (Windows)
+        if: runner.os == 'Windows'
+        uses: lukka/run-vcpkg@v11
+        with:
+          vcpkg-root: ${{ runner.temp }}/vcpkg
+          vcpkg-args: >
+            assimp
+            spdlog
+            shaderc
+            glm
+            vulkan-sdk
+            stb
+            miniz
+            tinyexr
+            spirv-cross-core
+            spirv-cross-glsl
+
+      - name: Install Vulkan SDK (Windows)
+        if: runner.os == 'Windows'
+        uses: humbletim/install-vulkan-sdk@v1
+        with:
+          version: latest
+
+      - name: Install deps (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt update
+          sudo apt install -y ninja-build libvulkan-dev \
+            assimp-dev libspdlog-dev shaderc glm-dev \
+            stb libminizip-dev libtinyexr-dev spirv-cross-tools
+
+      - name: Install deps (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew install ninja molten-vk assimp spdlog shaderc glm stb miniz tinyexr spirv-cross
+          
+      - name: Configure CMake
+        run: cmake --preset ${{ matrix.preset }}
+
+      - name: Build CMake
+        run: cmake --build --preset ${{ matrix.preset }}
+
+      

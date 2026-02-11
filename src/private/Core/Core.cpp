@@ -22,13 +22,11 @@ Core::Init() {
     /* 
         GLFW Window hints:
             We don't want OpenGL. WE WANT VULKAN!!!!
-            We don't want to resize our window (for the moment)
     */
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+    glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
-    /* TODO: Make window resizable */
-    this->m_pWindow = glfwCreateWindow(WIDTH, HEIGHT, "Aetherion Engine", nullptr, nullptr); // GLFW Window creation
+    this->m_pWindow = glfwCreateWindow(1600, 900, "Aetherion Engine", nullptr, nullptr); // GLFW Window creation
 
     /* Assert window is not null */
     if (this->m_pWindow == nullptr) {
