@@ -126,13 +126,6 @@ Core::Update() {
 
         this->m_deferredRenderer.Render(context, this->m_swapchain, drawData, nImgIdx);
 
-        /* TODO: Render graph controlling this */
-        context->ImageBarrier(
-            this->m_swapchain->GetImage(nImgIdx),
-            EImageLayout::UNDEFINED,
-            EImageLayout::PRESENT_SRC
-        );
-
         commandBuffer->End();
 
         SubmitInfo submitInfo = { };
