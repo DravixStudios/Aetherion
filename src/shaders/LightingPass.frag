@@ -6,8 +6,8 @@ layout(location = 0) in vec2 inUVs;
 layout(location = 0) out vec4 finalImage;
 
 layout(set = 0, binding = 0) uniform sampler2D g_gbuffers[5];
-layout(set = 1, binding = 0) uniform samplerCube g_iblMaps[2]; // [0] Irradiance, [1] Prefilter
-layout(set = 1, binding = 1) uniform sampler2D g_brdfLUT;
+layout(set = 0, binding = 1) uniform samplerCube g_iblMaps[2]; // [0] Irradiance, [1] Prefilter
+layout(set = 0, binding = 2) uniform sampler2D g_brdfLUT;
 
 layout(push_constant) uniform PushConstants {
     vec3 cameraPosition;
@@ -130,7 +130,7 @@ void main() {
 
     color += emissive;
 
-    // color = color / (color + 1.0);
+    color = color / (color + 1.0);
     // color = pow(color, vec3(1.0/2.2));
 
     finalImage = vec4(vec3(color), 1.0);

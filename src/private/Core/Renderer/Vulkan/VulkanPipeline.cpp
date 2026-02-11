@@ -24,14 +24,12 @@ void
 VulkanPipeline::CreateGraphics(const GraphicsPipelineCreateInfo& createInfo) {
 	this->m_type = EPipelineType::GRAPHICS;
 	this->m_bindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-	this->m_layout = createInfo.pipelineLayout;
 
 	/* Shader stages */
 	Vector<VkPipelineShaderStageCreateInfo> shaderStages;
 	for (const Ref<Shader>& shader : createInfo.shaders) {
 		VkPipelineShaderStageCreateInfo stageInfo = { };
 		stageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-
 		stageInfo.stage = VulkanHelpers::ConvertSingleShaderStage(shader->GetStage());
 		stageInfo.module = this->CreateShaderModule(shader->GetSPIRV());
 		stageInfo.pName = "main";
@@ -186,27 +184,10 @@ VulkanPipeline::CreateGraphics(const GraphicsPipelineCreateInfo& createInfo) {
 	pipelineInfo.pDynamicState = &dynamicState;
 	pipelineInfo.layout = this->m_pipelineLayout;
 
-	VkPipelineRenderingCreateInfo renderingInfo = { };
-	renderingInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
-	
-	Vector<VkFormat> vkColorFormats;
-	for (const GPUFormat& format : createInfo.colorFormats) {
-		vkColorFormats.push_back(VulkanHelpers::ConvertFormat(format));
-	}
-
-	renderingInfo.colorAttachmentCount = vkColorFormats.size();
-	renderingInfo.pColorAttachmentFormats = vkColorFormats.data();
-	renderingInfo.depthAttachmentFormat = VulkanHelpers::ConvertFormat(createInfo.depthFormat);
-
-	if (!createInfo.renderPass) {
-		pipelineInfo.pNext = &renderingInfo;
-		pipelineInfo.renderPass = VK_NULL_HANDLE;
-	}
-	else {
+	if (createInfo.renderPass) {
 		Ref<VulkanRenderPass> vkRenderPass = createInfo.renderPass.As<VulkanRenderPass>();
 		pipelineInfo.renderPass = vkRenderPass->GetVkRenderPass();
 		pipelineInfo.subpass = createInfo.nSubpass;
-
 	}
 
 	VK_CHECK(
@@ -269,10 +250,6 @@ VulkanPipeline::CreateCompute(const ComputePipelineCreateInfo& createInfo) {
 			&this->m_pipelineLayout
 		), 
 		"Failed creating compute pipeline layout");
-
-	Ref<VulkanPipelineLayout> layout = VulkanPipelineLayout::CreateShared(this->m_device);
-	layout->Create(this->m_pipelineLayout);
-	this->m_layout = layout.As<PipelineLayout>();
 
 	/* Compute pipeline */
 	VkComputePipelineCreateInfo pipelineInfo = { };

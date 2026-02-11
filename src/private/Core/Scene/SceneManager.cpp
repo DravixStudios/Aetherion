@@ -46,8 +46,7 @@ SceneManager::Start() {
 
 	Mesh* mesh = new Mesh("MeshComponent");
 	mesh->LoadModel("DamagedHelmet.glb");
-	sampleObj->AddComponent("Mesh", mesh);
-
+	sampleObj->AddComponent("MeshComponent", mesh);
 	this->m_currentScene->AddObject(sampleObj);
 	this->m_currentScene->Start();
 }

@@ -1,29 +1,41 @@
 #pragma once
-#include "Core/Renderer/Renderer.h"
+#include <iostream>
+#include <cstring>
+
+#include <optional>
 #include <set>
+#include <map>
+#include <algorithm>
+#include <fstream>
 
 #define GLFW_INCLUDE_VULKAN
 #ifdef __APPLE__
 #define VK_USE_PLATFORM_MACOS_MVK
-#endif // __APPLE__
+#endif
 #include <GLFW/glfw3.h>
+#include <spdlog/spdlog.h>
+#include <shaderc/shaderc.hpp>
 
-class VulkanDevice;
+#include "Core/Renderer/Renderer.h"
+#include "Core/Renderer/Vulkan/VulkanBuffer.h"
+#include "Core/Renderer/Vulkan/VulkanTexture.h"
+#include "Core/Renderer/Vulkan/VulkanRingBuffer.h"
+#include "Core/Renderer/GPUFormat.h"
+#include "Utils.h"
 
-struct QueueFamilyIndices {
-	std::optional<uint32_t> graphicsFamily;
-	std::optional<uint32_t> presentFamily;
+#ifndef NDEBUG
+#define ENABLE_VALIDATION_LAYERS 1
+#else
+#define ENABLE_VALIDATION_LAYERS 0
+#endif // NDEBUG
 
-	bool IsComplete() {
-		return graphicsFamily.has_value() && presentFamily.has_value();
-	}
-};
+#define INVALID_INDEX 0xFFFFFFFFu
 
-struct SwapChainSupportDetails {
-	VkSurfaceCapabilitiesKHR capabilities = { };
-	Vector<VkSurfaceFormatKHR> formats;
-	Vector<VkPresentModeKHR> presentModes;
-};
+/* Forward declarations */
+struct QueueFamilyIndices;
+struct SwapChainSupportDetails;
+
+class SceneManager;
 
 class VulkanRenderer : public Renderer {
 public:
@@ -75,19 +87,28 @@ private:
 	VkImageView m_depthResolveImageView;
 	VkDeviceMemory m_depthResolveMemory;
 
-	static constexpr const char* CLASS_NAME = "VulkanRenderer";
+	/* ScreenQuad resources */
+	GPUBuffer* m_sqVBO;
+	GPUBuffer* m_sqIBO;
 
-	explicit VulkanRenderer();
-	~VulkanRenderer() override;
+	/* IBL Resources */
+	GPUBuffer* m_cubeVBO;
+	GPUBuffer* m_cubeIBO;
 
-	void Create(GLFWwindow* pWindow) override;
+	VkImage m_irradianceMap;
+	VkDeviceMemory m_irradianceMemory;
+	VkImageView m_irradianceMapView;
+	VkSampler m_irradianceSampler;
 
-	Ref<Device> CreateDevice() override;
+	VkImage m_prefilterMap;
+	VkDeviceMemory m_prefilterMemory;
+	VkImageView m_prefilterMapView;
+	VkSampler m_prefilterSampler;
 
-	static Ptr
-	CreateShared() {
-		return CreateRef<VulkanRenderer>();
-	}
+	VkImage m_brdfLUT;
+	VkDeviceMemory m_brdfLUTMemory;
+	VkImageView m_brdfLUTView;
+	VkSampler m_brdfSampler;
 
 	/* Command pool and buffers */
 	VkCommandPool m_commandPool;
@@ -156,14 +177,58 @@ private:
 	VkDeviceMemory m_emissiveResolveMemory;
 	VkDeviceMemory m_positionResolveMemory;
 
-	bool m_bEnableValidationLayers;
-	VkInstance m_instance;
+	/* G-Buffer image view */
+	VkImageView m_colorBuffView;
+	VkImageView m_normalBuffView;
+	VkImageView m_ormBuffView;
+	VkImageView m_emissiveBuffView;
+	VkImageView m_positionBuffView;
+	VkImageView m_colorResolveBuffView;
+	VkImageView m_normalResolveBuffView;
+	VkImageView m_ormResolveBuffView;
+	VkImageView m_emissiveResolveBuffView;
+	VkImageView m_positionResolveBuffView;
 	
-	VkSurfaceKHR m_surface;
+	/* G-Buffer samplers */
+	VkSampler m_baseColorSampler;
+	VkSampler m_normalSampler;
+	VkSampler m_ormSampler;
+	VkSampler m_emissiveSampler;
+	VkSampler m_positionSampler;
 
-	VkDebugUtilsMessengerEXT m_debugMessenger;
+	/* G-Buffer buffers */
+	GPUBuffer* m_globalVBO;
+	GPUBuffer* m_globalIBO;
+	uint32_t m_nVertexDataOffset;
+	uint32_t m_nIndexDataOffset;
 
-	VkPhysicalDevice m_physicalDevice;
+	/* Descriptor sets */
+	Vector<VkDescriptorSet> m_descriptorSets; // One per frame
+	VkDescriptorSetLayout m_wvpDescriptorSetLayout; // For WVP (dynamic)
+	VkDescriptorSetLayout m_textureDescriptorSetLayout; // For textures (bindless)
+	VkDescriptorPool m_wvpDescriptorPool; 
+	VkDescriptorPool m_textureDescriptorPool;
+	VkDescriptorSet m_globalTextureDescriptorSet; // Global for all the textures
+
+	VkDescriptorSetLayout m_lightingDescriptorSetLayout;
+	VkDescriptorPool m_lightingDescriptorPool;
+	Vector<VkDescriptorSet> m_lightingDescriptorSets;
+
+	VkDescriptorSetLayout m_skyboxDescriptorSetLayout;
+	VkDescriptorPool m_skyboxDescriptorPool;
+	Vector<VkDescriptorSet> m_skyboxDescriptorSets;
+
+	VkDescriptorSetLayout m_irradianceDescriptorSetLayout;
+
+	VkDescriptorSetLayout m_prefilterDescriptorSetLayout;
+
+	VkDescriptorSetLayout m_cullingDescriptorSetLayout;
+	VkDescriptorPool m_cullingDescriptorPool;
+	Vector<VkDescriptorSet> m_cullingDescriptorSets;
+
+	uint32_t m_nMaxDescriptorSetSamplers;
+	uint32_t m_nMaxPerStageDescriptorSamplers;
+	uint32_t m_nMaxTextures;
 
 	bool m_framebufferResized;
 
@@ -317,26 +382,62 @@ private:
 	Vector<GPUTexture*> m_loadedTextures;
 	std::map<String, uint32_t> m_textureIndices;
 
-	bool CheckDeviceExtensionSupport(const VkPhysicalDevice& physicalDevice);
-	SwapChainSupportDetails QuerySwapChainSupport(const VkPhysicalDevice& physicalDevice);
+	/* TODO: Remove this */
+	GPUTexture* m_skybox;
 
-	bool CheckValidationLayersSupport();
-	Vector<const char*> GetRequiredExtensions();
+	void CopyBufferToImage(VkBuffer buffer, VkImage image, uint32_t nWidth, uint32_t nHeight);
 
-	void PopulateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& messengerInfo);
+	WVP m_wvp;
 
+	GPURingBuffer* m_wvpBuff;
+	GPURingBuffer* m_indirectDrawBuff;
+	GPURingBuffer* m_instanceDataBuff;
+	GPURingBuffer* m_batchDataBuff;
+	GPUBuffer* m_countBuff;
+	uint32_t m_nMaxDrawCount;
+
+	Vector<ObjectInstanceData> m_instanceData;
+	Vector<DrawBatch> m_drawBatches;
+
+	Vector<FrameIndirectData> m_frameIndirectData;
+
+	VkSampleCountFlagBits GetMaxUsableSampleCount();
+
+	void TransitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t nLayerCount = 1, uint32_t nBaseMipLevel = 0);
+	VkCommandBuffer BeginSingleTimeCommandBuffer();
+	void EndSingleTimeCommandBuffer(VkCommandBuffer commandBuffer);
+
+	/* Physical device methods */
+	bool IsDeviceSuitable(VkPhysicalDevice device);
+	QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice device);
+	bool CheckDeviceExtensionSupport(VkPhysicalDevice device);
+	SwapChainSupportDetails QuerySwapChainSupport(VkPhysicalDevice device);
+	
+	/* Debug messenger */
 	static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(
-		VkDebugUtilsMessageSeverityFlagBitsEXT severity, 
-		VkDebugUtilsMessageTypeFlagsEXT type, 
-		const VkDebugUtilsMessengerCallbackDataEXT* pcData, 
+		VkDebugUtilsMessageSeverityFlagBitsEXT msgSeverity,
+		VkDebugUtilsMessageTypeFlagsEXT msgType,
+		const VkDebugUtilsMessengerCallbackDataEXT* pCbData,
 		void* pvUserData
 	);
-
 	VkResult CreateDebugUtilsMessengerEXT(
-		VkInstance instance,
+		VkInstance instance, 
 		const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, 
 		VkAllocationCallbacks* pAllocator, 
 		VkDebugUtilsMessengerEXT* pDebugMessenger
 	);
 
+	void DestroyDebugUtilsMessengerEXT(
+		VkInstance instance,
+		VkDebugUtilsMessengerEXT debugMessenger,
+		const VkAllocationCallbacks* pAllocator
+	);
+	
+	void PopulateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
+
+	bool CheckValidationLayersSupport();
+
+	/* Extensions */
+	Vector<const char*> GetRequiredExtensions();
+	
 };

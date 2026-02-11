@@ -62,17 +62,3 @@ Transform::RotatePoint(Vector3& point) {
 	glm::vec4 rotToPoint = rot * glm::vec4(point.x, point.y, point.z, 0.f);
 	return { rotToPoint.x, rotToPoint.y, rotToPoint.z };
 }
-glm::mat4 
-Transform::GetWorldMatrix() const {
-	glm::mat4 world = glm::mat4(1.f);
-	
-	world = glm::translate(world, glm::vec3(this->location.x, this->location.y, this->location.z));
-
-	world = glm::rotate(world, glm::radians(this->rotation.x), glm::vec3(1.f, 0.f, 0.f));
-	world = glm::rotate(world, glm::radians(this->rotation.y), glm::vec3(0.f, 1.f, 0.f));
-	world = glm::rotate(world, glm::radians(this->rotation.z), glm::vec3(0.f, 0.f, 1.f));
-
-	world = glm::scale(world, glm::vec3(this->scale.x, this->scale.y, this->scale.z));
-
-	return world;
-}

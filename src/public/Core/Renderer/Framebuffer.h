@@ -2,14 +2,13 @@
 #include "Core/Containers.h"
 
 #include "Core/Renderer/RenderPass.h"
-#include "Core/Renderer/ImageView.h"
+#include "Core/Renderer/GPUTexture.h"
 
 struct FramebufferCreateInfo {
 	Ref<RenderPass> renderPass;
-	Vector<Ref<ImageView>> attachments;
+	Vector<Ref<GPUTexture>> attachments;
 	uint32_t nWidth;
 	uint32_t nHeight;
-	uint32_t nLayers = 1;
 };
 
 class Framebuffer {

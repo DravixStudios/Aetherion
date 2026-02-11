@@ -1,12 +1,11 @@
 #include "Core/Renderer/Vulkan/VulkanCommandPool.h"
-#include "Core/Renderer/Vulkan/VulkanDevice.h"
 
-VulkanCommandPool::VulkanCommandPool(Ref<VulkanDevice> device) 
+VulkanCommandPool::VulkanCommandPool(VkDevice device) 
 	: m_device(device), m_pool(VK_NULL_HANDLE) {}
 
 VulkanCommandPool::~VulkanCommandPool() {
 	if (this->m_pool != VK_NULL_HANDLE) {
-		vkDestroyCommandPool(this->m_device->GetVkDevice(), this->m_pool, nullptr);
+		vkDestroyCommandPool(this->m_device, this->m_pool, nullptr);
 	}
 }
 
@@ -22,14 +21,7 @@ VulkanCommandPool::Create(const CommandPoolCreateInfo& createInfo) {
 	poolInfo.queueFamilyIndex = createInfo.nQueueFamilyIndex;
 	poolInfo.flags = this->ConvertCommandPoolFlags(createInfo.flags);
 	
-	VK_CHECK(
-		vkCreateCommandPool(
-			this->m_device->GetVkDevice(), 
-			&poolInfo, 
-			nullptr, 
-			&this->m_pool
-		), "Failed creating command pool"
-	);
+	VK_CHECK(vkCreateCommandPool(this->m_device, &poolInfo, nullptr, &this->m_pool), "Failed creating command pool");
 }
 
 /**
@@ -47,13 +39,7 @@ VulkanCommandPool::AllocateCommandBuffer() {
 	allocInfo.commandBufferCount = 1;
 	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 
-	VK_CHECK(
-		vkAllocateCommandBuffers(
-			this->m_device->GetVkDevice(), 
-			&allocInfo, 
-			&vkCommandBuff
-		), "Failed allocating command buffer"
-	);
+	VK_CHECK(vkAllocateCommandBuffers(this->m_device, &allocInfo, &vkCommandBuff), "Failed allocating command buffer");
 
 	Ref<VulkanCommandBuffer> commandBuff = VulkanCommandBuffer::CreateShared(this->m_device, vkCommandBuff);
 	return commandBuff.As<CommandBuffer>();
@@ -79,7 +65,7 @@ VulkanCommandPool::AllocateCommandBuffers(uint32_t nCount) {
 
 	VK_CHECK(
 		vkAllocateCommandBuffers(
-			this->m_device->GetVkDevice(),
+			this->m_device, 
 			&allocInfo, 
 			vkCommandBuffers.data()
 		), "Failed allocating command buffers");
@@ -107,7 +93,7 @@ void
 VulkanCommandPool::FreeCommandBuffer(Ref<CommandBuffer> commandBuffer) {
 	VkCommandBuffer vkCommandBuffer = commandBuffer.As<VulkanCommandBuffer>()->GetVkCommandBuffer();
 
-	vkFreeCommandBuffers(this->m_device->GetVkDevice(), this->m_pool, 1, &vkCommandBuffer);
+	vkFreeCommandBuffers(this->m_device, this->m_pool, 1, &vkCommandBuffer);
 }
 
 void 
@@ -122,7 +108,7 @@ VulkanCommandPool::FreeCommandBuffers(const Vector<Ref<CommandBuffer>>& commandB
 		vkCommandBuffers[i] = vkCommandBuffer;
 	}
 
-	vkFreeCommandBuffers(this->m_device->GetVkDevice(), this->m_pool, nCommandBuffCount, vkCommandBuffers.data());
+	vkFreeCommandBuffers(this->m_device, this->m_pool, nCommandBuffCount, vkCommandBuffers.data());
 }
 
 /**
@@ -138,13 +124,7 @@ VulkanCommandPool::Reset(bool bReleaseResources) {
 		resetFlags |= VK_COMMAND_POOL_RESET_RELEASE_RESOURCES_BIT;
 	}
 
-	VK_CHECK(
-		vkResetCommandPool(
-			this->m_device->GetVkDevice(),
-			this->m_pool, 
-			resetFlags
-		), "Failed to reset a command pool"
-	);
+	VK_CHECK(vkResetCommandPool(this->m_device, this->m_pool, resetFlags), "Failed to reset a command pool");
 }
 
 /**

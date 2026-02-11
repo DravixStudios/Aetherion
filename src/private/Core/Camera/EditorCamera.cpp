@@ -1,5 +1,4 @@
 #include "Core/Camera/EditorCamera.h"
-#include "Core/Core.h"
 
 EditorCamera::EditorCamera(String name) : Camera::Camera(name) {
 	this->m_input = Input::GetInstance();
@@ -55,30 +54,6 @@ void EditorCamera::Update() {
 		//this->m_pitch = glm::clamp(this->m_pitch, glm::radians(-89.0f), glm::radians(89.0f));
 
 		this->transform.Rotate(deltaY * -this->m_sensY, deltaX * -this->m_sensX, 0.f);
-
-		glm::vec3 pos(this->transform.location.x, this->transform.location.y, this->transform.location.z);
-		glm::vec3 forward = glm::normalize(
-			glm::vec3(
-				this->transform.Forward().x, 
-				this->transform.Forward().y,
-				this->transform.Forward().x
-			)
-		);
-
-		this->m_view = glm::mat4(1.f);
-		this->m_view = glm::rotate(this->m_view, glm::radians(this->transform.rotation.x), glm::vec3(1.f, 0.f, 0.f));
-		this->m_view = glm::rotate(this->m_view, glm::radians(this->transform.rotation.y), glm::vec3(0.f, 1.f, 0.f));
-		this->m_view = glm::translate(this->m_view, {
-			-this->transform.location.x,
-			-this->transform.location.y,
-			this->transform.location.z
-		});
-
-		this->m_projection = glm::perspectiveFovRH(
-			glm::radians(70.f), 
-			static_cast<float>(WIDTH), static_cast<float>(HEIGHT), 
-			.001f, 300.f
-		);
 	}
 	else {
 		this->m_input->ShowCursor(true);

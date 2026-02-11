@@ -9,7 +9,6 @@
 .DS_Store
 .vscode/
 /build/
-docs/**/*
 
 # Compiled Object files
 *.slo

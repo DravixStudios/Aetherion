@@ -4,7 +4,6 @@
 #include "Core/Renderer/Vulkan/VulkanHelpers.h"
 #include "Core/Renderer/Vulkan/VulkanPipeline.h"
 #include "Core/Renderer/Vulkan/VulkanDescriptorSet.h"
-#include "Core/Renderer/Vulkan/VulkanCommandBuffer.h"
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
@@ -13,7 +12,7 @@ class VulkanGraphicsContext : public GraphicsContext {
 public:
 	using Ptr = Ref<VulkanGraphicsContext>;
 
-	explicit VulkanGraphicsContext(Ref<VulkanCommandBuffer> commandBuffer);
+	VulkanGraphicsContext(VkCommandBuffer commandBuffer);
 	~VulkanGraphicsContext() override = default;
 
 	void BindPipeline(Ref<Pipeline> pipeline) override;
@@ -58,42 +57,8 @@ public:
 
 	void SetViewport(const Viewport& viewport) override;
 	void SetScissor(const Rect2D& scissor) override;
-
-	void BeginRenderPass(const RenderPassBeginInfo& beginInfo) override;
-	void EndRenderPass() override;
-	void NextSubpass() override;
-
-	void FillBuffer(Ref<GPUBuffer> buffer, uint32_t nOffset, uint32_t nSize, uint32_t nData) override;
-
-	void Dispatch(uint32_t x, uint32_t y, uint32_t z) override;
-
-	void BufferMemoryBarrier(Ref<GPUBuffer> buffer, EAccess srcAccess, EAccess dstAccess) override;
-
-	void ImageBarrier(
-		Ref<GPUTexture> image,
-		EImageLayout oldLayout,
-		EImageLayout newLayout
-	) override;
-
-	void ImageBarrier(
-		Ref<GPUTexture> image,
-		EImageLayout oldLayout,
-		EImageLayout newLayout,
-		uint32_t nLayerCount,
-		uint32_t nBaseMipLevel,
-		uint32_t nBaseArrayLayer = 0
-	) override;
-
-	Ref<CommandBuffer> GetCommandBuffer() const override { return this->m_commandBuffer.As<CommandBuffer>(); }
-
-	void GlobalBarrier() override;
-
-	static Ptr
-	CreateShared(Ref<VulkanCommandBuffer> commandBuffer) {
-		return CreateRef<VulkanGraphicsContext>(commandBuffer);
-	}
 private:
-	Ref<VulkanCommandBuffer> m_commandBuffer;
+	VkCommandBuffer m_commandBuffer;
 	VkPipeline m_currentPipeline;
 	VkPipelineLayout m_currentPipelineLayout;
 	VkPipelineBindPoint m_currentBindPoint;

@@ -20,6 +20,7 @@ inline ECommandPoolFlags
 operator&(ECommandPoolFlags a, ECommandPoolFlags b) {
 	return static_cast<ECommandPoolFlags>(static_cast<uint32_t>(a) & static_cast<uint32_t>(b));
 }
+
 struct CommandPoolCreateInfo {
 	uint32_t nQueueFamilyIndex;
 	ECommandPoolFlags flags = ECommandPoolFlags::NONE;

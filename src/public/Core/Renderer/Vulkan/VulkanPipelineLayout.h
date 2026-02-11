@@ -15,7 +15,6 @@ public:
 	~VulkanPipelineLayout() override;
 
 	void Create(const PipelineLayoutCreateInfo& createInfo) override;
-	void Create(VkPipelineLayout layout) { this->m_layout = layout; }
 
 	VkPipelineLayout GetVkLayout() const { return this->m_layout; }
 

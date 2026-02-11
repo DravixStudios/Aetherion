@@ -187,10 +187,6 @@ struct GraphicsPipelineCreateInfo {
 	/* Pipeline layout */
 	Ref<PipelineLayout> pipelineLayout;
 
-	/* Color formats */
-	Vector<GPUFormat> colorFormats;
-	GPUFormat depthFormat;
-
 	/* Render pass (only for Vulkan, nullptr in D3D12 and others) */
 	Ref<RenderPass> renderPass { std::shared_ptr<RenderPass>(nullptr) };
 	uint32_t nSubpass;
@@ -212,8 +208,6 @@ public:
 	virtual void CreateCompute(const ComputePipelineCreateInfo& createInfo) = 0;
 
 	EPipelineType GetType() const { return this->m_type; }
-	Ref<PipelineLayout> GetLayout() const { return this->m_layout; }
 protected:
 	EPipelineType m_type;
-	Ref<PipelineLayout> m_layout;
 };

@@ -1,19 +1,31 @@
 #pragma once
+#include <iostream>
 #include <map>
 
+#include <spdlog/spdlog.h>
+
 #include "Core/Containers.h" 
+#include "Core/Renderer/GPUBuffer.h"
+#include "Core/Renderer/GPUTexture.h"
+
+class Renderer;
 
 class ResourceManager {
 public:
-	ResourceManager() = default;
+	ResourceManager();
 
-	bool IsTextureRegistered(const String& name) const;
-	void RegisterTexture(const String& name, uint32_t nBindlessIndex);
-	uint32_t GetTextureIndex(const String& name) const;
+	GPUTexture* GetTexture(String textureName);
+	bool AddTexture(String textureName, GPUTexture* pTexture);
+	bool TextureExists(String textureName);
+
+	GPUTexture* UploadTexture(String textureName, const unsigned char* pData, int nWidth, int nHeight);
+
+	void SetRenderer(Renderer* pRenderer);
 
 	static ResourceManager* GetInstance();
 private:
-	static ResourceManager* m_instance;
+	std::map<String, GPUTexture*> m_textures;
+	Renderer* m_renderer;
 
-	std::map<String, uint32_t> m_textureIndices;
+	static ResourceManager* m_instance;
 };

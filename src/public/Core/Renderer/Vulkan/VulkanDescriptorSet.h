@@ -7,8 +7,6 @@
 
 #include "Core/Renderer/Vulkan/VulkanBuffer.h"
 #include "Core/Renderer/Vulkan/VulkanTexture.h"
-#include "Core/Renderer/Vulkan/VulkanImageView.h"
-#include "Core/Renderer/Vulkan/VulkanSampler.h"
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
@@ -29,15 +27,13 @@ public:
 		uint32_t nBinding, 
 		uint32_t nFirstArrayElement,
 		const Vector<DescriptorBufferInfo>& bufferInfos,
-		EBufferType bufferType = EBufferType::UNIFORM_BUFFER
+		EBufferType bufferType = EBufferType::CONSTANT_BUFFER
 	) override;
 	void WriteTextures(uint32_t nBinding, uint32_t nFirstArrayElement, const Vector<DescriptorImageInfo>& imageInfos) override;
 
 	void UpdateWrites() override;
 
 	VkDescriptorSet GetVkSet() const { return this->m_descriptorSet; }
-
-	Ref<DescriptorSetLayout> GetLayout() const override { return this->m_layout; }
 
 	static Ptr
 	CreateShared(VkDevice device) {
@@ -49,9 +45,7 @@ private:
 	VkDescriptorSet m_descriptorSet;
 	VkDescriptorPool m_pool;
 
-	Ref<DescriptorSetLayout> m_layout;
-
-	Deque<Vector<VkDescriptorBufferInfo>> m_bufferInfos;
-	Deque<Vector<VkDescriptorImageInfo>> m_imageInfos;
+	Vector<VkDescriptorBufferInfo> m_bufferInfos;
+	Vector<VkDescriptorImageInfo> m_imageInfos;
 	Vector<VkWriteDescriptorSet> m_pendingWrites;
 };

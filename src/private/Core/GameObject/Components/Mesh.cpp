@@ -4,27 +4,30 @@
 
 #include <stb/stb_image.h>
 
-Mesh::Mesh(String name) : Component::Component(name) { }
+Mesh::Mesh(String name) : Component::Component(name) {
+	this->m_core = Core::GetInstance();
+	this->m_bMeshImported = false;
+	this->m_resourceManager = ResourceManager::GetInstance();
+	this->m_bHasIndices = false;
+}
 
-void 
-Mesh::Start() {
+void Mesh::Start() {
 	Component::Start();
 }
 
-void 
-Mesh::Update() {
+void Mesh::Update() {
 	Component::Update();
 }
 
-/*
+/* 
 	Load model from file (mainly FBX or GLB)
 		NOTES:
 			- If Mesh component already imported any Model, will throw error.
 */
-bool 
-Mesh::LoadModel(String filePath) {
-	if (this->m_meshData.bLoaded) {
-		Logger::Error("Mesh::LoadModel: Mesh already loaded");
+bool Mesh::LoadModel(String filePath) {
+	if (this->m_bMeshImported) {
+		spdlog::error("[{0}] Mesh::LoadModel: Mesh already imported on this mesh component", this->m_name.c_str());
+		throw std::runtime_error("Mesh::LoadModel: Mesh already imported on mesh");
 		return false;
 	}
 
@@ -35,78 +38,194 @@ Mesh::LoadModel(String filePath) {
 	Assimp::Importer importer;
 	const aiScene* scene = importer.ReadFile(fullFilePath.string().c_str(),
 		aiProcess_Triangulate |
-		aiProcess_JoinIdenticalVertices |
-		aiProcess_GenNormals |
-		aiProcess_FlipUVs
+    	aiProcess_JoinIdenticalVertices |
+    	aiProcess_GenNormals |
+    	aiProcess_FlipUVs
 	);
-
+	
 	/* If scene is null, get out and return false */
 	if (scene == nullptr) {
-		Logger::Error("Mesh::LoadModel: Scene couldn't be imported. Filename: {}", filePath.c_str());
+		spdlog::error("Mesh::LoadModel: Scene couldn't be imported. Filename: {0}", filePath.c_str());
 		return false;
 	}
 
-	this->m_meshData.name = filePath;
-
+	Renderer* renderer = this->m_core->GetRenderer();
+	
 	uint32_t nNumMeshes = scene->mNumMeshes; // Enumerate our mesh count
 
 	/* Get each mesh from our scene */
 	for (uint32_t i = 0; i < nNumMeshes; i++) {
 		const aiMesh* mesh = scene->mMeshes[i];
-		SubMeshData subData = { };
 
-		subData.vertices.resize(mesh->mNumVertices);
+		/* Get the number of vertices */
+		uint32_t nNumVertices = mesh->mNumVertices;
 
-		/* Vertices */
-		for (uint32_t v = 0; v < mesh->mNumVertices; v++) {
-			aiVector3D pos = mesh->mVertices[v];
-			aiVector3D uv = mesh->HasTextureCoords(0) ? mesh->mTextureCoords[0][v] : aiVector3D(0, 0, 0);
-			aiVector3D normals = mesh->HasNormals() ? mesh->mNormals[v] : aiVector3D(0, 0, 0);
+		Vector<Vertex> vertices(nNumVertices);
+		Vector<uint16_t> indices;
+		
+		/*
+			Store a new vertices on our vertices vector. 
+				Formatted as specified Vertex struct at Util.h
+		*/
+		for (uint32_t x = 0; x < nNumVertices; x++) {
+			aiVector3D aiVertex = mesh->mVertices[x];
+			aiVector3D texCoords = { 0, 0, 0 };
+			aiVector3D normals = { 0, 0, 0 };
 
-			subData.vertices[v] = {
-				{ pos.x, pos.y, pos.z },
-				{ normals.x, normals.y, normals.z },
-				{ uv.x, uv.y }
-			};
-		}
 
-		/* Indices */
-		for (uint32_t f = 0; f < mesh->mNumFaces; f++) {
-			aiFace& face = mesh->mFaces[f];
-			for (uint32_t j = 0; j < face.mNumIndices; j++) {
-				subData.indices.push_back(static_cast<uint16_t>(face.mIndices[j]));
+			if (mesh->HasTextureCoords(0)) {
+				texCoords = mesh->mTextureCoords[0][x];
 			}
+
+			if (mesh->HasNormals()) {
+				normals = mesh->mNormals[x];
+			}
+
+			Vertex vertex = { { aiVertex.x, aiVertex.y, aiVertex.z }, { normals.x, normals.y, normals.z }, { texCoords.x, texCoords.y } };
+			vertices[x] = vertex;
+		
 		}
 
-		/* Embedded textures */
-		const aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
-
-		std::function<void(aiTextureType, TextureData&)> loadEmbedded = [&](aiTextureType type, TextureData& out) {
-			aiString path;
-			if (material->GetTextureCount(type) > 0 && material->GetTexture(type, 0, &path) == AI_SUCCESS) {
-				const aiTexture* texture = scene->GetEmbeddedTexture(path.C_Str());
-
-				if (texture) {
-					out.name = path.C_Str();
-					out.nWidth = texture->mWidth;
-					out.nHeight = texture->mHeight;
-					out.bCompressed = (texture->mHeight == 0);
-
-					size_t size = out.bCompressed ? texture->mWidth : (texture->mWidth * texture->mHeight * 4);
-					out.data.resize(size);
-					memcpy(out.data.data(), texture->pcData, size);
+		if (mesh->HasFaces()) {
+			indices.reserve(mesh->mNumFaces * 3);
+			this->m_bHasIndices = true;
+			for (uint32_t x = 0; x < mesh->mNumFaces; x++) {
+				aiFace& face = mesh->mFaces[x];
+				for (uint32_t j = 0; j < face.mNumIndices; j++) {
+					indices.push_back(face.mIndices[j]);
 				}
 			}
-		};
 
-		loadEmbedded(aiTextureType_DIFFUSE, subData.albedo);
-		loadEmbedded(aiTextureType_METALNESS, subData.orm);
-		loadEmbedded(aiTextureType_EMISSIVE, subData.emissive);
+			GPUBuffer* IBO = renderer->CreateIndexBuffer(indices);
+		}
 
-		this->m_meshData.subMeshes[i] = std::move(subData);
+		SubMesh subMesh = { };
+		renderer->UploadMeshToGlobalBuffers(vertices, indices, subMesh);
+		this->m_subMeshes[i] = subMesh;
+
+		this->m_vertices[i] = vertices;
+
+		/* Texture loading */
+		const aiMaterial* material =  scene->mMaterials[mesh->mMaterialIndex];
+		aiString texturePath;
+
+		/* Load albedo */
+		if (material->GetTextureCount(aiTextureType_DIFFUSE) > 0 && material->GetTexture(aiTextureType_DIFFUSE, 0, &texturePath) == AI_SUCCESS) {
+			
+			if (this->m_resourceManager->TextureExists(texturePath.C_Str())) {
+				this->m_textures[i] = this->m_resourceManager->GetTexture(texturePath.C_Str());
+				continue;
+			}
+
+			const aiTexture* texture = scene->GetEmbeddedTexture(texturePath.C_Str());
+
+			GPUTexture* gpuTexture = this->m_resourceManager->UploadTexture(
+				texturePath.C_Str(), 
+				reinterpret_cast<const unsigned char*>(texture->pcData), 
+				texture->mWidth, 
+				texture->mHeight
+			);
+
+			if (VulkanRenderer* vkRenderer = dynamic_cast<VulkanRenderer*>(renderer)) {
+				uint32_t nAlbedoIndex = this->RegisterVulkan(vkRenderer, texturePath.C_Str(), gpuTexture);
+				this->m_textureIndices[i] = nAlbedoIndex;
+			}
+
+			this->m_textures[i] = gpuTexture;
+		}
+
+		/* Load ORM */
+		aiString metalPath;
+		if (material->GetTextureCount(aiTextureType_METALNESS) > 0 && material->GetTexture(aiTextureType_METALNESS, 0, &metalPath) == AI_SUCCESS) {
+			if (this->m_resourceManager->TextureExists(metalPath.C_Str())) {
+				this->m_textures[i] = this->m_resourceManager->GetTexture(metalPath.C_Str());
+				continue;
+			}
+
+			const aiTexture* texture = scene->GetEmbeddedTexture(metalPath.C_Str());
+
+			GPUTexture* gpuTexture = this->m_resourceManager->UploadTexture(
+				metalPath.C_Str(),
+				reinterpret_cast<const unsigned char*>(texture->pcData),
+				texture->mWidth,
+				texture->mHeight
+			);
+
+			if (VulkanRenderer* vkRenderer = dynamic_cast<VulkanRenderer*>(renderer)) {
+				uint32_t nORMIndex = this->RegisterVulkan(vkRenderer, metalPath.C_Str(), gpuTexture);
+				this->m_ormIndices[i] = nORMIndex;
+			}
+
+			this->m_ormTextures[i] = gpuTexture;
+		}
+
+		/* 
+			Load emissive
+		*/
+		aiString emissivePath;
+		if (material->GetTextureCount(aiTextureType_EMISSIVE) > 0 && material->GetTexture(aiTextureType_EMISSIVE, 0, &emissivePath) == AI_SUCCESS) {
+			if (this->m_resourceManager->TextureExists(emissivePath.C_Str())) {
+				this->m_textures[i] = this->m_resourceManager->GetTexture(emissivePath.C_Str());
+				continue;
+			}
+
+			const aiTexture* texture = scene->GetEmbeddedTexture(emissivePath.C_Str());
+
+			GPUTexture* gpuTexture = this->m_resourceManager->UploadTexture(
+				emissivePath.C_Str(),
+				reinterpret_cast<const unsigned char*>(texture->pcData),
+				texture->mWidth,
+				texture->mHeight
+			);
+
+			if (VulkanRenderer* vkRenderer = dynamic_cast<VulkanRenderer*>(renderer)) {
+				uint32_t nEmissiveIndex = this->RegisterVulkan(vkRenderer, emissivePath.C_Str(), gpuTexture);
+				this->m_emissiveIndices[i] = nEmissiveIndex;
+			}
+
+			this->m_emissiveTextures[i] = gpuTexture;
+		}
 	}
 
-	this->m_meshData.bLoaded = true;
+	this->m_bMeshImported = true;
 
 	return true;
+}
+
+bool Mesh::HasIndices() {
+	return this->m_bHasIndices;
+}
+
+std::map<uint32_t, Mesh::SubMesh>& Mesh::GetSubMeshes() {
+	return this->m_subMeshes;
+}
+
+/* Returns Mesh::m_textures */
+std::map<uint32_t, GPUTexture*>& Mesh::GetTextures() {
+	return this->m_textures;
+}
+
+/* Returns Mesh::m_textureIndices */
+std::map<uint32_t, uint32_t>& Mesh::GetTextureIndices() {
+	return this->m_textureIndices;
+}
+
+/* Returns Mesh::m_ormIndices */
+std::map<uint32_t, uint32_t>& Mesh::GetORMIndices() {
+	return this->m_ormIndices;
+}
+
+/* Returns Mesh::m_emissiveIndices */
+std::map<uint32_t, uint32_t>& Mesh::GetEmissiveIndices() {
+	return this->m_emissiveIndices;
+}
+
+/* Register a texture on vulkan renderer */
+uint32_t Mesh::RegisterVulkan(VulkanRenderer* pRenderer, String textureName, GPUTexture* gpuTexture) {
+	uint32_t nTextureIndex = pRenderer->RegisterTexture(textureName, gpuTexture);
+
+	if (nTextureIndex == UINT32_MAX) {
+		spdlog::error("Mesh::LoadModel: Vulkan renderer couldn't register texture {0}", textureName);
+	}
+	return nTextureIndex;
 }

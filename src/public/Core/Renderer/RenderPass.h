@@ -30,7 +30,7 @@ enum class EImageLayout {
 
 struct AttachmentDescription {
 	GPUFormat format;
-	ESampleCount sampleCount = ESampleCount::SAMPLE_1;
+	uint32_t nSampleCount = 1;
 	EAttachmentLoadOp loadOp = EAttachmentLoadOp::CLEAR;
 	EAttachmentStoreOp storeOp = EAttachmentStoreOp::STORE;
 	EAttachmentLoadOp stencilLoadOp = EAttachmentLoadOp::DONT_CARE;
@@ -44,8 +44,6 @@ struct AttachmentReference {
 	EImageLayout layout;
 };
 
-#include "Core/Renderer/PipelineStage.h"
-
 struct SubpassDescription {
 	Vector<AttachmentReference> colorAttachments;
 	Vector<AttachmentReference> resolveAttachments; // For MSAA
@@ -56,17 +54,16 @@ struct SubpassDescription {
 	Vector<uint32_t> preserveAttachments;
 };
 
-constexpr uint32_t SUBPASS_EXTERNAL = ~0U;
+/* 
+	Simplified subpass dependency implementation
+	Full implementation will be done during the
+	development.
 
+	TODO: Finish subpass dependency implementation
+*/
 struct SubpassDependency {
-	uint32_t nSrcSubpass = SUBPASS_EXTERNAL;
-	uint32_t nDstSubpass = 0;
-
-	EPipelineStage srcStageMask = EPipelineStage::BOTTOM_OF_PIPE;
-	EPipelineStage dstStageMask = EPipelineStage::TOP_OF_PIPE;
-
-	EAccess srcAccessMask = EAccess::NONE;
-	EAccess dstAccessMask = EAccess::NONE;
+	uint32_t nSrcSubpass; // VK_SUBPASS_EXTERNAL = ~0U for external dependencies
+	uint32_t nDstSubpass;
 };
 
 struct RenderPassCreateInfo {

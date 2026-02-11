@@ -17,10 +17,10 @@ VulkanFramebuffer::~VulkanFramebuffer() {
 void 
 VulkanFramebuffer:: Create(const FramebufferCreateInfo& createInfo) {
 	Vector<VkImageView> attachments;
-	for (const Ref<ImageView>& attachment : createInfo.attachments) {
-		Ref<VulkanImageView> vkAttachment = attachment.As<VulkanImageView>();
+	for (const Ref<GPUTexture>& attachment : createInfo.attachments) {
+		Ref<VulkanTexture> vkAttachment = attachment.As<VulkanTexture>();
 
-		attachments.push_back(vkAttachment->GetVkImageView());
+		attachments.push_back(vkAttachment->GetImageView());
 	}
 
 	VkFramebufferCreateInfo fbInfo = { };
@@ -30,7 +30,7 @@ VulkanFramebuffer:: Create(const FramebufferCreateInfo& createInfo) {
 	fbInfo.renderPass = createInfo.renderPass.As<VulkanRenderPass>()->GetVkRenderPass();
 	fbInfo.width = createInfo.nWidth;
 	fbInfo.height = createInfo.nHeight;
-	fbInfo.layers = createInfo.nLayers;
+	
 	VK_CHECK(
 		vkCreateFramebuffer(
 			this->m_device, 

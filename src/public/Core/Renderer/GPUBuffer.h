@@ -1,37 +1,14 @@
 #pragma once
 #include <iostream>
 
-#include "Core/Containers.h"
-
-enum class EBufferType {
+enum EBufferType {
 	VERTEX_BUFFER,
 	STAGING_BUFFER,
-	UNIFORM_BUFFER,
+	CONSTANT_BUFFER,
 	INDEX_BUFFER ,
 	STORAGE_BUFFER,
 	UNKNOWN_BUFFER 
 };
-
-enum class EBufferUsage : uint32_t {
-	NONE = 0,
-	TRANSFER_SRC = 1,
-	TRANSFER_DST = 1 << 1,
-	VERTEX_BUFFER = 1 << 2,
-	INDEX_BUFFER = 1 << 3,
-	UNIFORM_BUFFER = 1 << 4,
-	STORAGE_BUFFER = 1 << 5,
-	INDIRECT_BUFFER = 1 << 6
-};
-
-inline EBufferUsage
-operator|(EBufferUsage a, EBufferUsage b) {
-	return static_cast<EBufferUsage>(static_cast<uint32_t>(a) | static_cast<uint32_t>(b));
-}
-
-inline EBufferUsage
-operator&(EBufferUsage a, EBufferUsage b) {
-	return static_cast<EBufferUsage>(static_cast<uint32_t>(a) & static_cast<uint32_t>(b));
-}
 
 enum class EIndexType {
 	UINT8,
@@ -39,97 +16,15 @@ enum class EIndexType {
 	UINT32
 };
 
-enum class EAccess : uint32_t {
-	NONE = 0,
-	INDIRECT_COMMAND_READ = 1,
-	INDEX_READ = 1 << 1,
-	VERTEX_ATTRIBUTE_READ = 1 << 2,
-	UNIFORM_READ = 1 << 3,
-	INPUT_ATTACHMENT_READ = 1 << 4,
-	SHADER_READ = 1 << 5,
-	SHADER_WRITE = 1 << 6,
-	COLOR_ATTACHMENT_READ = 1 << 7,
-	COLOR_ATTACHMENT_WRITE = 1 << 8,
-	DEPTH_STENCIL_READ = 1 << 9,
-	DEPTH_STENCIL_WRITE =  1 << 10,
-	TRANSFER_READ = 1 << 11,
-	TRANSFER_WRITE = 1 << 12,
-	HOST_READ = 1 << 13,
-	HOST_WRITE = 1 << 14,
-	MEMORY_READ = 1 << 15,
-	MEMORY_WRITE =  1 << 16
-};
-
-inline EAccess
-operator|(EAccess a, EAccess b) {
-	return static_cast<EAccess>(static_cast<uint32_t>(a) | static_cast<uint32_t>(b));
-}
-
-inline EAccess
-operator&(EAccess a, EAccess b) {
-	return static_cast<EAccess>(static_cast<uint32_t>(a) & static_cast<uint32_t>(b));
-}
-
-enum class EBufferCreateFlags : uint32_t {
-	SPARSE_BINDING = 1,
-	SPARSE_RESIDENCY = 1 << 1,
-	SPARSE_ALIASED = 1 << 2,
-	PROTECTED = 1 << 3
-};
-
-inline EBufferCreateFlags
-operator|(EBufferCreateFlags a, EBufferCreateFlags b) {
-	return static_cast<EBufferCreateFlags>(static_cast<uint32_t>(a) | static_cast<uint32_t>(b));
-}
-
-inline EBufferCreateFlags
-operator&(EBufferCreateFlags a, EBufferCreateFlags b) {
-	return static_cast<EBufferCreateFlags>(static_cast<uint32_t>(a) & static_cast<uint32_t>(b));
-}
-
-enum class ESharingMode {
-	EXCLUSIVE,
-	CONCURRENT
-};
-
-struct BufferCreateInfo {
-	EBufferCreateFlags flags;
-	uint32_t nSize; // ~0ULL = WHOLE_SIZE
-	EBufferUsage usage;
-	ESharingMode sharingMode;
-	EBufferType type = EBufferType::UNKNOWN_BUFFER;
-
-	const void* pcData = nullptr;
-};
-
 class GPUBuffer {
+	friend class Renderer;
+	friend class VulkanRenderer;
 public:
-	static constexpr const char* CLASS_NAME = "GPUBuffer";
-
-	using Ptr = Ref<GPUBuffer>;
-
+	GPUBuffer(EBufferType bufferType = EBufferType::VERTEX_BUFFER) : m_bufferType(bufferType) {};
 	virtual ~GPUBuffer() {};
-	
-	/**
-	* Creates the buffer
-	* 
-	* @param createInfo Buffer create info
-	*/
-	virtual void Create(const BufferCreateInfo& createInfo) = 0;
 
-	/**
-	* Maps the buffer to CPU
-	*
-	* @returns A pointer to the map
-	*/
-	virtual void* Map() = 0;
-
-	/**
-	* Unmaps the buffer
-	*/
-	virtual void Unmap() = 0;
-
+	virtual uint32_t GetSize() = 0;
 	EBufferType GetBufferType() const { return this->m_bufferType; }
 protected:
-	EBufferType m_bufferType = EBufferType::UNKNOWN_BUFFER;
+	EBufferType m_bufferType;
 };

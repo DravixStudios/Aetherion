@@ -1,5 +1,5 @@
 #include "Core/Renderer/Vulkan/VulkanRenderer.h"
-#include "Core/Renderer/Vulkan/VulkanDevice.h"
+#include "Core/Scene/SceneManager.h"
 
 #define TINYEXR_IMPLEMENTATION
 #include <tinyexr/tinyexr.h>
@@ -5646,222 +5646,478 @@ VulkanRenderer::ExtractCubemapFaces(
 		offsets[4] = { nFaceWidth, nFaceHeight }; // +Z
 		offsets[5] = { nFaceWidth, 3 * nFaceHeight }; // -Z
 
-Vector<const char*> deviceExtensions = {
-	VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-	VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME,
-#ifdef __APPLE__
-	"VK_KHR_portability_subset"
-#endif // __APPLE__
-};
-
-VulkanRenderer::VulkanRenderer() 
-	: m_instance(VK_NULL_HANDLE), m_bEnableValidationLayers(false), m_debugMessenger(VK_NULL_HANDLE),
-	  m_pWindow(nullptr), m_surface(VK_NULL_HANDLE), m_physicalDevice(VK_NULL_HANDLE) {}
-
-VulkanRenderer::~VulkanRenderer() {
-	if (this->m_instance != VK_NULL_HANDLE) {
-		vkDestroyInstance(this->m_instance, nullptr);
-		this->m_instance = VK_NULL_HANDLE;
-	}
-}
-
-void VulkanRenderer::Create(GLFWwindow* pWindow) {
-#ifndef NDEBUG
-	this->m_bEnableValidationLayers = true;
-#endif // NDEBUG
-	this->m_pWindow = pWindow;
-
-	if (this->m_bEnableValidationLayers && !this->CheckValidationLayersSupport()) {
-		Logger::Error("VulkanRenderer::Create: Validation layers enabled but not supported");
-		throw std::runtime_error("VulkanRenderer::Create: Validation layers enabled but not supported");
+		break;
+	case ECubemapLayout::HORIZONTAL_STRIP:
+		for (int i = 0; i < 6; i++) offsets[i] = { i * nFaceWidth, 0 };
+		break;
+	case ECubemapLayout::VERTICAL_STRIP:
+		for (int i = 0; i < 6; i++) offsets[i] = { 0, i * nFaceHeight };
+		break;
 	}
 
-	VkApplicationInfo appInfo = { };
-	appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-	appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-	appInfo.pApplicationName = "N.A";
-	appInfo.engineVersion = VK_MAKE_VERSION(0, 1, 0);
-	appInfo.pEngineName = "Aetherion Engine";
-	appInfo.apiVersion = VK_API_VERSION_1_3;
+	/* Copy each face */
+	for (int nFace = 0; nFace < 6; nFace++) {
+		float* pDstFace = pDstData + (nFace * nFaceWidth * nFaceHeight * 4);
+		
+		for (int y = 0; y < nFaceHeight; y++) {
+			for (int x = 0; x < nFaceWidth; x++) {
+				int nSrcX = offsets[nFace].x + x;
+				int nSrcY = offsets[nFace].y + y;
+				int nSrcIdX = (nSrcY * nSrcWidth + nSrcX) * 4;
+				int nDstIdX = ( y * nFaceWidth + x ) * 4;
 
-	Vector<const char*> extensions = this->GetRequiredExtensions();
-
-#ifdef __APPLE__
-	extensions.push_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
-#endif // __APPLE__
-
-	size_t nExtensionCount = extensions.size();
-
-	Logger::Debug("VulkanRenderer::Create: Required extension count {}", nExtensionCount);
-
-	VkInstanceCreateInfo instanceInfo = { };
-	instanceInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-	instanceInfo.pApplicationInfo = &appInfo;
-	instanceInfo.enabledExtensionCount = nExtensionCount;
-	instanceInfo.ppEnabledExtensionNames = extensions.data();
-
-#ifdef __APPLE__
-	instanceInfo.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
-#endif // __APPLE__
-
-	if (this->m_bEnableValidationLayers) {
-		VkDebugUtilsMessengerCreateInfoEXT messengerInfo = { };
-		messengerInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-
-		this->PopulateDebugMessengerCreateInfo(messengerInfo);
-
-		instanceInfo.enabledLayerCount = validationLayers.size();
-		instanceInfo.ppEnabledLayerNames = validationLayers.data();
-		instanceInfo.pNext = &messengerInfo;
-	}
-	else {
-		instanceInfo.enabledLayerCount = 0;
-		instanceInfo.ppEnabledExtensionNames = nullptr;
-		instanceInfo.pNext = nullptr;
-	}
-
-	VK_CHECK(vkCreateInstance(&instanceInfo, nullptr, &this->m_instance), "Failed creating Vulkan instance");
-
-	/* Setup debug messenger */
-	if (this->m_bEnableValidationLayers) {
-		VkDebugUtilsMessengerCreateInfoEXT messengerInfo = { };
-		messengerInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-
-		this->PopulateDebugMessengerCreateInfo(messengerInfo);
-
-		VK_CHECK(this->CreateDebugUtilsMessengerEXT(this->m_instance, &messengerInfo, nullptr, &this->m_debugMessenger), "Failed to setup Vulkan debug messenger");
-	}
-
-	/* Create window surface */
-	VK_CHECK(
-		glfwCreateWindowSurface(
-			this->m_instance, 
-			this->m_pWindow, 
-			nullptr, 
-			&this->m_surface
-		), "Couldn't create window surface");
-
-	this->PickPhysicalDevice();
-	this->CheckDescirptorIndexingSupport();
-}
-
-/**
-* Creates a logical device
-* 
-* @returns A new logical device
-*/
-Ref<Device> 
-VulkanRenderer::CreateDevice() {
-	DeviceCreateInfo deviceInfo = { };
-	deviceInfo.bEnableMultiDrawIndirect = true;
-	deviceInfo.bEnableSamplerAnisotroply = true;
-	deviceInfo.bEnableDepthClamp = false;
-	deviceInfo.bEnableGeometryShader = false;
-	deviceInfo.validationLayers = validationLayers;
-	deviceInfo.requiredExtensions = deviceExtensions;
-
-	Ref<VulkanDevice> device = VulkanDevice::CreateShared(this->m_physicalDevice, this->m_instance, this->m_surface);
-	device->Create(deviceInfo);
-
-	return device.As<Device>();
-}
-
-/**
-* Picks the most suitable physical device
-*/
-void 
-VulkanRenderer::PickPhysicalDevice() {
-	uint32_t nPhysicalDeviceCount = 0;
-	vkEnumeratePhysicalDevices(this->m_instance, &nPhysicalDeviceCount, nullptr);
-
-	Vector<VkPhysicalDevice> physicalDevices(nPhysicalDeviceCount);
-	vkEnumeratePhysicalDevices(this->m_instance, &nPhysicalDeviceCount, physicalDevices.data());
-
-	Logger::Debug("VulkanRenderer::PickPhysicalDevice: Available physical device count: {}", nPhysicalDeviceCount);
-
-	for (const VkPhysicalDevice& physicalDevice : physicalDevices) {
-		if (this->IsDeviceSuitable(physicalDevice)) {
-			this->m_physicalDevice = physicalDevice;
-			break;
+				for (int c = 0; c < 4; c++) {
+					pDstFace[nDstIdX + c] = pcSrcRGBA[nSrcIdX + c];
+				}
+			}
 		}
 	}
+}
 
-	if (this->m_physicalDevice == VK_NULL_HANDLE) {
-		Logger::Error("VulkanRenderer::PickPhysicalDevice: No suitable device found");
-		throw std::runtime_error("VulkanRenderer::PickPhysicalDevice: No suitable device found");
-	}
+/* Convert an equirectangular to horizontal cross */
+void 
+VulkanRenderer::ConvertEquirectangularToHorizontalCross(
+	const float* pcSrcRGBA,
+	int nSrcWidth,
+	int nSrcHeight,
+	float* pDstData,
+	int nFaceWidth,
+	int nFaceSize
+) {
+	constexpr float PI = glm::pi<float>();
 
-	VkPhysicalDeviceProperties deviceProperties;
-	vkGetPhysicalDeviceProperties(this->m_physicalDevice, &deviceProperties);
+	struct Face {
+		int nOffsetX, nOffsetY;
+		int nFaceIndex;
+	};
 
-	/* Check if physical device supports Vulkan 1.2 */
-	uint32_t nApiMajor = VK_VERSION_MAJOR(deviceProperties.apiVersion);
-	uint32_t nApiMinor = VK_VERSION_MINOR(deviceProperties.apiVersion);
+	/* HORIZONTAL CROSS offsets */
+	Face faces[6] = {
+		{ 2 * nFaceSize, 1 * nFaceSize, 0 }, // +X
+		{ 0 * nFaceSize, 1 * nFaceSize, 1 }, // -X
+		{ 1 * nFaceSize, 0 * nFaceSize, 2 }, // +Y
+		{ 1 * nFaceSize, 2 * nFaceSize, 3 }, // -Y
+		{ 1 * nFaceSize, 1 * nFaceSize, 4 }, // +Z
+		{ 3 * nFaceSize, 1 * nFaceSize, 5 } // -Z
+	};
 
-	if (nApiMajor < 1 || (nApiMajor == 1 && nApiMinor < 3)) {
-		Logger::Error(
-			"VulkanRenderer::PickPhysicalDevice: Selected device does not support Vulkan 1.3 minimum. Found: {}.{}", 
-			nApiMajor, 
-			nApiMinor
-		);
+	for (uint32_t f = 0; f < 6; f++) {
+		int nBaseX = faces[f].nOffsetX;
+		int nBaseY = faces[f].nOffsetY;
+		int nFace = faces[f].nFaceIndex;
 
-		throw std::runtime_error("VulkanRenderer::PickPhysicalDevice: Vulkan 1.3 required");
+		for (uint32_t y = 0; y < nFaceSize; y++) {
+			for (uint32_t x = 0; x < nFaceSize; x++) {
+				/* UV in [-1, 1] */
+				float u = (2.f * (x + .5f) / nFaceSize) - 1.f;
+				float v = (2.f * (y + .5f) / nFaceSize) - 1.f;
+
+				/* Direction "vector" */
+				float dx, dy, dz;
+
+				switch (nFace) {
+					case 0: dx = 1; dy = -v; dz = -u; break; // +X
+					case 1: dx = -1; dy = -v; dz = u; break; // -X
+					case 2: dx = u; dy = 1; dz = v; break; // +Y
+					case 3: dx = u; dy = -1; dz = -v; break; // -Y
+					case 4: dx = u; dy = -v; dz = 1; break; // +Z
+					case 5: dx = -u; dy = -v; dz = -1; break; // -Z
+				}
+
+				Normalize(dx, dy, dz);
+
+				/* Direction to equirectangular UV */
+				float theta = std::atan2(dz, dx); // [-PI, PI]
+				float phi = std::asin(dy); // [-PI/2, PI/2]
+
+				float srcU = (theta + PI) / (2.f * PI);
+				float srcV = (PI * .5f - phi) / PI;
+
+				int nSrcX = int(srcU * nSrcWidth) % nSrcWidth;
+				int nSrcY = int(srcV * nSrcHeight) % nSrcHeight;
+
+				int nSrcIdx = (nSrcY * nSrcWidth + nSrcX) * 4;
+				int nDstIdx = ((nBaseY + y) * (nFaceSize * 4) + (nBaseX + x)) * 4;
+
+				pDstData[nDstIdx + 0] = pcSrcRGBA[nSrcIdx + 0];
+				pDstData[nDstIdx + 1] = pcSrcRGBA[nSrcIdx + 1];
+				pDstData[nDstIdx + 2] = pcSrcRGBA[nSrcIdx + 2];
+				pDstData[nDstIdx + 3] = pcSrcRGBA[nSrcIdx + 3];
+			}
+		}
 	}
 }
 
-/**
-* Checks if physical device is suitable
-* 
-* @returns The result of the check
-*/
-bool 
-VulkanRenderer::IsDeviceSuitable(const VkPhysicalDevice& physicalDevice) {
-	QueueFamilyIndices indices = this->FindQueueFamilies(physicalDevice);
+/* Extracts frustum planes from a view-projection matrix */
+void 
+VulkanRenderer::ExtractFrustumPlanes(const glm::mat4& viewProj, glm::vec4 planes[6]) {
+	/* Left plane */
+	planes[0].x = viewProj[0][3] + viewProj[0][0];
+	planes[0].y = viewProj[1][3] + viewProj[1][0];
+	planes[0].z = viewProj[2][3] + viewProj[2][0];
+	planes[0].w = viewProj[3][3] + viewProj[3][0];
 
-	bool bExtensionsSupported = this->CheckDeviceExtensionSupport(physicalDevice);
+	/* Right plane */
+	planes[1].x = viewProj[0][3] - viewProj[0][0];
+	planes[1].y = viewProj[1][3] - viewProj[1][0];
+	planes[1].z = viewProj[2][3] - viewProj[2][0];
+	planes[1].w = viewProj[3][3] - viewProj[3][0];
+
+	/* Bottom plane */
+	planes[2].x = viewProj[0][3] + viewProj[0][1];
+	planes[2].y = viewProj[1][3] + viewProj[1][1];
+	planes[2].z = viewProj[2][3] + viewProj[2][1];
+	planes[2].w = viewProj[3][3] + viewProj[3][1];
+
+	/* Top plane */
+	planes[3].x = viewProj[0][3] - viewProj[0][1];
+	planes[3].y = viewProj[1][3] - viewProj[1][1];
+	planes[3].z = viewProj[2][3] - viewProj[2][1];
+	planes[3].w = viewProj[3][3] - viewProj[3][1];
+
+	/* Near plane */
+	planes[4].x = viewProj[0][3] + viewProj[0][2];
+	planes[4].y = viewProj[1][3] + viewProj[1][2];
+	planes[4].z = viewProj[2][3] + viewProj[2][2];
+	planes[4].w = viewProj[3][3] + viewProj[3][2];
+
+	/* Far plane */
+	planes[5].x = viewProj[0][3] - viewProj[0][2];
+	planes[5].y = viewProj[1][3] - viewProj[1][2];
+	planes[5].z = viewProj[2][3] - viewProj[2][2];
+	planes[5].w = viewProj[3][3] - viewProj[3][2];
+
+	/* Normalize all planes */
+	for (uint32_t i = 0; i < 6; i++) {
+		float length = glm::length(glm::vec3(planes[i]));
+		planes[i] /= length;
+	}
+}
+
+/* Copy our buffer to a VkImage */
+void 
+VulkanRenderer::CopyBufferToImage(VkBuffer buffer, VkImage image, uint32_t nWidth, uint32_t nHeight) {
+	VkCommandBuffer commandBuffer = this->BeginSingleTimeCommandBuffer();
+
+	VkBufferImageCopy region = { };
+	region.bufferOffset = 0;
+	region.bufferRowLength = 0;
+	region.bufferImageHeight = 0;
+
+	region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	region.imageSubresource.mipLevel = 0;
+	region.imageSubresource.baseArrayLayer = 0;
+	region.imageSubresource.layerCount = 1;
+
+	region.imageOffset = { 0, 0, 0 };
+	region.imageExtent = { nWidth, nHeight, 1 };
+
+	vkCmdCopyBufferToImage(
+		commandBuffer,
+		buffer, image,
+		VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+		1, &region
+	);
+
+	this->EndSingleTimeCommandBuffer(commandBuffer);
+}
+
+/* Bind our vertex buffer */
+bool 
+VulkanRenderer::DrawVertexBuffer(GPUBuffer* buffer) {
+	/* First of all, check if the specified buffer is a VulkanBuffer */
+	if (dynamic_cast<VulkanBuffer*>(buffer) == nullptr) {
+		spdlog::error("BindVertexBuffer: Specified GPUBuffer is not a Vulkan buffer");
+		throw std::runtime_error("BindVertexBuffer: Specified GPUBuffer is not a Vulkan buffer");
+		return false;
+	}
+
+	VkCommandBuffer commandBuffer = this->m_commandBuffers[this->m_nCurrentFrameIndex];
+
+	VulkanBuffer* vkBuff = dynamic_cast<VulkanBuffer*>(buffer);
+	
+	/* Get our VkBuffer, VkDeviceMemory and our buffer size */
+	VkBuffer buff = vkBuff->GetBuffer();
+	uint32_t nSize = vkBuff->GetSize();
+
+	/* Bind our vertex buffer and draw it */
+	VkBuffer vertexBuffers[] = { buff };
+	VkDeviceSize offsets[] = { 0 };
+	vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+	vkCmdDraw(commandBuffer, nSize / sizeof(Vertex), 1, 0, 0);
+
+	return true;
+}
+
+/* Bind and draw index buffer */
+bool 
+VulkanRenderer::DrawIndexBuffer(GPUBuffer* vbo, GPUBuffer* ibo) {
+	if (dynamic_cast<VulkanBuffer*>(vbo) == nullptr || dynamic_cast<VulkanBuffer*>(ibo) == nullptr) {
+		spdlog::error("VulkanRenderer::DrawIndexBuffer: Specified VBO or IBO is not a Vulkan buffer");
+		throw std::runtime_error("VulkanRenderer::DrawIndexBuffer: Specified VBO or IBO is not a Vulkan buffer");
+		return false;
+	}
+
+	VkCommandBuffer commandBuffer = this->m_commandBuffers[this->m_nCurrentFrameIndex];
+
+	VulkanBuffer* vkVBO = dynamic_cast<VulkanBuffer*>(vbo);
+	VulkanBuffer* vkIBO = dynamic_cast<VulkanBuffer*>(ibo);
+
+	if (vkVBO->m_bufferType != EBufferType::VERTEX_BUFFER || vkIBO->m_bufferType != EBufferType::INDEX_BUFFER) {
+		spdlog::error("VulkanRenderer::DrawIndexBuffer: Specified VBO or IBO is not of the required type");
+		throw std::runtime_error("VulkanRenderer::DrawIndexBuffer: Specified VBO or IBO is not of the required type");
+		return false;
+	}
+
+	VkBuffer vertexBuffers[] = { vkVBO->GetBuffer() };
+	VkDeviceSize offsets[] = { 0 };
+	vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+	vkCmdBindIndexBuffer(commandBuffer, vkIBO->GetBuffer(), 0, VK_INDEX_TYPE_UINT16);
+
+	uint32_t nIndexCount = static_cast<uint32_t>(vkIBO->GetSize() / sizeof(uint16_t));
+	
+	vkCmdDrawIndexed(commandBuffer, nIndexCount, 1, 0, 0, 0);
+
+	return true;
+}
+
+/* Get the max usable sample count depending on the physical device properties */
+VkSampleCountFlagBits 
+VulkanRenderer::GetMaxUsableSampleCount() {
+	/* Get physical device properties */
+	VkPhysicalDeviceProperties devProps;
+	vkGetPhysicalDeviceProperties(this->m_physicalDevice, &devProps);
+
+	/*
+		Determine the supported levels of multisampling simultaneously by color and depth.
+		Vulkan needs that both attachments use the same sample count on the render pass.
+	*/
+	VkSampleCountFlags count = devProps.limits.framebufferColorSampleCounts & devProps.limits.framebufferDepthSampleCounts;
+
+	if (count & VK_SAMPLE_COUNT_64_BIT) return VK_SAMPLE_COUNT_64_BIT;
+	if (count & VK_SAMPLE_COUNT_32_BIT) return VK_SAMPLE_COUNT_32_BIT;
+	if (count & VK_SAMPLE_COUNT_16_BIT) return VK_SAMPLE_COUNT_16_BIT;
+	if (count & VK_SAMPLE_COUNT_8_BIT) return VK_SAMPLE_COUNT_8_BIT;
+	if (count & VK_SAMPLE_COUNT_4_BIT) return VK_SAMPLE_COUNT_4_BIT;
+	if (count & VK_SAMPLE_COUNT_2_BIT) return VK_SAMPLE_COUNT_2_BIT;
+
+	return VK_SAMPLE_COUNT_1_BIT;
+}
+
+/* Transition image layout to a new one */
+void 
+VulkanRenderer::TransitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t nLayerCount, uint32_t nBaseMipLevel) {
+	VkCommandBuffer commandBuffer = this->BeginSingleTimeCommandBuffer();
+
+	/* Create our barrier */
+	VkImageMemoryBarrier barrier = { };
+	barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+	barrier.oldLayout = oldLayout;
+	barrier.newLayout = newLayout;
+	barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	barrier.image = image;
+
+	/* Barrier subresource range definition */
+	barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	barrier.subresourceRange.baseMipLevel = nBaseMipLevel;
+	barrier.subresourceRange.levelCount = 1;
+	barrier.subresourceRange.baseArrayLayer = 0;
+	barrier.subresourceRange.layerCount = nLayerCount;
+
+	/* 
+		VkPipelineStageFlags is a bitmask type for setting a mask of zero or more VkPipelineStageFlagBits
+			Reference:	https://registry.khronos.org/vulkan/specs/latest/man/html/VkPipelineStageFlags.html
+			Bitmask reference: https://registry.khronos.org/vulkan/specs/latest/man/html/VkPipelineStageFlagBits.html
+	*/
+	VkPipelineStageFlags srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+	VkPipelineStageFlags dstStage = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+
+	/* From UNDEFINED to TRANSFER_DST */
+	if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
+		barrier.srcAccessMask = 0;
+		barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+
+		srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+		dstStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+	} 
+	/* From TRANSFER_DST to SHADER_READ_ONLY */
+	else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
+		barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+		barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+		srcStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+		dstStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+	}
+	/* From UNDEFINED to DEPTH_STENCIL_ATTACHMENT */
+	else if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) {
+		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+
+		if (this->HasStencilComponent(format)) {
+			barrier.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
+		}
+
+		srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+		dstStage = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+	}
+	/* From UNDEFINED to COLOR_ATTACHMENT */
+	else if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL) {
+		barrier.srcAccessMask = 0;
+		barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+		srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+		dstStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	} 
+	/* From COLOR_ATTACHMENT_OPTIMAL to TRANSFER_SRC_OPTIMAL */
+	else if(oldLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL) {
+		barrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+		barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+		
+		srcStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		dstStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+	} 
+	/* From DST_OPTIMAL to PRESENT_SRC */
+	else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR) {
+		barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+		barrier.dstAccessMask = 0;
+
+		srcStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+		dstStage = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+	}
+	/* From DEPTH_STENCIL_ATTACHMENT to SHADER_READ_ONLY */
+	else if (oldLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
+		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+		barrier.srcAccessMask = 0;
+		barrier.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
+		srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+		dstStage = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+	}
+	/* From COLOR_ATTACHMENT to SHADER_READ_ONLY */
+	else if (oldLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
+		barrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+		barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+		srcStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		dstStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+	}
+	else {
+		spdlog::error("VulkanRenderer::TransitionImageLayout: Unsupported layout transition");
+		throw std::runtime_error("VulkanRenderer::TransitionImageLayout: Unsupported layout transition");
+		return;
+	}
+
+	/* Make transition */
+	vkCmdPipelineBarrier(
+		commandBuffer,
+		srcStage,
+		dstStage,
+		0,
+		0, nullptr,
+		0, nullptr,
+		1, &barrier
+	);
+
+	this->EndSingleTimeCommandBuffer(commandBuffer);
+}
+
+/* Begins a single time vulkan command buffer */
+VkCommandBuffer 
+VulkanRenderer::BeginSingleTimeCommandBuffer() {
+	/* Allocate our command buffer */
+	VkCommandBufferAllocateInfo cmdBuffInfo = { };
+	cmdBuffInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+	cmdBuffInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+	cmdBuffInfo.commandPool = this->m_commandPool;
+	cmdBuffInfo.commandBufferCount = 1; // Only one command buffer
+
+	VkCommandBuffer commandBuffer;
+	if (vkAllocateCommandBuffers(this->m_device, &cmdBuffInfo, &commandBuffer) != VK_SUCCESS) {
+		spdlog::error("VulkanRenderer::BeginSingleTimeCommandBuffer: Failed allocating command buffer");
+		throw std::runtime_error("VulkanRenderer::BeginSingleTimeCommandBuffer: Failed allocating command buffer");
+		return nullptr;
+	}
+
+	/* Begin our single time command buffer */
+	VkCommandBufferBeginInfo beginInfo = { };
+	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+	vkBeginCommandBuffer(commandBuffer, &beginInfo);
+
+	return commandBuffer;
+}
+
+/* Ends a single time command buffer and submits to the graphics queue */
+void 
+VulkanRenderer::EndSingleTimeCommandBuffer(VkCommandBuffer commandBuffer) {
+	vkEndCommandBuffer(commandBuffer);
+
+	/* Create a fence */
+	VkFenceCreateInfo fenceInfo = { };
+	fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+
+	VkFence fence;
+	vkCreateFence(this->m_device, &fenceInfo, nullptr, &fence);
+
+	/* Submit our command buffer to our graphics queue */
+	VkSubmitInfo submitInfo = { };
+	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	submitInfo.commandBufferCount = 1;
+	submitInfo.pCommandBuffers = &commandBuffer;
+
+	vkQueueSubmit(this->m_graphicsQueue, 1, &submitInfo, fence);
+	vkWaitForFences(this->m_device, 1, &fence, VK_TRUE, UINT64_MAX);
+
+	/* Free our command buffer */
+	vkFreeCommandBuffers(this->m_device, this->m_commandPool, 1, &commandBuffer);
+	vkDestroyFence(this->m_device, fence, nullptr);
+}
+
+/* Check if the physical device is suitable */
+bool 
+VulkanRenderer::IsDeviceSuitable(VkPhysicalDevice device) {
+	QueueFamilyIndices indices = this->FindQueueFamilies(device); /* Fetch queue family indices */
+
+	bool bExtensionsSupported = this->CheckDeviceExtensionSupport(device); /* Check if device extensions are supported and store it */
 
 	bool bSwapChainAdequate = false;
 	if (bExtensionsSupported) {
-		SwapChainSupportDetails swapChainSupport = this->QuerySwapChainSupport(physicalDevice);
+		// If formats or present modes are empty, then, will be false.
+		SwapChainSupportDetails swapChainSupport = this->QuerySwapChainSupport(device);	
 		bSwapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
 	}
 
-	return indices.IsComplete() && bSwapChainAdequate;
+	return indices.IsComplete() && bExtensionsSupported && bSwapChainAdequate;
 }
 
-/**
-* Finds queue family indices
-*
-* @returns Queue family indices
-*/
+/* Find queue families for physical device */
 QueueFamilyIndices 
-VulkanRenderer::FindQueueFamilies(const VkPhysicalDevice& physicalDevice) {
+VulkanRenderer::FindQueueFamilies(VkPhysicalDevice device) {
 	QueueFamilyIndices indices;
 
+	/* Enumerate physical device queue family properties */
 	uint32_t nQueueFamilyCount = 0;
-	vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &nQueueFamilyCount, nullptr);
+	vkGetPhysicalDeviceQueueFamilyProperties(device, &nQueueFamilyCount, nullptr);
 
-	Vector<VkQueueFamilyProperties> queueFamilyProperties(nQueueFamilyCount);
+	/* Store physical device queue family properties on a vector */
+	Vector<VkQueueFamilyProperties> queueFamilies(nQueueFamilyCount);
+	vkGetPhysicalDeviceQueueFamilyProperties(device, &nQueueFamilyCount, queueFamilies.data());
 
-	vkGetPhysicalDeviceQueueFamilyProperties(
-		physicalDevice,
-		&nQueueFamilyCount,
-		queueFamilyProperties.data()
-	);
-
-	uint32_t i = 0;
-	for (const VkQueueFamilyProperties& queueFamily : queueFamilyProperties) {
+	int i = 0;
+	for (const VkQueueFamilyProperties& queueFamily : queueFamilies) {
+		/* Check if queue family supports graphics commands  */
 		if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
 			indices.graphicsFamily = i;
 		}
 
+		/* Check if queue family supports presentation to the surface  */
 		VkBool32 bPresentSupport = false;
-		vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, i, this->m_surface, &bPresentSupport);
+		vkGetPhysicalDeviceSurfaceSupportKHR(device, i, this->m_surface, &bPresentSupport);
 
 		if (bPresentSupport) {
 			indices.presentFamily = i;
 		}
 
+		/* If indices is complete, break the cycle */
 		if (indices.IsComplete()) {
 			break;
 		}
@@ -5871,63 +6127,24 @@ VulkanRenderer::FindQueueFamilies(const VkPhysicalDevice& physicalDevice) {
 	return indices;
 }
 
-/**
-* Check if device supports descriptor indexing
-*/
-void 
-VulkanRenderer::CheckDescirptorIndexingSupport() {
-	uint32_t nExtensionCount;
-	vkEnumerateDeviceExtensionProperties(this->m_physicalDevice, nullptr, &nExtensionCount, nullptr);
-
-	Vector<VkExtensionProperties> availableExtensions(nExtensionCount);
-	vkEnumerateDeviceExtensionProperties(this->m_physicalDevice, nullptr, &nExtensionCount, availableExtensions.data());
-
-	bool bDescriptorIndexingSupported = false;
-
-	for (const VkExtensionProperties& extension : availableExtensions) {
-		if (strcmp(extension.extensionName, VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME) == 0) {
-			bDescriptorIndexingSupported = true;
-			break;
-		}
-	}
-
-	if (!bDescriptorIndexingSupported) {
-		Logger::Error("VulkanRenderer::CheckDescriptorIndexingSupport: Descriptor indexing is not supported");
-		throw std::runtime_error("VulkanRenderer::CheckDescriptorIndexingSupport: Descriptor indexing is not supported");
-	}
-
-	VkPhysicalDeviceDescriptorIndexingFeatures indexingFeatures = { };
-	indexingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES;
-
-	VkPhysicalDeviceFeatures2 features2 = { };
-	features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
-	features2.pNext = &indexingFeatures;
-
-	vkGetPhysicalDeviceFeatures2(this->m_physicalDevice, &features2);
-
-	Logger::Debug("=== Descriptor indexing features ===");
-	Logger::Debug("Descriptor binding partially bound: {0}", indexingFeatures.descriptorBindingPartiallyBound ? "Yes" : "No");
-	Logger::Debug("Descriptor binding update after bind: {0}", indexingFeatures.descriptorBindingUpdateUnusedWhilePending ? "Yes" : "No");
-	Logger::Debug("Descriptor binding varialble descriptor count: {0}", indexingFeatures.descriptorBindingVariableDescriptorCount ? "Yes" : "No");
-	Logger::Debug("Runtime descriptor array: {0}", indexingFeatures.runtimeDescriptorArray ? "Yes" : "No");
-	Logger::Debug("=== End descriptor indexing features ===");
-
-	if (!indexingFeatures.descriptorBindingPartiallyBound || !indexingFeatures.runtimeDescriptorArray) {
-		Logger::Error("VulkanRenderer::CheckDescriptorIndexingSupport: Required descriptor indexing features not available");
-		throw std::runtime_error("VulkanRenderer::CheckDescriptorIndexingSupport: Required descriptor indexing features not available");
-	}
-}
-
-bool
-VulkanRenderer::CheckDeviceExtensionSupport(const VkPhysicalDevice& physicalDevice) {
+/* Check if physical device supports device extensions */
+bool 
+VulkanRenderer::CheckDeviceExtensionSupport(VkPhysicalDevice device) {
+	/* Enumerate device extensions */
 	uint32_t nExtensionCount = 0;
-	vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &nExtensionCount, nullptr);
+	vkEnumerateDeviceExtensionProperties(device, nullptr, &nExtensionCount, nullptr);
 
+	/* Store device extensions to a vector */
 	Vector<VkExtensionProperties> extensions(nExtensionCount);
-	vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &nExtensionCount, extensions.data());
+	vkEnumerateDeviceExtensionProperties(device, nullptr, &nExtensionCount, extensions.data());
 
+	/* Make a copy of the 'deviceExtensions' vector to a set */
 	std::set<String> requiredExtensions(deviceExtensions.begin(), deviceExtensions.end());
 
+	/* 
+		If extension is on required extensions list, remove it.
+		Required extensions set is empty? Then, all the extensions are supported.
+	*/
 	for (const VkExtensionProperties& extension : extensions) {
 		requiredExtensions.erase(extension.extensionName);
 	}
@@ -5935,80 +6152,45 @@ VulkanRenderer::CheckDeviceExtensionSupport(const VkPhysicalDevice& physicalDevi
 	return requiredExtensions.empty();
 }
 
-/**
-* Check if device supports swap chain
-* 
-* @returns Result of the check
-*/
+/* Check if device supports swap chain */
 SwapChainSupportDetails 
-VulkanRenderer::QuerySwapChainSupport(const VkPhysicalDevice& physicalDevice) {
+VulkanRenderer::QuerySwapChainSupport(VkPhysicalDevice device) {
 	SwapChainSupportDetails details;
 
-	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, this->m_surface, &details.capabilities);
+	/* Get physical device surface capabilities and store at swap chain support details' capabilities field */
+	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, this->m_surface, &details.capabilities);
 
+	/* Enumerate physical device surface formats */
 	uint32_t nFormatCount = 0;
-	vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, this->m_surface, &nFormatCount, nullptr);
+	vkGetPhysicalDeviceSurfaceFormatsKHR(device, this->m_surface, &nFormatCount, nullptr);
 
+	/* If format count not zero, store on the formats field from swap chain support details */
 	if (nFormatCount != 0) {
 		details.formats.resize(nFormatCount);
-		vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, this->m_surface, &nFormatCount, details.formats.data());
+		vkGetPhysicalDeviceSurfaceFormatsKHR(device, this->m_surface, &nFormatCount, details.formats.data());
 	}
 
+	/* Enumerate physical device surface present modes */
 	uint32_t nPresentModeCount = 0;
-	vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, this->m_surface, &nPresentModeCount, nullptr);
-
+	vkGetPhysicalDeviceSurfacePresentModesKHR(device, this->m_surface, &nPresentModeCount, nullptr);
+	
+	/* If present mode count not zero, store on the present modes field from swap chain support details */
 	if (nPresentModeCount != 0) {
 		details.presentModes.resize(nPresentModeCount);
-		vkGetPhysicalDeviceSurfacePresentModesKHR(
-			physicalDevice, 
-			this->m_surface,
-			&nPresentModeCount, 
-			details.presentModes.data()
-		);
+		vkGetPhysicalDeviceSurfacePresentModesKHR(device, this->m_surface, &nPresentModeCount, details.presentModes.data());
 	}
 
 	return details;
 }
 
-/**
-* Check for validation layers support
-* 
-* @returns The result of the check
-*/
-bool 
-VulkanRenderer::CheckValidationLayersSupport() {
-	uint32_t nLayerCount;
-	vkEnumerateInstanceLayerProperties(&nLayerCount, nullptr);
-
-	Vector<VkLayerProperties> availableLayers(nLayerCount);
-	vkEnumerateInstanceLayerProperties(&nLayerCount, availableLayers.data());
-
-	for (const char* layerName : validationLayers) {
-		bool bLayerFound = false;
-
-		for (const VkLayerProperties& layerProperties : availableLayers) {
-			if (strcmp(layerName, layerProperties.layerName) == 0) {
-				bLayerFound = true;
-				break;
-			}
-		}
-
-		if (!bLayerFound) return false;
-	}
-
-	return true;
-}
-
-/**
-* Gets a list of required extensions
-* 
-* @returns A vector of required extension names
-*/
-Vector<const char*>
+/* Get required extensions */
+Vector<const char*> 
 VulkanRenderer::GetRequiredExtensions() {
-	uint32_t nGlfwExtensions;
+	/* Enum GLFW extensions */
+	uint32_t nGlfwExtensions = 0;
 	const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&nGlfwExtensions);
 
+	/* Store GLFW extensions on a vector */
 	Vector<const char*> extensions(glfwExtensions, glfwExtensions + nGlfwExtensions);
 
 	if (this->m_bEnableValidationLayers) {
@@ -6018,48 +6200,77 @@ VulkanRenderer::GetRequiredExtensions() {
 	return extensions;
 }
 
-/**
-* Populates debug messenger create info
-* 
-* @param messengerInfo Reference to Debug messenger create info
-*/
-void
-VulkanRenderer::PopulateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& messengerInfo) {
-	messengerInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
-									VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT   |
-									VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT;
 
-	messengerInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT	   |
-								VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
-								VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
-	messengerInfo.pfnUserCallback = VulkanRenderer::DebugCallback;
-	messengerInfo.pUserData = this;
+/* Populates a create info for our debug messenger */
+void 
+VulkanRenderer::PopulateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo) {
+	createInfo = { };
+	createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+	createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT
+		| VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT
+		| VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+
+	createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT
+		| VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT
+		| VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+
+	createInfo.pfnUserCallback = this->DebugCallback;
+	createInfo.pUserData = nullptr;
 }
 
-VKAPI_ATTR VkBool32 VKAPI_CALL
+/* Check for validation layers support */
+bool 
+VulkanRenderer::CheckValidationLayersSupport() {
+	/* Enumerate instance layer properties */
+	uint32_t nLayerCount;
+	vkEnumerateInstanceLayerProperties(&nLayerCount, nullptr);
+
+	/* Store instance layer properties on a vector */
+	Vector<VkLayerProperties> availableLayers(nLayerCount);
+	vkEnumerateInstanceLayerProperties(&nLayerCount, availableLayers.data());
+
+	/* Check if validation layer is available */
+	for (const char* layerName : validationLayers) {
+		bool bLayerFound = false;
+		
+		for (const VkLayerProperties& layerProperties : availableLayers) {
+			if (strcmp(layerName, layerProperties.layerName) == 0) {
+				bLayerFound = true;
+				break;
+			}
+		}
+
+		if (!bLayerFound)
+			return false;
+	}
+
+	return true;
+}
+
+/* Debug messenger callback */
+VKAPI_ATTR VkBool32 VKAPI_CALL 
 VulkanRenderer::DebugCallback(
-	VkDebugUtilsMessageSeverityFlagBitsEXT severity,
-	VkDebugUtilsMessageTypeFlagsEXT type,
-	const VkDebugUtilsMessengerCallbackDataEXT* pcData,
+	VkDebugUtilsMessageSeverityFlagBitsEXT msgSeverity,
+	VkDebugUtilsMessageTypeFlagsEXT msgType,
+	const VkDebugUtilsMessengerCallbackDataEXT* pCbData,
 	void* pvUserData
 ) {
-	VulkanRenderer* renderer = static_cast<VulkanRenderer*>(pvUserData);
-
-	switch (severity) {
-		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
-			Logger::Debug("Validation layers: {}", pcData->pMessage);
-			break;
-		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
-			Logger::Warn("Validation layers: {}", pcData->pMessage);
-			break;
-		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
-			Logger::Error("Validation layers: {}", pcData->pMessage);
-			break;
+	switch (msgSeverity) {
+	case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
+		spdlog::debug("Validation layer: {}", pCbData->pMessage);
+		break;
+	case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
+		spdlog::warn("Validation layer: {}", pCbData->pMessage);
+		break;
+	case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
+		spdlog::warn("Validation layer: {}", pCbData->pMessage);
+		break;
 	}
 
 	return VK_FALSE;
 }
 
+/* Manual extension function loading (vkCreateDebugUtilsMessengerEXT) */
 VkResult 
 VulkanRenderer::CreateDebugUtilsMessengerEXT(
 	VkInstance instance,
@@ -6067,8 +6278,7 @@ VulkanRenderer::CreateDebugUtilsMessengerEXT(
 	VkAllocationCallbacks* pAllocator,
 	VkDebugUtilsMessengerEXT* pDebugMessenger
 ) {
-	PFN_vkCreateDebugUtilsMessengerEXT fn = 
-		(PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
+	PFN_vkCreateDebugUtilsMessengerEXT fn = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
 	if (fn != nullptr) {
 		return fn(instance, pCreateInfo, pAllocator, pDebugMessenger);
 	}

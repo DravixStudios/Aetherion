@@ -1,336 +1,75 @@
 #include "Core/Renderer/Vulkan/VulkanTexture.h"
-#include "Core/Renderer/Vulkan/VulkanDevice.h"
 
-VulkanTexture::VulkanTexture(Ref<VulkanDevice> device) 
-	: m_device(device), m_image(VK_NULL_HANDLE), m_nSize(0) {}
-
-VulkanTexture::~VulkanTexture() {
-	if (this->m_image != VK_NULL_HANDLE) {
-		vkDestroyImage(this->m_device->GetVkDevice(), this->m_image, nullptr);
-	}
+VulkanTexture::VulkanTexture(
+	VkDevice& dev, 
+	VkPhysicalDevice& physicalDev,
+	VkImage& buffer,
+	VkDeviceMemory& memory,
+	uint32_t nSize,
+	VkImageView& imageView,
+	VkSampler& sampler,
+	ETextureType textureType
+) : GPUTexture::GPUTexture(textureType) {
+	this->m_dev = dev;
+	this->m_physicalDev = physicalDev;
+	this->m_buffer = buffer;
+	this->m_memory = memory;
+	this->m_nSize = nSize;
+	this->m_imageView = imageView;
+	this->m_sampler = sampler;
 }
 
-/**
-* Creates a Vulkan GPU texture
-* 
-* @param createInfo Texture create info
-*/
-void 
-VulkanTexture::Create(const TextureCreateInfo& createInfo) {
-	VkDevice vkDevice = this->m_device->GetVkDevice();
-
-	/* Create image */
-	VkExtent3D extent = { };
-	extent.width = createInfo.extent.width;
-	extent.height = createInfo.extent.height;
-	extent.depth = createInfo.extent.depth;
-
-	VkImageCreateInfo imageInfo = { };
-	imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-	imageInfo.flags = this->ConvertTextureFlags(createInfo.flags);
-	imageInfo.imageType = this->ConvertTextureDimensions(createInfo.imageType);
-	imageInfo.format = VulkanHelpers::ConvertFormat(createInfo.format);
-	imageInfo.extent = extent;
-	imageInfo.mipLevels = createInfo.nMipLevels;
-	imageInfo.arrayLayers = createInfo.nArrayLayers;
-	imageInfo.samples = this->ConvertSampleCount(createInfo.samples);
-	imageInfo.tiling = this->ConvertTextureTiling(createInfo.tiling);
-	imageInfo.usage = this->ConvertTextureUsage(createInfo.usage);
-	imageInfo.sharingMode = this->ConvertSharingMode(createInfo.sharingMode);
-	imageInfo.queueFamilyIndexCount = createInfo.nQueueFamilyIndexCount;
-	imageInfo.pQueueFamilyIndices = createInfo.pQueueFamilyIndices;
-	imageInfo.initialLayout = this->ConvertTextureLayout(createInfo.initialLayout);
-
-	VK_CHECK(vkCreateImage(vkDevice, &imageInfo, nullptr, &this->m_image), "Failed creating a image");
-	
-	/* Allocate image memory */
-	Ref<VulkanBuffer> buffer = createInfo.buffer.As<VulkanBuffer>();
-
-	VkMemoryRequirements memReqs = { };
-	vkGetImageMemoryRequirements(vkDevice, this->m_image, &memReqs);
-
-	VkMemoryAllocateInfo allocInfo = { };
-	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-	allocInfo.allocationSize = memReqs.size;
-	allocInfo.memoryTypeIndex = this->m_device->FindMemoryType(
-		memReqs.memoryTypeBits, 
-		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
-	);
-
-	VK_CHECK(vkAllocateMemory(vkDevice, &allocInfo, nullptr, &this->m_memory), "Failed allocating image memory");
-
-	VK_CHECK(vkBindImageMemory(vkDevice, this->m_image, this->m_memory, 0), "Failed binding image memory");
-
-	/* Copy buffer to image */
-	if (createInfo.buffer) {
-		Ref<CommandBuffer> commandBuff = this->m_device->BeginSingleTimeCommandBuffer();
-		Ref<VulkanCommandBuffer> vkCommandBuff = commandBuff.As<VulkanCommandBuffer>();
-
-		VkImageMemoryBarrier barrier = {};
-		barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-		barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-		barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-		barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-		barrier.image = this->m_image;
-		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		barrier.subresourceRange.baseMipLevel = 0;
-		barrier.subresourceRange.levelCount = createInfo.nMipLevels;
-		barrier.subresourceRange.baseArrayLayer = 0;
-		barrier.subresourceRange.layerCount = createInfo.nArrayLayers;
-		barrier.srcAccessMask = 0;
-		barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-
-		vkCmdPipelineBarrier(
-			vkCommandBuff->GetVkCommandBuffer(),
-			VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-			VK_PIPELINE_STAGE_TRANSFER_BIT,
-			0, 0, nullptr, 0, nullptr, 1, &barrier
-		);
-
-		/* One copy region per array layer */
-		uint32_t nLayerBytes = createInfo.extent.width * createInfo.extent.height * VulkanHelpers::GetFormatSize(createInfo.format);
-		Vector<VkBufferImageCopy> regions(createInfo.nArrayLayers);
-
-		for (uint32_t i = 0; i < createInfo.nArrayLayers; i++) {
-			regions[i] = { };
-			regions[i].bufferOffset = i * nLayerBytes;
-			regions[i].bufferRowLength = 0;
-			regions[i].bufferImageHeight = 0;
-			regions[i].imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-			regions[i].imageSubresource.mipLevel = 0;
-			regions[i].imageSubresource.baseArrayLayer = i;
-			regions[i].imageSubresource.layerCount = 1;
-			regions[i].imageOffset = { 0, 0, 0 };
-			regions[i].imageExtent = { createInfo.extent.width, createInfo.extent.height, 1 };
-		}
-
-		vkCmdCopyBufferToImage(
-			vkCommandBuff->GetVkCommandBuffer(),
-			buffer->GetVkBuffer(), 
-			this->m_image, 
-			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-			static_cast<uint32_t>(regions.size()), regions.data()
-		);
-		
-		barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-		barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-		barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-
-		vkCmdPipelineBarrier(
-			vkCommandBuff->GetVkCommandBuffer(),
-			VK_PIPELINE_STAGE_TRANSFER_BIT,
-			VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-			0, 0, nullptr, 0, nullptr, 1, &barrier
-		);
-
-		this->m_device->EndSingleTimeCommandBuffer(commandBuff);
+VkDevice 
+VulkanTexture::GetDevice() {
+	if (this->m_dev == nullptr) {
+		spdlog::error("VulkanTexture::GetDevice: Device not defined");
 	}
+
+	return this->m_dev;
 }
 
-/**
-* Creates a VulkanTexture from VkImage
-* Note: This overload is exclusive for 
-* swapchain images.
-* 
-* @param image Vulkan image
-*/
-void 
-VulkanTexture::Create(const VkImage& image) {
-	this->m_image = image;
+VkPhysicalDevice 
+VulkanTexture::GetPhysicalDevice() {
+	if (this->m_physicalDev == nullptr) {
+		spdlog::error("VulkanTexture::GetPhysicalDevice: Physical not defined");
+	}
+
+	return this->m_physicalDev;
 }
 
-
-void
-VulkanTexture::Reset() {
-	if (!this->m_device) {
-		return;
+VkImage 
+VulkanTexture::GetBuffer() {
+	if (this->m_buffer == nullptr) {
+		spdlog::error("VulkanTexture::GetBuffer: Buffer not defined");
 	}
 
-	VkDevice vkDevice = this->m_device->GetVkDevice();
-
-	if (this->m_memory != VK_NULL_HANDLE) {
-		vkFreeMemory(vkDevice, this->m_memory, nullptr);
-	}
-
-	if (this->m_image != VK_NULL_HANDLE) {
-		vkDestroyImage(vkDevice, this->m_image, nullptr);
-		this->m_image = VK_NULL_HANDLE;
-	}
-
-	this->m_nSize = 0;
+	return this->m_buffer;
 }
 
-/**
-* (ETextureDimensions -> VkImageType)
-* 
-* @param dimensions Texture dimensions
-* 
-* @returns Vulkan image type
-*/
-VkImageType 
-VulkanTexture::ConvertTextureDimensions(ETextureDimensions dimensions) {
-	switch (dimensions) {
-		case ETextureDimensions::TYPE_1D: return VK_IMAGE_TYPE_1D;
-		case ETextureDimensions::TYPE_2D: return VK_IMAGE_TYPE_2D;
-		case ETextureDimensions::TYPE_3D: return VK_IMAGE_TYPE_3D;
-		default: return VK_IMAGE_TYPE_2D;
+VkDeviceMemory 
+VulkanTexture::GetMemory() {
+	if (this->m_memory == nullptr) {
+		spdlog::error("VulkanTexture::GetMemory: DeviceMemory not defined");
 	}
+
+	return this->m_memory;
 }
 
-/**
-* (ETextureTiling -> VkImageTiling)
-* 
-* @param tiling Texture tiling
-* 
-* @returns Vulkan image tiling
-*/
-VkImageTiling 
-VulkanTexture::ConvertTextureTiling(ETextureTiling tiling) {
-	switch(tiling) {
-		case ETextureTiling::OPTIMAL: return VK_IMAGE_TILING_OPTIMAL;
-		case ETextureTiling::LINEAR: return VK_IMAGE_TILING_LINEAR;
-		default: return VK_IMAGE_TILING_OPTIMAL;
-	}
+VkImageView 
+VulkanTexture::GetImageView() {
+	return this->m_imageView;
 }
 
-/**
-* (ETextureUsage -> VkImageUsageFlags)
-* 
-* @param usage Texture usage
-* 
-* @returns Vulkan image usage flags
-*/
-VkImageUsageFlags 
-VulkanTexture::ConvertTextureUsage(ETextureUsage usage) {
-	VkImageUsageFlags flags = 0;
-
-	if ((usage & ETextureUsage::TRANSFER_SRC) != static_cast<ETextureUsage>(0)) {
-		flags |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-	}
-
-	if ((usage & ETextureUsage::TRANSFER_DST) != static_cast<ETextureUsage>(0)) {
-		flags |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-	}
-
-	if ((usage & ETextureUsage::SAMPLED) != static_cast<ETextureUsage>(0)) {
-		flags |= VK_IMAGE_USAGE_SAMPLED_BIT;
-	}
-
-	if ((usage & ETextureUsage::STORAGE) != static_cast<ETextureUsage>(0)) {
-		flags |= VK_IMAGE_USAGE_STORAGE_BIT;
-	}
-
-	if ((usage & ETextureUsage::COLOR_ATTACHMENT) != static_cast<ETextureUsage>(0)) {
-		flags |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-	}
-
-	if ((usage & ETextureUsage::DEPTH_STENCIL_ATTACHMENT) != static_cast<ETextureUsage>(0)) {
-		flags |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-	}
-
-	if ((usage & ETextureUsage::TRANSIENT_ATTACHMENT) != static_cast<ETextureUsage>(0)) {
-		flags |= VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT;
-	}
-
-	if ((usage & ETextureUsage::INPUT_ATTACHMENT) != static_cast<ETextureUsage>(0)) {
-		flags |= VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
-	}
-
-	return flags;
+VkSampler 
+VulkanTexture::GetSampler() {
+	return this->m_sampler;
 }
 
-/**
-* (ESampleCount -> VkSampleCountFlags)
-* 
-* @param samples Sample count
-* 
-* @returns Vulkan sample count flags
-*/
-VkSampleCountFlagBits
-VulkanTexture::ConvertSampleCount(ESampleCount samples) {
-	switch (samples) {
-		case ESampleCount::SAMPLE_1: return VK_SAMPLE_COUNT_1_BIT;
-		case ESampleCount::SAMPLE_2: return VK_SAMPLE_COUNT_2_BIT;
-		case ESampleCount::SAMPLE_4: return VK_SAMPLE_COUNT_4_BIT;
-		case ESampleCount::SAMPLE_8: return VK_SAMPLE_COUNT_8_BIT;
-		case ESampleCount::SAMPLE_16: return VK_SAMPLE_COUNT_16_BIT;
-		case ESampleCount::SAMPLE_32: return VK_SAMPLE_COUNT_32_BIT;
-		case ESampleCount::SAMPLE_64: return VK_SAMPLE_COUNT_64_BIT;
-		default: return VK_SAMPLE_COUNT_1_BIT;
-	}
-}
-
-/**
-* (ESharingMode -> VkSharingMode)
-* 
-* @param sharingMode Sharing mode
-* 
-* @returns Vulkan sharing mode
-*/
-VkSharingMode 
-VulkanTexture::ConvertSharingMode(ESharingMode sharingMode) {
-	switch (sharingMode) {
-		case ESharingMode::EXCLUSIVE: return VK_SHARING_MODE_EXCLUSIVE;
-		case ESharingMode::CONCURRENT: return VK_SHARING_MODE_CONCURRENT;
-		default: return VK_SHARING_MODE_EXCLUSIVE;
-	}
-}
-
-/**
-* (ETextureFlags -> VkImageCreateFlags)
-* 
-* @param flags Texture flags
-* 
-* @returns Vulkan image create flags
-*/
-VkImageCreateFlags 
-VulkanTexture::ConvertTextureFlags(ETextureFlags flags) {
-	VkImageCreateFlags vkFlags = 0;
-
-	if ((flags & ETextureFlags::SPARSE_BINDING) != static_cast<ETextureFlags>(0)) {
-		vkFlags |= VK_IMAGE_CREATE_SPARSE_BINDING_BIT;
+uint32_t 
+VulkanTexture::GetSize() {
+	if (this->m_nSize <= 0) {
+		spdlog::error("VulkanTexture::GetSize: Buffer size is 0");
 	}
 
-	if ((flags & ETextureFlags::SPARSE_RESIDENCY) != static_cast<ETextureFlags>(0)) {
-		vkFlags |= VK_IMAGE_CREATE_SPARSE_RESIDENCY_BIT;
-	}
-
-	if ((flags & ETextureFlags::SPARSE_ALIASED) != static_cast<ETextureFlags>(0)) {
-		vkFlags |= VK_IMAGE_CREATE_SPARSE_ALIASED_BIT;
-	}
-
-	if ((flags & ETextureFlags::MUTABLE_FORMAT) != static_cast<ETextureFlags>(0)) {
-		vkFlags |= VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT;
-	}
-
-	if ((flags & ETextureFlags::CUBE_COMPATIBLE) != static_cast<ETextureFlags>(0)) {
-		vkFlags |= VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
-	}
-	
-	return vkFlags;
-}
-
-/**
-* (ETextureLayout -> VkImageLayout)
-* 
-* @param layout Texture layout
-* 
-* @returns Vulkan image layout
-*/
-VkImageLayout 
-VulkanTexture::ConvertTextureLayout(ETextureLayout layout) {
-	switch (layout) {
-		case ETextureLayout::UNDEFINED: return VK_IMAGE_LAYOUT_UNDEFINED;
-		case ETextureLayout::GENERAL: return VK_IMAGE_LAYOUT_GENERAL;
-		case ETextureLayout::COLOR_ATTACHMENT_OPTIMAL: return VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-		case ETextureLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL: return VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-		case ETextureLayout::DEPTH_STENCIL_READ_ONLY_OPTIMAL: return VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
-		case ETextureLayout::SHADER_READ_ONLY_OPTIMAL: return VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		case ETextureLayout::TRANSFER_SRC_OPTIMAL: return VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-		case ETextureLayout::TRANSFER_DST_OPTIMAL: return VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-		case ETextureLayout::PREINITIALIZED: return VK_IMAGE_LAYOUT_PREINITIALIZED;
-		default: return VK_IMAGE_LAYOUT_UNDEFINED;
-	}
+	return this->m_nSize;
 }

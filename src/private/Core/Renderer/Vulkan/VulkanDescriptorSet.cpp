@@ -30,8 +30,6 @@ VulkanDescriptorSet::Allocate(Ref<DescriptorPool> pool, Ref<DescriptorSetLayout>
 		vkAllocateDescriptorSets(this->m_device, &allocInfo, &this->m_descriptorSet), 
 		"Failed allocating descriptor sets"
 	);
-
-	this->m_layout = layout;
 }
 
 /* Adds a buffer for writing */
@@ -44,14 +42,11 @@ VulkanDescriptorSet::WriteBuffer(
 	Ref<VulkanBuffer> vkBuffer = bufferInfo.buffer.As<VulkanBuffer>();
 
 	VkDescriptorBufferInfo buffInfo = { };
-	buffInfo.buffer = vkBuffer->GetVkBuffer();
+	buffInfo.buffer = vkBuffer->GetBuffer();
 	buffInfo.offset = bufferInfo.nOffset;
 	buffInfo.range = bufferInfo.nRange == 0 ? VK_WHOLE_SIZE : bufferInfo.nRange;
 
-	/* Create a vector for this write operation */
-	Vector<VkDescriptorBufferInfo> bufferVec;
-	bufferVec.push_back(buffInfo);
-	this->m_bufferInfos.push_back(bufferVec);
+	this->m_bufferInfos.push_back(buffInfo);
 
 	VkWriteDescriptorSet write = { };
 	write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -59,11 +54,11 @@ VulkanDescriptorSet::WriteBuffer(
 	write.dstArrayElement = nArrayElement;
 	write.dstSet = this->m_descriptorSet;
 	write.descriptorCount = 1;
-	write.pBufferInfo = this->m_bufferInfos.back().data();
+	write.pBufferInfo = &this->m_bufferInfos.back();
 
 	/* (EBufferType -> VkDescriptorType) */
 	switch (vkBuffer->GetBufferType()) {
-	case EBufferType::UNIFORM_BUFFER:
+	case EBufferType::CONSTANT_BUFFER:
 		write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		break;
 	case EBufferType::STORAGE_BUFFER:
@@ -88,13 +83,10 @@ VulkanDescriptorSet::WriteTexture(
 
 	VkDescriptorImageInfo imgInfo = { };
 	imgInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-	imgInfo.imageView = imageInfo.imageView.As<VulkanImageView>()->GetVkImageView();
-	imgInfo.sampler = imageInfo.sampler.As<VulkanSampler>()->GetVkSampler();
+	imgInfo.imageView = vkTexture->GetImageView();
+	imgInfo.sampler = vkTexture->GetSampler();
 
-	/* Create a vector for this write operation */
-	Vector<VkDescriptorImageInfo> imageVec;
-	imageVec.push_back(imgInfo);
-	this->m_imageInfos.push_back(imageVec);
+	this->m_imageInfos.push_back(imgInfo);
 
 	VkWriteDescriptorSet write = { };
 	write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -103,7 +95,7 @@ VulkanDescriptorSet::WriteTexture(
 	write.dstBinding = nBinding;
 	write.dstArrayElement = nArrayElement;
 	write.descriptorCount = 1;
-	write.pImageInfo = this->m_imageInfos.back().data();
+	write.pImageInfo = &this->m_imageInfos.back();
 
 	this->m_pendingWrites.push_back(write);
 }
@@ -125,20 +117,18 @@ VulkanDescriptorSet::WriteBuffers(
 	const Vector<DescriptorBufferInfo>& bufferInfos, 
 	EBufferType bufferType
 ) {
-	Vector<VkDescriptorBufferInfo> bufferVec;
-	bufferVec.reserve(bufferInfos.size());
+	uint32_t nStartIdx = this->m_bufferInfos.size();
 
 	for (const DescriptorBufferInfo& bufferInfo : bufferInfos) {
 		Ref<VulkanBuffer> vkBuffer = bufferInfo.buffer.As<VulkanBuffer>();
 
 		VkDescriptorBufferInfo buffInfo = { };
-		buffInfo.buffer = vkBuffer->GetVkBuffer();
+		buffInfo.buffer = vkBuffer->GetBuffer();
 		buffInfo.offset = bufferInfo.nOffset;
 		buffInfo.range = bufferInfo.nRange == 0 ? VK_WHOLE_SIZE : bufferInfo.nRange;
 
-		bufferVec.push_back(buffInfo);
+		this->m_bufferInfos.push_back(buffInfo);
 	}
-	this->m_bufferInfos.push_back(bufferVec);
 
 	VkWriteDescriptorSet write = { };
 	write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -146,11 +136,11 @@ VulkanDescriptorSet::WriteBuffers(
 	write.dstBinding = nBinding;
 	write.dstArrayElement = nFirstArrayElement;
 	write.descriptorCount = bufferInfos.size();
-	write.pBufferInfo = this->m_bufferInfos.back().data();
+	write.pBufferInfo = &this->m_bufferInfos[nStartIdx];
 
 	/* (EBufferType -> VkDescriptorType) */
 	switch (bufferType) {
-	case EBufferType::UNIFORM_BUFFER:
+	case EBufferType::CONSTANT_BUFFER:
 		write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		break;
 	case EBufferType::STORAGE_BUFFER:
@@ -175,20 +165,18 @@ VulkanDescriptorSet::WriteTextures(
 	uint32_t nFirstArrayElement, 
 	const Vector<DescriptorImageInfo>& imageInfos
 ) {
-	Vector<VkDescriptorImageInfo> imageVec;
-	imageVec.reserve(imageInfos.size());
+	uint32_t nStartIdx = this->m_imageInfos.size();
 
 	for (const DescriptorImageInfo& imageInfo : imageInfos) {
 		Ref<VulkanTexture> vkTexture = imageInfo.texture.As<VulkanTexture>();
 
 		VkDescriptorImageInfo imgInfo = { };
 		imgInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		imgInfo.imageView = imageInfo.imageView.As<VulkanImageView>()->GetVkImageView();
-		imgInfo.sampler = imageInfo.sampler.As<VulkanSampler>()->GetVkSampler();
+		imgInfo.imageView = vkTexture->GetImageView();
+		imgInfo.sampler = vkTexture->GetSampler();
 
-		imageVec.push_back(imgInfo);
+		this->m_imageInfos.push_back(imgInfo);
 	}
-	this->m_imageInfos.push_back(imageVec);
 
 	VkWriteDescriptorSet write = { };
 	write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -197,7 +185,7 @@ VulkanDescriptorSet::WriteTextures(
 	write.dstArrayElement = nFirstArrayElement;
 	write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 	write.descriptorCount = imageInfos.size();
-	write.pImageInfo = this->m_imageInfos.back().data();
+	write.pImageInfo = &this->m_imageInfos[nStartIdx];
 
 	this->m_pendingWrites.push_back(write);
 }

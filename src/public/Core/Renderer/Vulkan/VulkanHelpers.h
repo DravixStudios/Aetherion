@@ -1,14 +1,12 @@
 #pragma once
 #define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw3.h>kanDevice(
+#include <GLFW/glfw3.h>
 
 #include "Core/Renderer/DescriptorSetLayout.h"
 #include "Core/Renderer/DescriptorPool.h"
 #include "Core/Renderer/RenderPass.h"
 #include "Core/Renderer/Pipeline.h"
 #include "Core/Renderer/GPUBuffer.h"
-#include "Core/Renderer/ImageView.h"
-#include "Core/Renderer/Device.h"
 
 namespace VulkanHelpers {
 	/** 
@@ -134,255 +132,6 @@ namespace VulkanHelpers {
 		}
 	}
 
-	/**
-	* (EBufferType -> VkBufferUsageFlagBits)
-	* 
-	* @param bufferType Buffer type
-	* 
-	* @returns Vulkan buffer usage flag
-	*/
-	inline VkBufferUsageFlagBits 
-	ConvertBufferUsage(EBufferType bufferType) {
-		switch (bufferType) {
-			case EBufferType::UNIFORM_BUFFER: return VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-			case EBufferType::VERTEX_BUFFER: return VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-			case EBufferType::INDEX_BUFFER: return VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
-			case EBufferType::STORAGE_BUFFER:
-				return static_cast<VkBufferUsageFlagBits>(
-					VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
-					VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT |
-					VK_BUFFER_USAGE_TRANSFER_DST_BIT
-					);
-			default: return VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-		};
-	}
-
-	/**
-	* (EImageViewType -> VkImageViewType)
-	* 
-	* @param viewType View type
-	*
-	* @returns Vulkan image view type
-	*/
-	inline VkImageViewType
-	ConvertImageViewType(EImageViewType viewType) {
-		switch(viewType) {
-			case EImageViewType::TYPE_1D: return VK_IMAGE_VIEW_TYPE_1D;
-			case EImageViewType::TYPE_2D: return VK_IMAGE_VIEW_TYPE_2D;
-			case EImageViewType::TYPE_CUBE: return VK_IMAGE_VIEW_TYPE_CUBE;
-			case EImageViewType::TYPE_1D_ARRAY: return VK_IMAGE_VIEW_TYPE_1D_ARRAY;
-			case EImageViewType::TYPE_2D_ARRAY: return VK_IMAGE_VIEW_TYPE_2D_ARRAY;
-			case EImageViewType::TYPE_CUBE_ARRAY: return VK_IMAGE_VIEW_TYPE_CUBE_ARRAY;
-			default: return VK_IMAGE_VIEW_TYPE_2D;
-		}
-	}
-
-	/**
-	* (EImageAspect -> VkImageAspectFlags)
-	* 
-	* @param aspectMask Image aspect
-	* 
-	* @returns Vulkan image aspect
-	*/
-	inline VkImageAspectFlags
-	ConvertImageAspect(EImageAspect aspectMask) {
-		VkImageAspectFlags flags = 0;
-
-		if ((aspectMask & EImageAspect::COLOR) != static_cast<EImageAspect>(0)) {
-			flags |= VK_IMAGE_ASPECT_COLOR_BIT;
-		}
-
-		if ((aspectMask & EImageAspect::DEPTH) != static_cast<EImageAspect>(0)) {
-			flags |= VK_IMAGE_ASPECT_DEPTH_BIT;
-		}
-
-		if ((aspectMask & EImageAspect::STENCIL) != static_cast<EImageAspect>(0)) {
-			flags |= VK_IMAGE_ASPECT_STENCIL_BIT;
-		}
-
-		return flags;
-	}
-
-	/**
-	* (EAccess -> VkAccessFlags)
-	* 
-	* @param access Access flags
-	* 
-	* @returns Vulkan access flags
-	*/
-	inline VkAccessFlags
-	ConvertAccess(EAccess access) {
-		VkAccessFlags vkAccess = VK_ACCESS_NONE;
-
-		if ((access & EAccess::INDIRECT_COMMAND_READ) != EAccess::NONE) {
-			vkAccess |= VK_ACCESS_INDIRECT_COMMAND_READ_BIT;
-		}
-
-		if ((access & EAccess::INDEX_READ) != EAccess::NONE) {
-			vkAccess |= VK_ACCESS_INDEX_READ_BIT;
-		}
-
-		if ((access & EAccess::VERTEX_ATTRIBUTE_READ) != EAccess::NONE) {
-			vkAccess |= VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT;
-		}
-
-		if ((access & EAccess::UNIFORM_READ) != EAccess::NONE) {
-			vkAccess |= VK_ACCESS_UNIFORM_READ_BIT;
-		}
-
-		if ((access & EAccess::INPUT_ATTACHMENT_READ) != EAccess::NONE) {
-			vkAccess |= VK_ACCESS_INPUT_ATTACHMENT_READ_BIT;
-		}
-
-		if ((access & EAccess::SHADER_READ) != EAccess::NONE) {
-			vkAccess |= VK_ACCESS_SHADER_READ_BIT;
-		}
-		
-		if ((access & EAccess::SHADER_WRITE) != EAccess::NONE) {
-			vkAccess |= VK_ACCESS_SHADER_WRITE_BIT;
-		}
-
-		if ((access & EAccess::COLOR_ATTACHMENT_READ) != EAccess::NONE) {
-			vkAccess |= VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
-		}
-
-		if ((access & EAccess::COLOR_ATTACHMENT_WRITE) != EAccess::NONE) {
-			vkAccess |= VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-		}
-
-		if ((access & EAccess::DEPTH_STENCIL_READ) != EAccess::NONE) {
-			vkAccess |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
-		}
-
-		if ((access & EAccess::DEPTH_STENCIL_WRITE) != EAccess::NONE) {
-			vkAccess |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-		}
-
-		if ((access & EAccess::TRANSFER_READ) != EAccess::NONE) {
-			vkAccess |= VK_ACCESS_TRANSFER_READ_BIT;
-		}
-
-		if ((access & EAccess::TRANSFER_WRITE) != EAccess::NONE) {
-			vkAccess |= VK_ACCESS_TRANSFER_WRITE_BIT;
-		}
-
-		if ((access & EAccess::HOST_READ) != EAccess::NONE) {
-			vkAccess |= VK_ACCESS_HOST_READ_BIT;
-		}
-
-		if ((access & EAccess::HOST_WRITE) != EAccess::NONE) {
-			vkAccess |= VK_ACCESS_HOST_WRITE_BIT;
-		}
-
-		if ((access & EAccess::MEMORY_READ) != EAccess::NONE) {
-			vkAccess |= VK_ACCESS_MEMORY_READ_BIT;
-		}
-
-		if ((access & EAccess::MEMORY_WRITE) != EAccess::NONE) {
-			vkAccess |= VK_ACCESS_MEMORY_WRITE_BIT;
-		}
-
-		return vkAccess;
-	}
-
-	/**
-	* (EPipelineStage -> VkPipelineStageFlags)
-	* 
-	* @param stage Pipeline stage
-	* 
-	* @returns Vulkan pipeline stage
-	*/
-	inline VkPipelineStageFlags
-	ConvertPipelineStage(EPipelineStage stage) {
-		VkPipelineStageFlags vkStage = 0;
-
-		if ((stage & EPipelineStage::TOP_OF_PIPE) != static_cast<EPipelineStage>(0)) {
-			vkStage |= VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-		}
-
-		if ((stage & EPipelineStage::DRAW_INDIRECT) != static_cast<EPipelineStage>(0)) {
-			vkStage |= VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT;
-		}
-
-		if ((stage & EPipelineStage::VERTEX_INPUT) != static_cast<EPipelineStage>(0)) {
-			vkStage |= VK_PIPELINE_STAGE_VERTEX_INPUT_BIT;
-		}
-
-		if ((stage & EPipelineStage::VERTEX_SHADER) != static_cast<EPipelineStage>(0)) {
-			vkStage |= VK_PIPELINE_STAGE_VERTEX_SHADER_BIT;
-		}
-
-		if ((stage & EPipelineStage::TESSELLATION_CONTROL_SHADER) != static_cast<EPipelineStage>(0)) {
-			vkStage |= VK_PIPELINE_STAGE_TESSELLATION_CONTROL_SHADER_BIT;
-		}
-
-		if ((stage & EPipelineStage::TESSELLATION_EVALUATION_SHADER) != static_cast<EPipelineStage>(0)) {
-			vkStage |= VK_PIPELINE_STAGE_TESSELLATION_EVALUATION_SHADER_BIT;
-		}
-
-		if ((stage & EPipelineStage::GEOMETRY_SHADER) != static_cast<EPipelineStage>(0)) {
-			vkStage |= VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT;
-		}
-
-		if ((stage & EPipelineStage::FRAGMENT_SHADER) != static_cast<EPipelineStage>(0)) {
-			vkStage |= VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-		}
-
-		if ((stage & EPipelineStage::EARLY_FRAGMENT_TESTS) != static_cast<EPipelineStage>(0)) {
-			vkStage |= VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-		}
-
-		if ((stage & EPipelineStage::LATE_FRAGMENT_TESTS) != static_cast<EPipelineStage>(0)) {
-			vkStage |= VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
-		}
-
-		if ((stage & EPipelineStage::COLOR_ATTACHMENT_OUTPUT) != static_cast<EPipelineStage>(0)) {
-			vkStage |= VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-		}
-
-		if ((stage & EPipelineStage::COMPUTE_SHADER) != static_cast<EPipelineStage>(0)) {
-			vkStage |= VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
-		}
-
-		if ((stage & EPipelineStage::TRANSFER) != static_cast<EPipelineStage>(0)) {
-			vkStage |= VK_PIPELINE_STAGE_TRANSFER_BIT;
-		}
-
-		if ((stage & EPipelineStage::BOTTOM_OF_PIPE) != static_cast<EPipelineStage>(0)) {
-			vkStage |= VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-		}
-
-		if ((stage & EPipelineStage::HOST) != static_cast<EPipelineStage>(0)) {
-			vkStage |= VK_PIPELINE_STAGE_HOST_BIT;
-		}
-
-		if ((stage & EPipelineStage::ALL_GRAPHICS) != static_cast<EPipelineStage>(0)) {
-			vkStage |= VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT;
-		}
-
-		if ((stage & EPipelineStage::ALL_COMMANDS) != static_cast<EPipelineStage>(0)) {
-			vkStage |= VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
-		}
-
-		return vkStage;
-	}
-
-	/**
-	* (ESharingMode -> VkSharingMode)
-	* 
-	* @param sharingMode Sharing mode
-	* 
-	* @returns Vulkan sharing mode
-	*/
-	inline VkSharingMode
-	ConvertSharingMode(ESharingMode sharingMode) {
-		switch (sharingMode) {
-			case ESharingMode::CONCURRENT: return VK_SHARING_MODE_CONCURRENT;
-			case ESharingMode::EXCLUSIVE: return VK_SHARING_MODE_EXCLUSIVE;
-			default: return VK_SHARING_MODE_EXCLUSIVE;
-		}
-	}
-
 	inline VkBlendFactor
 	ConvertBlendFactor(EBlendFactor blendFactor) {
 		switch(blendFactor) {
@@ -441,63 +190,14 @@ namespace VulkanHelpers {
 	ConvertFormat(GPUFormat format) {
 		switch (format) {
 			case GPUFormat::RGBA8_UNORM: return VK_FORMAT_R8G8B8A8_UNORM;
-			case GPUFormat::BGRA8_UNORM: return VK_FORMAT_B8G8R8A8_UNORM;
 			case GPUFormat::RGBA8_SRGB: return VK_FORMAT_R8G8B8A8_SRGB;
-			case GPUFormat::RGB32_FLOAT: return VK_FORMAT_R32G32B32_SFLOAT;
-			case GPUFormat::RG32_FLOAT: return VK_FORMAT_R32G32_SFLOAT;
 			case GPUFormat::RGBA16_FLOAT: return VK_FORMAT_R16G16B16A16_SFLOAT;
 			case GPUFormat::RGBA32_FLOAT: return VK_FORMAT_R32G32B32A32_SFLOAT;
 			case GPUFormat::D24_UNORM_S8_UINT: return VK_FORMAT_D24_UNORM_S8_UINT;
 			case GPUFormat::D32_FLOAT: return VK_FORMAT_D32_SFLOAT;
 			case GPUFormat::D32_FLOAT_S8_UINT: return VK_FORMAT_D32_SFLOAT_S8_UINT;
 			case GPUFormat::R8_UNORM: return VK_FORMAT_R8_UNORM;
-			case GPUFormat::RG16_FLOAT: return VK_FORMAT_R16G16_SFLOAT;
 			default: return VK_FORMAT_R8G8B8A8_UNORM;
-		}
-	}
-
-	inline GPUFormat
-	RevertFormat(VkFormat format) {
-		switch (format) {
-			case VK_FORMAT_R8G8B8A8_UNORM: return GPUFormat::RGBA8_UNORM;
-			case VK_FORMAT_B8G8R8A8_UNORM: return GPUFormat::BGRA8_UNORM;
-			case VK_FORMAT_R8G8B8A8_SRGB: return GPUFormat::RGBA8_SRGB;
-			case VK_FORMAT_R32G32B32_SFLOAT: return GPUFormat::RGB32_FLOAT;
-			case VK_FORMAT_R32G32_SFLOAT: return GPUFormat::RG32_FLOAT;
-			case VK_FORMAT_R16G16B16A16_SFLOAT: return GPUFormat::RGBA16_FLOAT;
-			case VK_FORMAT_R32G32B32A32_SFLOAT: return GPUFormat::RGBA32_FLOAT;
-			case VK_FORMAT_D24_UNORM_S8_UINT: return GPUFormat::D24_UNORM_S8_UINT;
-			case VK_FORMAT_D32_SFLOAT: return GPUFormat::D32_FLOAT;
-			case VK_FORMAT_D32_SFLOAT_S8_UINT: return GPUFormat::D32_FLOAT_S8_UINT;
-			case VK_FORMAT_R8_UNORM: return GPUFormat::R8_UNORM;
-			case VK_FORMAT_R16G16_SFLOAT: return GPUFormat::RG16_FLOAT;
-			default: return GPUFormat::RGBA8_UNORM;
-		}
-	}
-
-	/**
-	* Returns the size in bytes per pixel for a given GPUFormat
-	* 
-	* @param format GPU format
-	* 
-	* @returns Bytes per pixel
-	*/
-	inline uint32_t
-	GetFormatSize(GPUFormat format) {
-		switch (format) {
-			case GPUFormat::R8_UNORM:              return 1;
-			case GPUFormat::RG16_FLOAT:            return 4;
-			case GPUFormat::RGBA8_UNORM:           return 4;
-			case GPUFormat::BGRA8_UNORM:           return 4;
-			case GPUFormat::RGBA8_SRGB:            return 4;
-			case GPUFormat::RG32_FLOAT:            return 8;
-			case GPUFormat::RGBA16_FLOAT:          return 8;
-			case GPUFormat::RGB32_FLOAT:           return 12;
-			case GPUFormat::RGBA32_FLOAT:          return 16;
-			case GPUFormat::D24_UNORM_S8_UINT:     return 4;
-			case GPUFormat::D32_FLOAT:             return 4;
-			case GPUFormat::D32_FLOAT_S8_UINT:     return 8;
-			default:                               return 4;
 		}
 	}
 

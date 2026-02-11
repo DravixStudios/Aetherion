@@ -1,7 +1,6 @@
 #pragma once
 #include <iostream>
 #include <vector>
-#include <deque>
 #include <memory>
 
 /* Shared pointers */
@@ -42,8 +41,5 @@ CreateRef(Args&&... args) {
 /* Common aliases */
 template<typename T>
 using Vector = std::vector<T>;
-
-template<typename T>
-using Deque = std::deque<T>;
 
 using String = std::string;

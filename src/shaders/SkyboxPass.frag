@@ -17,18 +17,18 @@ void main() {
     vec2 uv = inUVs;
     float depth = 1.0; // Skybox "infinite"
 
-    vec4 clipPos = vec4(uv.x * 2.0 - 1.0, (1.0 - uv.y) * 2.0 - 1.0, depth, 1.0);
+    vec4 clipPos = vec4(uv * 2.0 - 1.0, depth, 1.0);
     vec4 viewPos = pc.inverseProjection * clipPos;
     viewPos /= viewPos.w;
 
     vec4 worldPos = pc.inverseView * viewPos;
     vec3 correctedCameraPos = vec3(pc.cameraPosition.x, pc.cameraPosition.y, -pc.cameraPosition.z);
     vec3 dir = normalize(worldPos.xyz - correctedCameraPos);
-    
-    float sceneDepth = texture(g_depth, vec2(inUVs.x, 1 - inUVs.y)).r; 
+
+    float sceneDepth = texture(g_depth, vec2(uv.x, 1.0 - uv.y)).r;
     if(sceneDepth < 1.0 - 0.00001) discard;
 
     vec3 color = texture(g_skybox, dir).rgb;
-    // color = color / (color + 1.0);
+    color = color / (color + 1.0);
     finalImage = vec4(color, 1.0);
 }
