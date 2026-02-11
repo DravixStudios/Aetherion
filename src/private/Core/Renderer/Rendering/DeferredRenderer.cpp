@@ -75,6 +75,14 @@ DeferredRenderer::Resize(uint32_t nWidth, uint32_t nHeight) {
 }
 
 /**
+* Invalidates the renderer and its render graph
+*/
+void
+DeferredRenderer::Invalidate() {
+    this->m_graph.Invalidate();
+}
+
+/**
 * Executes the full deferred rendering pipeline
 * 
 * @param context Graphics context
@@ -414,7 +422,7 @@ DeferredRenderer::LoadSkybox() {
     void* pData = nullptr;
     uint32_t nSize = 0;
     uint32_t nFaceSize = 0;
-    bool bSkyboxLoaded = LoadCubemap("ferndale_studio_04_4k.exr", &pData, nSize, nFaceSize);
+    bool bSkyboxLoaded = LoadCubemap("cedar_bridge_2_4k.exr", &pData, nSize, nFaceSize);
     if (!bSkyboxLoaded) {
         Logger::Error("DeferredRenderer::Init: Failed loading skybox");
         throw std::runtime_error("DeferredRenderer::Init Failed loading skybox");

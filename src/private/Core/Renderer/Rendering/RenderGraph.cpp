@@ -54,6 +54,8 @@ RenderGraph::Compile() {
 */
 void
 RenderGraph::CreateRenderPasses() {
+    std::map<TextureHandle, EImageLayout> lastLayouts;
+
     for(GraphNode& node : this->m_nodes) {
         if (node.bIsComputeOnly) {
              continue;
@@ -61,6 +63,13 @@ RenderGraph::CreateRenderPasses() {
 
         // Reuse cached render pass if available
         if (node.renderPass) {
+             // Still need to update layouts for subsequent nodes
+             for (uint32_t i = 0; i < node.colorOutputs.size(); ++i) {
+                 lastLayouts[node.colorOutputs[i]] = node.colorFinalLayouts[i];
+             }
+             if (node.bHasDepth) {
+                 lastLayouts[node.depthOutput] = node.depthFinalLayout;
+             }
              continue;
         }
 
@@ -71,10 +80,17 @@ RenderGraph::CreateRenderPasses() {
             TextureHandle& color = node.colorOutputs[i];
             Ref<ImageView> view = this->m_pool.GetImageView(color);
 
+            EImageLayout initialLayout = EImageLayout::UNDEFINED;
+            if (node.colorLoadOps[i] == EAttachmentLoadOp::LOAD) {
+                if (lastLayouts.count(color)) {
+                    initialLayout = lastLayouts[color];
+                }
+            }
+
             AttachmentDescription attachment = { };
             attachment.format = view->GetFormat();
             attachment.sampleCount = ESampleCount::SAMPLE_1;
-            attachment.initialLayout = EImageLayout::UNDEFINED;
+            attachment.initialLayout = initialLayout;
             attachment.finalLayout = node.colorFinalLayouts[i];
             attachment.loadOp = node.colorLoadOps[i];
             attachment.storeOp = EAttachmentStoreOp::STORE;
@@ -82,16 +98,26 @@ RenderGraph::CreateRenderPasses() {
             attachment.stencilStoreOp = EAttachmentStoreOp::DONT_CARE;
 
             rpInfo.attachments.push_back(attachment);
+
+            // Update last known layout
+            lastLayouts[color] = node.colorFinalLayouts[i];
         }
 
         /* Depth attachment */
         if(node.bHasDepth) {
             Ref<ImageView> depthView = this->m_pool.GetImageView(node.depthOutput);
 
+            EImageLayout initialLayout = EImageLayout::UNDEFINED;
+            if (node.depthLoadOp == EAttachmentLoadOp::LOAD) {
+                if (lastLayouts.count(node.depthOutput)) {
+                    initialLayout = lastLayouts[node.depthOutput];
+                }
+            }
+
             AttachmentDescription depthAttachment = { };
             depthAttachment.format = depthView->GetFormat();
             depthAttachment.sampleCount = ESampleCount::SAMPLE_1;
-            depthAttachment.initialLayout = EImageLayout::UNDEFINED;
+            depthAttachment.initialLayout = initialLayout;
             depthAttachment.finalLayout = node.depthFinalLayout;
             depthAttachment.loadOp = node.depthLoadOp;
             depthAttachment.storeOp = EAttachmentStoreOp::STORE;
@@ -99,6 +125,9 @@ RenderGraph::CreateRenderPasses() {
             depthAttachment.stencilStoreOp = EAttachmentStoreOp::DONT_CARE;
 
             rpInfo.attachments.push_back(depthAttachment);
+
+            // Update last known layout
+            lastLayouts[node.depthOutput] = node.depthFinalLayout;
         }
 
         /* Subpass */
@@ -221,5 +250,8 @@ RenderGraph::Reset(uint32_t nFrameIndex) {
 void
 RenderGraph::Invalidate() {
     this->m_nodes.clear();
+    this->m_cachedFramebuffers.clear();
+    this->m_cachedRenderPasses.clear();
+    this->m_pool.Invalidate();
     this->m_bCompiled = false;
 }

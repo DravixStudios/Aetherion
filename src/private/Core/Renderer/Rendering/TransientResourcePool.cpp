@@ -149,3 +149,11 @@ void
 TransientResourcePool::EndFrame() {
     ++this->m_nFrame;
 }
+
+/**
+* Invalidates the resource pool
+*/
+void
+TransientResourcePool::Invalidate() {
+	this->m_entries.clear();
+}
