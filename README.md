@@ -1,4 +1,4 @@
-﻿# Aetherion
+# Aetherion
 - Aetherion Game engine source code
 
 ![Aetherion Logo](./aetherion_logo.png)
@@ -12,8 +12,9 @@
 - Deferred rendering
 - PBR
 - Image Based Lighting
-- Domain Driven Design 🚧 **Developing at** [refactor/domain-driven-design](https://github.com/DravixStudios/Aetherion/tree/refactor/domain-driven-design)
-- Indirect Drawing ❌
+- Domain Driven Design 
+- Render Graph
+- Indirect Drawing 
 - Disney BRDF ❌
 - C# Scripting system ❌
 - GUI ❌
