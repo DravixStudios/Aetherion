@@ -139,7 +139,7 @@ VulkanDevice::Create(const DeviceCreateInfo& createInfo) {
 
 void 
 VulkanDevice::WaitIdle() {
-
+	vkDeviceWaitIdle(this->m_device);
 }
 
 /**
