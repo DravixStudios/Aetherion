@@ -51,8 +51,9 @@ VulkanImageView::Create(const ImageViewCreateInfo& createInfo) {
 * @param imageView Vulkan image view
 */
 void 
-VulkanImageView::Create(const VkImageView& imageView) {
+VulkanImageView::Create(const VkImageView& imageView, GPUFormat format) {
 	this->m_imageView = imageView;
+	this->m_format = format;
 }
 
 void 

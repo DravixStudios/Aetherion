@@ -35,5 +35,8 @@ private:
 	
 	uint32_t m_nNextTextureIndex = 0;
 
+	Vector<Ref<GPUTexture>> m_textures;
+	Vector<Ref<ImageView>> m_imageViews;
+
 	uint32_t UploadTexture(const TextureData& textureData);
 };

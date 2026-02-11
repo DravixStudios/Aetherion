@@ -55,6 +55,8 @@ Mesh::LoadModel(String filePath) {
 		const aiMesh* mesh = scene->mMeshes[i];
 		SubMeshData subData = { };
 
+		subData.vertices.resize(mesh->mNumVertices);
+
 		/* Vertices */
 		for (uint32_t v = 0; v < mesh->mNumVertices; v++) {
 			aiVector3D pos = mesh->mVertices[v];

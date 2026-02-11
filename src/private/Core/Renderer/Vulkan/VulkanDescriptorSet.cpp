@@ -30,6 +30,8 @@ VulkanDescriptorSet::Allocate(Ref<DescriptorPool> pool, Ref<DescriptorSetLayout>
 		vkAllocateDescriptorSets(this->m_device, &allocInfo, &this->m_descriptorSet), 
 		"Failed allocating descriptor sets"
 	);
+
+	this->m_layout = layout;
 }
 
 /* Adds a buffer for writing */
@@ -46,7 +48,10 @@ VulkanDescriptorSet::WriteBuffer(
 	buffInfo.offset = bufferInfo.nOffset;
 	buffInfo.range = bufferInfo.nRange == 0 ? VK_WHOLE_SIZE : bufferInfo.nRange;
 
-	this->m_bufferInfos.push_back(buffInfo);
+	/* Create a vector for this write operation */
+	Vector<VkDescriptorBufferInfo> bufferVec;
+	bufferVec.push_back(buffInfo);
+	this->m_bufferInfos.push_back(bufferVec);
 
 	VkWriteDescriptorSet write = { };
 	write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -54,7 +59,7 @@ VulkanDescriptorSet::WriteBuffer(
 	write.dstArrayElement = nArrayElement;
 	write.dstSet = this->m_descriptorSet;
 	write.descriptorCount = 1;
-	write.pBufferInfo = &this->m_bufferInfos.back();
+	write.pBufferInfo = this->m_bufferInfos.back().data();
 
 	/* (EBufferType -> VkDescriptorType) */
 	switch (vkBuffer->GetBufferType()) {
@@ -86,7 +91,10 @@ VulkanDescriptorSet::WriteTexture(
 	imgInfo.imageView = imageInfo.imageView.As<VulkanImageView>()->GetVkImageView();
 	imgInfo.sampler = imageInfo.sampler.As<VulkanSampler>()->GetVkSampler();
 
-	this->m_imageInfos.push_back(imgInfo);
+	/* Create a vector for this write operation */
+	Vector<VkDescriptorImageInfo> imageVec;
+	imageVec.push_back(imgInfo);
+	this->m_imageInfos.push_back(imageVec);
 
 	VkWriteDescriptorSet write = { };
 	write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -95,7 +103,7 @@ VulkanDescriptorSet::WriteTexture(
 	write.dstBinding = nBinding;
 	write.dstArrayElement = nArrayElement;
 	write.descriptorCount = 1;
-	write.pImageInfo = &this->m_imageInfos.back();
+	write.pImageInfo = this->m_imageInfos.back().data();
 
 	this->m_pendingWrites.push_back(write);
 }
@@ -117,7 +125,8 @@ VulkanDescriptorSet::WriteBuffers(
 	const Vector<DescriptorBufferInfo>& bufferInfos, 
 	EBufferType bufferType
 ) {
-	uint32_t nStartIdx = this->m_bufferInfos.size();
+	Vector<VkDescriptorBufferInfo> bufferVec;
+	bufferVec.reserve(bufferInfos.size());
 
 	for (const DescriptorBufferInfo& bufferInfo : bufferInfos) {
 		Ref<VulkanBuffer> vkBuffer = bufferInfo.buffer.As<VulkanBuffer>();
@@ -127,8 +136,9 @@ VulkanDescriptorSet::WriteBuffers(
 		buffInfo.offset = bufferInfo.nOffset;
 		buffInfo.range = bufferInfo.nRange == 0 ? VK_WHOLE_SIZE : bufferInfo.nRange;
 
-		this->m_bufferInfos.push_back(buffInfo);
+		bufferVec.push_back(buffInfo);
 	}
+	this->m_bufferInfos.push_back(bufferVec);
 
 	VkWriteDescriptorSet write = { };
 	write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -136,7 +146,7 @@ VulkanDescriptorSet::WriteBuffers(
 	write.dstBinding = nBinding;
 	write.dstArrayElement = nFirstArrayElement;
 	write.descriptorCount = bufferInfos.size();
-	write.pBufferInfo = &this->m_bufferInfos[nStartIdx];
+	write.pBufferInfo = this->m_bufferInfos.back().data();
 
 	/* (EBufferType -> VkDescriptorType) */
 	switch (bufferType) {
@@ -165,7 +175,8 @@ VulkanDescriptorSet::WriteTextures(
 	uint32_t nFirstArrayElement, 
 	const Vector<DescriptorImageInfo>& imageInfos
 ) {
-	uint32_t nStartIdx = this->m_imageInfos.size();
+	Vector<VkDescriptorImageInfo> imageVec;
+	imageVec.reserve(imageInfos.size());
 
 	for (const DescriptorImageInfo& imageInfo : imageInfos) {
 		Ref<VulkanTexture> vkTexture = imageInfo.texture.As<VulkanTexture>();
@@ -175,8 +186,9 @@ VulkanDescriptorSet::WriteTextures(
 		imgInfo.imageView = imageInfo.imageView.As<VulkanImageView>()->GetVkImageView();
 		imgInfo.sampler = imageInfo.sampler.As<VulkanSampler>()->GetVkSampler();
 
-		this->m_imageInfos.push_back(imgInfo);
+		imageVec.push_back(imgInfo);
 	}
+	this->m_imageInfos.push_back(imageVec);
 
 	VkWriteDescriptorSet write = { };
 	write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -185,7 +197,7 @@ VulkanDescriptorSet::WriteTextures(
 	write.dstArrayElement = nFirstArrayElement;
 	write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 	write.descriptorCount = imageInfos.size();
-	write.pImageInfo = &this->m_imageInfos[nStartIdx];
+	write.pImageInfo = this->m_imageInfos.back().data();
 
 	this->m_pendingWrites.push_back(write);
 }

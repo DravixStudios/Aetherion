@@ -18,40 +18,7 @@ enum class EQueueType {
 	PRESENT
 };
 
-enum class EPipelineStage : uint32_t {
-	TOP_OF_PIPE = 1,
-	DRAW_INDIRECT = 1 << 1,
-	VERTEX_INPUT = 1 << 2,
-	VERTEX_SHADER = 1 << 3,
-	TESSELLATION_CONTROL = 1 << 3,
-	TESSELLATION_EVAL = 1 << 4,
-	GEOMETRY = 1 << 5,
-	FRAGMENT = 1 << 6,
-	EARLY_FRAGMENT_TESTS = 1 << 7,
-	LATE_FRAGMENT_TESTS = 1 << 8,
-	COLOR_ATTACHMENT_OUTPUT = 1 << 9,
-	COMPUTE_SHADER = 1 << 10,
-	TRANSFER = 1 << 11,
-	BOTTOM_OF_PIPE = 1 << 12,
-	HOST = 1 << 13,
-
-	ALL_GRAPHICS = DRAW_INDIRECT | VERTEX_INPUT | VERTEX_SHADER | 
-				   TESSELLATION_CONTROL | TESSELLATION_EVAL | GEOMETRY | 
-				   FRAGMENT | EARLY_FRAGMENT_TESTS | LATE_FRAGMENT_TESTS | 
-				   COLOR_ATTACHMENT_OUTPUT,
-
-	ALL_COMMANDS = ALL_GRAPHICS | COMPUTE_SHADER |TRANSFER | TOP_OF_PIPE | BOTTOM_OF_PIPE | HOST
-};
-
-inline EPipelineStage
-operator|(EPipelineStage a, EPipelineStage b) {
-	return static_cast<EPipelineStage>(static_cast<uint32_t>(a) | static_cast<uint32_t>(b));
-}
-
-inline EPipelineStage
-operator&(EPipelineStage a, EPipelineStage b) {
-	return static_cast<EPipelineStage>(static_cast<uint32_t>(a) & static_cast<uint32_t>(b));
-}
+#include "Core/Renderer/PipelineStage.h"
 
 struct SubmitInfo {
 	Vector<Ref<Semaphore>> waitSemaphores;
@@ -194,6 +161,7 @@ public:
 	* 
 	* @param nLayerCount Layer count (optional)
 	* @param nBaseMipLevel Base mip level (optional)
+	* @param nBaseArrayLayer Base array layer (optional)
 	*/
 	virtual void TransitionLayout(
 		Ref<GPUTexture> image,
@@ -201,7 +169,8 @@ public:
 		EImageLayout oldLayout,
 		EImageLayout newLayout,
 		uint32_t nLayerCount = 1,
-		uint32_t nBaseMipLevel = 0
+		uint32_t nBaseMipLevel = 0,
+		uint32_t nBaseArrayLayer = 0
 	) = 0;
 
 	/**

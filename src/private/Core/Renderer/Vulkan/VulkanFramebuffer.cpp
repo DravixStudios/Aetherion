@@ -30,7 +30,7 @@ VulkanFramebuffer:: Create(const FramebufferCreateInfo& createInfo) {
 	fbInfo.renderPass = createInfo.renderPass.As<VulkanRenderPass>()->GetVkRenderPass();
 	fbInfo.width = createInfo.nWidth;
 	fbInfo.height = createInfo.nHeight;
-	
+	fbInfo.layers = createInfo.nLayers;
 	VK_CHECK(
 		vkCreateFramebuffer(
 			this->m_device, 

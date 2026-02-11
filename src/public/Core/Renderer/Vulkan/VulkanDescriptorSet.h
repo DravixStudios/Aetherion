@@ -37,6 +37,8 @@ public:
 
 	VkDescriptorSet GetVkSet() const { return this->m_descriptorSet; }
 
+	Ref<DescriptorSetLayout> GetLayout() const override { return this->m_layout; }
+
 	static Ptr
 	CreateShared(VkDevice device) {
 		return CreateRef<VulkanDescriptorSet>(device);
@@ -47,7 +49,9 @@ private:
 	VkDescriptorSet m_descriptorSet;
 	VkDescriptorPool m_pool;
 
-	Deque<VkDescriptorBufferInfo> m_bufferInfos;
-	Deque<VkDescriptorImageInfo> m_imageInfos;
+	Ref<DescriptorSetLayout> m_layout;
+
+	Deque<Vector<VkDescriptorBufferInfo>> m_bufferInfos;
+	Deque<Vector<VkDescriptorImageInfo>> m_imageInfos;
 	Vector<VkWriteDescriptorSet> m_pendingWrites;
 };

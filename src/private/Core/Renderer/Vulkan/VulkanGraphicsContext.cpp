@@ -15,6 +15,7 @@ VulkanGraphicsContext::BindPipeline(Ref<Pipeline> pipeline) {
 	Ref<VulkanPipeline> vkPipeline = pipeline.As<VulkanPipeline>();
 	this->m_currentPipeline = vkPipeline->GetVkPipeline();
 	this->m_currentBindPoint = vkPipeline->GetVkBindPoint();
+	this->m_currentPipelineLayout = vkPipeline->GetVkPipelineLayout();
 
 	vkCmdBindPipeline(this->m_commandBuffer->GetVkCommandBuffer(), this->m_currentBindPoint, this->m_currentPipeline);
 }
@@ -74,13 +75,18 @@ VulkanGraphicsContext::BindVertexBuffers(
 		vkBuffers[i] = buffer.As<VulkanBuffer>()->GetVkBuffer();
 	}
 
-	Vector<VkDeviceSize> vkOffsets(offsets.size());
-	std::transform(
-		offsets.begin(),
-		offsets.end(),
-		vkOffsets.begin(),
-		[](size_t offset) { return static_cast<VkDeviceSize>(offset); }
-	);
+	Vector<VkDeviceSize> vkOffsets;
+	if (offsets.empty()) {
+		vkOffsets.resize(nBufferCount, 0);
+	} else {
+		vkOffsets.resize(offsets.size());
+		std::transform(
+			offsets.begin(),
+			offsets.end(),
+			vkOffsets.begin(),
+			[](size_t offset) { return static_cast<VkDeviceSize>(offset); }
+		);
+	}
 
 	vkCmdBindVertexBuffers(
 		this->m_commandBuffer->GetVkCommandBuffer(), 
@@ -415,6 +421,18 @@ VulkanGraphicsContext::ImageBarrier(
 	EImageLayout oldLayout,
 	EImageLayout newLayout
 ) {
+	this->ImageBarrier(image, oldLayout, newLayout, 1, 0, 0);
+}
+
+void 
+VulkanGraphicsContext::ImageBarrier(
+	Ref<GPUTexture> image,
+	EImageLayout oldLayout,
+	EImageLayout newLayout,
+	uint32_t nLayerCount,
+	uint32_t nBaseMipLevel,
+	uint32_t nBaseArrayLayer
+) {
 	VkImage vkImage = image.As<VulkanTexture>()->GetVkImage();
 
 	VkImageMemoryBarrier barrier = {};
@@ -425,20 +443,82 @@ VulkanGraphicsContext::ImageBarrier(
 	barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 	barrier.image = vkImage;
 	barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-	barrier.subresourceRange.baseMipLevel = 0;
+	barrier.subresourceRange.baseMipLevel = nBaseMipLevel;
 	barrier.subresourceRange.levelCount = 1;
-	barrier.subresourceRange.baseArrayLayer = 0;
-	barrier.subresourceRange.layerCount = 1;
-	barrier.srcAccessMask = 0;
-	barrier.dstAccessMask = 0;
+	barrier.subresourceRange.baseArrayLayer = nBaseArrayLayer;
+	barrier.subresourceRange.layerCount = nLayerCount;
+
+	VkPipelineStageFlags srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+	VkPipelineStageFlags dstStage = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+
+	/* Infer access masks and pipeline stages from layouts */
+	if (oldLayout == EImageLayout::UNDEFINED) {
+		barrier.srcAccessMask = 0;
+		srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+	} else if (oldLayout == EImageLayout::COLOR_ATTACHMENT) {
+		barrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+		srcStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	} else if (oldLayout == EImageLayout::TRANSFER_DST) {
+		barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+		srcStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+	}
+
+	if (newLayout == EImageLayout::SHADER_READ_ONLY) {
+		barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+		dstStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+	} else if (newLayout == EImageLayout::COLOR_ATTACHMENT) {
+		barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+		dstStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	} else if (newLayout == EImageLayout::TRANSFER_DST) {
+		barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+		dstStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+	}
 
 	vkCmdPipelineBarrier(
 		this->m_commandBuffer->GetVkCommandBuffer(),
-		VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-		VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+		srcStage,
+		dstStage,
 		0,
 		0, nullptr,
 		0, nullptr,
 		1, &barrier
 	);
 }
+
+/**
+* Inserts a global memory barrier to synchronize all operations.
+* This is a simple but expensive synchronization method.
+*/
+void 
+VulkanGraphicsContext::GlobalBarrier() {
+	VkMemoryBarrier barrier = { };
+	barrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+	barrier.srcAccessMask = VK_ACCESS_INDIRECT_COMMAND_READ_BIT |
+		VK_ACCESS_INDEX_READ_BIT |
+		VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT |
+		VK_ACCESS_UNIFORM_READ_BIT |
+		VK_ACCESS_INPUT_ATTACHMENT_READ_BIT |
+		VK_ACCESS_SHADER_READ_BIT |
+		VK_ACCESS_SHADER_WRITE_BIT |
+		VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |
+		VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
+		VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
+		VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT |
+		VK_ACCESS_TRANSFER_READ_BIT |
+		VK_ACCESS_TRANSFER_WRITE_BIT |
+		VK_ACCESS_HOST_READ_BIT |
+		VK_ACCESS_HOST_WRITE_BIT;
+
+	barrier.dstAccessMask = barrier.srcAccessMask;
+
+	vkCmdPipelineBarrier(
+		this->m_commandBuffer->GetVkCommandBuffer(),
+		VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+		VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+		0,
+		1, &barrier,
+		0, nullptr,
+		0, nullptr
+	);
+}
+

@@ -14,14 +14,15 @@ SkyboxPass::Init(Ref<Device> device) {
 void 
 SkyboxPass::SetupNode(RenderGraphBuilder& builder) {
 	builder.ReadTexture(this->m_input.depth);
-	builder.UseColorOutput(this->m_input.hdrOutput);
+	builder.UseColorOutput(this->m_input.hdrOutput, EImageLayout::SHADER_READ_ONLY, EAttachmentLoadOp::LOAD);
+	builder.SetDimensions(this->m_nWidth, this->m_nHeight);
 }
 
 /**
 * Executes skybox pass node
 */
 void
-SkyboxPass::Execute(Ref<GraphicsContext> context, RenderGraphContext& graphCtx) {
+SkyboxPass::Execute(Ref<GraphicsContext> context, RenderGraphContext& graphCtx, uint32_t nFrameIndex) {
 	context->BindPipeline(this->m_pipeline);
 
 	Viewport vp { 0.f, 0.f, static_cast<float>(this->m_nWidth), static_cast<float>(this->m_nHeight), 0.f, 1.f };
@@ -32,6 +33,25 @@ SkyboxPass::Execute(Ref<GraphicsContext> context, RenderGraphContext& graphCtx) 
 	context->BindDescriptorSets(0, { this->m_skyboxSet });
 	context->BindVertexBuffers({ this->m_vertexBuffer });
 	context->BindIndexBuffer(this->m_indexBuffer);
+
+	/* Push constants */
+	struct {
+		glm::mat4 invView;
+		glm::mat4 invProj;
+		glm::vec3 cameraPos;
+	} pc;
+
+	pc.invView = glm::affineInverse(this->m_view);
+	pc.invProj = glm::inverse(this->m_proj);
+	pc.cameraPos = this->m_cameraPosition;
+
+	context->PushConstants(
+		this->m_pipelineLayout, 
+		EShaderStage::FRAGMENT, 
+		0, 
+		sizeof(pc), 
+		&pc
+	);
 
 	context->DrawIndexed(this->m_nIndexCount, 1, 0, 0, 0);
 }
@@ -48,6 +68,7 @@ SkyboxPass::SetSkyboxData(
 	uint32_t nIndexCount
 ) {
 	this->m_skyboxSet = skyboxSet;
+	this->m_skyboxSetLayout = skyboxSetLayout;
 	this->m_vertexBuffer = vertexBuffer;
 	this->m_indexBuffer = indexBuffer;
 	this->m_nIndexCount = nIndexCount;
@@ -62,8 +83,13 @@ SkyboxPass::SetSkyboxData(
 */
 void
 SkyboxPass::CreatePipeline() {
+	PushConstantRange pushRange = { };
+	pushRange.nSize = sizeof(glm::mat4) * 2 + sizeof(glm::vec3); // View + Proj + CamPos
+	pushRange.stage = EShaderStage::FRAGMENT;
+
 	PipelineLayoutCreateInfo plInfo = { };
 	plInfo.setLayouts = { this->m_skyboxSetLayout };
+	plInfo.pushConstantRanges = { pushRange };
 	
 	this->m_pipelineLayout = this->m_device->CreatePipelineLayout(plInfo);
 
@@ -138,6 +164,7 @@ SkyboxPass::CreatePipeline() {
 
 	pipelineInfo.renderPass = this->m_compatRenderPass;
 	pipelineInfo.nSubpass = 0;
+	pipelineInfo.pipelineLayout = this->m_pipelineLayout;
 
 	this->m_pipeline = this->m_device->CreateGraphicsPipeline(pipelineInfo);
 }

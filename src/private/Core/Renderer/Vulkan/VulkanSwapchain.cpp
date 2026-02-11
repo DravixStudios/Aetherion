@@ -119,7 +119,7 @@ VulkanSwapchain::Create(const SwapchainCreateInfo& createInfo) {
 			"Failed creating swap chain image view");
 
 		Ref<VulkanImageView> vkView = VulkanImageView::CreateShared(this->m_device->GetVkDevice());
-		vkView->Create(imageView);
+		vkView->Create(imageView, VulkanHelpers::RevertFormat(format.format));
 
 		this->m_imageViews[i] = vkView.As<ImageView>();
 	}
@@ -323,7 +323,7 @@ VulkanSwapchain::Rebuild(uint32_t nNewWidth, uint32_t nNewHeight) {
 			"Failed creating swap chain image view");
 
 		Ref<VulkanImageView> vkView = VulkanImageView::CreateShared(this->m_device->GetVkDevice());
-		vkView->Create(imageView);
+		vkView->Create(imageView, VulkanHelpers::RevertFormat(format.format));
 
 		this->m_imageViews[i] = vkView.As<ImageView>();
 	}

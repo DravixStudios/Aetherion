@@ -13,5 +13,6 @@ enum class GPUFormat {
 	D32_FLOAT_S8_UINT,
 	R8_UNORM,
 	R16_FLOAT,
+	RG16_FLOAT,
 	UNDEFINED
 };

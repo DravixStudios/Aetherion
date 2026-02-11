@@ -64,5 +64,9 @@ MegaBuffer::Upload(const Vector<Vertex>& vertices, const Vector<uint16_t>& indic
 		indexSize
 	);
 
+	/* Update offsets for next upload */
+	this->m_nCurrentVertexOffset += static_cast<uint32_t>(vertices.size());
+	this->m_nCurrentIndexOffset += static_cast<uint32_t>(indices.size());
+
 	return alloc;
 }

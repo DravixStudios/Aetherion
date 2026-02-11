@@ -378,6 +378,7 @@ VulkanDevice::HasStencilComponent(GPUFormat format) {
 * 
 * @param nLayerCount Layer count (optional)
 * @param nBaseMipLevel Base mip level (optional)
+* @param nBaseArrayLayer Base array layer (optional)
 */
 void 
 VulkanDevice::TransitionLayout(
@@ -386,7 +387,8 @@ VulkanDevice::TransitionLayout(
 	EImageLayout oldLayout,
 	EImageLayout newLayout,
 	uint32_t nLayerCount,
-	uint32_t nBaseMipLevel
+	uint32_t nBaseMipLevel,
+	uint32_t nBaseArrayLayer
 ) {
 	Ref<VulkanCommandBuffer> commandBuffer = this->BeginSingleTimeCommandBuffer().As<VulkanCommandBuffer>();
 	VkImage vkImage = image.As<VulkanTexture>()->GetVkImage();
@@ -402,7 +404,7 @@ VulkanDevice::TransitionLayout(
 
 	/* Barrier subresource range definition */
 	barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-	barrier.subresourceRange.baseArrayLayer = 0;
+	barrier.subresourceRange.baseArrayLayer = nBaseArrayLayer;
 	barrier.subresourceRange.layerCount = nLayerCount;
 	barrier.subresourceRange.baseMipLevel = nBaseMipLevel;
 	barrier.subresourceRange.levelCount = 1;

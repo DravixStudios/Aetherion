@@ -64,28 +64,65 @@ VulkanTexture::Create(const TextureCreateInfo& createInfo) {
 	/* Copy buffer to image */
 	if (createInfo.buffer) {
 		Ref<CommandBuffer> commandBuff = this->m_device->BeginSingleTimeCommandBuffer();
-
-		VkBufferImageCopy region = { };
-		region.bufferOffset = 0;
-		region.bufferRowLength = 0;
-		region.bufferImageHeight = 0;
-
-		region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		region.imageSubresource.mipLevel = 0;
-		region.imageSubresource.baseArrayLayer = 0;
-		region.imageSubresource.layerCount = 1;
-
-		region.imageOffset = { 0, 0, 0 };
-		region.imageExtent = { createInfo.extent.width, createInfo.extent.height, 1 };
-
 		Ref<VulkanCommandBuffer> vkCommandBuff = commandBuff.As<VulkanCommandBuffer>();
+
+		VkImageMemoryBarrier barrier = {};
+		barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+		barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+		barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		barrier.image = this->m_image;
+		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		barrier.subresourceRange.baseMipLevel = 0;
+		barrier.subresourceRange.levelCount = createInfo.nMipLevels;
+		barrier.subresourceRange.baseArrayLayer = 0;
+		barrier.subresourceRange.layerCount = createInfo.nArrayLayers;
+		barrier.srcAccessMask = 0;
+		barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+
+		vkCmdPipelineBarrier(
+			vkCommandBuff->GetVkCommandBuffer(),
+			VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+			VK_PIPELINE_STAGE_TRANSFER_BIT,
+			0, 0, nullptr, 0, nullptr, 1, &barrier
+		);
+
+		/* One copy region per array layer */
+		uint32_t nLayerBytes = createInfo.extent.width * createInfo.extent.height * VulkanHelpers::GetFormatSize(createInfo.format);
+		Vector<VkBufferImageCopy> regions(createInfo.nArrayLayers);
+
+		for (uint32_t i = 0; i < createInfo.nArrayLayers; i++) {
+			regions[i] = { };
+			regions[i].bufferOffset = i * nLayerBytes;
+			regions[i].bufferRowLength = 0;
+			regions[i].bufferImageHeight = 0;
+			regions[i].imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			regions[i].imageSubresource.mipLevel = 0;
+			regions[i].imageSubresource.baseArrayLayer = i;
+			regions[i].imageSubresource.layerCount = 1;
+			regions[i].imageOffset = { 0, 0, 0 };
+			regions[i].imageExtent = { createInfo.extent.width, createInfo.extent.height, 1 };
+		}
 
 		vkCmdCopyBufferToImage(
 			vkCommandBuff->GetVkCommandBuffer(),
 			buffer->GetVkBuffer(), 
 			this->m_image, 
 			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-			1, &region
+			static_cast<uint32_t>(regions.size()), regions.data()
+		);
+		
+		barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+		barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+		barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+		vkCmdPipelineBarrier(
+			vkCommandBuff->GetVkCommandBuffer(),
+			VK_PIPELINE_STAGE_TRANSFER_BIT,
+			VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+			0, 0, nullptr, 0, nullptr, 1, &barrier
 		);
 
 		this->m_device->EndSingleTimeCommandBuffer(commandBuff);

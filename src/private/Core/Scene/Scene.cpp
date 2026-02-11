@@ -29,6 +29,11 @@ Scene::GetObjects() {
 
 void
 Scene::Start() {
+	GameObject* sampleObj = new GameObject("SampleObj");
+	Mesh* sampleMesh = new Mesh("Mesh");
+	sampleMesh->LoadModel("DamagedHelmet.glb");
+	sampleObj->AddComponent("Mesh", sampleMesh);
+
 	for (std::pair<String, GameObject*> obj : this->m_gameObjects) {
 		obj.second->Start();
 	}

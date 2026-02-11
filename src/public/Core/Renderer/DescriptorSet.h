@@ -52,4 +52,6 @@ public:
 	) = 0;
 
 	virtual void UpdateWrites() = 0;
+
+	virtual Ref<DescriptorSetLayout> GetLayout() const = 0;
 };

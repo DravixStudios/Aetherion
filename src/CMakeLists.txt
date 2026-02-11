@@ -1,4 +1,4 @@
-file(GLOB_RECURSE SOURCES "private/**/*.cpp" "main.cpp" "private/stb_image_impl.cpp")
+file(GLOB_RECURSE SOURCES "private/**/*.cpp" "main.cpp" "private/stb_image_impl.cpp" "private/tinyexr_impl.cpp")
 file(GLOB_RECURSE HEADERS "public/**/*.h")
 add_executable("Aetherion" ${SOURCES} ${HEADERS})
 
@@ -8,6 +8,7 @@ endif()
 
 target_compile_definitions(Aetherion PRIVATE $<$<BOOL:${LOGGING_USE_SPDLOG}>:LOGGING_USE_SPDLOG>)
 target_compile_definitions(Aetherion PRIVATE $<$<BOOL:${RENDERER_USE_VULKAN}>:RENDERER_USE_VULKAN>)
+
 
 set("PRIVATE_INCLUDES" "${CMAKE_CURRENT_SOURCE_DIR}/public")
 set("PUBLIC_INCLUDES" "${CMAKE_CURRENT_SOURCE_DIR}/../include" )

@@ -1,5 +1,6 @@
 #include "Core/Renderer/Rendering/Passes/GBufferPass.h"
 #include "Core/Renderer/Rendering/RenderGraphContext.h"
+#include "Core/Renderer/Rendering/RenderGraph.h"
 #include "Core/Renderer/Shader.h"
 
 /**
@@ -9,6 +10,34 @@
 void
 GBufferPass::Init(Ref<Device> device) {
 	this->m_device = device;
+	this->m_gbuffer.Init(device, 1, 1); // Start with dummy size, will resize later
+}
+
+/**
+* Resizes G-Buffer
+* 
+* @param nWidth Width
+* @param nHeight Height
+*/
+void
+GBufferPass::Resize(uint32_t nWidth, uint32_t nHeight) {
+	this->SetDimensions(nWidth, nHeight);
+	this->m_gbuffer.Resize(nWidth, nHeight);
+}
+
+/**
+* Imports G-Buffer resources to the graph
+* 
+* @param graph Render graph
+*/
+void 
+GBufferPass::ImportResources(RenderGraph& graph) {
+	this->m_output.albedo = graph.ImportTexture(this->m_gbuffer.GetAlbedo(), this->m_gbuffer.GetAlbedoView());
+	this->m_output.normal = graph.ImportTexture(this->m_gbuffer.GetNormal(), this->m_gbuffer.GetNormalView());
+	this->m_output.orm = graph.ImportTexture(this->m_gbuffer.GetORM(), this->m_gbuffer.GetORMView());
+	this->m_output.emissive = graph.ImportTexture(this->m_gbuffer.GetEmissive(), this->m_gbuffer.GetEmissiveView());
+	this->m_output.position = graph.ImportTexture(this->m_gbuffer.GetPosition(), this->m_gbuffer.GetPositionView());
+	this->m_output.depth = graph.ImportTexture(this->m_gbuffer.GetDepth(), this->m_gbuffer.GetDepthView());
 }
 
 /**
@@ -18,45 +47,22 @@ GBufferPass::Init(Ref<Device> device) {
 */
 void
 GBufferPass::SetupNode(RenderGraphBuilder& builder) {
-	TextureDesc colorDesc = { };
-	colorDesc.nWidth = this->m_nWidth;
-	colorDesc.nHeight = this->m_nHeight;
-	colorDesc.usage = ETextureUsage::COLOR_ATTACHMENT | ETextureUsage::SAMPLED;
+	/* Use imported textures */
+	builder.UseColorOutput(this->m_output.albedo, EImageLayout::SHADER_READ_ONLY);
+	builder.UseColorOutput(this->m_output.normal, EImageLayout::SHADER_READ_ONLY);
+	builder.UseColorOutput(this->m_output.orm, EImageLayout::SHADER_READ_ONLY);
+	builder.UseColorOutput(this->m_output.emissive, EImageLayout::SHADER_READ_ONLY);
+	builder.UseColorOutput(this->m_output.position, EImageLayout::SHADER_READ_ONLY);
+	builder.UseDepthOutput(this->m_output.depth, EImageLayout::SHADER_READ_ONLY);
 
-	/* Albedo */
-	colorDesc.format = GBufferLayout::ALBEDO;
-	this->m_output.albedo = builder.CreateColorOutput(colorDesc);
-
-	/* Normal */
-	colorDesc.format = GBufferLayout::NORMAL;
-	this->m_output.normal = builder.CreateColorOutput(colorDesc);
-
-	/* ORM */
-	colorDesc.format = GBufferLayout::ORM;
-	this->m_output.orm = builder.CreateColorOutput(colorDesc);
-
-	/* Emissive */
-	colorDesc.format = GBufferLayout::EMISSIVE;
-	this->m_output.emissive = builder.CreateColorOutput(colorDesc);
-
-	/* Position */
-	colorDesc.format = GBufferLayout::POSITION;
-	this->m_output.position = builder.CreateColorOutput(colorDesc);
-	
-	/* Depth */
-	TextureDesc depthDesc = { };
-	depthDesc.format = GBufferLayout::DEPTH;
-	depthDesc.nWidth = this->m_nWidth;
-	depthDesc.nHeight = this->m_nHeight;
-	depthDesc.usage = ETextureUsage::DEPTH_STENCIL_ATTACHMENT | ETextureUsage::SAMPLED;
-	this->m_output.depth = builder.CreateDepthOutput(depthDesc);
+	builder.SetDimensions(this->m_nWidth, this->m_nHeight);
 }
 
 /**
 * Executes the G-Buffer pass
 */
 void
-GBufferPass::Execute(Ref<GraphicsContext> context, RenderGraphContext& graphCtx) {
+GBufferPass::Execute(Ref<GraphicsContext> context, RenderGraphContext& graphCtx, uint32_t nFrameIndex) {
 	context->BindPipeline(this->m_pipeline);
 	
 	Viewport vp { 0.f, 0.f, static_cast<float>(this->m_nWidth), static_cast<float>(this->m_nHeight), 0.f, 1.f };
@@ -72,7 +78,7 @@ GBufferPass::Execute(Ref<GraphicsContext> context, RenderGraphContext& graphCtx)
 		0,
 		this->m_countBuffer,
 		0,
-		0, // TODO: Set max commands
+		1000,
 		sizeof(DrawIndexedIndirectCommand)
 	);
 }
@@ -133,7 +139,7 @@ GBufferPass::CreatePipeline() {
 	vertexShader->LoadFromGLSL("GBufferPass.vert", EShaderStage::VERTEX);
 
 	Ref<Shader> pixelShader = Shader::CreateShared();
-	vertexShader->LoadFromGLSL("GBufferPass.frag", EShaderStage::FRAGMENT);
+	pixelShader->LoadFromGLSL("GBufferPass.frag", EShaderStage::FRAGMENT);
 
 	/* Create graphics pipeline */
 	GraphicsPipelineCreateInfo pipelineInfo = { };
@@ -152,7 +158,7 @@ GBufferPass::CreatePipeline() {
 
 	/* Rasterization */
 	pipelineInfo.rasterizationState.cullMode = ECullMode::BACK;
-	pipelineInfo.rasterizationState.frontFace = EFrontFace::COUNTER_CLOCKWISE;
+	pipelineInfo.rasterizationState.frontFace = EFrontFace::CLOCKWISE;
 
 	/* Depth */
 	pipelineInfo.depthStencilState.bDepthTestEnable = true;
@@ -276,6 +282,7 @@ GBufferPass::CreatePipeline() {
 
 	pipelineInfo.depthFormat = GBufferLayout::DEPTH;
 	pipelineInfo.renderPass = this->m_compatRenderPass;
+	pipelineInfo.pipelineLayout = this->m_pipelineLayout;
 	pipelineInfo.nSubpass = 0;
 
 	this->m_pipeline = this->m_device->CreateGraphicsPipeline(pipelineInfo);
