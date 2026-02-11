@@ -140,3 +140,18 @@ inline String GetExecutableDir() {
     throw std::runtime_error("GetExecutableDir: Unsupported platform");
 #endif
 }
+
+inline uint32_t 
+NextPowerOf2(uint32_t x) {
+    if (x == 0) return 1;
+
+    x--;
+    x |= x >> 1;
+    x |= x >> 2;
+    x |= x >> 4;
+    x |= x >> 8;
+    x |= x >> 16;
+    x++;
+
+    return x;
+}
