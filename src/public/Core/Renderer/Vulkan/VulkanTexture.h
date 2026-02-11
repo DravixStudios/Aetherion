@@ -35,7 +35,9 @@ private:
 	VkImage m_image;
 	VkDeviceMemory m_memory;
 
-	uint32_t m_nSize;
+	bool m_bOwnsImage = true;
+
+	uint32_t m_nSize = 0;
 
 	VkImageType ConvertTextureDimensions(ETextureDimensions dimensions);
 	VkImageTiling ConvertTextureTiling(ETextureTiling tiling);
