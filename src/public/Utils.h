@@ -106,6 +106,11 @@ struct CollectedDrawData {
     glm::vec3 cameraPosition = glm::vec3(1.f);
 };
 
+struct FrustumData {
+    glm::mat4 viewProj = glm::mat4(1.f);
+    glm::vec3 frustumPlanes[6];
+};
+
 inline String GetExecutableDir() {
     char buffer[4096];
 
