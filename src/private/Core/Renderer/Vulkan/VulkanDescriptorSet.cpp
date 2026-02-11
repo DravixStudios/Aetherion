@@ -64,17 +64,31 @@ VulkanDescriptorSet::WriteBuffer(
 	write.pBufferInfo = this->m_bufferInfos.back().data();
 
 	/* (EBufferType -> VkDescriptorType) */
-	switch (vkBuffer->GetBufferType()) {
-	case EBufferType::UNIFORM_BUFFER:
-		write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		break;
-	case EBufferType::STORAGE_BUFFER:
-		write.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-		break;
-	default:
-		write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		break;
+	const DescriptorSetLayoutCreateInfo& layoutInfo = this->m_layout->GetCreateInfo();
+	VkDescriptorType expectedType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+
+	for (const DescriptorSetLayoutBinding& binding : layoutInfo.bindings) {
+		if (binding.nBinding == nBinding) {
+			switch (binding.descriptorType) {
+				case EDescriptorType::UNIFORM_BUFFER:
+					expectedType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+					break;
+				case EDescriptorType::UNIFORM_BUFFER_DYNAMIC:
+					expectedType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+					break;
+				case EDescriptorType::STORAGE_BUFFER:
+					expectedType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+					break;
+				case EDescriptorType::STORAGE_BUFFER_DYNAMIC:
+					expectedType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;
+					break;
+			}
+			break;
+		}
 	}
+
+	write.descriptorType = expectedType;
+
 
 	this->m_pendingWrites.push_back(write);
 }
@@ -151,17 +165,32 @@ VulkanDescriptorSet::WriteBuffers(
 	write.pBufferInfo = this->m_bufferInfos.back().data();
 
 	/* (EBufferType -> VkDescriptorType) */
-	switch (bufferType) {
-	case EBufferType::UNIFORM_BUFFER:
-		write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		break;
-	case EBufferType::STORAGE_BUFFER:
-		write.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-		break;
-	default:
-		write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		break;
+	const auto& layoutInfo = this->m_layout->GetCreateInfo();
+	VkDescriptorType expectedType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+
+	for (const auto& binding : layoutInfo.bindings) {
+		if (binding.nBinding == nBinding) {
+			switch (binding.descriptorType) {
+			case EDescriptorType::UNIFORM_BUFFER:
+				expectedType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+				break;
+			case EDescriptorType::UNIFORM_BUFFER_DYNAMIC:
+				expectedType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+				break;
+			case EDescriptorType::STORAGE_BUFFER:
+				expectedType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+				break;
+			case EDescriptorType::STORAGE_BUFFER_DYNAMIC:
+				expectedType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;
+				break;
+			default:
+				break;
+			}
+			break;
+		}
 	}
+
+	write.descriptorType = expectedType;
 
 	this->m_pendingWrites.push_back(write);
 }

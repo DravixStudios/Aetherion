@@ -8,8 +8,6 @@ layout(location = 0) out vec4 outColor;
 layout(set = 0, binding = 0) uniform samplerCube g_environmentMap;
 
 layout(push_constant) uniform PushConstants {
-    mat4 View;
-    mat4 Projection;
     float Roughness;
     uint MipLevel;
 } pc;
