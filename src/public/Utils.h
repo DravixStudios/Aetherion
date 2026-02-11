@@ -108,7 +108,7 @@ struct CollectedDrawData {
 
 struct FrustumData {
     glm::mat4 viewProj = glm::mat4(1.f);
-    glm::vec3 frustumPlanes[6];
+    glm::vec4 frustumPlanes[6];
 };
 
 inline String GetExecutableDir() {

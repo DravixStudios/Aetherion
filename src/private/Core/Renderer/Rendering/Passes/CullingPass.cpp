@@ -50,6 +50,8 @@ CullingPass::Execute(
 	RenderGraphContext& graphCtx,
 	uint32_t nFrameIndex
 ) {
+	this->m_frustumBuffer->Reset(nFrameIndex);
+
 	Ref<DescriptorSet> cullingSet = this->m_cullingSets[nFrameIndex];
 
 	context->FillBuffer(this->m_countBuffer, 0, sizeof(uint32_t), 0);
@@ -64,18 +66,28 @@ CullingPass::Execute(
 	glm::vec4 frustumPlanes[6];
 	this->ExtractFrustumPlanes(viewProj, frustumPlanes);
 
+	/* Copy frustum data */
+	FrustumData frustumData = { };
+	frustumData.viewProj = viewProj;
+	memcpy(frustumData.frustumPlanes, frustumPlanes, sizeof(frustumPlanes));
+
+	/* Allocate frustum data on the ring buffer */
+	uint32_t nFrustumDataOffset = 0;
+	void* pFrustumData = this->m_frustumBuffer->Allocate(sizeof(frustumData), nFrustumDataOffset);
+	memcpy(pFrustumData, &frustumData, sizeof(frustumData));
+
+	/* Push constants */
 	struct {
-		glm::mat4 viewProj;
-		glm::vec4 frustumPlanes[6];
 		uint32_t nTotalBatches;
 		uint32_t nWvpAlignment;
+		uint32_t nFrustumOffset;
+		uint32_t nFrustumAlignment;
 	} pushData;
 
-	pushData.viewProj = viewProj;
 	pushData.nTotalBatches = this->m_nTotalBatches;
 	pushData.nWvpAlignment = this->m_wvpBuffer->GetAlignment();
-
-	memcpy(pushData.frustumPlanes, frustumPlanes, sizeof(frustumPlanes));
+	pushData.nFrustumOffset = nFrustumDataOffset;
+	pushData.nFrustumAlignment = this->m_frustumBuffer->GetAlignment();
 
 	context->PushConstants(this->m_pipelineLayout, EShaderStage::COMPUTE, 0, sizeof(pushData), &pushData);
 
@@ -174,7 +186,7 @@ CullingPass::CreateResources() {
 
 	RingBufferCreateInfo frustumInfo = { };
 	frustumInfo.nAlignment = nAlignedFrustumSize;
-	frustumInfo.usage = EBufferUsage::UNIFORM_BUFFER;
+	frustumInfo.usage = EBufferUsage::STORAGE_BUFFER;
 	frustumInfo.nFramesInFlight = this->m_nFramesInFlight;
 	frustumInfo.nBufferSize = nAlignedFrustumSize * this->m_nFramesInFlight;
 
@@ -198,7 +210,7 @@ CullingPass::CreateResources() {
 */
 void
 CullingPass::CreateDescriptors() {
-	Vector<DescriptorSetLayoutBinding> bindings(5);
+	Vector<DescriptorSetLayoutBinding> bindings(6);
 	
 	/* Binding 0: Instance data (ObjectInstanceData) */
 	bindings[0].nBinding = 0;
@@ -229,6 +241,12 @@ CullingPass::CreateDescriptors() {
 	bindings[4].nDescriptorCount = 1;
 	bindings[4].stageFlags = EShaderStage::COMPUTE | EShaderStage::VERTEX;
 	bindings[4].descriptorType = EDescriptorType::STORAGE_BUFFER;
+	
+	/* Binding 5: Frustum data ring buffer */
+	bindings[5].nBinding = 5;
+	bindings[5].nDescriptorCount = 1;
+	bindings[5].stageFlags = EShaderStage::COMPUTE;
+	bindings[5].descriptorType = EDescriptorType::STORAGE_BUFFER;
 
 	/* Create descriptor set layout */
 	DescriptorSetLayoutCreateInfo layoutInfo = { };
@@ -241,7 +259,7 @@ CullingPass::CreateDescriptors() {
 	/* Create descriptor pool */
 	DescriptorPoolSize poolSize = { };
 	poolSize.type = EDescriptorType::STORAGE_BUFFER;
-	poolSize.nDescriptorCount = 5 * this->m_nFramesInFlight;
+	poolSize.nDescriptorCount = 6 * this->m_nFramesInFlight;
 
 	DescriptorPoolCreateInfo poolInfo = { };
 	poolInfo.nMaxSets = this->m_nFramesInFlight;
@@ -257,7 +275,7 @@ CullingPass::CreateDescriptors() {
 	}
 
 	/* Writes descriptor sets */
-	Vector<DescriptorBufferInfo> bufferInfos(5);
+	Vector<DescriptorBufferInfo> bufferInfos(6);
 
 	/* Binding 0: Instance data */
 	bufferInfos[0].buffer = this->m_instanceBuffer->GetBuffer();
@@ -284,10 +302,15 @@ CullingPass::CreateDescriptors() {
 	bufferInfos[4].nOffset = 0;
 	bufferInfos[4].nRange = 0;
 
+	/* Binding 5: Frustum buffer */
+	bufferInfos[5].buffer = this->m_frustumBuffer->GetBuffer();
+	bufferInfos[5].nOffset = 0;
+	bufferInfos[5].nRange = 0;
+
 	for (uint32_t i = 0; i < this->m_nFramesInFlight; i++) {
 		Ref<DescriptorSet> set = this->m_cullingSets[i];
 		
-		for (uint32_t j = 0; j < 5; j++) {
+		for (uint32_t j = 0; j < 6; j++) {
 			set->WriteBuffer(j, 0, bufferInfos[j]);
 		}
 		set->UpdateWrites();
