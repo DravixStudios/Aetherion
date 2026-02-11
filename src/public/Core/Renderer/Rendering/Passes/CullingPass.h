@@ -31,6 +31,8 @@ private:
 	Ref<GPURingBuffer> m_batchBuffer;
 	Ref<GPURingBuffer> m_wvpBuffer;
 
+	Ref<GPURingBuffer> m_frustumBuffer;
+
 	/* Count buffer */
 	Ref<GPUBuffer> m_countBuffer;
 
