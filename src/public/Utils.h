@@ -103,7 +103,7 @@ struct CollectedDrawData {
     glm::mat4 viewProj = glm::mat4(1.f);
     glm::mat4 view = glm::mat4(1.f);
     glm::mat4 proj = glm::mat4(1.f);
-    glm::vec3 cameraPosition = glm::vec3(0.f);
+    glm::vec3 cameraPosition = glm::vec3(1.f);
 };
 
 inline String GetExecutableDir() {
