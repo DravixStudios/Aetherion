@@ -25,6 +25,7 @@ public:
 
 	void BeginFrame();
 	void EndFrame();
+	void Invalidate();
 
 private:
 	struct Entry {
