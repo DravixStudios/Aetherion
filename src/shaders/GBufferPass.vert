@@ -28,7 +28,7 @@ layout(set = 0, binding = 4) readonly buffer WVPBuffer {
 };
 
 layout(push_constant) uniform PushConstants {
-    uint wvpAlignment; // We pass this value through RecordCommandBuffer
+    uint wvpAlignment;
 } pc;
 
 /* Output locations */

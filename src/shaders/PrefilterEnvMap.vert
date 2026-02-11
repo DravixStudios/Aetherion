@@ -4,12 +4,12 @@ layout(location = 0) in vec3 inPosition;
 
 layout(location = 0) out vec3 outWorldPos;
 
-layout(push_constant) uniform PushConstants {
+layout(set = 1, binding = 0) uniform VPBlock {
     mat4 View;
     mat4 Projection;
-} pc;
+} vp; 
 
 void main() {
     outWorldPos = inPosition;
-    gl_Position = pc.Projection * pc.View * vec4(outWorldPos, 1.0);
+    gl_Position = vp.Projection * vp.View * vec4(outWorldPos, 1.0);
 }
