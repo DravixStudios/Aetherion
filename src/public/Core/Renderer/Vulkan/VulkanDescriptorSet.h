@@ -1,9 +1,9 @@
 #pragma once
 #include "Core/Renderer/DescriptorSet.h"
+#include "Core/Renderer/DescriptorPool.h"
 
 #include "Core/Renderer/Vulkan/VulkanDescriptorSetLayout.h"
 #include "Core/Renderer/Vulkan/VulkanDescriptorPool.h"
-#include "Core/Renderer/Vulkan/VulkanDescriptorSet.h"
 
 #include "Core/Renderer/Vulkan/VulkanBuffer.h"
 #include "Core/Renderer/Vulkan/VulkanTexture.h"
@@ -47,7 +47,7 @@ public:
 private:
 	VkDevice m_device;
 	VkDescriptorSet m_descriptorSet;
-	VkDescriptorPool m_pool;
+	Ref<DescriptorPool> m_poolRef;
 
 	Ref<DescriptorSetLayout> m_layout;
 
