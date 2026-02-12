@@ -8,6 +8,7 @@ namespace GBufferLayout {
 	constexpr GPUFormat ORM = GPUFormat::RGBA16_FLOAT;
 	constexpr GPUFormat EMISSIVE = GPUFormat::RGBA16_FLOAT;
 	constexpr GPUFormat POSITION = GPUFormat::RGBA16_FLOAT;
+	constexpr GPUFormat BENT_NORMAL = GPUFormat::RGBA16_FLOAT;
 	constexpr GPUFormat DEPTH = GPUFormat::D32_FLOAT;
-	constexpr uint32_t COLOR_COUNT = 5;
+	constexpr uint32_t COLOR_COUNT = 6;
 }
