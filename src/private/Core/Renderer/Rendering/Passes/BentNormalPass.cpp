@@ -38,6 +38,8 @@ BentNormalPass::SetupNode(RenderGraphBuilder& builder) {
 	builder.ReadTexture(this->m_input.normal);
 	builder.ReadTexture(this->m_input.depth);
 
+	this->SetDimensions(this->m_nWidth, this->m_nHeight);
+
 	TextureDesc desc = { };
 	desc.format = GBufferLayout::BENT_NORMAL;
 	desc.nWidth = this->m_nWidth;
