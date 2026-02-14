@@ -5,7 +5,7 @@ layout(location = 0) in vec2 inUVs;
 
 layout(location = 0) out vec4 finalImage;
 
-layout(set = 0, binding = 0) uniform sampler2D g_gbuffers[5];
+layout(set = 0, binding = 0) uniform sampler2D g_gbuffers[6];
 layout(set = 1, binding = 0) uniform samplerCube g_iblMaps[2]; // [0] Irradiance, [1] Prefilter
 layout(set = 1, binding = 1) uniform sampler2D g_brdfLUT;
 
@@ -63,6 +63,10 @@ void main() {
     vec3 emissive = texture(g_gbuffers[3], vec2(inUVs.x, 1.0 - inUVs.y)).rgb;
     vec3 position = texture(g_gbuffers[4], vec2(inUVs.x, 1.0 - inUVs.y)).rgb;
 
+    vec4 bentNormalData = texture(g_gbuffers[5], vec2(inUVs.x, 1.0 - inUVs.y));
+    vec3 bentN = normalize(bentNormalData.xyz * 2.0 - 1.0);
+    float bentAO = bentNormalData.a;
+
     vec3 color = vec3(0.0);
 
     float ao = orm.r;
@@ -113,7 +117,7 @@ void main() {
     vec3 kD_ibl = (1.0 - kS_ibl) * (1.0 - metalness);
 
     /* Diffuse IBL */
-    vec3 irradiance = texture(g_iblMaps[0], vec3(-N.x, N.y, N.z)).rgb;
+    vec3 irradiance = texture(g_iblMaps[0], vec3(-bentN.x, bentN.y, bentN.z)).rgb;
     vec3 diffuse = irradiance * albedo;
 
     /* Specular IBL */
@@ -123,7 +127,7 @@ void main() {
     vec3 specular_ibl = prefilteredColor * (F0 * brdf.x + brdf.y);
 
     // float iblIntensity = 1.5;
-    vec3 ambient = (kD_ibl * diffuse + specular_ibl);
+    vec3 ambient = (kD_ibl * diffuse + specular_ibl) * bentAO;
 
     /* ==== COMBINE ==== */
     color += ambient;

@@ -17,6 +17,7 @@ public:
 		TextureHandle emissive;
 		TextureHandle position;
 		TextureHandle depth;
+		TextureHandle bentNormal;
 	};
 
 	void Init(Ref<Device> device) override;

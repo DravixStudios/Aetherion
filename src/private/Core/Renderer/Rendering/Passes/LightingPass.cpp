@@ -25,6 +25,8 @@ LightingPass::SetupNode(RenderGraphBuilder& builder) {
 	builder.ReadTexture(this->m_input.emissive);
 	builder.ReadTexture(this->m_input.position);
 
+	builder.SetDimensions(this->m_nWidth, this->m_nHeight);
+
 	TextureDesc texDesc = { };
 	texDesc.format = GPUFormat::RGBA16_FLOAT;
 	texDesc.nWidth = this->m_nWidth;

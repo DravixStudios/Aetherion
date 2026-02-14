@@ -9,6 +9,12 @@
 void
 BentNormalPass::Init(Ref<Device> device) {
 	this->m_device = device;
+}
+
+void 
+BentNormalPass::Init(Ref<Device> device, uint32_t nFramesInFlight) {
+	this->m_device = device;
+	this->m_nFramesInFlight = nFramesInFlight;
 
 	/* Create a linear sampler */
 	SamplerCreateInfo samplerInfo = { };
@@ -26,6 +32,17 @@ BentNormalPass::Init(Ref<Device> device) {
 	samplerInfo.mipmapMode = EMipmapMode::MIPMAP_MODE_LINEAR;
 
 	this->m_sampler = this->m_device->CreateSampler(samplerInfo);
+
+	/* Create camera ring buffer */
+	uint32_t nCameraAlignment = NextPowerOf2(sizeof(CameraData));
+
+	RingBufferCreateInfo cameraInfo = { };
+	cameraInfo.nAlignment = nCameraAlignment;
+	cameraInfo.nBufferSize = nCameraAlignment * this->m_nFramesInFlight;
+	cameraInfo.nFramesInFlight = this->m_nFramesInFlight;
+	cameraInfo.usage = EBufferUsage::UNIFORM_BUFFER;
+
+	this->m_cameraBuff = this->m_device->CreateRingBuffer(cameraInfo);
 }
 
 /**
@@ -35,18 +52,8 @@ BentNormalPass::Init(Ref<Device> device) {
 */
 void 
 BentNormalPass::SetupNode(RenderGraphBuilder& builder) {
-	builder.ReadTexture(this->m_input.normal);
-	builder.ReadTexture(this->m_input.depth);
-
-	this->SetDimensions(this->m_nWidth, this->m_nHeight);
-
-	TextureDesc desc = { };
-	desc.format = GBufferLayout::BENT_NORMAL;
-	desc.nWidth = this->m_nWidth;
-	desc.nHeight = this->m_nHeight;
-	desc.usage = ETextureUsage::COLOR_ATTACHMENT | ETextureUsage::SAMPLED;
-
-	this->m_output = builder.CreateColorOutput(desc);
+	builder.SetDimensions(this->m_nWidth, this->m_nHeight);
+	builder.UseColorOutput(this->m_output, EImageLayout::SHADER_READ_ONLY);
 }
 
 /**
@@ -60,6 +67,11 @@ BentNormalPass::SetInput(TextureHandle normal, TextureHandle depth) {
 	this->m_input = { normal, depth };
 }
 
+void
+BentNormalPass::SetOutput(TextureHandle bentNormal) {
+	this->m_output = bentNormal;
+}
+
 /**
 * Executes the bent normal pass
 * 
@@ -68,9 +80,9 @@ BentNormalPass::SetInput(TextureHandle normal, TextureHandle depth) {
 * @param nFrameIdx Frame index
 */
 void
-BentNormalPass::Execute(Ref<GraphicsContext> context, RenderGraphContext& graphCtx, uint32_t nFrameIdx) {
-	if (!this->m_pipeline) this->CreatePipeline();
+BentNormalPass::Execute(Ref<GraphicsContext> context, RenderGraphContext& graphCtx, uint32_t nImgIdx) {
 	if (!this->m_pool) this->CreateDescriptors();
+	if (!this->m_pipeline) this->CreatePipeline();
 	
 	Ref<GPUTexture> normal = graphCtx.GetTexture(this->m_input.normal);
 	Ref<GPUTexture> depth = graphCtx.GetTexture(this->m_input.depth);
@@ -88,12 +100,32 @@ BentNormalPass::Execute(Ref<GraphicsContext> context, RenderGraphContext& graphC
 	depthInfo.imageView = depthView;
 	depthInfo.texture = depth;
 
-	this->m_descriptorSet->WriteTexture(0, 0, normalInfo);
-	this->m_descriptorSet->WriteTexture(1, 0, depthInfo);
-	this->m_descriptorSet->UpdateWrites();
+	Ref<DescriptorSet> descriptorSet = this->m_descriptorSets[nImgIdx];
 
+	descriptorSet->WriteTexture(0, 0, normalInfo);
+	descriptorSet->WriteTexture(1, 0, depthInfo);
+	descriptorSet->UpdateWrites();
+
+	/* Update camera data */
+	this->m_cameraBuff->Reset(nImgIdx);
+	
+	CameraData cameraData = { };
+	cameraData.inverseView = glm::affineInverse(this->m_view);
+	cameraData.inverseProjection = glm::inverse(this->m_projection);
+	cameraData.projection = this->m_projection;
+	cameraData.radius = 1.f;
+
+	uint32_t nCamDataOffset = 0;
+	void* pCamData = this->m_cameraBuff->Allocate(NextPowerOf2(sizeof(cameraData)), nCamDataOffset);
+
+	memcpy(pCamData, &cameraData, sizeof(cameraData));
+
+	/* Render */
+	Viewport vp{ 0.f, 0.f, static_cast<float>(this->m_nWidth), static_cast<float>(this->m_nHeight), 0.f, 1.f };
+	context->SetViewport(vp);
+	context->SetScissor({ { 0, 0 }, { this->m_nWidth, this->m_nHeight } });
 	context->BindPipeline(this->m_pipeline);
-	context->BindDescriptorSets(0, { this->m_descriptorSet });
+	context->BindDescriptorSets(0, { descriptorSet, this->m_cameraSet }, { nCamDataOffset });
 
 	context->BindVertexBuffers({ this->m_sqVBO });
 	context->BindIndexBuffer(this->m_sqIBO);
@@ -126,11 +158,11 @@ BentNormalPass::CreatePipeline() {
 	Ref<Shader> PShader = Shader::CreateShared();
 
 	VShader->LoadFromGLSL("BentNormal.vert", EShaderStage::VERTEX);
-	PShader->LoadFromGLSL("BentNormal.farg", EShaderStage::FRAGMENT);
+	PShader->LoadFromGLSL("BentNormal.frag", EShaderStage::FRAGMENT);
 	
 	/* Create pipeline layout */
 	PipelineLayoutCreateInfo layoutInfo = { };
-	layoutInfo.setLayouts = Vector{ this->m_setLayout };
+	layoutInfo.setLayouts = Vector{ this->m_setLayout, this->m_cameraSetLayout };
 
 	this->m_layout = this->m_device->CreatePipelineLayout(layoutInfo);
 
@@ -202,6 +234,12 @@ BentNormalPass::CreatePipeline() {
 	this->m_pipeline = this->m_device->CreateGraphicsPipeline(plInfo);
 }
 
+void
+BentNormalPass::SetCameraData(glm::mat4 view, glm::mat4 projection) {
+	this->m_view = view;
+	this->m_projection = projection;
+}
+
 /**
 * Create bent normal pass descriptors
 */
@@ -219,15 +257,50 @@ BentNormalPass::CreateDescriptors() {
 
 	/* Create descriptor pool */
 	DescriptorPoolSize poolSize = { };
-	poolSize.nDescriptorCount = 2;
+	poolSize.nDescriptorCount = 2 * this->m_nFramesInFlight;
 	poolSize.type = EDescriptorType::COMBINED_IMAGE_SAMPLER;
 
 	DescriptorPoolCreateInfo poolInfo = { };
-	poolInfo.nMaxSets = 1;
+	poolInfo.nMaxSets = this->m_nFramesInFlight;
 	poolInfo.poolSizes = Vector{ poolSize };
 
 	this->m_pool = this->m_device->CreateDescriptorPool(poolInfo);
 
-	/* Allocate descriptor set */
-	this->m_descriptorSet = this->m_device->CreateDescriptorSet(this->m_pool, this->m_setLayout);
+	/* Allocate descriptor sets */
+	
+	this->m_descriptorSets.resize(this->m_nFramesInFlight);
+
+	for (uint32_t i = 0; i < this->m_nFramesInFlight; i++) {
+		this->m_descriptorSets[i] = this->m_device->CreateDescriptorSet(this->m_pool, this->m_setLayout);
+	}
+
+	/* Create camera descriptor */
+	Vector<DescriptorSetLayoutBinding> cameraBindings = {
+		{ 0, EDescriptorType::UNIFORM_BUFFER_DYNAMIC, 1, EShaderStage::FRAGMENT }
+	};
+
+	DescriptorSetLayoutCreateInfo cameraLayoutInfo = { };
+	cameraLayoutInfo.bindings = cameraBindings;
+
+	this->m_cameraSetLayout = this->m_device->CreateDescriptorSetLayout(cameraLayoutInfo);
+
+	DescriptorPoolSize cameraPoolSize = { };
+	cameraPoolSize.nDescriptorCount = 1;
+	cameraPoolSize.type = EDescriptorType::UNIFORM_BUFFER_DYNAMIC;
+	
+	DescriptorPoolCreateInfo cameraPoolInfo = { };
+	cameraPoolInfo.nMaxSets = 1;
+	cameraPoolInfo.poolSizes = Vector{ cameraPoolSize };
+
+	this->m_cameraPool = this->m_device->CreateDescriptorPool(cameraPoolInfo);
+
+	this->m_cameraSet = this->m_device->CreateDescriptorSet(this->m_cameraPool, this->m_cameraSetLayout);
+
+	DescriptorBufferInfo cameraInfo = { };
+	cameraInfo.buffer = this->m_cameraBuff->GetBuffer();
+	cameraInfo.nOffset = 0;
+	cameraInfo.nRange = sizeof(CameraData);
+
+	this->m_cameraSet->WriteBuffer(0, 0, cameraInfo);
+	this->m_cameraSet->UpdateWrites();
 }
