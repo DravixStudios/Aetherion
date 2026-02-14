@@ -37,6 +37,10 @@ GBufferPass::ImportResources(RenderGraph& graph) {
 	this->m_output.orm = graph.ImportTexture(this->m_gbuffer.GetORM(), this->m_gbuffer.GetORMView());
 	this->m_output.emissive = graph.ImportTexture(this->m_gbuffer.GetEmissive(), this->m_gbuffer.GetEmissiveView());
 	this->m_output.position = graph.ImportTexture(this->m_gbuffer.GetPosition(), this->m_gbuffer.GetPositionView());
+	this->m_output.bentNormal = graph.ImportTexture(
+		this->m_gbuffer.GetBentNormal(), 
+		this->m_gbuffer.GetBentNormalView()
+	);
 	this->m_output.depth = graph.ImportTexture(this->m_gbuffer.GetDepth(), this->m_gbuffer.GetDepthView());
 }
 

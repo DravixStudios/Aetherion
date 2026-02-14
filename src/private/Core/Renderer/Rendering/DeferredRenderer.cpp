@@ -30,6 +30,10 @@ DeferredRenderer::Init(Ref<Device> device, Ref<Swapchain> swapchain, uint32_t nF
     this->m_gbuffPass.Init(device);
     this->m_gbuffPass.Resize(ext.width, ext.height);
 
+    this->m_bentNormalPass.Init(device, this->m_nFramesInFlight);
+    this->m_bentNormalPass.SetDimensions(ext.width, ext.height);
+    this->m_bentNormalPass.SetScreenQuad(this->m_sqVBO, this->m_sqIBO, 6);
+
     this->m_lightingPass.Init(device, this->m_nFramesInFlight);
     this->m_lightingPass.SetDimensions(ext.width, ext.height);
     this->m_lightingPass.SetGBufferDescriptorSet(this->m_gbuffPass.GetReadDescriptorSet());
@@ -69,6 +73,7 @@ DeferredRenderer::Resize(uint32_t nWidth, uint32_t nHeight) {
     this->m_lightingPass.SetDimensions(nWidth, nHeight);
     this->m_skyboxPass.SetDimensions(nWidth, nHeight);
     this->m_tonemapPass.SetDimensions(nWidth, nHeight);
+    this->m_bentNormalPass.SetDimensions(nWidth, nHeight);
 
     this->m_lightingPass.SetGBufferDescriptorSet(this->m_gbuffPass.GetReadDescriptorSet());
     this->UpdateSkyboxDescriptor();
@@ -142,6 +147,17 @@ DeferredRenderer::Render(
         [&](RenderGraphBuilder& builder) { this->m_gbuffPass.SetupNode(builder); },
         [&](Ref<GraphicsContext> context, RenderGraphContext& graphCtx) { 
             this->m_gbuffPass.Execute(context, graphCtx);
+        }
+    );
+
+    /* 1.5. Bent normal pass */
+    this->m_bentNormalPass.SetInput(this->m_gbuffPass.GetOutput().normal, this->m_gbuffPass.GetOutput().depth);
+    this->m_bentNormalPass.SetOutput(this->m_gbuffPass.GetOutput().bentNormal);
+    this->m_bentNormalPass.SetCameraData(drawData.view, drawData.proj);
+    this->m_graph.AddNode("BentNormalPass", 
+        [&](RenderGraphBuilder& builder) { this->m_bentNormalPass.SetupNode(builder); },
+        [&](Ref<GraphicsContext> context, RenderGraphContext& graphCtx) {
+            this->m_bentNormalPass.Execute(context, graphCtx, nImgIdx);
         }
     );
 

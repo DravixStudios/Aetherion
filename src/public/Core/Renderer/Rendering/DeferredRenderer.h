@@ -9,6 +9,7 @@
 #include "Core/Renderer/Rendering/Passes/LightingPass.h"
 #include "Core/Renderer/Rendering/Passes/SkyboxPass.h"
 #include "Core/Renderer/Rendering/Passes/TonemapPass.h"
+#include "Core/Renderer/Rendering/Passes/BentNormalPass.h"
 
 #include "Core/Renderer/Rendering/IBL/IBLGenerator.h"
 #include "Core/Renderer/CubemapUtils.h"
@@ -55,6 +56,7 @@ private:
     LightingPass m_lightingPass;
     SkyboxPass m_skyboxPass;
     TonemapPass m_tonemapPass;
+    BentNormalPass m_bentNormalPass;
 
     IBLGenerator m_iblGen;
 
