@@ -22,8 +22,7 @@ ConvertUsageToType(EBufferUsage usage){
 }
 
 VulkanRingBuffer::VulkanRingBuffer(Ref<VulkanDevice> device) 
-	: m_device(device), 
-	m_nPerFrameSize(0), m_nOffset(0) {}
+	: m_device(device), m_nOffset(0) {}
 
 VulkanRingBuffer::~VulkanRingBuffer() {
 	this->m_buffer->Unmap();
@@ -38,8 +37,13 @@ VulkanRingBuffer::~VulkanRingBuffer() {
 void 
 VulkanRingBuffer::Create(const RingBufferCreateInfo& createInfo) {
 	this->m_usage = createInfo.usage;
-	this->m_nBufferSize = createInfo.nBufferSize;
 	this->m_nFramesInFlight = createInfo.nFramesInFlight;
+
+	uint32_t nFixedSize = createInfo.nBufferSize / createInfo.nFramesInFlight;
+	nFixedSize = NextPowerOf2(nFixedSize);
+	nFixedSize = nFixedSize * createInfo.nFramesInFlight;
+
+	this->m_nBufferSize = nFixedSize;
 
 	VkPhysicalDeviceProperties devProps = this->m_device->GetPhysicalDeviceProperties();
 	uint32_t nMinAlignment = createInfo.nAlignment;
@@ -63,11 +67,11 @@ VulkanRingBuffer::Create(const RingBufferCreateInfo& createInfo) {
 
 	/* Calculate the alignment and per frame size */
 	this->m_nAlignment = std::max(createInfo.nAlignment, nMinAlignment);
-	this->m_nPerFrameSize = createInfo.nBufferSize / createInfo.nFramesInFlight;
+	this->m_nPerFrameSize = nFixedSize / createInfo.nFramesInFlight;
 
 	/* Buffer creation */
 	BufferCreateInfo bufferInfo = { };
-	bufferInfo.nSize = createInfo.nBufferSize;
+	bufferInfo.nSize = nFixedSize;
 	bufferInfo.usage = createInfo.usage;
 	bufferInfo.sharingMode = ESharingMode::EXCLUSIVE;
 	bufferInfo.type = ConvertUsageToType(createInfo.usage);
@@ -86,7 +90,7 @@ VulkanRingBuffer::Create(const RingBufferCreateInfo& createInfo) {
 	}
 
 	Logger::Debug("VulkanUniformRingBuffeer::Init: {0} Ring buffer initialized", bufferTypeName);
-	Logger::Debug("  - Total size: {0} KB", createInfo.nBufferSize / 1024);
+	Logger::Debug("  - Total size: {0} KB", nFixedSize / 1024);
 	Logger::Debug("  - Per-frame size: {0} KB", this->m_nPerFrameSize / 1024);
 	Logger::Debug("  - Alignment: {0} bytes", this->m_nAlignment);
 	Logger::Debug("  - Frames in flight: {0}", this->m_nFramesInFlight);

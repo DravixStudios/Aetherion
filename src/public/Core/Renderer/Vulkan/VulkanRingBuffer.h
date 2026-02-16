@@ -34,7 +34,6 @@ public:
 private:
 	Ref<VulkanDevice> m_device;
 
-	uint32_t m_nPerFrameSize;
 	uint32_t m_nOffset;
 
 	void* pMap;

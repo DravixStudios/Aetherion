@@ -29,8 +29,11 @@ public:
 
     Ref<GPUBuffer> GetBuffer() const { return this->m_buffer; }
 
+    uint32_t GetPerFrameSize() const { return this->m_nPerFrameSize; }
+
 protected:
     Ref<GPUBuffer> m_buffer;
+    uint32_t m_nPerFrameSize = 0;
 
     uint32_t m_nBufferSize;
     uint32_t m_nAlignment;
