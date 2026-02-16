@@ -24,6 +24,8 @@ DeferredRenderer::Init(Ref<Device> device, Ref<Swapchain> swapchain, uint32_t nF
     this->LoadSkybox();
     this->m_iblGen.Init(device, this->m_skybox, this->m_skyboxView, this->m_cubeSampler, this->m_sqVBO, this->m_sqIBO);
 
+    this->m_sunExtraction.Init(device, this->m_skybox, this->m_skyboxView, this->m_cubeSampler);
+
     /* Initialize passes */
     this->m_cullingPass.Init(device, this->m_nFramesInFlight);
 
@@ -106,6 +108,7 @@ DeferredRenderer::Render(
 
     if (!this->m_bIBLGenerated) {
         this->m_iblGen.Generate(context);
+        this->m_sunExtraction.Extract(context);
         this->m_bIBLGenerated = true;
     }
 
