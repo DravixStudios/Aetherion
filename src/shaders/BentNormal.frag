@@ -95,6 +95,7 @@ void main() {
 
     vec3 bentNormalAccum = vec3(0.0);
     float totalOcclusion = 0.0;
+    float totalWeight = 0.0;
 
     /* TBN for slice directions */ 
     vec3 basis = (abs(normalView.x) < 0.5) ? vec3(1, 0, 0) : (abs(normalView.y) < 0.5) ? vec3(0, 1, 0) : vec3(0, 0, 1);
@@ -131,7 +132,10 @@ void main() {
         sliceOcclusion *= avgFalloff;
 
         float sliceVisibility = 1.0 - sliceOcclusion;
-        totalOcclusion += sliceOcclusion;
+        totalOcclusion += sliceOcclusion * 0.8;
+        totalOcclusion += 0.2 * (totalOcclusion / max(1.0, float(slice)));
+
+        totalWeight += 1.0;
 
         /* Bent normal contribution */
         float bentAngle = (angle1 - angle2) * 0.5;
@@ -140,7 +144,7 @@ void main() {
         bentNormalAccum += bentDir * sliceVisibility;
     }
 
-    float occlusion = totalOcclusion / float(SLICE_COUNT);
+    float occlusion = totalOcclusion / totalWeight;
     float finalAO = 1.0 - occlusion;
 
     vec3 finalBentNormal;
