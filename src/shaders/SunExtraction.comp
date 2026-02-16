@@ -1,0 +1,92 @@
+#version 450
+
+layout(local_size_x = 16, local_size_y = 16) in;
+
+layout(set = 0, binding = 0) uniform samplerCube g_skybox;
+
+layout(set = 0, binding = 1) buffer SunResult {
+    vec4 sunDirection; // XYZ = Normalized direction, W = Luminance
+} sunResult;
+
+/* Shared memory for parallel reduction */
+shared vec4 sharedBest[256]; // XYZ = Normalized direction, W = Luminance
+
+/*
+    Converts a cubemap face texel into a 3D direction
+
+    Face: 0=+X, 1=-X, 2=+Y, 3=-Y, 4=+Z, 5=-Z
+*/
+vec3 CubemapTexelToDir(uint face, vec2 uv) {
+    /* Remap from [0, 1] to [-1, 1] */
+    vec2 st = uv * 2.0 - 1.0;
+
+    switch(face) {
+        case 0u: return normalize(vec3(1.0, -st.y, -st.x)); // +X
+        case 1u: return normalize(vec3(-1.0, -st.y, st.x)); // -X
+        case 2u: return normalize(vec3(st.x, 1.0, st.y)); // +Y
+        case 3u: return normalize(vec3(st.x, -1.0, -st.y)); // -Y
+        case 4u: return normalize(vec3(st.x, -st.y, 1.0)); // +Z
+        case 5u: return normalize(vec3(-st.x, -st.y, -1.0)); // -Z
+    }
+
+    return vec3(0.0);
+}
+
+void main() {
+    uint localIdx = gl_LocalInvocationIndex;
+
+    /* Each thread scans for multiple texels through the 6 faces */
+    float bestLum = 0.0;
+    vec3 bestDir = vec3(0.0, 1.0, 0.0);
+
+    /* Cubemap sample resolution */
+    const uint SAMPLE_RES = 32;
+
+    for(uint face = 0; face < 6; face++) {
+        /* Each thread takes a face slice */
+        uint totalSamples = SAMPLE_RES * SAMPLE_RES;
+
+        uint samplesPerThread = (totalSamples + 255) / 256;
+
+        uint startIdx = localIdx * samplesPerThread;
+        uint endIdx = min(startIdx + samplesPerThread, totalSamples);
+
+        for(uint i = startIdx; i < endIdx; i++) {
+            vec2 uv = vec2(
+                (float(i % SAMPLE_RES) + 0.5) / float(SAMPLE_RES),
+                (float(i / SAMPLE_RES) + 0.5) / float(SAMPLE_RES)
+            );
+
+            vec3 dir = CubemapTexelToDir(face, uv);
+            vec3 color = textureLod(g_skybox, dir, 0.0).rgb;
+
+            /* Perceptual luminance (Rec. 709) */
+            float luminance = dot(color, vec3(0.2126, 0.7152, 0.0722));
+
+            if(luminance > bestLum) {
+                bestLum = luminance;
+                bestDir = dir;
+            }
+        }
+    }
+
+    sharedBest[localIdx] = vec4(bestDir, bestLum);
+
+    barrier();
+
+    /* Parallel reduction for finding the global maximum */
+    for(uint stride = 128; stride > 0; stride >>= 1) {
+        if(localIdx < stride) {
+            if(sharedBest[localIdx + stride].w > sharedBest[localIdx].w) {
+                sharedBest[localIdx] = sharedBest[localIdx + stride]; 
+            }
+        }
+
+        barrier();
+    }
+
+    /* Thread 0 writes the final result */
+    if(localIdx == 0) {
+        sunResult.sunDirection = vec4(normalize(sharedBest[0].xyz), sharedBest[0].w);
+    }
+}
