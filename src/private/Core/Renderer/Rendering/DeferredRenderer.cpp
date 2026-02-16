@@ -419,14 +419,14 @@ DeferredRenderer::UpdateSceneDescriptors(uint32_t nImgIdx) {
     /* Binding 0: Instance data (from CullingPass) */
     DescriptorBufferInfo instanceInfo = { };
     instanceInfo.buffer = this->m_cullingPass.GetInstanceBuffer()->GetBuffer();
-    instanceInfo.nOffset = 0;
-    instanceInfo.nRange = 0; // WHOLE SIZE
+    instanceInfo.nOffset = this->m_cullingPass.GetInstanceBuffer()->GetPerFrameSize() * nImgIdx;
+    instanceInfo.nRange = this->m_cullingPass.GetInstanceBuffer()->GetPerFrameSize();
 
     /* Binding 4: WVP Data (from CullingPass) */
     DescriptorBufferInfo wvpInfo = { };
     wvpInfo.buffer = this->m_cullingPass.GetWVPBuffer()->GetBuffer();
-    wvpInfo.nOffset = 0;
-    wvpInfo.nRange = 0;
+    wvpInfo.nOffset = this->m_cullingPass.GetWVPBuffer()->GetPerFrameSize() * nImgIdx;
+    wvpInfo.nRange = this->m_cullingPass.GetWVPBuffer()->GetPerFrameSize();
     
     currentSceneSet->WriteBuffer(0, 0, instanceInfo);
     currentSceneSet->WriteBuffer(4, 0, wvpInfo);
