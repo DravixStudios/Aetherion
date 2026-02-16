@@ -276,21 +276,30 @@ CullingPass::CreateDescriptors() {
 
 	/* Writes descriptor sets */
 	Vector<DescriptorBufferInfo> bufferInfos(6);
+	
+	std::array<uint32_t, 6> frameSizes = {
+		this->m_instanceBuffer->GetPerFrameSize(), // 0
+		this->m_batchBuffer->GetPerFrameSize(), // 1
+		this->m_indirectBuffer->GetPerFrameSize(), // 2
+		0, // 3 (Is not per frame)
+		this->m_wvpBuffer->GetPerFrameSize(), // 4
+		this->m_frustumBuffer->GetPerFrameSize(), // 5
+	};
 
 	/* Binding 0: Instance data */
 	bufferInfos[0].buffer = this->m_instanceBuffer->GetBuffer();
 	bufferInfos[0].nOffset = 0;
-	bufferInfos[0].nRange = 0;
+	bufferInfos[0].nRange = this->m_instanceBuffer->GetPerFrameSize();
 
 	/* Binding 1: Batch data */
 	bufferInfos[1].buffer = this->m_batchBuffer->GetBuffer();
 	bufferInfos[1].nOffset = 0;
-	bufferInfos[1].nRange = 0;
+	bufferInfos[1].nRange = this->m_batchBuffer->GetPerFrameSize();
 
 	/* Binding 2: Output commands */
 	bufferInfos[2].buffer = this->m_indirectBuffer->GetBuffer();
 	bufferInfos[2].nOffset = 0;
-	bufferInfos[2].nRange = 0;
+	bufferInfos[2].nRange = this->m_indirectBuffer->GetPerFrameSize();
 
 	/* Binding 3: Draw count */
 	bufferInfos[3].buffer = this->m_countBuffer;
@@ -300,18 +309,21 @@ CullingPass::CreateDescriptors() {
 	/* Binding 4: WVP Buffer */
 	bufferInfos[4].buffer = this->m_wvpBuffer->GetBuffer();
 	bufferInfos[4].nOffset = 0;
-	bufferInfos[4].nRange = 0;
+	bufferInfos[4].nRange = this->m_wvpBuffer->GetPerFrameSize();
 
 	/* Binding 5: Frustum buffer */
 	bufferInfos[5].buffer = this->m_frustumBuffer->GetBuffer();
 	bufferInfos[5].nOffset = 0;
-	bufferInfos[5].nRange = 0;
+	bufferInfos[5].nRange = this->m_frustumBuffer->GetPerFrameSize();
+
 
 	for (uint32_t i = 0; i < this->m_nFramesInFlight; i++) {
 		Ref<DescriptorSet> set = this->m_cullingSets[i];
 		
 		for (uint32_t j = 0; j < 6; j++) {
-			set->WriteBuffer(j, 0, bufferInfos[j]);
+			DescriptorBufferInfo& bufferInfo = bufferInfos[j];
+			bufferInfo.nOffset = frameSizes[j] * i;
+			set->WriteBuffer(j, 0, bufferInfo);
 		}
 		set->UpdateWrites();
 	}

@@ -123,17 +123,6 @@ DeferredRenderer::Render(
     this->m_cullingPass.SetViewProj(drawData.viewProj);
 
     this->UpdateSceneDescriptors(nImgIdx);
-    this->m_gbuffPass.SetSceneData(
-        this->m_sceneSets[nImgIdx],
-        this->m_sceneSetLayout,
-        this->m_bindlessSet,
-        this->m_bindlessLayout,
-        this->m_megaBuffer.GetVertexBuffer(),
-        this->m_megaBuffer.GetIndexBuffer(),
-        0,
-        this->m_cullingPass.GetCountBuffer(),
-        this->m_cullingPass.GetIndirectBuffer()->GetBuffer()
-    );
 
     /* Import G-Buffer resources */
     this->m_gbuffPass.ImportResources(this->m_graph);
@@ -143,6 +132,19 @@ DeferredRenderer::Render(
         [&](Ref<GraphicsContext> context, RenderGraphContext& graphCtx) {
             this->m_cullingPass.Execute(context, graphCtx, nImgIdx);
         }
+    );
+    
+    this->m_gbuffPass.SetSceneData(
+        this->m_sceneSets[nImgIdx],
+        this->m_sceneSetLayout,
+        this->m_bindlessSet,
+        this->m_bindlessLayout,
+        this->m_megaBuffer.GetVertexBuffer(),
+        this->m_megaBuffer.GetIndexBuffer(),
+        0,
+        this->m_cullingPass.GetCountBuffer(),
+        this->m_cullingPass.GetIndirectBuffer(),
+        this->m_cullingPass.GetIndirectBuffer()->GetPerFrameSize() * nImgIdx
     );
 
     /* 1. G-Buffer pass (Indirect) */
