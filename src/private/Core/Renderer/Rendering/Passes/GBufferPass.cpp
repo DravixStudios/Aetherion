@@ -78,8 +78,8 @@ GBufferPass::Execute(Ref<GraphicsContext> context, RenderGraphContext& graphCtx,
 	context->BindIndexBuffer({ this->m_indexBuffer });
 
 	context->DrawIndexedIndirect(
-		this->m_indirectBuffer,
-		0,
+		this->m_indirectBuffer->GetBuffer(),
+		this->m_nIndirectOffset,
 		this->m_countBuffer,
 		0,
 		1000,
@@ -108,7 +108,8 @@ GBufferPass::SetSceneData(
 	Ref<GPUBuffer> indexBuffer,
 	uint32_t nIndexCount,
 	Ref<GPUBuffer> countBuffer,
-	Ref<GPUBuffer> indirectBuffer
+	Ref<GPURingBuffer> indirectBuffer,
+	uint32_t nIndirectOffset
 ) {
 	this->m_sceneSet = sceneSet;
 	this->m_sceneSetLayout = sceneSetLayout;
@@ -122,6 +123,8 @@ GBufferPass::SetSceneData(
 
 	this->m_countBuffer = countBuffer;
 	this->m_indirectBuffer = indirectBuffer;
+
+	this->m_nIndirectOffset = nIndirectOffset;
 
 	if (this->m_device && !this->m_pipeline) {
 		this->CreatePipeline();

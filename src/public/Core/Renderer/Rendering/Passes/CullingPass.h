@@ -1,5 +1,6 @@
 #pragma once
 #include "Core/Renderer/Rendering/Passes/BasePass.h"
+#include <array>
 
 class CullingPass : public BasePass {
 public:
@@ -20,6 +21,11 @@ public:
 
 	void SetTotalBatches(uint32_t nBatchCount) { this->m_nTotalBatches = nBatchCount; }
 	uint32_t GetTotalBatches() const { return this->m_nTotalBatches; }
+
+	Ref<Pipeline> GetPipeline() const { return this->m_pipeline; }
+	Ref<PipelineLayout> GetPipelineLayout() const { return this->m_pipelineLayout; }
+
+	Ref<DescriptorSetLayout> GetSetLayout() const { return this->m_setLayout; }
 
 	void SetViewProj(const glm::mat4& viewProj) { this->m_viewProj = viewProj; }
 private:

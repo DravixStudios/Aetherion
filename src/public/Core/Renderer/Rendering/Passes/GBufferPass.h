@@ -35,7 +35,8 @@ public:
 		Ref<GPUBuffer> indexBuffer,
 		uint32_t nIndexCount,
 		Ref<GPUBuffer> countBuffer,
-		Ref<GPUBuffer> indirectBuffer
+		Ref<GPURingBuffer> indirectBuffer,
+		uint32_t nIndirectOffset
 	);
 
 	Ref<DescriptorSet> GetReadDescriptorSet() const { return this->m_gbuffer.GetReadDescriptorSet(); }
@@ -57,7 +58,9 @@ private:
 	uint32_t m_nIndexCount = 0;
 
 	Ref<GPUBuffer> m_countBuffer;
-	Ref<GPUBuffer> m_indirectBuffer;
+	Ref<GPURingBuffer> m_indirectBuffer;
+
+	uint32_t m_nIndirectOffset = 0;
 
 	void CreatePipeline();
 };
