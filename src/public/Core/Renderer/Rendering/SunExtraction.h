@@ -19,6 +19,7 @@ public:
 	void Extract(Ref<GraphicsContext> context);
 
 	Ref<GPUBuffer> GetSunResult() const { return this->m_sunResultBuff; }
+	glm::vec4 ReadSunResult();
 private:
 	Ref<Device> m_device;
 
@@ -34,6 +35,9 @@ private:
 	Ref<Sampler> m_sampler;
 	Ref<GPUTexture> m_skybox;
 	Ref<ImageView> m_skyboxView;
+
+	glm::vec4 m_sunResult = glm::vec4(0.f, -1.f, 0.f, 1.f);
+	bool m_bBufferRead = false;
 
 	void CreateDescriptors();
 	void CreatePipeline();

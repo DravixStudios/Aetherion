@@ -42,6 +42,27 @@ SunExtraction::Extract(Ref<GraphicsContext> context) {
 }
 
 /**
+* Reads the sun result buffer
+* and converts it into a glm::vec4
+* 
+* @returns Sun result vector
+*/
+glm::vec4
+SunExtraction::ReadSunResult() {
+	if (!this->m_bBufferRead) {
+		void* pMap = this->m_sunResultBuff->Map();
+		glm::vec4 sunResult = *static_cast<glm::vec4*>(pMap);
+		this->m_sunResultBuff->Unmap();
+
+		this->m_sunResult = sunResult;
+
+		this->m_bBufferRead = true;
+	}
+
+	return this->m_sunResult;
+}
+
+/**
 * Creates sun extraction descriptors
 */
 void
