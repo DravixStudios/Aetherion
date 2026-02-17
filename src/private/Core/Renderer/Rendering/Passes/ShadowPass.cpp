@@ -279,10 +279,8 @@ ShadowPass::CalculateCascadeViewProj(
 	center /= 8.f;
 
 	/* Calculate radius of the bounding sphere */
-    float radius = 0.f;
-    for (const glm::vec3& corner : cascadeCorners) {
-        radius = std::max(radius, glm::distance(corner, center));
-    }
+	float frustumDiagonal = glm::distance(cascadeCorners[0], cascadeCorners[6]);
+	float radius = frustumDiagonal * .5f;
 	radius = std::ceil(radius * 16.f) / 16.f; // Quantize radius
 
 	/* Stable light direction and view matrix */
