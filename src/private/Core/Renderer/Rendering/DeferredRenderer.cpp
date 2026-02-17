@@ -187,13 +187,20 @@ DeferredRenderer::Render(
     this->m_graph.AddNode("ShadowPass",
         [&](RenderGraphBuilder& builder) { this->m_shadowPass.SetupNode(builder); },
         [&](Ref<GraphicsContext> context, RenderGraphContext& graphCtx) {
-            this->m_shadowPass.Execute(context, graphCtx);
+            this->m_shadowPass.Execute(context, graphCtx, nImgIdx);
         }
     );
 
     /* 3. Lighting pass (HDR) */
     this->m_lightingPass.SetInput(this->m_gbuffPass.GetOutput());
     this->m_lightingPass.SetCameraPosition(drawData.cameraPosition);
+    this->m_lightingPass.SetSunData(this->m_sunExtraction.ReadSunResult(), 1.f);
+    this->m_lightingPass.SetShadowData(
+        this->m_shadowPass.GetShadowTexture(),
+        this->m_shadowPass.GetShadowArrayView(),
+        this->m_shadowPass.GetShadowSampler(),
+        this->m_shadowPass.GetCascadeBuffer()
+    );
 
     this->m_lightingPass.SetLightData(
         this->m_iblGen.GetIrradianceView(),
@@ -211,7 +218,7 @@ DeferredRenderer::Render(
     this->m_graph.AddNode("Lighting",
         [&](RenderGraphBuilder& builder) { this->m_lightingPass.SetupNode(builder); },
         [&](Ref<GraphicsContext> context, RenderGraphContext& graphCtx) { 
-            this->m_lightingPass.Execute(context, graphCtx); 
+            this->m_lightingPass.Execute(context, graphCtx, nImgIdx); 
         }
     );
 
