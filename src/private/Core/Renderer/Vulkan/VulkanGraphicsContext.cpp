@@ -322,7 +322,7 @@ VulkanGraphicsContext::BeginRenderPass(const RenderPassBeginInfo& beginInfo) {
 			vkClear.color = { { clear.color.r, clear.color.g, clear.color.b, clear.color.a } };
 		}
 		else {
-			vkClear.depthStencil = { clear.deptStencil.depth, clear.deptStencil.stencil };
+			vkClear.depthStencil = { clear.depthStencil.depth, clear.depthStencil.stencil };
 		}
 		clearValues.push_back(vkClear);
 	}

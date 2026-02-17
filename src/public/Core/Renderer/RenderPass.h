@@ -92,12 +92,12 @@ struct ClearValue {
 
 	union {
 		ClearColor color;
-		ClearDepthStencil deptStencil;
+		ClearDepthStencil depthStencil;
 	};
 
 	ClearValue() : color() {}
 	explicit ClearValue(const ClearColor& c) : type(Type::COLOR), color(c) {}
-	explicit ClearValue(const ClearDepthStencil& ds) : type(Type::DEPTH_STENCIL), deptStencil(ds) {}
+	explicit ClearValue(const ClearDepthStencil& ds) : type(Type::DEPTH_STENCIL), depthStencil(ds) {}
 };
 
 class Framebuffer;

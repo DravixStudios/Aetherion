@@ -50,14 +50,17 @@ SunExtraction::Extract(Ref<GraphicsContext> context) {
 glm::vec4
 SunExtraction::ReadSunResult() {
 	if (!this->m_bBufferRead) {
-		void* pMap = this->m_sunResultBuff->Map();
-		glm::vec4 sunResult = *static_cast<glm::vec4*>(pMap);
-		this->m_sunResultBuff->Unmap();
-
-		this->m_sunResult = sunResult;
 
 		this->m_bBufferRead = true;
 	}
+	void* pMap = this->m_sunResultBuff->Map();
+	glm::vec4 sunResult = *static_cast<glm::vec4*>(pMap);
+	this->m_sunResultBuff->Unmap();
+
+	if (glm::length(glm::vec3(sunResult)) > 0.001f) {
+		this->m_sunResult = sunResult;
+	}
+
 
 	return this->m_sunResult;
 }

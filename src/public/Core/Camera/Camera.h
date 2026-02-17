@@ -23,6 +23,6 @@ private:
 protected:
 	Time* m_time;
 
-	glm::mat4 m_view;
-	glm::mat4 m_projection;
+	glm::mat4 m_view = glm::mat4(1.f);
+	glm::mat4 m_projection = glm::mat4(1.f);
 };
