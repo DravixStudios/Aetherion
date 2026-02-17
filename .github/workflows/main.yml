@@ -1,8 +1,7 @@
 name: CMake Preset Build
-
 on:
   pull_request:
-    branches: [master, refactor/domain-driven-design]
+    branches: [master]
 
 jobs:
   build:
@@ -15,13 +14,11 @@ jobs:
             preset: x64-debug-spdlog
           - os: windows-latest
             preset: x64-release-spdlog
-
           # Linux
           - os: ubuntu-latest
             preset: linux-debug-spdlog
           - os: ubuntu-latest
             preset: linux-release-spdlog
-
           # macOS
           - os: macos-latest
             preset: macos-debug-spdlog
@@ -34,43 +31,69 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-    
+      # ── Windows ────────────────────────────────────────────────────────────
+      - name: Cache vcpkg packages (Windows)
+        if: runner.os == 'Windows'
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/vcpkg/installed
+          key: vcpkg-windows-${{ hashFiles('**/vcpkg.json') }}
+          restore-keys: vcpkg-windows-
+
       - name: Setup vcpkg (Windows)
         if: runner.os == 'Windows'
-        uses: lukka/run-vcpkg@v11
-        with:
-          vcpkg-root: ${{ runner.temp }}/vcpkg
-          vcpkg-args: >
-            assimp
-            spdlog
-            shaderc
-            glm
-            vulkan-sdk
-            stb
-            miniz
-            tinyexr
-            spirv-cross-core
-            spirv-cross-glsl
+        shell: pwsh
+        run: |
+          git clone https://github.com/microsoft/vcpkg.git $env:RUNNER_TEMP/vcpkg
+          & "$env:RUNNER_TEMP/vcpkg/bootstrap-vcpkg.bat" -disableMetrics
+          & "$env:RUNNER_TEMP/vcpkg/vcpkg.exe" install `
+            assimp spdlog shaderc glm stb miniz tinyexr spirv-cross `
+            --triplet x64-windows
+          echo "VCPKG_ROOT=$env:RUNNER_TEMP/vcpkg" >> $env:GITHUB_ENV
+          echo "$env:RUNNER_TEMP/vcpkg" >> $env:GITHUB_PATH
+
       - name: Install Vulkan SDK (Windows)
         if: runner.os == 'Windows'
-        uses: humbletim/install-vulkan-sdk@v1
+        uses: humbletim/install-vulkan-sdk@v1.1.1
         with:
           version: latest
 
+      # ── Linux ──────────────────────────────────────────────────────────────
       - name: Install deps (Linux)
         if: runner.os == 'Linux'
         run: |
           sudo apt update
-          sudo apt install -y ninja-build libvulkan-dev \
-            assimp-dev libspdlog-dev shaderc glm-dev \
-            stb libminizip-dev libtinyexr-dev spirv-cross-tools
+          sudo apt install -y \
+            ninja-build \
+            libvulkan-dev \
+            libassimp-dev \
+            libspdlog-dev \
+            glslang-tools \
+            spirv-tools \
+            libglm-dev \
+            libstb-dev \
+            libminizip-dev \
+            libspirv-cross-c-shared-dev
+
+      # ── macOS ──────────────────────────────────────────────────────────────
       - name: Install deps (macOS)
         if: runner.os == 'macOS'
         run: |
-          brew install ninja molten-vk assimp spdlog shaderc glm stb miniz tinyexr spirv-cross
-          
+          brew install \
+            ninja \
+            molten-vk \
+            assimp \
+            spdlog \
+            shaderc \
+            glm \
+            stb \
+            miniz \
+            tinyexr \
+            spirv-cross
+
+      # ── Build ──────────────────────────────────────────────────────────────
       - name: Configure CMake
         run: cmake --preset ${{ matrix.preset }}
 
-      - name: Build CMake
+      - name: Build
         run: cmake --build --preset ${{ matrix.preset }}
