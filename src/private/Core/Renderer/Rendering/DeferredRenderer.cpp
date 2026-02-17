@@ -36,6 +36,9 @@ DeferredRenderer::Init(Ref<Device> device, Ref<Swapchain> swapchain, uint32_t nF
     this->m_bentNormalPass.SetDimensions(ext.width, ext.height);
     this->m_bentNormalPass.SetScreenQuad(this->m_sqVBO, this->m_sqIBO, 6);
 
+    this->m_shadowPass.Init(device, this->m_nFramesInFlight);
+    this->m_shadowPass.SetCullingPass(&this->m_cullingPass);
+
     this->m_lightingPass.Init(device, this->m_nFramesInFlight);
     this->m_lightingPass.SetDimensions(ext.width, ext.height);
     this->m_lightingPass.SetGBufferDescriptorSet(this->m_gbuffPass.GetReadDescriptorSet());
@@ -166,11 +169,32 @@ DeferredRenderer::Render(
         }
     );
 
-    /* 2. Lighting pass (HDR) */
+    /* 2. Shadow pass (Cascade shadow map) */
+    this->m_shadowPass.SetSunDirection(this->m_sunExtraction.ReadSunResult());
+    this->m_shadowPass.SetSceneData(
+        this->m_sceneSets[nImgIdx],
+        this->m_sceneSetLayout,
+        this->m_megaBuffer.GetVertexBuffer(),
+        this->m_megaBuffer.GetIndexBuffer()
+    );
+    this->m_shadowPass.SetCameraData(
+        drawData.view,
+        drawData.proj,
+        .1f,
+        200.f
+    );
+
+    this->m_graph.AddNode("ShadowPass",
+        [&](RenderGraphBuilder& builder) { this->m_shadowPass.SetupNode(builder); },
+        [&](Ref<GraphicsContext> context, RenderGraphContext& graphCtx) {
+            this->m_shadowPass.Execute(context, graphCtx);
+        }
+    );
+
+    /* 3. Lighting pass (HDR) */
     this->m_lightingPass.SetInput(this->m_gbuffPass.GetOutput());
     this->m_lightingPass.SetCameraPosition(drawData.cameraPosition);
-    
-    // Set light data
+
     this->m_lightingPass.SetLightData(
         this->m_iblGen.GetIrradianceView(),
         this->m_iblGen.GetPrefilterView(),
@@ -191,7 +215,7 @@ DeferredRenderer::Render(
         }
     );
 
-    /* 3. Skybox pass */
+    /* 4. Skybox pass */
     if (this->m_lightingPass.GetOutput().hdrOutput.IsValid()) {
          this->m_skyboxPass.SetInput({ this->m_gbuffPass.GetOutput().depth, this->m_lightingPass.GetOutput().hdrOutput});
 
@@ -213,7 +237,7 @@ DeferredRenderer::Render(
         );
     }
 
-    /* 4. Tonemap pass (Final LDR presentation to backbuffer) */
+    /* 5. Tonemap pass (Final LDR presentation to backbuffer) */
     this->m_tonemapPass.SetInput(this->m_lightingPass.GetOutput().hdrOutput);
     this->m_tonemapPass.SetOutput(backBuffer);
     
@@ -443,7 +467,7 @@ DeferredRenderer::LoadSkybox() {
     void* pData = nullptr;
     uint32_t nSize = 0;
     uint32_t nFaceSize = 0;
-    bool bSkyboxLoaded = LoadCubemap("cedar_bridge_2_4k.exr", &pData, nSize, nFaceSize);
+    bool bSkyboxLoaded = LoadCubemap("zwartkops_curve_afternoon_4k.exr", &pData, nSize, nFaceSize);
     if (!bSkyboxLoaded) {
         Logger::Error("DeferredRenderer::Init: Failed loading skybox");
         throw std::runtime_error("DeferredRenderer::Init Failed loading skybox");
