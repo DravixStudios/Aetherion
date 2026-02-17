@@ -105,7 +105,14 @@ float SampleShadowPCF(vec3 shadowCoord, int cascadeIdx) {
         }
     }
 
-    return shadow;
+    return shadow / 9.0;
+}
+
+vec3 WorldToShadowUV(vec3 worldPos, int cascade) {
+    vec4 shadowPos = cascades.cascadeViewProj[cascade] * vec4(worldPos, 1.0);
+    vec3 projCoords = shadowPos.xyz / shadowPos.w;
+
+    return vec3(projCoords.xy * 0.5 + 0.5, projCoords.z);
 }
 
 /*
@@ -114,27 +121,34 @@ float SampleShadowPCF(vec3 shadowCoord, int cascadeIdx) {
 
     Returns 1.0 = illuminated, 0.0 = shaded
 */
-float CalculateShadow(vec3 worldPos, float viewDepth) {
+float CalculateShadow(vec3 worldPos, vec3 normal, float viewDepth) {
     int cascade = SelectCascade(viewDepth);
 
-    /* Transform fragment position to light space */
-    vec4 shadowPos = cascades.cascadeViewProj[cascade] * vec4(worldPos, 1.0);
-    vec3 projCoords = shadowPos.xyz / shadowPos.w;
+    float blendFactor = 0.1;
 
-    /* Convert from NDC to UV */
-    projCoords.xy = projCoords.xy * 0.5 + 0.5;
+    /* Apply normal offset bias to avoid shadow acne */
+    float bias = max(0.02 * (1.0 - dot(normal, normalize(pc.sunDirection))), 0.002);
+    vec3 biasedPos = worldPos + normal * bias;
 
-    /* Out of the shadow map = illuminated */
-    if(
-        projCoords.x < 0.0 || projCoords.x > 1.0 ||
-        projCoords.y < 0.0 || projCoords.y > 1.0 ||
-        projCoords.z > 1.0
-    ) {
-        return 1.0;
+    /* Get the shadow of the cascade */
+    float shadow = SampleShadowPCF(WorldToShadowUV(biasedPos, cascade), cascade);
+
+    /* 
+        Cascade blending 
+        Calculate how much is left to
+        arrive the end of the actual cascade
+    */
+    float nextSplit = cascades.cascadeSplits[cascade];
+    float fadeRange = nextSplit * blendFactor;
+
+    float fade = clamp((viewDepth - (nextSplit - fadeRange)) / fadeRange, 0.0, 1.0);
+
+    if(fade > 0.0 && cascade < 3) {
+        float nextShadow = SampleShadowPCF(WorldToShadowUV(biasedPos, cascade + 1), cascade + 1);
+        shadow = mix(shadow, nextShadow, fade);
     }
 
-    return SampleShadowPCF(projCoords, cascade);
-
+    return shadow;
 }
 
 void main() {
@@ -184,7 +198,7 @@ void main() {
 
         /* Calculate view-space depth for selecting the cascade */
         float viewDepth = length(correctedCameraPos - position);
-        float shadow = CalculateShadow(position, viewDepth);
+        float shadow = CalculateShadow(position, N, viewDepth);
 
         /* Sun radiance (color * intensity * shadow) */
         vec3 sunRadiance = vec3(1.0) * pc.sunIntensity;
