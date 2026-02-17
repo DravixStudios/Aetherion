@@ -71,6 +71,28 @@ ShadowPass::Execute(Ref<GraphicsContext> context, RenderGraphContext& graphCtx, 
 
 	this->CalculateCascadeSplits();
 
+	struct CascadeShaderData {
+		glm::mat4 cascadeViewProj[CSM_CASCADE_COUNT];
+		glm::vec4 cascadeSplits; /* x=split0, y=split1, z=split2, w=split3 */
+	} shaderData;
+
+	for (uint32_t i = 0; i < CSM_CASCADE_COUNT; i++) {
+		shaderData.cascadeViewProj[i] = this->m_cascades[i].viewProj;
+	}
+
+	shaderData.cascadeSplits = glm::vec4(
+		this->m_cascades[0].splitDepth,
+		this->m_cascades[1].splitDepth,
+		this->m_cascades[2].splitDepth,
+		this->m_cascades[3].splitDepth
+	);
+
+	this->m_cascadeBuff->Reset(nFrameIdx);
+
+	uint32_t nOffset = 0;
+	void* pData = this->m_cascadeBuff->Allocate(sizeof(shaderData), nOffset);
+	memcpy(pData, &shaderData, sizeof(shaderData));
+
 	struct ShadowPushConstants {
 		glm::mat4 lightViewProj;
 		uint32_t nWvpAlignment;
@@ -429,6 +451,25 @@ ShadowPass::CreateShadowResources() {
 		
 		this->m_cascadeFramebuffers[i] = this->m_device->CreateFramebuffer(fbInfo);
 	}
+
+	uint32_t nUBOSize = sizeof(glm::mat4) * CSM_CASCADE_COUNT + sizeof(glm::mat4);
+	uint32_t nAlignedSize = NextPowerOf2(nUBOSize);
+
+	/*
+		Cascade data UBO
+		
+		CascadeData {
+			mat4 cascadeViewProj[4];
+			vec4 cascadeSplits;
+		}
+	*/
+	RingBufferCreateInfo uboInfo = { };
+	uboInfo.nAlignment = nAlignedSize;
+	uboInfo.nBufferSize = nAlignedSize * this->m_nFramesInFlight;
+	uboInfo.nFramesInFlight = this->m_nFramesInFlight;
+	uboInfo.usage = EBufferUsage::UNIFORM_BUFFER;
+
+	this->m_cascadeBuff = this->m_device->CreateRingBuffer(uboInfo);
 
 	this->m_bResourcesCreated = true;
 }

@@ -36,6 +36,8 @@ public:
 	* Sets the reference to the main CullingPass
 	* for reusing its batch/instance/WVP buffers
 	* and the culling compute pipeline
+	* 
+	* @param pCullingPass Pointer to culling pass
 	*/
 	void SetCullingPass(CullingPass* pCullingPass) { this->m_pCullingPass = pCullingPass; }
 
@@ -52,6 +54,8 @@ public:
 	Ref<GPUTexture> GetShadowTexture() const { return this->m_shadowArray; }
 	Ref<ImageView> GetShadowArrayView() const { return this->m_shadowArrayView; }
 	Ref<Sampler> GetShadowSampler() const { return this->m_shadowSampler; }
+
+	Ref<GPURingBuffer> GetCascadeBuffer() const { return this->m_cascadeBuff; }
 
 	const std::array<CascadeData, CSM_CASCADE_COUNT>& GetCascades() const { return this->m_cascades; }
 
