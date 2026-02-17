@@ -32,7 +32,7 @@ jobs:
         uses: actions/checkout@v4
 
       # ── Windows ────────────────────────────────────────────────────────────
-      - name: Cache vcpkg packages (Windows)
+      - name: Cache vcpkg installed (Windows)
         if: runner.os == 'Windows'
         uses: actions/cache@v4
         with:
@@ -46,9 +46,6 @@ jobs:
         run: |
           git clone https://github.com/microsoft/vcpkg.git $env:RUNNER_TEMP/vcpkg
           & "$env:RUNNER_TEMP/vcpkg/bootstrap-vcpkg.bat" -disableMetrics
-          & "$env:RUNNER_TEMP/vcpkg/vcpkg.exe" install `
-            assimp spdlog shaderc glm stb miniz tinyexr spirv-cross `
-            --triplet x64-windows
           echo "VCPKG_ROOT=$env:RUNNER_TEMP/vcpkg" >> $env:GITHUB_ENV
           echo "$env:RUNNER_TEMP/vcpkg" >> $env:GITHUB_PATH
 
