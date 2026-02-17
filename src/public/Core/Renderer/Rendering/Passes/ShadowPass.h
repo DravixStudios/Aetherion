@@ -74,7 +74,7 @@ private:
 	glm::mat4 m_cameraView = glm::mat4(1.f);
 	glm::mat4 m_cameraProj = glm::mat4(1.f);
 
-	float m_nearPlane = .1f;
+	float m_nearPlane = 1.f;
 	float m_farPlane = 100.f;
 
 	CullingPass* m_pCullingPass = nullptr;
