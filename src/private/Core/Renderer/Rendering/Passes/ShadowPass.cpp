@@ -377,9 +377,9 @@ ShadowPass::CreateShadowResources() {
 	samplerInfo.minFilter = EFilter::LINEAR;
 	samplerInfo.magFilter = EFilter::LINEAR;
 	samplerInfo.mipmapMode = EMipmapMode::MIPMAP_MODE_NEAREST;
-	samplerInfo.addressModeU = EAddressMode::CLAMP_TO_BORDER;
-	samplerInfo.addressModeV = EAddressMode::CLAMP_TO_BORDER;
-	samplerInfo.addressModeW = EAddressMode::CLAMP_TO_BORDER;
+	samplerInfo.addressModeU = EAddressMode::REPEAT;
+	samplerInfo.addressModeV = EAddressMode::REPEAT;
+	samplerInfo.addressModeW = EAddressMode::REPEAT;
 	samplerInfo.borderColor = EBorderColor::FLOAT_OPAQUE_WHITE;
 	samplerInfo.bCompareEnable = true;
 	samplerInfo.compareOp = ECompareOp::LESS_OR_EQUAL;
