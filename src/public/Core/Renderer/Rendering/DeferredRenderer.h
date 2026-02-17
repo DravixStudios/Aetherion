@@ -6,6 +6,7 @@
 #include "Core/Renderer/Rendering/GBuffer/GBufferManager.h"
 #include "Core/Renderer/Rendering/Passes/CullingPass.h"
 #include "Core/Renderer/Rendering/Passes/GBufferPass.h"
+#include "Core/Renderer/Rendering/Passes/ShadowPass.h"
 #include "Core/Renderer/Rendering/Passes/LightingPass.h"
 #include "Core/Renderer/Rendering/Passes/SkyboxPass.h"
 #include "Core/Renderer/Rendering/Passes/TonemapPass.h"
@@ -53,7 +54,7 @@ private:
     CullingPass m_cullingPass;
     
     GBufferPass m_gbuffPass;
-
+    ShadowPass m_shadowPass;
     LightingPass m_lightingPass;
     SkyboxPass m_skyboxPass;
     TonemapPass m_tonemapPass;
