@@ -21,7 +21,7 @@ public:
 	void Resize(uint32_t nWidth, uint32_t nHeight);
 	void SetupNode(RenderGraphBuilder& builder) override;
 
-	void Execute(Ref<GraphicsContext> context, RenderGraphContext& ctx, uint32_t nFrameIdx) override;
+	void Execute(Ref<GraphicsContext> context, RenderGraphContext& graphCtx, uint32_t nFrameIdx = 0) override;
 
 	void SetSunDirection(const glm::vec3& dir) { this->m_sunDirection = dir; }
 
@@ -68,7 +68,7 @@ private:
 	glm::vec3 m_sunDirection = glm::vec3(0.f, -1.f, 0.f);
 
 	glm::mat4 m_cameraView = glm::mat4(1.f);
-	glm::mat4 cameraProj = glm::mat4(1.f);
+	glm::mat4 m_cameraProj = glm::mat4(1.f);
 
 	float m_nearPlane = .1f;
 	float m_farPlane = 100.f;
@@ -87,14 +87,14 @@ private:
 	Ref<RenderPass> m_shadowRenderPass;
 
 	/* Per-cascade GPU Culling */
-	std::array<Ref<GPUBuffer>, CSM_CASCADE_COUNT> m_shadowIndirectBuffers;
+	std::array<Ref<GPURingBuffer>, CSM_CASCADE_COUNT> m_shadowIndirectBuffers;
 	std::array<Ref<GPUBuffer>, CSM_CASCADE_COUNT> m_shadowCountBuffers;
 
 	/* Frustum ring buffer for the cascades */
 	Ref<GPURingBuffer> m_shadowFrustumBuffer;
 
 	/* Culling descriptors (reusing same layout as CullingPass) */
-	Vector<Ref<DescriptorSet>> m_shadowCullingSets;
+	Vector<Vector<Ref<DescriptorSet>>> m_shadowCullingSets;
 	Ref<DescriptorPool> m_shadowCullingPool;
 
 	/* Draw data */
