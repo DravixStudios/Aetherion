@@ -24,17 +24,26 @@ DeferredRenderer::Init(Ref<Device> device, Ref<Swapchain> swapchain, uint32_t nF
     this->LoadSkybox();
     this->m_iblGen.Init(device, this->m_skybox, this->m_skyboxView, this->m_cubeSampler, this->m_sqVBO, this->m_sqIBO);
 
+    this->m_sunExtraction.Init(device, this->m_skybox, this->m_skyboxView, this->m_cubeSampler);
+
     /* Initialize passes */
     this->m_cullingPass.Init(device, this->m_nFramesInFlight);
 
     this->m_gbuffPass.Init(device);
     this->m_gbuffPass.Resize(ext.width, ext.height);
 
+    this->m_bentNormalPass.Init(device, this->m_nFramesInFlight);
+    this->m_bentNormalPass.SetDimensions(ext.width, ext.height);
+    this->m_bentNormalPass.SetScreenQuad(this->m_sqVBO, this->m_sqIBO, 6);
+
+    this->m_shadowPass.Init(device, this->m_nFramesInFlight);
+    this->m_shadowPass.SetCullingPass(&this->m_cullingPass);
+
     this->m_lightingPass.Init(device, this->m_nFramesInFlight);
     this->m_lightingPass.SetDimensions(ext.width, ext.height);
     this->m_lightingPass.SetGBufferDescriptorSet(this->m_gbuffPass.GetReadDescriptorSet());
 
-    this->m_skyboxPass.Init(device);
+    this->m_skyboxPass.Init(device, this->m_nFramesInFlight);
     this->m_skyboxPass.SetDimensions(ext.width, ext.height);
 
     this->m_tonemapPass.Init(device, swapchain, this->m_nFramesInFlight);
@@ -69,6 +78,7 @@ DeferredRenderer::Resize(uint32_t nWidth, uint32_t nHeight) {
     this->m_lightingPass.SetDimensions(nWidth, nHeight);
     this->m_skyboxPass.SetDimensions(nWidth, nHeight);
     this->m_tonemapPass.SetDimensions(nWidth, nHeight);
+    this->m_bentNormalPass.SetDimensions(nWidth, nHeight);
 
     this->m_lightingPass.SetGBufferDescriptorSet(this->m_gbuffPass.GetReadDescriptorSet());
     this->UpdateSkyboxDescriptor();
@@ -101,6 +111,7 @@ DeferredRenderer::Render(
 
     if (!this->m_bIBLGenerated) {
         this->m_iblGen.Generate(context);
+        this->m_sunExtraction.Extract(context);
         this->m_bIBLGenerated = true;
     }
 
@@ -115,17 +126,6 @@ DeferredRenderer::Render(
     this->m_cullingPass.SetViewProj(drawData.viewProj);
 
     this->UpdateSceneDescriptors(nImgIdx);
-    this->m_gbuffPass.SetSceneData(
-        this->m_sceneSets[nImgIdx],
-        this->m_sceneSetLayout,
-        this->m_bindlessSet,
-        this->m_bindlessLayout,
-        this->m_megaBuffer.GetVertexBuffer(),
-        this->m_megaBuffer.GetIndexBuffer(),
-        0,
-        this->m_cullingPass.GetCountBuffer(),
-        this->m_cullingPass.GetIndirectBuffer()->GetBuffer()
-    );
 
     /* Import G-Buffer resources */
     this->m_gbuffPass.ImportResources(this->m_graph);
@@ -136,6 +136,19 @@ DeferredRenderer::Render(
             this->m_cullingPass.Execute(context, graphCtx, nImgIdx);
         }
     );
+    
+    this->m_gbuffPass.SetSceneData(
+        this->m_sceneSets[nImgIdx],
+        this->m_sceneSetLayout,
+        this->m_bindlessSet,
+        this->m_bindlessLayout,
+        this->m_megaBuffer.GetVertexBuffer(),
+        this->m_megaBuffer.GetIndexBuffer(),
+        0,
+        this->m_cullingPass.GetCountBuffer(),
+        this->m_cullingPass.GetIndirectBuffer(),
+        this->m_cullingPass.GetIndirectBuffer()->GetPerFrameSize() * nImgIdx
+    );
 
     /* 1. G-Buffer pass (Indirect) */
     this->m_graph.AddNode("GBuffer",
@@ -145,11 +158,50 @@ DeferredRenderer::Render(
         }
     );
 
-    /* 2. Lighting pass (HDR) */
+    /* 1.5. Bent normal pass */
+    this->m_bentNormalPass.SetInput(this->m_gbuffPass.GetOutput().normal, this->m_gbuffPass.GetOutput().depth);
+    this->m_bentNormalPass.SetOutput(this->m_gbuffPass.GetOutput().bentNormal);
+    this->m_bentNormalPass.SetCameraData(drawData.view, drawData.proj);
+    this->m_graph.AddNode("BentNormalPass", 
+        [&](RenderGraphBuilder& builder) { this->m_bentNormalPass.SetupNode(builder); },
+        [&](Ref<GraphicsContext> context, RenderGraphContext& graphCtx) {
+            this->m_bentNormalPass.Execute(context, graphCtx, nImgIdx);
+        }
+    );
+
+    /* 2. Shadow pass (Cascade shadow map) */
+    this->m_shadowPass.SetSunDirection(this->m_sunExtraction.ReadSunResult());
+    this->m_shadowPass.SetSceneData(
+        this->m_sceneSets[nImgIdx],
+        this->m_sceneSetLayout,
+        this->m_megaBuffer.GetVertexBuffer(),
+        this->m_megaBuffer.GetIndexBuffer()
+    );
+    this->m_shadowPass.SetCameraData(
+        drawData.view,
+        drawData.proj,
+        .1f,
+        200.f
+    );
+
+    this->m_graph.AddNode("ShadowPass",
+        [&](RenderGraphBuilder& builder) { this->m_shadowPass.SetupNode(builder); },
+        [&](Ref<GraphicsContext> context, RenderGraphContext& graphCtx) {
+            this->m_shadowPass.Execute(context, graphCtx, nImgIdx);
+        }
+    );
+
+    /* 3. Lighting pass (HDR) */
     this->m_lightingPass.SetInput(this->m_gbuffPass.GetOutput());
     this->m_lightingPass.SetCameraPosition(drawData.cameraPosition);
-    
-    // Set light data
+    this->m_lightingPass.SetSunData(this->m_sunExtraction.ReadSunResult(), 9.f);
+    this->m_lightingPass.SetShadowData(
+        this->m_shadowPass.GetShadowTexture(),
+        this->m_shadowPass.GetShadowArrayView(),
+        this->m_shadowPass.GetShadowSampler(),
+        this->m_shadowPass.GetCascadeBuffer()
+    );
+
     this->m_lightingPass.SetLightData(
         this->m_iblGen.GetIrradianceView(),
         this->m_iblGen.GetPrefilterView(),
@@ -166,11 +218,11 @@ DeferredRenderer::Render(
     this->m_graph.AddNode("Lighting",
         [&](RenderGraphBuilder& builder) { this->m_lightingPass.SetupNode(builder); },
         [&](Ref<GraphicsContext> context, RenderGraphContext& graphCtx) { 
-            this->m_lightingPass.Execute(context, graphCtx); 
+            this->m_lightingPass.Execute(context, graphCtx, nImgIdx); 
         }
     );
 
-    /* 3. Skybox pass */
+    /* 4. Skybox pass */
     if (this->m_lightingPass.GetOutput().hdrOutput.IsValid()) {
          this->m_skyboxPass.SetInput({ this->m_gbuffPass.GetOutput().depth, this->m_lightingPass.GetOutput().hdrOutput});
 
@@ -192,7 +244,7 @@ DeferredRenderer::Render(
         );
     }
 
-    /* 4. Tonemap pass (Final LDR presentation to backbuffer) */
+    /* 5. Tonemap pass (Final LDR presentation to backbuffer) */
     this->m_tonemapPass.SetInput(this->m_lightingPass.GetOutput().hdrOutput);
     this->m_tonemapPass.SetOutput(backBuffer);
     
@@ -400,14 +452,14 @@ DeferredRenderer::UpdateSceneDescriptors(uint32_t nImgIdx) {
     /* Binding 0: Instance data (from CullingPass) */
     DescriptorBufferInfo instanceInfo = { };
     instanceInfo.buffer = this->m_cullingPass.GetInstanceBuffer()->GetBuffer();
-    instanceInfo.nOffset = 0;
-    instanceInfo.nRange = 0; // WHOLE SIZE
+    instanceInfo.nOffset = this->m_cullingPass.GetInstanceBuffer()->GetPerFrameSize() * nImgIdx;
+    instanceInfo.nRange = this->m_cullingPass.GetInstanceBuffer()->GetPerFrameSize();
 
     /* Binding 4: WVP Data (from CullingPass) */
     DescriptorBufferInfo wvpInfo = { };
     wvpInfo.buffer = this->m_cullingPass.GetWVPBuffer()->GetBuffer();
-    wvpInfo.nOffset = 0;
-    wvpInfo.nRange = 0;
+    wvpInfo.nOffset = this->m_cullingPass.GetWVPBuffer()->GetPerFrameSize() * nImgIdx;
+    wvpInfo.nRange = this->m_cullingPass.GetWVPBuffer()->GetPerFrameSize();
     
     currentSceneSet->WriteBuffer(0, 0, instanceInfo);
     currentSceneSet->WriteBuffer(4, 0, wvpInfo);
@@ -422,7 +474,7 @@ DeferredRenderer::LoadSkybox() {
     void* pData = nullptr;
     uint32_t nSize = 0;
     uint32_t nFaceSize = 0;
-    bool bSkyboxLoaded = LoadCubemap("cedar_bridge_2_4k.exr", &pData, nSize, nFaceSize);
+    bool bSkyboxLoaded = LoadCubemap("zwartkops_curve_afternoon_4k.exr", &pData, nSize, nFaceSize);
     if (!bSkyboxLoaded) {
         Logger::Error("DeferredRenderer::Init: Failed loading skybox");
         throw std::runtime_error("DeferredRenderer::Init Failed loading skybox");

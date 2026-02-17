@@ -49,7 +49,7 @@ TonemapPass::SetupNode(RenderGraphBuilder& builder) {
 */
 void 
 TonemapPass::Execute(Ref<GraphicsContext> context, RenderGraphContext& graphCtx, uint32_t nFrameIndex) {
-	/* Get the actual view for the input texture (it might be transient) */
+	/* Get the actual view for the input texture */
 	Ref<ImageView> inputView = graphCtx.GetImageView(this->m_input);
 	
 	/* Update descriptor set with the current view */

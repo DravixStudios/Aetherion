@@ -322,7 +322,7 @@ VulkanGraphicsContext::BeginRenderPass(const RenderPassBeginInfo& beginInfo) {
 			vkClear.color = { { clear.color.r, clear.color.g, clear.color.b, clear.color.a } };
 		}
 		else {
-			vkClear.depthStencil = { clear.deptStencil.depth, clear.deptStencil.stencil };
+			vkClear.depthStencil = { clear.depthStencil.depth, clear.depthStencil.stencil };
 		}
 		clearValues.push_back(vkClear);
 	}
@@ -442,7 +442,14 @@ VulkanGraphicsContext::ImageBarrier(
 	barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 	barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 	barrier.image = vkImage;
-	barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+
+	/* Determine aspect mask based on layout */
+	if (oldLayout == EImageLayout::DEPTH_STENCIL_ATTACHMENT || newLayout == EImageLayout::DEPTH_STENCIL_ATTACHMENT) {
+		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+	} else {
+		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	}
+
 	barrier.subresourceRange.baseMipLevel = nBaseMipLevel;
 	barrier.subresourceRange.levelCount = 1;
 	barrier.subresourceRange.baseArrayLayer = nBaseArrayLayer;
@@ -461,6 +468,9 @@ VulkanGraphicsContext::ImageBarrier(
 	} else if (oldLayout == EImageLayout::TRANSFER_DST) {
 		barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 		srcStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+	} else if (oldLayout == EImageLayout::DEPTH_STENCIL_ATTACHMENT) {
+		barrier.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+		srcStage = VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
 	}
 
 	if (newLayout == EImageLayout::SHADER_READ_ONLY) {

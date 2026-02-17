@@ -25,6 +25,8 @@ LightingPass::SetupNode(RenderGraphBuilder& builder) {
 	builder.ReadTexture(this->m_input.emissive);
 	builder.ReadTexture(this->m_input.position);
 
+	builder.SetDimensions(this->m_nWidth, this->m_nHeight);
+
 	TextureDesc texDesc = { };
 	texDesc.format = GPUFormat::RGBA16_FLOAT;
 	texDesc.nWidth = this->m_nWidth;
@@ -47,10 +49,30 @@ LightingPass::Execute(Ref<GraphicsContext> context, RenderGraphContext& graphCtx
 	Viewport vp { 0.f, 0.f, static_cast<float>(this->m_nWidth), static_cast<float>(this->m_nHeight), 0.f, 1.f };
 	context->SetViewport(vp);
 	context->SetScissor({ { 0, 0 }, { this->m_nWidth, this->m_nHeight } });
-	
-	context->PushConstants(this->m_pipelineLayout, EShaderStage::FRAGMENT, 0, sizeof(glm::vec3), &this->m_cameraPosition);
 
-	context->BindDescriptorSets(0, { this->m_gbufferSet, this->m_lightSet });
+	/* Push constants */
+	LightingPushConstants pushData = { };
+	pushData.cameraPosition = glm::vec4(this->m_cameraPosition, 1.f);
+	pushData.sunDirection = this->m_sunDirection;
+	pushData.sunIntensity = this->m_sunIntensity;
+
+	context->PushConstants(
+		this->m_pipelineLayout, 
+		EShaderStage::FRAGMENT, 
+		0, 
+		sizeof(LightingPushConstants),
+		&pushData
+	);
+
+	/* Bind descriptor sets */
+	context->BindDescriptorSets(0, { 
+		this->m_gbufferSet,
+		this->m_lightSet
+	});
+	context->BindDescriptorSets(2, {
+		this->m_shadowSet
+	}, { this->m_cascadeBuff->GetPerFrameSize() * nFrameIndex });
+
 	context->BindVertexBuffers({ this->m_vertexBuffer });
 
 	context->BindIndexBuffer(this->m_indexBuffer);
@@ -117,6 +139,39 @@ LightingPass::SetCameraPosition(const glm::vec3& position) {
 }
 
 /**
+* Set lighting pass shadow data
+* 
+* @param shadowArray Shadow array image
+* @param shadowArrayView Shadow array view
+* @param shadowSampler Shadow sampler
+* @param cascadeBuff Cascade data UBO Ring buffer
+*/
+void
+LightingPass::SetShadowData(
+	Ref<GPUTexture> shadowArray,
+	Ref<ImageView> shadowArrayView, 
+	Ref<Sampler> shadowSampler, 
+	Ref<GPURingBuffer> cascadeBuff
+) {
+	this->m_shadowArray = shadowArray;
+	this->m_shadowArrayView = shadowArrayView;
+	this->m_shadowSampler = shadowSampler;
+	this->m_cascadeBuff = cascadeBuff;
+}
+
+/**
+* Set sun data
+* 
+* @param sunDirection Sun direction
+* @param sunIntensity Intensity of the sun
+*/
+void 
+LightingPass::SetSunData(const glm::vec3& sunDirection, float sunIntensity) {
+	this->m_sunDirection = sunDirection;
+	this->m_sunIntensity = sunIntensity;
+}
+
+/**
 * Creates lighting descriptor sets
 */
 void 
@@ -176,17 +231,73 @@ LightingPass::CreateDescriptorSet() {
 
 	this->m_lightSet->UpdateWrites();
 
+	this->CreateShadowDescriptors();
 	this->CreatePipeline();
+}
+
+/**
+* Create shadow descriptors
+*/
+void 
+LightingPass::CreateShadowDescriptors() {
+	/* Create descriptor set layout */
+	Vector<DescriptorSetLayoutBinding> bindings(2);
+	bindings[0].nBinding = 0;
+	bindings[0].descriptorType = EDescriptorType::COMBINED_IMAGE_SAMPLER;
+	bindings[0].nDescriptorCount = 1;
+	bindings[0].stageFlags = EShaderStage::FRAGMENT;
+
+	bindings[1].nBinding = 1;
+	bindings[1].descriptorType = EDescriptorType::UNIFORM_BUFFER_DYNAMIC;
+	bindings[1].nDescriptorCount = 1;
+	bindings[1].stageFlags = EShaderStage::FRAGMENT;
+
+	DescriptorSetLayoutCreateInfo layoutInfo = { };
+	layoutInfo.bindings = bindings;
+
+	this->m_shadowSetLayout = this->m_device->CreateDescriptorSetLayout(layoutInfo);
+
+	/* Create descriptor pool */
+	Vector<DescriptorPoolSize> poolSizes(2);
+	poolSizes[0].nDescriptorCount = 1;
+	poolSizes[0].type = EDescriptorType::COMBINED_IMAGE_SAMPLER;
+
+	poolSizes[1].nDescriptorCount = 1;
+	poolSizes[1].type = EDescriptorType::UNIFORM_BUFFER_DYNAMIC;
+
+	DescriptorPoolCreateInfo poolInfo = { };
+	poolInfo.nMaxSets = 1;
+	poolInfo.poolSizes = poolSizes;
+
+	this->m_shadowPool = this->m_device->CreateDescriptorPool(poolInfo);
+
+	/* Create descriptor set */
+	this->m_shadowSet = this->m_device->CreateDescriptorSet(this->m_shadowPool, this->m_shadowSetLayout);
+	
+	/* Update descriptor sets */
+	DescriptorImageInfo imageInfo = { };
+	imageInfo.texture = this->m_shadowArray;
+	imageInfo.imageView = this->m_shadowArrayView;
+	imageInfo.sampler = this->m_shadowSampler;
+
+	DescriptorBufferInfo bufferInfo = { };
+	bufferInfo.buffer = this->m_cascadeBuff->GetBuffer();
+	bufferInfo.nOffset = 0;
+	bufferInfo.nRange = this->m_cascadeBuff->GetPerFrameSize();
+
+	this->m_shadowSet->WriteTexture(0, 0, imageInfo);
+	this->m_shadowSet->WriteBuffer(1, 0, bufferInfo);
+	this->m_shadowSet->UpdateWrites();
 }
 
 void
 LightingPass::CreatePipeline() {
 	PushConstantRange pushRange = { };
-	pushRange.nSize = sizeof(glm::vec3);
+	pushRange.nSize = sizeof(LightingPushConstants);
 	pushRange.stage = EShaderStage::FRAGMENT;
 
 	PipelineLayoutCreateInfo plInfo = { };
-	plInfo.setLayouts = { this->m_gbufferSet->GetLayout(), this->m_lightSetLayout };
+	plInfo.setLayouts = { this->m_gbufferSet->GetLayout(), this->m_lightSetLayout, this->m_shadowSetLayout };
 	plInfo.pushConstantRanges = { pushRange };
 
 	this->m_pipelineLayout = this->m_device->CreatePipelineLayout(plInfo);

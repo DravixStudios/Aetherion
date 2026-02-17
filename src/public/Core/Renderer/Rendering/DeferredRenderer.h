@@ -6,9 +6,12 @@
 #include "Core/Renderer/Rendering/GBuffer/GBufferManager.h"
 #include "Core/Renderer/Rendering/Passes/CullingPass.h"
 #include "Core/Renderer/Rendering/Passes/GBufferPass.h"
+#include "Core/Renderer/Rendering/Passes/ShadowPass.h"
 #include "Core/Renderer/Rendering/Passes/LightingPass.h"
 #include "Core/Renderer/Rendering/Passes/SkyboxPass.h"
 #include "Core/Renderer/Rendering/Passes/TonemapPass.h"
+#include "Core/Renderer/Rendering/Passes/BentNormalPass.h"
+#include "Core/Renderer/Rendering/SunExtraction.h"
 
 #include "Core/Renderer/Rendering/IBL/IBLGenerator.h"
 #include "Core/Renderer/CubemapUtils.h"
@@ -51,12 +54,14 @@ private:
     CullingPass m_cullingPass;
     
     GBufferPass m_gbuffPass;
-
+    ShadowPass m_shadowPass;
     LightingPass m_lightingPass;
     SkyboxPass m_skyboxPass;
     TonemapPass m_tonemapPass;
+    BentNormalPass m_bentNormalPass;
 
     IBLGenerator m_iblGen;
+    SunExtraction m_sunExtraction;
 
     Ref<GPUBuffer> m_indirectBuffer;
     Ref<GPUBuffer> m_countBuffer;
