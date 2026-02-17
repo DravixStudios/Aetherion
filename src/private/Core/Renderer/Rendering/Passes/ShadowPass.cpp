@@ -60,13 +60,6 @@ ShadowPass::SetupNode(RenderGraphBuilder& builder) {
 */
 void 
 ShadowPass::Execute(Ref<GraphicsContext> context, RenderGraphContext& graphCtx, uint32_t nFrameIdx) {
-	if (!this->m_bResourcesCreated) {
-		this->CreateShadowResources();
-		this->CreateCullingResources();
-	}
-
-	if (!this->m_pipeline) this->CreatePipeline();
-
 	this->m_shadowFrustumBuffer->Reset(nFrameIdx);
 
 	this->CalculateCascadeSplits();
@@ -154,6 +147,8 @@ ShadowPass::Execute(Ref<GraphicsContext> context, RenderGraphContext& graphCtx, 
 
 		context->EndRenderPass();
 	}
+
+	context->GlobalBarrier();
 }
 
 void
@@ -180,6 +175,12 @@ ShadowPass::SetSceneData(
 	this->m_sceneSetLayout = sceneSetLayout;
 	this->m_VBO = vertexBuffer;
 	this->m_IBO = indexBuffer;
+
+	if(!this->m_bResourcesCreated) {
+		this->CreateShadowResources();
+		this->CreateCullingResources();
+		this->CreatePipeline();
+	}
 }
 
 /**
@@ -204,7 +205,7 @@ ShadowPass::CalculateCascadeSplits() {
 
 		float logSplit = this->m_nearPlane * std::pow(this->m_farPlane / this->m_nearPlane, p);
 
-		float uniformSplit = this->m_nearPlane * (this->m_farPlane - this->m_nearPlane) * p;
+		float uniformSplit = this->m_nearPlane + (this->m_farPlane - this->m_nearPlane) * p;
 
 		splits[i] = lambda * logSplit + (1.f - lambda) * uniformSplit;
 	}
@@ -216,11 +217,14 @@ ShadowPass::CalculateCascadeSplits() {
 }
 
 /**
-* Calculates cascade view projection
-*	Steps:
-*	- Construct the cascade frustum in world space
-*	- Calculate the frustum AABB from the light perspective
-*	- Construct light orthographic view projection
+* Calculates the stable view-projection matrix for a shadow cascade.
+*
+* Steps:
+* - Construct the cascade sub-frustum in world space.
+* - Compute the bounding sphere (center and radius) enclosing the sub-frustum.
+* - Construct a light view matrix looking at the sphere center from the sun direction.
+* - Create a rotation-invariant orthographic projection centered on the sphere.
+* - Apply texel snapping to the projection matrix to eliminate shimmering during translation.
 * 
 * @param nCascadeIdx Cascade index
 * @param nearSplit Near split
@@ -257,16 +261,9 @@ ShadowPass::CalculateCascadeViewProj(
 		worldCorners[i] = glm::vec3(w) / w.w;
 	}
 
-	/*
-		Interpolate between near/far for getting
-		this cascade sub-section. nearRatio and
-		farRatio are the portion of the total
-		frustum that covers this cascade
-	*/
 	float nearRatio = (nearSplit - this->m_nearPlane) / (this->m_farPlane - this->m_nearPlane);
 	float farRatio = (farSplit - this->m_nearPlane) / (this->m_farPlane - this->m_nearPlane);
 
-	/* Interpolate the 8 corners for getting the sub-frustum of the cascade */
 	glm::vec3 cascadeCorners[8];
 	for (uint32_t i = 0; i < 4; i++) {
 		glm::vec3 ray = worldCorners[i + 4] - worldCorners[i];
@@ -274,51 +271,32 @@ ShadowPass::CalculateCascadeViewProj(
 		cascadeCorners[i + 4] = worldCorners[i] + ray * farRatio;
 	}
 
-	/* Calculate the center of the cascade frustum */
+	/* Use the center of the bounding sphere for maximum stability */
 	glm::vec3 center(0.f);
 	for (const glm::vec3& corner : cascadeCorners) {
 		center += corner;
 	}
-
 	center /= 8.f;
 
-	/* Construct light view matrix looking from the sun direction */
+	/* Calculate radius of the bounding sphere */
+    float radius = 0.f;
+    for (const glm::vec3& corner : cascadeCorners) {
+        radius = std::max(radius, glm::distance(corner, center));
+    }
+	radius = std::ceil(radius * 16.f) / 16.f; // Quantize radius
+
+	/* Stable light direction and view matrix */
 	glm::vec3 lightDir = glm::normalize(this->m_sunDirection);
 	glm::vec3 up = (std::abs(lightDir.y) > .99f) ? glm::vec3(0.f, 0.f, 1.f) : glm::vec3(0.f, 1.f, 0.f);
 
 	glm::mat4 lightView = glm::lookAt(
-		center + lightDir * 300.f, 
+		center + lightDir * radius, 
 		center,
 		up
 	);
 
-	/* Calculate AABB in light space */
-	glm::vec3 minBounds(std::numeric_limits<float>::max());
-	glm::vec3 maxBounds(-std::numeric_limits<float>::max());
-
-	for (const glm::vec3& corner : cascadeCorners) {
-		glm::vec3 lsCorner = glm::vec3(lightView * glm::vec4(corner, 1.f));
-
-		minBounds = glm::min(minBounds, lsCorner);
-		maxBounds = glm::max(maxBounds, lsCorner);
-	}
-
-	/*
-		Expand Z for capturing objects
-		behind of the frustum that could
-		project shadows from inside of
-		the frustum
-	*/
-	float zExpand = 1000.f;
-	minBounds.z -= zExpand;
-	maxBounds.z += zExpand;
-
-	/* Orthographic projection that perfectly fits with the AABB */
-	glm::mat4 lightProj = glm::ortho(
-		minBounds.x, maxBounds.x,
-		minBounds.y, maxBounds.y,
-		minBounds.z, maxBounds.z
-	);
+	/* Orthographic projection centered on the sphere */
+	glm::mat4 lightOrtho = glm::ortho(-radius, radius, -radius, radius, -radius * 100.f, radius * 100.f);
 
 	/* Correction Matrix (Flip Y + Map Z 0..1) */
 	glm::mat4 correction = glm::mat4(
@@ -327,28 +305,24 @@ ShadowPass::CalculateCascadeViewProj(
 		0.0f, 0.0f, 0.5f, 0.0f,
 		0.0f, 0.0f, 0.5f, 1.0f
 	);
-	lightProj = correction * lightProj;
+	lightOrtho = correction * lightOrtho;
 
-	/*
-		Round the matrix for avoiding 
-		shimmering when moving the camera.
-		This quantizes the position of
-		the shadow map in increments of
-		one texel
-	*/
-	glm::mat4 shadowMatrix = lightProj * lightView;
+	/*  Eliminate shimmering by snapping the light-space origin to texel increments */
+	glm::mat4 shadowMatrix = lightOrtho * lightView;
 	glm::vec4 shadowOrigin = shadowMatrix * glm::vec4(0.f, 0.f, 0.f, 1.f);
-	shadowOrigin *= static_cast<float>(CSM_SHADOW_MAP_SIZE) / 2.f;
+	
+	float shadowMapSize = static_cast<float>(CSM_SHADOW_MAP_SIZE);
+	shadowOrigin *= shadowMapSize / 2.f;
 
 	glm::vec4 roundedOrigin = glm::round(shadowOrigin);
 	glm::vec4 roundOffset = roundedOrigin - shadowOrigin;
-	roundOffset += 2.f / static_cast<float>(CSM_SHADOW_MAP_SIZE);
+	roundOffset = roundOffset * (2.f / shadowMapSize);
 	roundOffset.z = 0.f;
 	roundOffset.w = 0.f;
 
-	lightProj[3] += roundOffset;
+	lightOrtho[3] += roundOffset;
 
-	this->m_cascades[nCascadeIdx].viewProj = lightProj * lightView;
+	this->m_cascades[nCascadeIdx].viewProj = lightOrtho * lightView;
 }
 
 /**
@@ -452,17 +426,17 @@ ShadowPass::CreateShadowResources() {
 		this->m_cascadeFramebuffers[i] = this->m_device->CreateFramebuffer(fbInfo);
 	}
 
-	uint32_t nUBOSize = sizeof(glm::mat4) * CSM_CASCADE_COUNT + sizeof(glm::mat4);
-	uint32_t nAlignedSize = NextPowerOf2(nUBOSize);
-
 	/*
 		Cascade data UBO
-		
+
 		CascadeData {
 			mat4 cascadeViewProj[4];
 			vec4 cascadeSplits;
 		}
 	*/
+	uint32_t nUBOSize = sizeof(glm::mat4) * CSM_CASCADE_COUNT + sizeof(glm::vec4);
+	uint32_t nAlignedSize = NextPowerOf2(nUBOSize);
+
 	RingBufferCreateInfo uboInfo = { };
 	uboInfo.nAlignment = nAlignedSize;
 	uboInfo.nBufferSize = nAlignedSize * this->m_nFramesInFlight;
@@ -702,8 +676,7 @@ ShadowPass::CreatePipeline() {
 	pipelineInfo.vertexBindings = bindings;
 	pipelineInfo.vertexAttributes = attribs;
 
-	/* Depth bias to avoid shadow acne */
-	pipelineInfo.rasterizationState.cullMode = ECullMode::NONE;
+	pipelineInfo.rasterizationState.cullMode = ECullMode::FRONT;
 	pipelineInfo.rasterizationState.frontFace = EFrontFace::CLOCKWISE;
 	pipelineInfo.rasterizationState.bDepthBiasEnable = true;
 	pipelineInfo.rasterizationState.depthBiasConstantFactor = 4.f;
