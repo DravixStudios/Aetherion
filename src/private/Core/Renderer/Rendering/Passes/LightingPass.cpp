@@ -283,7 +283,7 @@ LightingPass::CreateShadowDescriptors() {
 	DescriptorBufferInfo bufferInfo = { };
 	bufferInfo.buffer = this->m_cascadeBuff->GetBuffer();
 	bufferInfo.nOffset = 0;
-	bufferInfo.nRange = 0;
+	bufferInfo.nRange = this->m_cascadeBuff->GetPerFrameSize();
 
 	this->m_shadowSet->WriteTexture(0, 0, imageInfo);
 	this->m_shadowSet->WriteBuffer(1, 0, bufferInfo);
