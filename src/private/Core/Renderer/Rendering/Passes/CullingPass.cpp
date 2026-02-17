@@ -111,7 +111,7 @@ CullingPass::CreatePipeline() {
 	PushConstantRange pushRange = { };
 	pushRange.stage = EShaderStage::COMPUTE;
 	pushRange.nOffset = 0;
-	pushRange.nSize = sizeof(glm::mat4) + (sizeof(glm::vec4) * 6) + (sizeof(uint32_t) * 2);
+	pushRange.nSize = 4 * sizeof(uint32_t);
 
 	ComputePipelineCreateInfo pipelineInfo = { };
 	pipelineInfo.shader = computeShader;

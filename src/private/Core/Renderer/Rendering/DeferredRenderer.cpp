@@ -43,7 +43,7 @@ DeferredRenderer::Init(Ref<Device> device, Ref<Swapchain> swapchain, uint32_t nF
     this->m_lightingPass.SetDimensions(ext.width, ext.height);
     this->m_lightingPass.SetGBufferDescriptorSet(this->m_gbuffPass.GetReadDescriptorSet());
 
-    this->m_skyboxPass.Init(device);
+    this->m_skyboxPass.Init(device, this->m_nFramesInFlight);
     this->m_skyboxPass.SetDimensions(ext.width, ext.height);
 
     this->m_tonemapPass.Init(device, swapchain, this->m_nFramesInFlight);
