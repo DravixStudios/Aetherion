@@ -33,7 +33,18 @@ find_package(glm CONFIG REQUIRED)
 find_package(assimp CONFIG REQUIRED)
 find_package(xxHash CONFIG REQUIRED)
 
+# Build imgui
+file(GLOB "IMGUI_SRC" 
+    "${PUBLIC_INCLUDES}/imgui/*.cpp"
+    "${PUBLIC_INCLUDES}/imgui/*.h"
+    "${PUBLIC_INCLUDES}/imgui/bckends/*.cpp"
+    "${PUBLIC_INCLUDES}/imgui/bckends/*.h"
+)
+
+add_library("imgui" STATIC ${IMGUI_SRC})
+
 target_link_libraries(Aetherion PRIVATE spirv-cross-c spirv-cross-glsl spirv-cross-hlsl spirv-cross-msl xxHash::xxhash)
+target_link_libraries(Aetherion PRIVATE imgui)
 
 if(WIN32)
     find_package(unofficial-shaderc CONFIG REQUIRED)
