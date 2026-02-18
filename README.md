@@ -38,3 +38,4 @@
 - [tinyexr](https://github.com/syoyo/tinyexr)
 - [SPIRV-Cross](https://github.com/KhronosGroup/SPIRV-Cross)
 - [xxHash](https://github.com/Cyan4973/xxHash)
+- [imgui](https://github.com/ocornut/imgui)
