@@ -92,7 +92,6 @@ float SampleShadowPCF(vec3 shadowCoord, int cascadeIdx) {
     float shadow = 0.0;
     vec2 texelSize = 1.0 / vec2(textureSize(g_shadowMap, 0).xy);
 
-    /* 3x3 kernel */
     for(int x = -1; x <= 1; x++) {
         for(int y = -1; y <= 1; y++) {
             vec2 offset = vec2(x, y) * texelSize;
@@ -126,8 +125,11 @@ float CalculateShadow(vec3 worldPos, vec3 normal, float viewDepth) {
 
     float blendFactor = 0.1;
 
+    float cascadeBias[4] = { 0.07, 0.085, 0.18, 0.2 };
+
     /* Apply normal offset bias to avoid shadow acne */
-    float bias = max(0.02 * (1.0 - dot(normal, normalize(pc.sunDirection))), 0.002);
+    float slopeBias = 0.02 * (1.0 - dot(normal, normalize(pc.sunDirection)));
+    float bias = max(slopeBias, cascadeBias[cascade]);
     vec3 biasedPos = worldPos + normal * bias;
 
     /* Get the shadow of the cascade */
