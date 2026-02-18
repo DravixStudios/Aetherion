@@ -37,3 +37,4 @@
 - [miniz](https://github.com/richgel999/miniz)
 - [tinyexr](https://github.com/syoyo/tinyexr)
 - [SPIRV-Cross](https://github.com/KhronosGroup/SPIRV-Cross)
+- [xxHash](https://github.com/Cyan4973/xxHash)

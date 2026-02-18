@@ -59,7 +59,7 @@ MeshUploader::UploadTexture(const TextureData& textureData) {
 		);
 
 		if (!pixels) {
-			Logger::Error("MeshUploader::UploadTexture: Feailed to decompress: {}", textureData.name);
+			Logger::Error("MeshUploader::UploadTexture: Failed to decompress: {}", textureData.name);
 			return UINT32_MAX;
 		}
 

@@ -8,6 +8,7 @@
     "shaderc",
     "spdlog",
     "glm",
-    "assimp"
+    "assimp",
+    "xxhash"
   ]
 }
