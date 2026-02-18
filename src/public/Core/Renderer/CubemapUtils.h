@@ -163,4 +163,6 @@ LoadCubemap(const String filePath, void** ppData, uint32_t& nOutSize, uint32_t& 
 	*ppData = pOut;
 	nOutSize = nTotalByteSize;
 	nOutFaceSize = nFaceSize;
+
+	return true;
 }
