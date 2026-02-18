@@ -22,7 +22,7 @@
 - More soon!
 
 ## Current Screenshot
-![Aetherion IBL](./aetherion_ibl.png)
+![Aetherion IBL](./aetherion_csm.png)
 
 # LICENSE
 - Read [LICENSE](./LICENSE)
