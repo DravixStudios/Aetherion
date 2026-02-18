@@ -1,5 +1,12 @@
 #include "Core/Renderer/MeshUploader.h"
 #include <stb/stb_image.h>
+#include <xxhash.h>
+
+String HashToString(uint64_t hash) {
+	std::ostringstream oss;
+	oss << std::hex << std::setw(16) << std::setfill('0') << hash;
+	return oss.str();
+}
 
 void
 MeshUploader::Init(
@@ -70,7 +77,19 @@ MeshUploader::UploadTexture(const TextureData& textureData) {
 	}
 
 	size_t size = nWidth * nHeight * 4;
+	uint64_t hash = XXH64(pixels, size, 0);
+	String hashString = HashToString(hash);
 	
+	if (this->m_resourceMgr->IsTextureRegistered(hashString)) {
+		uint32_t nIdx = this->m_resourceMgr->GetTextureIndex(hashString);
+
+		if (bNeedsFree) {
+			stbi_image_free(pixels);
+		}
+
+		return nIdx;
+	}
+
 	BufferCreateInfo stagingInfo = { };
 	stagingInfo.nSize = size;
 	stagingInfo.pcData = pixels;
@@ -112,7 +131,7 @@ MeshUploader::UploadTexture(const TextureData& textureData) {
 
 	this->m_bindlessSet->WriteTexture(0, nTextureIndex, imgInfo);
 
-	this->m_resourceMgr->RegisterTexture(textureData.name, nTextureIndex);
+	this->m_resourceMgr->RegisterTexture(hashString, nTextureIndex);
 
 	this->m_textures.push_back(texture);
 	this->m_imageViews.push_back(view);
