@@ -77,7 +77,7 @@ void EditorCamera::Update() {
 		this->m_projection = glm::perspectiveFovRH(
 			glm::radians(70.f), 
 			static_cast<float>(WIDTH), static_cast<float>(HEIGHT), 
-			1.f, 300.f
+			1.f, 1000.f
 		);
 	}
 	else {

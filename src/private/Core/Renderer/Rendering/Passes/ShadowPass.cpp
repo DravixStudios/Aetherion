@@ -195,7 +195,7 @@ ShadowPass::CalculateCascadeSplits() {
 
 		lambda = blend factor (0 = uniform, 1 = logarithmic)
 	*/
-	constexpr float lambda = 0.92f;
+	constexpr float lambda = 0.7f;
 
 	float splits[CSM_CASCADE_COUNT + 1];
 	splits[0] = this->m_nearPlane;
@@ -377,9 +377,9 @@ ShadowPass::CreateShadowResources() {
 	samplerInfo.minFilter = EFilter::LINEAR;
 	samplerInfo.magFilter = EFilter::LINEAR;
 	samplerInfo.mipmapMode = EMipmapMode::MIPMAP_MODE_NEAREST;
-	samplerInfo.addressModeU = EAddressMode::REPEAT;
-	samplerInfo.addressModeV = EAddressMode::REPEAT;
-	samplerInfo.addressModeW = EAddressMode::REPEAT;
+	samplerInfo.addressModeU = EAddressMode::CLAMP_TO_BORDER;
+	samplerInfo.addressModeV = EAddressMode::CLAMP_TO_BORDER;
+	samplerInfo.addressModeW = EAddressMode::CLAMP_TO_BORDER;
 	samplerInfo.borderColor = EBorderColor::FLOAT_OPAQUE_WHITE;
 	samplerInfo.bCompareEnable = true;
 	samplerInfo.compareOp = ECompareOp::LESS_OR_EQUAL;
@@ -677,8 +677,8 @@ ShadowPass::CreatePipeline() {
 	pipelineInfo.rasterizationState.cullMode = ECullMode::FRONT;
 	pipelineInfo.rasterizationState.frontFace = EFrontFace::CLOCKWISE;
 	pipelineInfo.rasterizationState.bDepthBiasEnable = true;
-	pipelineInfo.rasterizationState.depthBiasConstantFactor = 4.f;
-	pipelineInfo.rasterizationState.depthBiasSlopeFactor = 1.5f;
+	pipelineInfo.rasterizationState.depthBiasConstantFactor = 2.f;
+	pipelineInfo.rasterizationState.depthBiasSlopeFactor = 1.2f;
 	pipelineInfo.rasterizationState.polygonMode = EPolygonMode::FILL;
 
 	pipelineInfo.depthStencilState.bDepthTestEnable = true;
