@@ -103,6 +103,7 @@ public:
 
 	VkDevice GetVkDevice() const { return this->m_device; }
 	VkPhysicalDevice GetVkPhysicalDevice() const { return this->m_physicalDevice; }
+	VkInstance GetVkInstance() const { return this->m_instance; }
 
 	VkQueue GetPresentQueue() const { return this->m_presentQueue; }
 	VkQueue GetGraphicsQueue() const { return this->m_graphicsQueue; }
