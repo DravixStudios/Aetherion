@@ -49,6 +49,17 @@ void
 ImGuiPass::Execute(Ref<GraphicsContext> context, RenderGraphContext& graphCtx, uint32_t nFramesInFlight) {
 	this->m_imgui->NewFrame();
 
+    float hierarchyPadding = 50.f;
+    float hierarchyHeight = static_cast<float>(this->m_nHeight) - (hierarchyPadding * 2);
+
+    ImGui::SetNextWindowPos(ImVec2{ hierarchyPadding, hierarchyPadding });
+    ImGui::SetNextWindowSize(ImVec2{ 200.f, hierarchyHeight });
+    ImGui::Begin("Hierarchy", nullptr, ImGuiWindowFlags_NoResize);
+
+
+
+    ImGui::End();
+
 	ImGui::BeginMainMenuBar();
 
 	if (ImGui::MenuItem("File")) {
