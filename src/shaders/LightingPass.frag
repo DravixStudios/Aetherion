@@ -250,7 +250,6 @@ void main() {
     vec2 brdf = texture(g_brdfLUT, vec2(max(dot(N, V), 0.0), roughness)).rg;
     vec3 specular_ibl = prefilteredColor * (F0 * brdf.x + brdf.y);
 
-    // float iblIntensity = 1.5;
     vec3 ambient = (kD_ibl * diffuse + specular_ibl) * bentAO;
 
     /* ==== COMBINE ==== */
