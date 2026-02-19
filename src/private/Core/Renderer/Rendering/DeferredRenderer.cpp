@@ -4,9 +4,10 @@
 * Deferred renderer initialization
 */
 void
-DeferredRenderer::Init(Ref<Device> device, Ref<Swapchain> swapchain, uint32_t nFramesInFlight) {
+DeferredRenderer::Init(Ref<Device> device, Ref<Swapchain> swapchain, uint32_t nFramesInFlight, GLFWwindow* pWindow) {
     this->m_device = device;
     this->m_nFramesInFlight = nFramesInFlight;
+    this->m_pWindow = pWindow;
     
     Extent2D ext = swapchain->GetExtent();
     if (ext.width == 0 || ext.height == 0) {
@@ -46,6 +47,10 @@ DeferredRenderer::Init(Ref<Device> device, Ref<Swapchain> swapchain, uint32_t nF
     this->m_skyboxPass.Init(device, this->m_nFramesInFlight);
     this->m_skyboxPass.SetDimensions(ext.width, ext.height);
 
+    this->m_imguiPass.Init(device, this->m_nFramesInFlight);
+    this->m_imguiPass.SetDimensions(ext.width, ext.height);
+    this->m_imguiPass.SetWindow(this->m_pWindow);
+
     this->m_tonemapPass.Init(device, swapchain, this->m_nFramesInFlight);
     this->m_tonemapPass.SetDimensions(ext.width, ext.height);
     this->m_tonemapPass.SetScreenQuad(this->m_sqVBO, this->m_sqIBO, 6);
@@ -59,7 +64,6 @@ DeferredRenderer::Init(Ref<Device> device, Ref<Swapchain> swapchain, uint32_t nF
     /* MegaBuffer and MeshUploader initialization */
     this->m_megaBuffer.Init(device, 1024 * 1024, 4 * 1024 * 1024);
     this->m_meshUploader.Init(device, &this->m_megaBuffer, this->m_bindlessSet, this->m_defaultSampler);
-
 }
 
 /**
@@ -244,7 +248,7 @@ DeferredRenderer::Render(
         );
     }
 
-    /* 5. Tonemap pass (Final LDR presentation to backbuffer) */
+    /* 5. Tonemap pass */
     this->m_tonemapPass.SetInput(this->m_lightingPass.GetOutput().hdrOutput);
     this->m_tonemapPass.SetOutput(backBuffer);
     
@@ -252,6 +256,15 @@ DeferredRenderer::Render(
         [&](RenderGraphBuilder& builder) { this->m_tonemapPass.SetupNode(builder); },
         [&](Ref<GraphicsContext> context, RenderGraphContext& graphCtx) {
             this->m_tonemapPass.Execute(context, graphCtx, nImgIdx);
+        }
+    );
+
+    /* 6. ImGui Pass */
+    this->m_imguiPass.SetOutput(backBuffer);
+    this->m_graph.AddNode("ImGui",
+        [&](RenderGraphBuilder& builder) { this->m_imguiPass.SetupNode(builder); },
+        [&](Ref<GraphicsContext> context, RenderGraphContext& graphCtx) {
+            this->m_imguiPass.Execute(context, graphCtx, nImgIdx);
         }
     );
 
