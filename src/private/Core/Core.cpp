@@ -69,7 +69,7 @@ Core::Init() {
     /* Create command pool */
     this->m_pool = this->m_device->CreateCommandPool(poolInfo, EQueueType::GRAPHICS);
 
-    /* Create graphcics context */
+    /* Create graphics context */
     this->m_contexts.resize(this->m_nImageCount);
     for (uint32_t i = 0; i < this->m_nImageCount; i++) {
         this->m_contexts[i] = this->m_device->CreateContext(this->m_pool);
@@ -95,6 +95,8 @@ void
 Core::Update() {
     /* While window should not close */
     while (!glfwWindowShouldClose(this->m_pWindow)) {
+        this->m_time->PreUpdate();
+
         /* Manage window resizing */
         if (this->m_bWindowResized) {
             int nWidth = 0;
@@ -162,11 +164,11 @@ Core::Update() {
 
         this->m_swapchain->Present(nImgIdx, Vector{ this->m_renderFinishedSemaphores[this->m_nImageIndex] });
 
-        this->m_time->PreUpdate();
         glfwPollEvents(); // Poll GLFW events
         this->m_sceneMgr->Update();
         this->m_input->Close();
         this->m_time->PostUpdate();
+
         this->m_nImageIndex = (this->m_nImageIndex + 1) % this->m_nImageCount;
     }
 
@@ -213,8 +215,8 @@ Core::CreateSyncObjects() {
         Ref<Semaphore> imageAvailableSemaphore = this->m_device->CreateSemaphore();
         Ref<Fence> inFlightFence = this->m_device->CreateFence(fenceInfo);
 
-        this->m_imageAvailableSemaphores[i] = renderSemaphore;
-        this->m_renderFinishedSemaphores[i] = imageAvailableSemaphore;
+        this->m_imageAvailableSemaphores[i] = imageAvailableSemaphore;
+        this->m_renderFinishedSemaphores[i] = renderSemaphore;
         this->m_inFlightFences[i] = inFlightFence;
     }
 
