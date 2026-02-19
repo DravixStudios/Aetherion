@@ -23,6 +23,7 @@ public:
 
 private:
 	void CreateResources();
+	void SetupTheme();
 
 	TextureHandle m_output;
 
