@@ -39,7 +39,7 @@ TonemapPass::Init(Ref<Device> device, Ref<Swapchain> swapchain, uint32_t nFrames
 void 
 TonemapPass::SetupNode(RenderGraphBuilder& builder) {
 	builder.ReadTexture(this->m_input);
-	builder.UseColorOutput(this->m_output, EImageLayout::PRESENT_SRC);
+	builder.UseColorOutput(this->m_output, EImageLayout::COLOR_ATTACHMENT);
 	
 	builder.SetDimensions(this->m_nWidth, this->m_nHeight);
 }
@@ -168,7 +168,7 @@ TonemapPass::CreatePipeline(GPUFormat format) {
 	colorAttachment.format = format; 
 	colorAttachment.sampleCount = ESampleCount::SAMPLE_1;
 	colorAttachment.initialLayout = EImageLayout::UNDEFINED;
-	colorAttachment.finalLayout = EImageLayout::PRESENT_SRC; // Final layout for presentation
+	colorAttachment.finalLayout = EImageLayout::COLOR_ATTACHMENT; // Final layout for presentation
 	colorAttachment.loadOp = EAttachmentLoadOp::CLEAR;
 	colorAttachment.storeOp = EAttachmentStoreOp::STORE;
 	

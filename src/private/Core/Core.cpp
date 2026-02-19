@@ -82,7 +82,7 @@ Core::Init() {
     glfwSetKeyCallback(this->m_pWindow, Input::KeyCallback);
     glfwSetMouseButtonCallback(this->m_pWindow, Input::MouseButtonCallback);
 
-    this->m_deferredRenderer.Init(this->m_device, this->m_swapchain, this->m_nImageCount);
+    this->m_deferredRenderer.Init(this->m_device, this->m_swapchain, this->m_nImageCount, this->m_pWindow);
 
     this->m_time = Time::GetInstance();
 
