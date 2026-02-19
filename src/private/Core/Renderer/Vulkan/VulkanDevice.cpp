@@ -795,6 +795,28 @@ VulkanDevice::IsExtensionSupported(const char* extensionName) {
 }
 
 /**
+* Gets graphics queue family
+* 
+* @returns Graphics queue family
+*/
+uint32_t 
+VulkanDevice::GetGraphicsQueueFamily() {
+	QueueFamilyIndices indices = this->FindQueueFamilies();
+	return indices.graphicsFamily.value();
+}
+
+/**
+* Gets present queue family
+* 
+* @returns Present queue family
+*/
+uint32_t 
+VulkanDevice::GetPresentQueueFamily() {
+	QueueFamilyIndices indices = this->FindQueueFamilies();
+	return indices.presentFamily.value();
+}
+
+/**
 * Finds memory type
 * 
 * @param typeFilter Type filter
