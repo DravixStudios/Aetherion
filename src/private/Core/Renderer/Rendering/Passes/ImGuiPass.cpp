@@ -32,6 +32,9 @@ void
 ImGuiPass::SetupNode(RenderGraphBuilder& builder) {
 	builder.UseColorOutput(this->m_output, EImageLayout::PRESENT_SRC, EAttachmentLoadOp::LOAD);
 	builder.SetDimensions(this->m_nWidth, this->m_nHeight);
+
+	ImGuiIO& io = ImGui::GetIO();
+	io.DisplaySize = ImVec2(static_cast<float>(this->m_nWidth), static_cast<float>(this->m_nHeight));
 }
 
 /**
@@ -45,16 +48,31 @@ void
 ImGuiPass::Execute(Ref<GraphicsContext> context, RenderGraphContext& graphCtx, uint32_t nFramesInFlight) {
 	this->m_imgui->NewFrame();
 
-	ImGui::Begin("Hierarchy");
-	ImGui::Button("Test");
-	ImGui::End();
+	ImGui::BeginMainMenuBar();
 
+	if (ImGui::MenuItem("File")) {
+
+	}
+
+	if (ImGui::MenuItem("Assets")) {
+
+	}
+
+	if (ImGui::MenuItem("GameObject")) {
+
+	}
+
+	ImGui::EndMainMenuBar();
+	
 	this->m_imgui->Render(context);
 }
 
 void
 ImGuiPass::Resize(uint32_t nWidth, uint32_t nHeight) {
 	this->SetDimensions(nWidth, nHeight);
+
+	ImGuiIO& io = ImGui::GetIO();
+	io.DisplaySize = ImVec2(static_cast<float>(this->m_nWidth), static_cast<float>(this->m_nHeight));
 }
 
 void
