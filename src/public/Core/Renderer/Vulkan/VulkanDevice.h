@@ -20,6 +20,7 @@
 #include "Core/Renderer/Vulkan/VulkanSemaphore.h"
 #include "Core/Renderer/Vulkan/VulkanFence.h"
 #include "Core/Renderer/Vulkan/VulkanRingBuffer.h"
+#include "Core/Renderer/Vulkan/VulkanImGuiImpl.h"
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
@@ -96,6 +97,7 @@ public:
 
 	Ref<Semaphore> CreateSemaphore() override;
 	Ref<Fence> CreateFence(const FenceCreateInfo& createInfo) override;
+	Ref<ImGuiImpl> CreateImGui(const ImGuiImplCreateInfo& createInfo) override;
 
 	void Submit(const SubmitInfo& submitInfo, Ref<Fence> fence) override;
 

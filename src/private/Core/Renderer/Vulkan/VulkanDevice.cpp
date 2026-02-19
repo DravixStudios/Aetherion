@@ -708,6 +708,22 @@ VulkanDevice::CreateFence(const FenceCreateInfo& createInfo) {
 }
 
 /**
+* Creates a Vulkan ImGui implementation
+*
+* @param createInfo ImGui create info
+*
+* @returns Created Vulkan ImGui implementation
+*/
+Ref<ImGuiImpl> 
+VulkanDevice::CreateImGui(const ImGuiImplCreateInfo& createInfo) {
+	Ref<VulkanDevice> deviceRef = std::static_pointer_cast<VulkanDevice>(this->shared_from_this());
+	Ref<VulkanImGuiImpl> imguiImpl = VulkanImGuiImpl::CreateShared(deviceRef);
+	imguiImpl->Create(createInfo);
+
+	return imguiImpl.As<ImGuiImpl>();
+}
+
+/**
 * Submits a sequence of semaphores or
 * command buffers to a queue
 *
