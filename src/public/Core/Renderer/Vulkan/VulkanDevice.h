@@ -20,6 +20,7 @@
 #include "Core/Renderer/Vulkan/VulkanSemaphore.h"
 #include "Core/Renderer/Vulkan/VulkanFence.h"
 #include "Core/Renderer/Vulkan/VulkanRingBuffer.h"
+#include "Core/Renderer/Vulkan/VulkanImGuiImpl.h"
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
@@ -96,6 +97,7 @@ public:
 
 	Ref<Semaphore> CreateSemaphore() override;
 	Ref<Fence> CreateFence(const FenceCreateInfo& createInfo) override;
+	Ref<ImGuiImpl> CreateImGui(const ImGuiImplCreateInfo& createInfo) override;
 
 	void Submit(const SubmitInfo& submitInfo, Ref<Fence> fence) override;
 
@@ -103,9 +105,12 @@ public:
 
 	VkDevice GetVkDevice() const { return this->m_device; }
 	VkPhysicalDevice GetVkPhysicalDevice() const { return this->m_physicalDevice; }
+	VkInstance GetVkInstance() const { return this->m_instance; }
 
 	VkQueue GetPresentQueue() const { return this->m_presentQueue; }
 	VkQueue GetGraphicsQueue() const { return this->m_graphicsQueue; }
+	uint32_t GetGraphicsQueueFamily();
+	uint32_t GetPresentQueueFamily();
 
 	/**
 	* Gets physical device properties

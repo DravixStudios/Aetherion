@@ -141,15 +141,21 @@ void main() {
         float bentAngle = (angle1 - angle2) * 0.5;
         vec3 bentDir = sliceDir * sin(bentAngle);
 
-        bentNormalAccum += bentDir * sliceVisibility;
+        float validity = clamp(
+            1.0 - abs(dist1 - dist2) / camData.radius,
+            0.0, 1.0
+        );
+
+        bentNormalAccum += bentDir * sliceVisibility * validity;
     }
 
     float occlusion = totalOcclusion / totalWeight;
     float finalAO = 1.0 - occlusion;
 
     vec3 finalBentNormal;
+
     if(length(bentNormalAccum) > 0.001) {
-        finalBentNormal = normalize(normalView + bentNormalAccum * 0.15);
+        finalBentNormal = normalize(normalView + bentNormalAccum * 0.8);
     } else {
         finalBentNormal = normalView;
     }

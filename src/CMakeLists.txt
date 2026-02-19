@@ -33,7 +33,40 @@ find_package(glm CONFIG REQUIRED)
 find_package(assimp CONFIG REQUIRED)
 find_package(xxHash CONFIG REQUIRED)
 
+# Build imgui
+set(IMGUI_GLOB_PATTERNS
+    "${PUBLIC_INCLUDES}/imgui/*.cpp"
+    "${PUBLIC_INCLUDES}/imgui/*.h"
+)
+
+if(WIN32)
+    list(APPEND IMGUI_GLOB_PATTERNS
+        "${PUBLIC_INCLUDES}/imgui/backends/imgui_impl_win32.cpp"
+        "${PUBLIC_INCLUDES}/imgui/backends/imgui_impl_dx11.cpp"
+        "${PUBLIC_INCLUDES}/imgui/backends/imgui_impl_dx12.cpp"
+        "${PUBLIC_INCLUDES}/imgui/backends/imgui_impl_glfw.cpp"
+        "${PUBLIC_INCLUDES}/imgui/backends/imgui_impl_vulkan.cpp"
+    )
+elseif(APPLE)
+    list(APPEND IMGUI_GLOB_PATTERNS
+            "${PUBLIC_INCLUDES}/imgui/backends/imgui_impl_glfw.cpp"
+            "${PUBLIC_INCLUDES}/imgui/backends/imgui_impl_vulkan.cpp"
+    )
+else()
+    list(APPEND IMGUI_GLOB_PATTERNS
+            "${PUBLIC_INCLUDES}/imgui/backends/imgui_impl_glfw.cpp"
+            "${PUBLIC_INCLUDES}/imgui/backends/imgui_impl_vulkan.cpp"
+    )
+endif()
+
+file(GLOB IMGUI_SRC CONFIGUE_DEPENDS ${IMGUI_GLOB_PATTERNS})
+
+add_library("imgui" STATIC ${IMGUI_SRC})
+target_include_directories(imgui PUBLIC "${PUBLIC_INCLUDES}")
+target_link_libraries(imgui PRIVATE glfw)
+
 target_link_libraries(Aetherion PRIVATE spirv-cross-c spirv-cross-glsl spirv-cross-hlsl spirv-cross-msl xxHash::xxhash)
+target_link_libraries(Aetherion PRIVATE imgui)
 
 if(WIN32)
     find_package(unofficial-shaderc CONFIG REQUIRED)

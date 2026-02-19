@@ -10,6 +10,7 @@
 #include "Core/Renderer/Rendering/Passes/LightingPass.h"
 #include "Core/Renderer/Rendering/Passes/SkyboxPass.h"
 #include "Core/Renderer/Rendering/Passes/TonemapPass.h"
+#include "Core/Renderer/Rendering/Passes/ImGuiPass.h"
 #include "Core/Renderer/Rendering/Passes/BentNormalPass.h"
 #include "Core/Renderer/Rendering/SunExtraction.h"
 
@@ -26,7 +27,7 @@
 
 class DeferredRenderer {
 public:
-    void Init(Ref<Device> device, Ref<Swapchain> swapchain, uint32_t nFramesInFlight);
+    void Init(Ref<Device> device, Ref<Swapchain> swapchain, uint32_t nFramesInFlight, GLFWwindow* pWindow);
     void Resize(uint32_t nWidth, uint32_t nHeight);
     void Invalidate();
 
@@ -58,6 +59,7 @@ private:
     LightingPass m_lightingPass;
     SkyboxPass m_skyboxPass;
     TonemapPass m_tonemapPass;
+    ImGuiPass m_imguiPass;
     BentNormalPass m_bentNormalPass;
 
     IBLGenerator m_iblGen;
@@ -91,6 +93,8 @@ private:
     Ref<DescriptorSetLayout> m_skyboxSetLayout;
     Ref<DescriptorPool> m_skyboxPool;
     Ref<DescriptorSet> m_skyboxSet;
+
+    GLFWwindow* m_pWindow = nullptr;
 
     bool m_bIBLGenerated = false;
 

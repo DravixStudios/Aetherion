@@ -708,6 +708,22 @@ VulkanDevice::CreateFence(const FenceCreateInfo& createInfo) {
 }
 
 /**
+* Creates a Vulkan ImGui implementation
+*
+* @param createInfo ImGui create info
+*
+* @returns Created Vulkan ImGui implementation
+*/
+Ref<ImGuiImpl> 
+VulkanDevice::CreateImGui(const ImGuiImplCreateInfo& createInfo) {
+	Ref<VulkanDevice> deviceRef = std::static_pointer_cast<VulkanDevice>(this->shared_from_this());
+	Ref<VulkanImGuiImpl> imguiImpl = VulkanImGuiImpl::CreateShared(deviceRef);
+	imguiImpl->Create(createInfo);
+
+	return imguiImpl.As<ImGuiImpl>();
+}
+
+/**
 * Submits a sequence of semaphores or
 * command buffers to a queue
 *
@@ -792,6 +808,28 @@ VulkanDevice::IsExtensionSupported(const char* extensionName) {
 			return strcmp(extension.extensionName, extensionName) == 0;
 		}
 	);
+}
+
+/**
+* Gets graphics queue family
+* 
+* @returns Graphics queue family
+*/
+uint32_t 
+VulkanDevice::GetGraphicsQueueFamily() {
+	QueueFamilyIndices indices = this->FindQueueFamilies();
+	return indices.graphicsFamily.value();
+}
+
+/**
+* Gets present queue family
+* 
+* @returns Present queue family
+*/
+uint32_t 
+VulkanDevice::GetPresentQueueFamily() {
+	QueueFamilyIndices indices = this->FindQueueFamilies();
+	return indices.presentFamily.value();
 }
 
 /**

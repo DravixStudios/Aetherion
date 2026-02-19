@@ -10,6 +10,7 @@
 #include "Core/Renderer/Semaphore.h"
 #include "Core/Renderer/Fence.h"
 #include "Core/Renderer/Pipeline.h"
+#include "Core/Renderer/ImGuiImpl.h"
 
 enum class EQueueType {
 	GRAPHICS,
@@ -289,6 +290,15 @@ public:
 	*/
 	virtual Ref<Fence> CreateFence(const FenceCreateInfo& createInfo) = 0;
 
+	/**
+	* Creates a ImGui implementation
+	* 
+	* @param createInfo ImGui create info
+	* 
+	* @returns Created ImGui implementation
+	*/
+	virtual Ref<ImGuiImpl> CreateImGui(const ImGuiImplCreateInfo& createInfo) = 0;
+	
 	/**
 	* Submits a sequence of semaphores or 
 	* command buffers to a queue
