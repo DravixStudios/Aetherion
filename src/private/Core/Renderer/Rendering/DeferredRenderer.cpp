@@ -83,6 +83,7 @@ DeferredRenderer::Resize(uint32_t nWidth, uint32_t nHeight) {
     this->m_skyboxPass.SetDimensions(nWidth, nHeight);
     this->m_tonemapPass.SetDimensions(nWidth, nHeight);
     this->m_bentNormalPass.SetDimensions(nWidth, nHeight);
+    this->m_imguiPass.Resize(nWidth, nHeight);
 
     this->m_lightingPass.SetGBufferDescriptorSet(this->m_gbuffPass.GetReadDescriptorSet());
     this->UpdateSkyboxDescriptor();
