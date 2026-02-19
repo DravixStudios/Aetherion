@@ -107,6 +107,8 @@ public:
 
 	VkQueue GetPresentQueue() const { return this->m_presentQueue; }
 	VkQueue GetGraphicsQueue() const { return this->m_graphicsQueue; }
+	uint32_t GetGraphicsQueueFamily();
+	uint32_t GetPresentQueueFamily();
 
 	/**
 	* Gets physical device properties
