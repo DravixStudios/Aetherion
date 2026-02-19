@@ -37,11 +37,13 @@ find_package(xxHash CONFIG REQUIRED)
 file(GLOB "IMGUI_SRC" 
     "${PUBLIC_INCLUDES}/imgui/*.cpp"
     "${PUBLIC_INCLUDES}/imgui/*.h"
-    "${PUBLIC_INCLUDES}/imgui/bckends/*.cpp"
-    "${PUBLIC_INCLUDES}/imgui/bckends/*.h"
+    "${PUBLIC_INCLUDES}/imgui/backends/*.cpp"
+    "${PUBLIC_INCLUDES}/imgui/backends/*.h"
 )
 
 add_library("imgui" STATIC ${IMGUI_SRC})
+target_include_directories(imgui PUBLIC "${PUBLIC_INCLUDES}")
+target_link_libraries(imgui PRIVATE glfw)
 
 target_link_libraries(Aetherion PRIVATE spirv-cross-c spirv-cross-glsl spirv-cross-hlsl spirv-cross-msl xxHash::xxhash)
 target_link_libraries(Aetherion PRIVATE imgui)

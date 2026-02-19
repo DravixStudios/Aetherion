@@ -13,7 +13,7 @@
 // (minor and older changes stripped away, please see git history for details)
 //  2025-11-17: Initial version.
 
-#include "imgui.h"
+#include <imgui/imgui.h>
 #ifndef IMGUI_DISABLE
 #include "imgui_impl_null.h"
 

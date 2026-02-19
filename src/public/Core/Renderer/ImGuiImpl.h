@@ -11,9 +11,9 @@
 
 struct ImGuiImplCreateInfo {
 	GLFWwindow* pWindow = nullptr;
-	Ref<GraphicsContext> context;
 	Ref<RenderPass> renderPass;
 	Ref<DescriptorPool> descriptorPool;
+	uint32_t nFramesInFlight;
 };
 
 class ImGuiImpl {
@@ -27,5 +27,5 @@ public:
 	virtual void Create(const ImGuiImplCreateInfo& createInfo) = 0;
 
 	virtual void NewFrame() = 0;
-	virtual void Render() = 0;
+	virtual void Render(Ref<GraphicsContext> context) = 0;
 };
