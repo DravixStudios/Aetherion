@@ -70,3 +70,34 @@ MegaBuffer::Upload(const Vector<Vertex>& vertices, const Vector<uint16_t>& indic
 
 	return alloc;
 }
+
+MegaBuffer::Block
+MegaBuffer::CreateBlock(uint32_t nMaxVertices, uint32_t nMaxIndices) {
+	Block block = { };
+	block.nMaxVertices = nMaxVertices,
+	block.nMaxIndices = nMaxIndices;
+
+	/* Create VBO */
+	BufferCreateInfo vboInfo = { };
+	vboInfo.nSize = nMaxVertices * sizeof(Vertex);
+	vboInfo.type = EBufferType::VERTEX_BUFFER;
+	vboInfo.usage = EBufferUsage::VERTEX_BUFFER;
+	vboInfo.sharingMode = ESharingMode::EXCLUSIVE;
+	
+	block.vertexBuffer = this->m_device->CreateBuffer(vboInfo);
+
+	/* Create IBO */
+	BufferCreateInfo iboInfo = { };
+	iboInfo.nSize = nMaxIndices * sizeof(uint16_t);
+	iboInfo.type = EBufferType::INDEX_BUFFER;
+	iboInfo.usage = EBufferUsage::INDEX_BUFFER;
+	iboInfo.sharingMode = ESharingMode::EXCLUSIVE;
+
+	block.indexBuffer = this->m_device->CreateBuffer(vboInfo);
+
+	/* Map memory */
+	block.pVertexMap = block.vertexBuffer->Map();
+	block.pIndexMap = block.indexBuffer->Map();
+
+	return block;
+}

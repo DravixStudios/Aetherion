@@ -39,6 +39,6 @@ private:
 	uint32_t m_nCurrentVertexOffset = 0;
 	uint32_t m_nCurrentIndexOffset = 0;
 
-	void* m_pVertexMap = nullptr;
+	Block CreateBlock(uint32_t nMaxVertices, uint32_t nMaxIndices);
 	void* m_pIndexMap = nullptr;
 };
