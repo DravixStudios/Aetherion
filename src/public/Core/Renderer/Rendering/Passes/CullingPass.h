@@ -22,6 +22,12 @@ public:
 	void SetTotalBatches(uint32_t nBatchCount) { this->m_nTotalBatches = nBatchCount; }
 	uint32_t GetTotalBatches() const { return this->m_nTotalBatches; }
 
+	void SetTotalBlocks(uint32_t nBlockCount) { this->m_nBlockCount = nBlockCount; }
+	uint32_t GetBlockCount() const { return this->m_nBlockCount; }
+
+	void SetBatchesPerBlock(uint32_t nBatchesPerBlock) { this->m_nMaxBatchesPerBlock = nBatchesPerBlock; }
+	uint32_t GetMaxBatchesPerBlock() const { return this->m_nMaxBatchesPerBlock; }
+
 	Ref<Pipeline> GetPipeline() const { return this->m_computePipeline; }
 	Ref<PipelineLayout> GetPipelineLayout() const { return this->m_pipelineLayout; }
 
@@ -46,6 +52,8 @@ private:
 	Ref<Pipeline> m_computePipeline;
 
 	uint32_t m_nTotalBatches = 0;
+	uint32_t m_nBlockCount = 0;
+	uint32_t m_nMaxBatchesPerBlock = 0;
 
 	Ref<DescriptorSetLayout> m_setLayout;
 

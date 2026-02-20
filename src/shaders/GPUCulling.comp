@@ -22,6 +22,7 @@ struct DrawBatch {
     uint firstIndex;
     int vertexOffset;
     uint instanceDataIndex;
+    uint blockIdx;
 };
 
 struct WVP {
@@ -50,7 +51,7 @@ layout(set = 0, binding = 2) buffer OutputCommands {
 };
 
 layout(set = 0, binding = 3) buffer DrawCount {
-    uint count;
+    uint counts[];
 };
 
 /* WVP Ring buffer (Read only) */
@@ -67,6 +68,7 @@ layout(push_constant) uniform PushConstants {
     uint wvpAlignment; // Ring buffer alignment
     uint frustumOffset;
     uint frustumAlignment;
+    uint maxDrawsPerBlock;
 } pc;
 
 /* Frustum culling using world matrix position */ 
@@ -109,13 +111,15 @@ void main() {
     /* Frustum culling */
     if(IsVisible(wvp.World, frustum.frustumPlanes)) {
         /* Atomic increment for getting the write index */
-        uint drawIndex = atomicAdd(count, 1);
+        uint blockIdx = batch.blockIdx;
+        uint localIdx = atomicAdd(counts[blockIdx], 1); 
+        uint drawIdx = blockIdx * pc.maxDrawsPerBlock + localIdx;
 
         /* Write indirect draw command */
-        commands[drawIndex].indexCount = batch.indexCount;
-        commands[drawIndex].instanceCount = 1;
-        commands[drawIndex].firstIndex = batch.firstIndex;
-        commands[drawIndex].vertexOffset = batch.vertexOffset;
-        commands[drawIndex].firstInstance = batch.instanceDataIndex;
+        commands[drawIdx].indexCount = batch.indexCount;
+        commands[drawIdx].instanceCount = 1;
+        commands[drawIdx].firstIndex = batch.firstIndex;
+        commands[drawIdx].vertexOffset = batch.vertexOffset;
+        commands[drawIdx].firstInstance = batch.instanceDataIndex;
     }
 }
