@@ -27,7 +27,7 @@ public:
 	};
 
 	void Init(Ref<Device> device, uint32_t nMaxVertices, uint32_t nMaxIndices);
-	MegaBufferAllocation Upload(const Vector<Vertex>& vertices, const Vector<uint16_t>& indices);
+	MegaBufferAllocation Upload(const Vector<Vertex>& vertices, const Vector<uint32_t>& indices);
 
 	const Vector<Block>& GetBlocks() const { return this->m_blocks; }
 	uint32_t GetBlockCount() const { return static_cast<uint32_t>(this->m_blocks.size()); }

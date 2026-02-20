@@ -12,7 +12,7 @@ struct TextureData {
 
 struct SubMeshData {
 	Vector<Vertex> vertices;
-	Vector<uint16_t> indices;
+	Vector<uint32_t> indices;
 	TextureData albedo;
 	TextureData orm;
 	TextureData emissive;

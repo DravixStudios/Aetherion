@@ -66,9 +66,9 @@ MegaBuffer::Upload(const Vector<Vertex>& vertices, const Vector<uint16_t>& indic
 	);
 
 	memcpy(
-		static_cast<char*>(targetBlock.pIndexMap) + (targetBlock.nCurrentIndexOffset * sizeof(uint16_t)),
+		static_cast<char*>(targetBlock.pIndexMap) + (targetBlock.nCurrentIndexOffset * sizeof(uint32_t)),
 		indices.data(),
-		nIndexCount * sizeof(uint16_t)
+		nIndexCount * sizeof(uint32_t)
 	);
 
 	targetBlock.nCurrentVertexOffset += nVertexCount;
@@ -94,7 +94,7 @@ MegaBuffer::CreateBlock(uint32_t nMaxVertices, uint32_t nMaxIndices) {
 
 	/* Create IBO */
 	BufferCreateInfo iboInfo = { };
-	iboInfo.nSize = nMaxIndices * sizeof(uint16_t);
+	iboInfo.nSize = nMaxIndices * sizeof(uint32_t);
 	iboInfo.type = EBufferType::INDEX_BUFFER;
 	iboInfo.usage = EBufferUsage::INDEX_BUFFER;
 	iboInfo.sharingMode = ESharingMode::EXCLUSIVE;
