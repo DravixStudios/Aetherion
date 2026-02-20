@@ -27,7 +27,7 @@ MegaBuffer::Init(Ref<Device> device, uint32_t nMaxVertices, uint32_t nMaxIndices
 * @returns Mega buffer allocation data
 */
 MegaBufferAllocation
-MegaBuffer::Upload(const Vector<Vertex>& vertices, const Vector<uint16_t>& indices) {
+MegaBuffer::Upload(const Vector<Vertex>& vertices, const Vector<uint32_t>& indices) {
 	uint32_t nVertexCount = static_cast<uint32_t>(vertices.size());
 	uint32_t nIndexCount = static_cast<uint32_t>(indices.size());
 

@@ -5,6 +5,7 @@
 #include "Core/Renderer/Rendering/GBuffer/GBufferManager.h"
 #include "Core/Renderer/GPUBuffer.h"
 #include "Core/Renderer/Shader.h"
+#include "Core/Renderer/MegaBuffer.h"
 
 class RenderGraph;
 
@@ -31,12 +32,13 @@ public:
 		Ref<DescriptorSetLayout> sceneSetLayout,
 		Ref<DescriptorSet> bindlessSet,
 		Ref<DescriptorSetLayout> bindlessSetLayout,
-		Ref<GPUBuffer> vertexBuffer,
-		Ref<GPUBuffer> indexBuffer,
-		uint32_t nIndexCount,
+		const Vector<MegaBuffer::Block>& blocks,
+		uint32_t nBlockCount,
 		Ref<GPUBuffer> countBuffer,
 		Ref<GPURingBuffer> indirectBuffer,
-		uint32_t nIndirectOffset
+		uint32_t nIndirectOffset,
+		uint32_t nTotalBatches,
+		uint32_t nMaxBatchesPerBlock
 	);
 
 	Ref<DescriptorSet> GetReadDescriptorSet() const { return this->m_gbuffer.GetReadDescriptorSet(); }
@@ -53,14 +55,15 @@ private:
 	Ref<DescriptorSet> m_bindlessSet;
 	Ref<DescriptorSetLayout> m_bindlessSetLayout;
 
-	Ref<GPUBuffer> m_vertexBuffer;
-	Ref<GPUBuffer> m_indexBuffer;
-	uint32_t m_nIndexCount = 0;
+	Vector<MegaBuffer::Block> m_blocks;
+	uint32_t m_nBlockCount = 0;
 
 	Ref<GPUBuffer> m_countBuffer;
 	Ref<GPURingBuffer> m_indirectBuffer;
 
 	uint32_t m_nIndirectOffset = 0;
+	uint32_t m_nTotalBatches = 0;
+	uint32_t m_nMaxBatchesPerBlock = 0;
 
 	void CreatePipeline();
 };

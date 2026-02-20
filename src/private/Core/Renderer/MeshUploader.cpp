@@ -33,6 +33,7 @@ MeshUploader::Upload(const MeshData& meshData) {
 		uploaded.nAlbedoIndex = this->UploadTexture(subData.albedo);
 		uploaded.nORMIndex = this->UploadTexture(subData.orm);
 		uploaded.nEmissiveIndex = this->UploadTexture(subData.emissive);
+		uploaded.nBlockIdx = uploaded.geometry.nBlockIndex;
 
 		result.subMeshes[idx] = uploaded;
 	}

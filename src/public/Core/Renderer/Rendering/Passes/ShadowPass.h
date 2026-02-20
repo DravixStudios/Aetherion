@@ -2,6 +2,7 @@
 #include "Core/Containers.h"
 #include "Core/Renderer/Rendering/Passes/BasePass.h"
 #include "Core/Renderer/Rendering/Passes/CullingPass.h"
+#include "Core/Renderer/MegaBuffer.h"
 
 #include <array>
 
@@ -47,8 +48,8 @@ public:
 	void SetSceneData(
 		Ref<DescriptorSet> sceneSet,
 		Ref<DescriptorSetLayout> sceneSetLayout,
-		Ref<GPUBuffer> vertexBuffer,
-		Ref<GPUBuffer> indexBuffer
+		const Vector<MegaBuffer::Block>& blocks,
+		uint32_t nBlockCount
 	);
 
 	Ref<GPUTexture> GetShadowTexture() const { return this->m_shadowArray; }
@@ -104,8 +105,9 @@ private:
 	/* Draw data */
 	Ref<DescriptorSet> m_sceneSet;
 	Ref<DescriptorSetLayout> m_sceneSetLayout;
-	Ref<GPUBuffer> m_VBO;
-	Ref<GPUBuffer> m_IBO;
+	
+	Vector<MegaBuffer::Block> m_blocks;
+	uint32_t m_nBlockCount = 0;
 
 	/* Cascade buffer */
 	Ref<GPURingBuffer> m_cascadeBuff;

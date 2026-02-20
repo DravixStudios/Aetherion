@@ -9,6 +9,7 @@ struct UploadedSubMesh {
 	uint32_t nAlbedoIndex = UINT32_MAX;
 	uint32_t nORMIndex = UINT32_MAX;
 	uint32_t nEmissiveIndex = UINT32_MAX;
+	uint32_t nBlockIdx = 0;
 };
 
 struct UploadedMesh {

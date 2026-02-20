@@ -74,17 +74,28 @@ GBufferPass::Execute(Ref<GraphicsContext> context, RenderGraphContext& graphCtx,
 	context->SetScissor({ { 0, 0 }, { this->m_nWidth, this->m_nHeight } });
 
 	context->BindDescriptorSets(0, { this->m_sceneSet, this->m_bindlessSet });
-	context->BindVertexBuffers({ this->m_vertexBuffer });
-	context->BindIndexBuffer({ this->m_indexBuffer });
 
-	context->DrawIndexedIndirect(
-		this->m_indirectBuffer->GetBuffer(),
-		this->m_nIndirectOffset,
-		this->m_countBuffer,
-		0,
-		1000,
-		sizeof(DrawIndexedIndirectCommand)
-	);
+	uint32_t nCurrentOffset = 0;
+
+	for (uint32_t i = 0; i < this->m_nBlockCount; i++) {
+		Ref<GPUBuffer> VBO = this->m_blocks[i].vertexBuffer;
+		Ref<GPUBuffer> IBO = this->m_blocks[i].indexBuffer;
+
+		context->BindVertexBuffers({ VBO });
+		context->BindIndexBuffer(IBO, EIndexType::UINT32);
+
+		context->DrawIndexedIndirect(
+			this->m_indirectBuffer->GetBuffer(),
+			nCurrentOffset,
+			this->m_countBuffer,
+			i * sizeof(uint32_t),
+			this->m_nMaxBatchesPerBlock,
+			sizeof(DrawIndexedIndirectCommand)
+		);
+
+		nCurrentOffset += this->m_nMaxBatchesPerBlock * sizeof(DrawIndexedIndirectCommand);
+	}
+
 }
 
 /**
@@ -104,12 +115,13 @@ GBufferPass::SetSceneData(
 	Ref<DescriptorSetLayout> sceneSetLayout,
 	Ref<DescriptorSet> bindlessSet,
 	Ref<DescriptorSetLayout> bindlessSetLayout,
-	Ref<GPUBuffer> vertexBuffer,
-	Ref<GPUBuffer> indexBuffer,
-	uint32_t nIndexCount,
+	const Vector<MegaBuffer::Block>& blocks,
+	uint32_t nBlockCount,
 	Ref<GPUBuffer> countBuffer,
 	Ref<GPURingBuffer> indirectBuffer,
-	uint32_t nIndirectOffset
+	uint32_t nIndirectOffset,
+	uint32_t nTotalBatches,
+	uint32_t nMaxBatchesPerBlock
 ) {
 	this->m_sceneSet = sceneSet;
 	this->m_sceneSetLayout = sceneSetLayout;
@@ -117,14 +129,17 @@ GBufferPass::SetSceneData(
 	this->m_bindlessSet = bindlessSet;
 	this->m_bindlessSetLayout = bindlessSetLayout;
 
-	this->m_vertexBuffer = vertexBuffer;
-	this->m_indexBuffer = indexBuffer;
-	this->m_nIndexCount = nIndexCount;
+	this->m_blocks = blocks;
+	this->m_nBlockCount = nBlockCount;
 
 	this->m_countBuffer = countBuffer;
 	this->m_indirectBuffer = indirectBuffer;
 
 	this->m_nIndirectOffset = nIndirectOffset;
+
+	this->m_nTotalBatches = nTotalBatches;
+
+	this->m_nMaxBatchesPerBlock = nMaxBatchesPerBlock;
 
 	if (this->m_device && !this->m_pipeline) {
 		this->CreatePipeline();

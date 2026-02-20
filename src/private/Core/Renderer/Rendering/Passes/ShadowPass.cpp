@@ -129,21 +129,32 @@ ShadowPass::Execute(Ref<GraphicsContext> context, RenderGraphContext& graphCtx, 
 			&pc
 		);
 
-		context->BindDescriptorSets(0, { this->m_sceneSet });
-		context->BindVertexBuffers(Vector{ this->m_VBO });
-		context->BindIndexBuffer(this->m_IBO);
-
 		Ref<GPURingBuffer> indirectBuff = this->m_shadowIndirectBuffers[i];
 		indirectBuff->Reset(nFrameIdx);
+		context->BindDescriptorSets(0, { this->m_sceneSet });
 
-		context->DrawIndexedIndirect(
-			indirectBuff->GetBuffer(),
-			indirectBuff->GetPerFrameSize()* nFrameIdx,
-			this->m_shadowCountBuffers[i],
-			0,
-			1000,
-			sizeof(DrawIndexedIndirectCommand)
-		);
+		uint32_t nBaseOffset = indirectBuff->GetPerFrameSize()* nFrameIdx;
+		uint32_t nCurrentOffset = nBaseOffset;
+		uint32_t nTotalBatches = this->m_pCullingPass->GetTotalBatches();
+
+		for (uint32_t j = 0; j < this->m_nBlockCount; j++) {
+			Ref<GPUBuffer> VBO = this->m_blocks[j].vertexBuffer;
+			Ref<GPUBuffer> IBO = this->m_blocks[j].indexBuffer;
+
+			context->BindVertexBuffers({ VBO });
+			context->BindIndexBuffer(IBO, EIndexType::UINT32);
+
+			context->DrawIndexedIndirect(
+				indirectBuff->GetBuffer(),
+				nCurrentOffset,
+				this->m_shadowCountBuffers[i],
+				j * sizeof(uint32_t),
+				this->m_pCullingPass->GetMaxBatchesPerBlock(),
+				sizeof(DrawIndexedIndirectCommand)
+			);
+
+			nCurrentOffset += this->m_pCullingPass->GetMaxBatchesPerBlock() * sizeof(DrawIndexedIndirectCommand);
+		}
 
 		context->EndRenderPass();
 	}
@@ -168,13 +179,13 @@ void
 ShadowPass::SetSceneData(
 	Ref<DescriptorSet> sceneSet,
 	Ref<DescriptorSetLayout> sceneSetLayout,
-	Ref<GPUBuffer> vertexBuffer,
-	Ref<GPUBuffer> indexBuffer
+	const Vector<MegaBuffer::Block>& blocks,
+	uint32_t nBlockCount
 ) {
 	this->m_sceneSet = sceneSet;
 	this->m_sceneSetLayout = sceneSetLayout;
-	this->m_VBO = vertexBuffer;
-	this->m_IBO = indexBuffer;
+	this->m_blocks = blocks;
+	this->m_nBlockCount = nBlockCount;
 
 	if(!this->m_bResourcesCreated) {
 		this->CreateShadowResources();
@@ -463,7 +474,7 @@ ShadowPass::CreateCullingResources() {
 
 		/* Create count buffer */
 		BufferCreateInfo countInfo = { };
-		countInfo.nSize = sizeof(uint32_t);
+		countInfo.nSize = sizeof(uint32_t) * 64;
 		countInfo.sharingMode = ESharingMode::EXCLUSIVE;
 		countInfo.usage = EBufferUsage::STORAGE_BUFFER | EBufferUsage::INDIRECT_BUFFER | EBufferUsage::TRANSFER_DST;
 		countInfo.type = EBufferType::STORAGE_BUFFER;
@@ -549,7 +560,7 @@ ShadowPass::CreateCullingResources() {
 
 			/* Binding 3: Draw count */
 			set->WriteBuffer(3, 0, {
-				this->m_shadowCountBuffers[i], frameSizes[3] * j, frameSizes[3]
+				this->m_shadowCountBuffers[i], frameSizes[3] * j, 64 * sizeof(uint32_t)
 			});
 
 			/* Binding 4: WVP Data */
@@ -579,7 +590,7 @@ void
 ShadowPass::DispatchShadowCulling(Ref<GraphicsContext> context, uint32_t nCascadeIdx, uint32_t nFrameIdx) {
 	/* Reset count buffer to 0 */
 	Ref<GPUBuffer> countBuffer = this->m_shadowCountBuffers[nCascadeIdx];
-	context->FillBuffer(countBuffer, 0, sizeof(uint32_t), 0);
+	context->FillBuffer(countBuffer, 0, sizeof(uint32_t) * 64, 0);
 	context->BufferMemoryBarrier(countBuffer, EAccess::TRANSFER_WRITE, EAccess::SHADER_WRITE);
 
 	CascadeData cascade = this->m_cascades[nCascadeIdx];
@@ -607,6 +618,7 @@ ShadowPass::DispatchShadowCulling(Ref<GraphicsContext> context, uint32_t nCascad
 		uint32_t nWvpAlignment;
 		uint32_t nFrustumOffset;
 		uint32_t nFrustumAlignment;
+		uint32_t nMaxDrawsPerBlock;
 	} pushData;
 
 
@@ -614,6 +626,7 @@ ShadowPass::DispatchShadowCulling(Ref<GraphicsContext> context, uint32_t nCascad
 	pushData.nWvpAlignment = this->m_pCullingPass->GetWVPBuffer()->GetAlignment();
 	pushData.nFrustumOffset = nFrustumOffset;
 	pushData.nFrustumAlignment = this->m_shadowFrustumBuffer->GetAlignment();
+	pushData.nMaxDrawsPerBlock = this->m_pCullingPass->GetMaxBatchesPerBlock();
 
 	context->PushConstants(
 		this->m_pCullingPass->GetPipelineLayout(),

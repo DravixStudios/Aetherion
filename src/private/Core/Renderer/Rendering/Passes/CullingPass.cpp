@@ -54,7 +54,7 @@ CullingPass::Execute(
 
 	Ref<DescriptorSet> cullingSet = this->m_cullingSets[nFrameIndex];
 
-	context->FillBuffer(this->m_countBuffer, 0, sizeof(uint32_t), 0);
+	context->FillBuffer(this->m_countBuffer, 0, 64 * sizeof(uint32_t), 0);
 	context->BufferMemoryBarrier(this->m_countBuffer, EAccess::TRANSFER_WRITE, EAccess::SHADER_WRITE);
 
 	context->BindPipeline(this->m_computePipeline);
@@ -82,12 +82,14 @@ CullingPass::Execute(
 		uint32_t nWvpAlignment;
 		uint32_t nFrustumOffset;
 		uint32_t nFrustumAlignment;
+		uint32_t nMaxDrawsPerBlock;
 	} pushData;
 
 	pushData.nTotalBatches = this->m_nTotalBatches;
 	pushData.nWvpAlignment = this->m_wvpBuffer->GetAlignment();
 	pushData.nFrustumOffset = nFrustumDataOffset;
 	pushData.nFrustumAlignment = this->m_frustumBuffer->GetAlignment();
+	pushData.nMaxDrawsPerBlock = this->m_nMaxBatchesPerBlock;
 
 	context->PushConstants(this->m_pipelineLayout, EShaderStage::COMPUTE, 0, sizeof(pushData), &pushData);
 
@@ -111,7 +113,7 @@ CullingPass::CreatePipeline() {
 	PushConstantRange pushRange = { };
 	pushRange.stage = EShaderStage::COMPUTE;
 	pushRange.nOffset = 0;
-	pushRange.nSize = 4 * sizeof(uint32_t);
+	pushRange.nSize = 5 * sizeof(uint32_t);
 
 	ComputePipelineCreateInfo pipelineInfo = { };
 	pipelineInfo.shader = computeShader;
@@ -171,10 +173,10 @@ CullingPass::CreateResources() {
 
 	this->m_batchBuffer = this->m_device->CreateRingBuffer(batchInfo);
 
-	/* Draw count buffer (4 bytes) */
+	/* Draw count buffer (4 bytes, max 64 blocks) */
 	BufferCreateInfo countInfo = { };
 	countInfo.sharingMode = ESharingMode::EXCLUSIVE;
-	countInfo.nSize = sizeof(uint32_t);
+	countInfo.nSize = sizeof(uint32_t) * 64;
 	countInfo.usage = EBufferUsage::STORAGE_BUFFER | EBufferUsage::TRANSFER_DST | EBufferUsage::INDIRECT_BUFFER;
 	countInfo.type = EBufferType::STORAGE_BUFFER;
 
@@ -304,7 +306,7 @@ CullingPass::CreateDescriptors() {
 	/* Binding 3: Draw count */
 	bufferInfos[3].buffer = this->m_countBuffer;
 	bufferInfos[3].nOffset = 0;
-	bufferInfos[3].nRange = 0;
+	bufferInfos[3].nRange = 64 * sizeof(uint32_t);
 
 	/* Binding 4: WVP Buffer */
 	bufferInfos[4].buffer = this->m_wvpBuffer->GetBuffer();

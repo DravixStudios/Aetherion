@@ -84,6 +84,7 @@ struct DrawBatch {
     uint32_t firstIndex;
     int vertexOffset;
     uint32_t instanceDataIndex;
+    uint32_t nBlockIdx;
 };
 
 struct FrameIndirectData {
