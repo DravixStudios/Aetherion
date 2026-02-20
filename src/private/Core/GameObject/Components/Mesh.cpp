@@ -74,7 +74,7 @@ Mesh::LoadModel(String filePath) {
 		for (uint32_t f = 0; f < mesh->mNumFaces; f++) {
 			aiFace& face = mesh->mFaces[f];
 			for (uint32_t j = 0; j < face.mNumIndices; j++) {
-				subData.indices.push_back(static_cast<uint16_t>(face.mIndices[j]));
+				subData.indices.push_back(face.mIndices[j]);
 			}
 		}
 
