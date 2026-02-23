@@ -148,6 +148,8 @@ Core::Update() {
             }
         }
 
+        this->m_deferredRenderer.FinalizeMeshUploads();
+
         const std::map<String, UploadedMesh> meshCache = this->m_deferredRenderer.GetUploadedMeshes();
         this->m_sceneCollector.SetUploadedMeshes(&meshCache);
         CollectedDrawData drawData = this->m_sceneCollector.Collect(currentScene);
