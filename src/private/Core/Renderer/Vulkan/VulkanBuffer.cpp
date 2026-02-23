@@ -115,14 +115,39 @@ VulkanBuffer::Create(const BufferCreateInfo& createInfo) {
 
 	/* Allocate memory */
 	VkDeviceMemory vkMemory = { };
+
+	/*
+		Select memory properties
+		depending on the buffer type
+
+		TODO: Contemplate CPU non-visible
+		storage buffers
+	*/
+	VkMemoryPropertyFlags memProps = 0;
+	switch (createInfo.type) {
+	case EBufferType::VERTEX_BUFFER:
+	case EBufferType::INDEX_BUFFER:
+		memProps |= VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+		break;
+	case EBufferType::STAGING_BUFFER:
+		memProps |= VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
+		memProps |= VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+		memProps |= VK_MEMORY_PROPERTY_HOST_CACHED_BIT;
+		break;
+	case EBufferType::UNIFORM_BUFFER:
+	case EBufferType::STORAGE_BUFFER:
+		memProps |= VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
+		memProps |= VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+		break;
+	default:
+		Logger::Debug("VulkanBuffer::Create: Unknown buffer type");
+		return;
+	}
 	
 	VkMemoryAllocateInfo allocInfo = { };
 	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 	allocInfo.allocationSize = memReqs.size;
-	allocInfo.memoryTypeIndex = this->m_device->FindMemoryType(
-		memReqs.memoryTypeBits, 
-		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
-	);
+	allocInfo.memoryTypeIndex = this->m_device->FindMemoryType(memReqs.memoryTypeBits, memProps);
 
 	VK_CHECK(vkAllocateMemory(vkDevice, &allocInfo, nullptr, &this->m_memory), "Failed allocating buffer memory");
 	VK_CHECK(vkBindBufferMemory(vkDevice, this->m_buffer, this->m_memory, 0), "Failed binding buffer memory");
