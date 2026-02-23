@@ -110,3 +110,18 @@ Mesh::LoadModel(String filePath) {
 
 	return true;
 }
+
+/**
+* Clear mesh texture data
+*/
+void 
+Mesh::ClearTextureData() {
+	for (auto& [idx, sub] : this->m_meshData.subMeshes) {
+		sub.albedo.data.clear();
+		sub.albedo.data.shrink_to_fit();
+		sub.orm.data.clear();
+		sub.orm.data.shrink_to_fit();
+		sub.emissive.data.clear();
+		sub.emissive.data.shrink_to_fit();
+	}
+}
