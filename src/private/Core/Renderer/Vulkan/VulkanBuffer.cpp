@@ -130,6 +130,7 @@ void
 VulkanBuffer::Create(const BufferCreateInfo& createInfo) {
 	VkDevice vkDevice = this->m_device->GetVkDevice();
 	this->m_bufferType = createInfo.type;
+	this->m_bufferUsage = createInfo.usage;
 
 	this->m_size = static_cast<VkDeviceSize>(createInfo.nSize);
 
@@ -294,6 +295,73 @@ VulkanBuffer::Map() {
 	vkMapMemory(this->m_device->GetVkDevice(), this->m_memory, 0, this->m_size, 0, &pMap);
 
 	return pMap;
+}
+
+/**
+* Copies a buffer to this buffer
+*
+* @param srcBuff Source buffer
+* @param nSize Size of the buffer
+*/
+void
+VulkanBuffer::CopyBuffer(Ref<GPUBuffer> srcBuff, uint32_t nSize, uint32_t nOffset) {
+	VkBuffer vkBuff = srcBuff.As<VulkanBuffer>()->GetVkBuffer();
+
+	Ref<CommandBuffer> cmdBuff = this->m_device->BeginSingleTimeCommandBuffer();
+
+	VkBufferCopy copy = { };
+	copy.srcOffset = 0;
+	copy.dstOffset = nOffset;
+	copy.size = nSize;
+
+	VkBufferUsageFlags bufferUsage = ConvertBufferUsage(this->m_bufferUsage);
+
+	VkAccessFlags srcAccess;
+	VkPipelineStageFlags srcStage;
+
+	GetBarrierInfoFromUsage(bufferUsage, srcAccess, srcStage);
+
+	VkBufferMemoryBarrier barrier = { };
+	barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+	barrier.buffer = this->m_buffer;
+	barrier.srcAccessMask = srcAccess;
+	barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+	barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	barrier.size = VK_WHOLE_SIZE;
+	barrier.offset = 0;
+
+	vkCmdPipelineBarrier(
+		cmdBuff.As<VulkanCommandBuffer>()->GetVkCommandBuffer(),
+		srcStage,
+		VK_PIPELINE_STAGE_TRANSFER_BIT,
+		0,
+		0, nullptr,
+		1, &barrier,
+		0, nullptr
+	);
+
+	vkCmdCopyBuffer(
+		cmdBuff.As<VulkanCommandBuffer>()->GetVkCommandBuffer(),
+		vkBuff,
+		this->m_buffer,
+		1, &copy
+	);
+
+	barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+	barrier.dstAccessMask = srcAccess;
+
+	vkCmdPipelineBarrier(
+		cmdBuff.As<VulkanCommandBuffer>()->GetVkCommandBuffer(),
+		VK_PIPELINE_STAGE_TRANSFER_BIT,
+		srcStage,
+		0,
+		0, nullptr,
+		1, &barrier,
+		0, nullptr
+	);
+
+	this->m_device->EndSingleTimeCommandBuffer(cmdBuff);
 }
 
 /**

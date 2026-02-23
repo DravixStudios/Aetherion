@@ -20,6 +20,8 @@ public:
 	void* Map() override;
 	void Unmap() override;
 
+	void CopyBuffer(Ref<GPUBuffer> srcBuff, uint32_t nSize, uint32_t nOffset = 0) override;
+
 	VkBuffer GetVkBuffer() const { return this->m_buffer; }
 
 	static Ptr

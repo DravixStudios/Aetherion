@@ -130,6 +130,15 @@ public:
 	virtual void Unmap() = 0;
 
 	EBufferType GetBufferType() const { return this->m_bufferType; }
+
+	/**
+	* Copies a buffer to this buffer
+	* 
+	* @param srcBuff Source buffer
+	* @param nSize Size of the buffer
+	*/
+	virtual void CopyBuffer(Ref<GPUBuffer> srcBuff, uint32_t nSize, uint32_t nOffset = 0) = 0;
 protected:
 	EBufferType m_bufferType = EBufferType::UNKNOWN_BUFFER;
+	EBufferUsage m_bufferUsage;
 };
