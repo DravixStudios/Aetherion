@@ -423,7 +423,7 @@ DeferredRenderer::CreateBindlessResources() {
 
 /**
 * Uploads a mesh to the global mega-buffer
-* 
+*
 * @param meshData Mesh source data
 */
 void

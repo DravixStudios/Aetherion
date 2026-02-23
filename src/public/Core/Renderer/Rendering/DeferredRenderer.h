@@ -46,6 +46,7 @@ public:
     const std::map<String, UploadedMesh>& GetUploadedMeshes() const { return this->m_uploadedMeshes; }
 
     void UploadMesh(const MeshData& meshData);
+    void FinalizeMeshUploads() { this->m_meshUploader.FinalizeUploads(); }
     MegaBuffer& GetMegaBuffer() { return this->m_megaBuffer; }
 
 private:
