@@ -15,9 +15,10 @@
 - Domain Driven Design 
 - Render Graph
 - Indirect Drawing 
+- GUI
+- Cascade Shadow Maps (CSM)
 - Disney BRDF ❌
 - C# Scripting system ❌
-- GUI ❌
 - Project management ❌
 - More soon!
 
