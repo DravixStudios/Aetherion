@@ -730,6 +730,22 @@ VulkanDevice::CreateImGui(const ImGuiImplCreateInfo& createInfo) {
 }
 
 /**
+* Get texture uploader
+*
+* @returns Texture uploader
+*/
+Ref<TextureUploader> 
+VulkanDevice::GetTextureUploader() {
+	if (!this->m_textureUploader) {
+		Ref<Device> deviceRef = std::static_pointer_cast<Device>(this->shared_from_this());
+		this->m_textureUploader = TextureUploader::CreateShared(deviceRef);
+		this->m_textureUploader->Init();
+	}
+
+	return this->m_textureUploader;
+}
+
+/**
 * Submits a sequence of semaphores or
 * command buffers to a queue
 *

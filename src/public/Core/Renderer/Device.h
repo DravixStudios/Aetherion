@@ -11,6 +11,7 @@
 #include "Core/Renderer/Fence.h"
 #include "Core/Renderer/Pipeline.h"
 #include "Core/Renderer/ImGuiImpl.h"
+#include "Core/Renderer/TextureUploader.h"
 
 enum class EQueueType {
 	GRAPHICS,
@@ -298,6 +299,13 @@ public:
 	* @returns Created ImGui implementation
 	*/
 	virtual Ref<ImGuiImpl> CreateImGui(const ImGuiImplCreateInfo& createInfo) = 0;
+
+	/**
+	* Get texture uploader
+	* 
+	* @returns Texture uploader
+	*/
+	virtual Ref<TextureUploader> GetTextureUploader() = 0;
 	
 	/**
 	* Submits a sequence of semaphores or 

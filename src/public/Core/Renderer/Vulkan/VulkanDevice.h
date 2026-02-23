@@ -99,6 +99,8 @@ public:
 	Ref<Fence> CreateFence(const FenceCreateInfo& createInfo) override;
 	Ref<ImGuiImpl> CreateImGui(const ImGuiImplCreateInfo& createInfo) override;
 
+	Ref<TextureUploader> GetTextureUploader() override;
+
 	void Submit(const SubmitInfo& submitInfo, Ref<Fence> fence) override;
 
 	bool IsExtensionSupported(const char* extensionName);
@@ -137,6 +139,9 @@ private:
 	VkQueue m_presentQueue;
 
 	Ref<CommandPool> m_transferPool;
+	std::mutex m_transferMutex;
+
+	Ref<TextureUploader> m_textureUploader;
 	
 	Vector<VkQueueFamilyProperties> m_queueFamilyProperties;
 	void CacheQueueFamilyProperties();
