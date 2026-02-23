@@ -64,6 +64,7 @@ SceneCollector::Collect(Scene* scene) {
 			batch.firstIndex = subMesh.geometry.nFirstIndex;
 			batch.vertexOffset = subMesh.geometry.nVertexOffset;
 			batch.instanceDataIndex = static_cast<uint32_t>(result.instances.size() - 1);
+			batch.nBlockIdx = subMesh.nBlockIdx;
 
 			result.batches.push_back(batch);
 		}

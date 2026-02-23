@@ -30,28 +30,32 @@ MeshUploader::Upload(const MeshData& meshData) {
 		UploadedSubMesh uploaded = { };
 
 		uploaded.geometry = this->m_megaBuffer->Upload(subData.vertices, subData.indices);
-		uploaded.nAlbedoIndex = this->UploadTexture(subData.albedo);
-		uploaded.nORMIndex = this->UploadTexture(subData.orm);
-		uploaded.nEmissiveIndex = this->UploadTexture(subData.emissive);
+		uploaded.nAlbedoIndex = this->QueueTextureUpload(subData.albedo);
+		uploaded.nORMIndex = this->QueueTextureUpload(subData.orm);
+		uploaded.nEmissiveIndex = this->QueueTextureUpload(subData.emissive);
+		uploaded.nBlockIdx = uploaded.geometry.nBlockIndex;
 
 		result.subMeshes[idx] = uploaded;
 	}
 
-	this->m_bindlessSet->UpdateWrites();
-
 	return result;
 }
 
-uint32_t
-MeshUploader::UploadTexture(const TextureData& textureData) {
+/**
+* Queues a texture to upload
+* 
+* @param textureData Texture pixel data
+* 
+* @returns Texture index
+*/
+uint32_t 
+MeshUploader::QueueTextureUpload(const TextureData& textureData) {
+	/* Check if texture has name and data */
 	if (textureData.name.empty() || textureData.data.empty()) {
 		return UINT32_MAX;
 	}
 
-	if (this->m_resourceMgr->IsTextureRegistered(textureData.name)) {
-		return this->m_resourceMgr->GetTextureIndex(textureData.name);
-	}
-
+	/* Retrieve texture width and height */
 	int nWidth = textureData.nWidth;
 	int nHeight = textureData.nHeight;
 	unsigned char* pixels = nullptr;
@@ -76,29 +80,19 @@ MeshUploader::UploadTexture(const TextureData& textureData) {
 		pixels = const_cast<unsigned char*>(textureData.data.data());
 	}
 
+	/* Create a texture hash to avoid duplicates */
 	size_t size = nWidth * nHeight * 4;
 	uint64_t hash = XXH64(pixels, size, 0);
 	String hashString = HashToString(hash);
-	
+
 	if (this->m_resourceMgr->IsTextureRegistered(hashString)) {
-		uint32_t nIdx = this->m_resourceMgr->GetTextureIndex(hashString);
-
-		if (bNeedsFree) {
-			stbi_image_free(pixels);
-		}
-
-		return nIdx;
+		return this->m_resourceMgr->GetTextureIndex(hashString);
 	}
 
-	BufferCreateInfo stagingInfo = { };
-	stagingInfo.nSize = size;
-	stagingInfo.pcData = pixels;
-	stagingInfo.sharingMode = ESharingMode::EXCLUSIVE;
-	stagingInfo.type = EBufferType::STAGING_BUFFER;
-	stagingInfo.usage = EBufferUsage::TRANSFER_SRC;
-	
-	Ref<GPUBuffer> staging = this->m_device->CreateBuffer(stagingInfo);
+	/* Get texture uploader */
+	Ref<TextureUploader> textureUploader = this->m_device->GetTextureUploader();
 
+	/* Texture create info */
 	TextureCreateInfo textureInfo = { };
 	textureInfo.extent.width = nWidth;
 	textureInfo.extent.height = nHeight;
@@ -106,39 +100,66 @@ MeshUploader::UploadTexture(const TextureData& textureData) {
 	textureInfo.format = GPUFormat::RGBA8_UNORM;
 	textureInfo.imageType = ETextureDimensions::TYPE_2D;
 	textureInfo.initialLayout = ETextureLayout::UNDEFINED;
-	textureInfo.buffer = staging;
 	textureInfo.samples = ESampleCount::SAMPLE_1;
 	textureInfo.tiling = ETextureTiling::OPTIMAL;
 	textureInfo.usage = ETextureUsage::SAMPLED | ETextureUsage::TRANSFER_DST;
 	textureInfo.nArrayLayers = 1;
 	textureInfo.nMipLevels = 1;
-	
-	Ref<GPUTexture> texture = this->m_device->CreateTexture(textureInfo);
 
-	ImageViewCreateInfo viewInfo = { };
-	viewInfo.image = texture;
-	viewInfo.format = GPUFormat::RGBA8_UNORM;
-	viewInfo.viewType = EImageViewType::TYPE_2D;
-	
-	Ref<ImageView> view = this->m_device->CreateImageView(viewInfo);
-
-	uint32_t nTextureIndex = this->m_nNextTextureIndex++;
-
-	DescriptorImageInfo imgInfo = { };
-	imgInfo.texture = texture;
-	imgInfo.imageView = view;
-	imgInfo.sampler = this->m_defaultSampler;
-
-	this->m_bindlessSet->WriteTexture(0, nTextureIndex, imgInfo);
-
-	this->m_resourceMgr->RegisterTexture(hashString, nTextureIndex);
-
-	this->m_textures.push_back(texture);
-	this->m_imageViews.push_back(view);
+	size_t nPixelsSize = static_cast<size_t>(nWidth) * nHeight * 4;
+	Vector<unsigned char> pixelData(pixels, pixels + nPixelsSize);
 
 	if (bNeedsFree) {
 		stbi_image_free(pixels);
+		bNeedsFree = false;
 	}
 
+	auto future = textureUploader->QueueUpload(textureInfo, std::move(pixelData), hashString);
+
+	uint32_t nTextureIndex = this->m_nNextTextureIndex++;
+
+	PendingTextureUpload pendingUpload = { };
+	pendingUpload.future = std::move(future);
+	pendingUpload.hash = hashString;
+	pendingUpload.nTextureIndex = nTextureIndex;
+
+	this->m_pendingTextureUploads.push_back(std::move(pendingUpload));
+
+	this->m_resourceMgr->RegisterTexture(hashString, nTextureIndex);
+
 	return nTextureIndex;
+}
+
+/**
+* Wait for all the textures and update descriptor sets
+*/
+void
+MeshUploader::FinalizeUploads() {
+	for (PendingTextureUpload& pendingTexture : this->m_pendingTextureUploads) {
+		if (pendingTexture.future.valid()) {
+			Ref<GPUTexture> texture = pendingTexture.future.get();
+
+			/* Create image view */
+			ImageViewCreateInfo viewInfo = { };
+			viewInfo.image = texture;
+			viewInfo.format = GPUFormat::RGBA8_UNORM;
+			viewInfo.viewType = EImageViewType::TYPE_2D;
+
+			Ref<ImageView> view = this->m_device->CreateImageView(viewInfo);
+
+			/* Update descriptor set */
+			DescriptorImageInfo imageInfo = { };
+			imageInfo.texture = texture;
+			imageInfo.imageView = view;
+			imageInfo.sampler = this->m_defaultSampler;
+
+			this->m_bindlessSet->WriteTexture(0, pendingTexture.nTextureIndex, imageInfo);
+
+			this->m_textures.push_back(texture);
+			this->m_imageViews.push_back(view);
+		}
+	}
+
+	this->m_pendingTextureUploads.clear();
+	this->m_bindlessSet->UpdateWrites();
 }

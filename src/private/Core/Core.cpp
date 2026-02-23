@@ -142,9 +142,13 @@ Core::Update() {
                 Mesh* mesh = dynamic_cast<Mesh*>(it->second);
                 if (mesh && mesh->IsLoaded()) {
                     this->m_deferredRenderer.UploadMesh(mesh->GetMeshData());
+
+                    mesh->ClearTextureData();
                 }
             }
         }
+
+        this->m_deferredRenderer.FinalizeMeshUploads();
 
         const std::map<String, UploadedMesh> meshCache = this->m_deferredRenderer.GetUploadedMeshes();
         this->m_sceneCollector.SetUploadedMeshes(&meshCache);

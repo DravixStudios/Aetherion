@@ -10,28 +10,12 @@
 void
 MegaBuffer::Init(Ref<Device> device, uint32_t nMaxVertices, uint32_t nMaxIndices) {
 	this->m_device = device;
-
-	/* Create vertex buffer */
-	BufferCreateInfo vboInfo = { };
-	vboInfo.nSize = nMaxVertices * sizeof(Vertex);
-	vboInfo.usage = EBufferUsage::VERTEX_BUFFER | EBufferUsage::TRANSFER_DST;
-	vboInfo.type = EBufferType::VERTEX_BUFFER;
-	vboInfo.sharingMode = ESharingMode::EXCLUSIVE;
-
-	this->m_vertexBuffer = this->m_device->CreateBuffer(vboInfo);
-
-	/* Create index buffer */
-	BufferCreateInfo iboInfo = { };
-	iboInfo.nSize = nMaxIndices * sizeof(uint16_t);
-	iboInfo.usage = EBufferUsage::INDEX_BUFFER | EBufferUsage::TRANSFER_DST;
-	iboInfo.type = EBufferType::INDEX_BUFFER;
-	iboInfo.sharingMode = ESharingMode::EXCLUSIVE;
 	
-	this->m_indexBuffer = this->m_device->CreateBuffer(iboInfo);
+	this->m_nInitialMaxVertices = nMaxVertices;
+	this->m_nInitialMaxIndices = nMaxIndices;
 
-	/* Map buffers */
-	this->m_pVertexMap = this->m_vertexBuffer->Map();
-	this->m_pIndexMap = this->m_indexBuffer->Map();
+	Block block = this->CreateBlock(nMaxVertices, nMaxIndices);
+	this->m_blocks.push_back(block);
 }
 
 /**
@@ -43,30 +27,83 @@ MegaBuffer::Init(Ref<Device> device, uint32_t nMaxVertices, uint32_t nMaxIndices
 * @returns Mega buffer allocation data
 */
 MegaBufferAllocation
-MegaBuffer::Upload(const Vector<Vertex>& vertices, const Vector<uint16_t>& indices) {
+MegaBuffer::Upload(const Vector<Vertex>& vertices, const Vector<uint32_t>& indices) {
+	uint32_t nVertexCount = static_cast<uint32_t>(vertices.size());
+	uint32_t nIndexCount = static_cast<uint32_t>(indices.size());
+
+	/* Get the last block */
+	Block& currentBlock = this->m_blocks.back();
+
+	bool bVertexFits = (currentBlock.nCurrentVertexOffset + nVertexCount) <= currentBlock.nMaxVertices;
+	bool bIndexFits = (currentBlock.nCurrentIndexOffset + nIndexCount) <= currentBlock.nMaxIndices;
+
+	/* If it doesn't fit, create a new block with the double of capacity */
+	if (!bVertexFits || !bIndexFits) {
+		uint32_t nNewMaxVertices = currentBlock.nMaxVertices * 2;
+		uint32_t nNewMaxIndices = currentBlock.nMaxIndices * 2;
+
+		/* Assert new block can store the mesh */
+		nNewMaxVertices = std::max(nNewMaxVertices, nVertexCount);
+		nNewMaxIndices = std::max(nNewMaxIndices, nIndexCount);
+
+		this->m_blocks.push_back(this->CreateBlock(nNewMaxVertices, nNewMaxIndices));
+	}
+
+	/* Write on the new block (it can be a new block) */
+	Block& targetBlock = this->m_blocks.back();
+	uint32_t nBlockIdx = static_cast<uint32_t>(this->m_blocks.size() - 1);
+
 	MegaBufferAllocation alloc = { };
-	alloc.nVertexOffset = this->m_nCurrentVertexOffset;
-	alloc.nFirstIndex = this->m_nCurrentIndexOffset;
-	alloc.nIndexCount = static_cast<uint32_t>(indices.size());
-
-	size_t vertexSize = vertices.size() * sizeof(Vertex);
-	size_t indexSize = indices.size() * sizeof(uint16_t);
+	alloc.nBlockIndex = nBlockIdx;
+	alloc.nVertexOffset = targetBlock.nCurrentVertexOffset;
+	alloc.nFirstIndex = targetBlock.nCurrentIndexOffset;
+	alloc.nIndexCount = nIndexCount;
 
 	memcpy(
-		static_cast<char*>(this->m_pVertexMap) + (this->m_nCurrentVertexOffset * sizeof(Vertex)),
+		static_cast<char*>(targetBlock.pVertexMap) + (targetBlock.nCurrentVertexOffset * sizeof(Vertex)),
 		vertices.data(), 
-		vertexSize
+		nVertexCount * sizeof(Vertex)
 	);
 
 	memcpy(
-		static_cast<char*>(this->m_pIndexMap) + (this->m_nCurrentIndexOffset * sizeof(uint16_t)),
+		static_cast<char*>(targetBlock.pIndexMap) + (targetBlock.nCurrentIndexOffset * sizeof(uint32_t)),
 		indices.data(),
-		indexSize
+		nIndexCount * sizeof(uint32_t)
 	);
 
-	/* Update offsets for next upload */
-	this->m_nCurrentVertexOffset += static_cast<uint32_t>(vertices.size());
-	this->m_nCurrentIndexOffset += static_cast<uint32_t>(indices.size());
+	targetBlock.nCurrentVertexOffset += nVertexCount;
+	targetBlock.nCurrentIndexOffset += nIndexCount;
 
 	return alloc;
+}
+
+MegaBuffer::Block
+MegaBuffer::CreateBlock(uint32_t nMaxVertices, uint32_t nMaxIndices) {
+	Block block = { };
+	block.nMaxVertices = nMaxVertices,
+	block.nMaxIndices = nMaxIndices;
+
+	/* Create VBO */
+	BufferCreateInfo vboInfo = { };
+	vboInfo.nSize = nMaxVertices * sizeof(Vertex);
+	vboInfo.type = EBufferType::VERTEX_BUFFER;
+	vboInfo.usage = EBufferUsage::VERTEX_BUFFER;
+	vboInfo.sharingMode = ESharingMode::EXCLUSIVE;
+	
+	block.vertexBuffer = this->m_device->CreateBuffer(vboInfo);
+
+	/* Create IBO */
+	BufferCreateInfo iboInfo = { };
+	iboInfo.nSize = nMaxIndices * sizeof(uint32_t);
+	iboInfo.type = EBufferType::INDEX_BUFFER;
+	iboInfo.usage = EBufferUsage::INDEX_BUFFER;
+	iboInfo.sharingMode = ESharingMode::EXCLUSIVE;
+
+	block.indexBuffer = this->m_device->CreateBuffer(iboInfo);
+
+	/* Map memory */
+	block.pVertexMap = block.vertexBuffer->Map();
+	block.pIndexMap = block.indexBuffer->Map();
+
+	return block;
 }

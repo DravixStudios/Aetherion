@@ -4,6 +4,7 @@
 #include "Core/Renderer/GPUBuffer.h"
 
 struct MegaBufferAllocation {
+	uint32_t nBlockIndex;
 	uint32_t nVertexOffset;
 	uint32_t nFirstIndex;
 	uint32_t nIndexCount;
@@ -11,19 +12,32 @@ struct MegaBufferAllocation {
 
 class MegaBuffer {
 public:
-	void Init(Ref<Device> device, uint32_t nMaxVertices, uint32_t nMaxIndices);
-	MegaBufferAllocation Upload(const Vector<Vertex>& vertices, const Vector<uint16_t>& indices);
+	struct Block {
+		Ref<GPUBuffer> vertexBuffer;
+		Ref<GPUBuffer> indexBuffer;
 
-	Ref<GPUBuffer> GetVertexBuffer() const { return this->m_vertexBuffer; }
-	Ref<GPUBuffer> GetIndexBuffer() const { return this->m_indexBuffer; }
+		void* pVertexMap = nullptr;
+		void* pIndexMap = nullptr;
+
+		uint32_t nMaxVertices = 0;
+		uint32_t nMaxIndices = 0;
+
+		uint32_t nCurrentVertexOffset = 0;
+		uint32_t nCurrentIndexOffset = 0;
+	};
+
+	void Init(Ref<Device> device, uint32_t nMaxVertices, uint32_t nMaxIndices);
+	MegaBufferAllocation Upload(const Vector<Vertex>& vertices, const Vector<uint32_t>& indices);
+
+	const Vector<Block>& GetBlocks() const { return this->m_blocks; }
+	uint32_t GetBlockCount() const { return static_cast<uint32_t>(this->m_blocks.size()); }
 private:
 	Ref<Device> m_device;
-	Ref<GPUBuffer> m_vertexBuffer;
-	Ref<GPUBuffer> m_indexBuffer;
 
-	uint32_t m_nCurrentVertexOffset = 0;
-	uint32_t m_nCurrentIndexOffset = 0;
+	Vector<Block> m_blocks;
 
-	void* m_pVertexMap = nullptr;
-	void* m_pIndexMap = nullptr;
+	uint32_t m_nInitialMaxVertices = 0;
+	uint32_t m_nInitialMaxIndices = 0;
+
+	Block CreateBlock(uint32_t nMaxVertices, uint32_t nMaxIndices);
 };

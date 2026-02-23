@@ -9,10 +9,17 @@ struct UploadedSubMesh {
 	uint32_t nAlbedoIndex = UINT32_MAX;
 	uint32_t nORMIndex = UINT32_MAX;
 	uint32_t nEmissiveIndex = UINT32_MAX;
+	uint32_t nBlockIdx = 0;
 };
 
 struct UploadedMesh {
 	std::map<uint32_t, UploadedSubMesh> subMeshes;
+};
+
+struct PendingTextureUpload {
+	std::future<GPUTexture::Ptr> future;
+	String hash;
+	uint32_t nTextureIndex;
 };
 
 class MeshUploader {
@@ -25,6 +32,7 @@ public:
 	);
 	UploadedMesh Upload(const MeshData& meshData);
 
+	void FinalizeUploads();
 private:
 	Ref<Device> m_device;
 	MegaBuffer* m_megaBuffer;
@@ -38,5 +46,7 @@ private:
 	Vector<Ref<GPUTexture>> m_textures;
 	Vector<Ref<ImageView>> m_imageViews;
 
-	uint32_t UploadTexture(const TextureData& textureData);
+	Vector<PendingTextureUpload> m_pendingTextureUploads;
+
+	uint32_t QueueTextureUpload(const TextureData& textureData);
 };

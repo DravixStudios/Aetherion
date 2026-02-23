@@ -23,6 +23,8 @@ public:
 	const MeshData& GetMeshData() const { return this->m_meshData; }
 	bool IsLoaded() const { return this->m_meshData.bLoaded; }
 
+	void ClearTextureData();
+
 private:
 	MeshData m_meshData;
 };

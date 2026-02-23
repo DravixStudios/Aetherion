@@ -134,6 +134,25 @@ DeferredRenderer::Render(
 
     /* Import G-Buffer resources */
     this->m_gbuffPass.ImportResources(this->m_graph);
+   
+    const Vector<MegaBuffer::Block>& blocks = this->m_megaBuffer.GetBlocks();
+    uint32_t nBlockCount = this->m_megaBuffer.GetBlockCount();
+
+    Vector<uint32_t> batchesPerBlock(nBlockCount, 0);
+    for (const DrawBatch& batch : drawData.batches) {
+        if (batch.nBlockIdx < nBlockCount) {
+            batchesPerBlock[batch.nBlockIdx]++;
+        }
+    }
+
+    uint32_t nMaxBatchesPerBlock = 0;
+    for (uint32_t nCount : batchesPerBlock) {
+        nMaxBatchesPerBlock = std::max(nMaxBatchesPerBlock, nCount);
+    }
+    nMaxBatchesPerBlock = std::max(nMaxBatchesPerBlock, 1u);
+
+    this->m_cullingPass.SetTotalBlocks(nBlockCount);
+    this->m_cullingPass.SetBatchesPerBlock(nMaxBatchesPerBlock);
 
     this->m_graph.AddNode("Culling",
         [&](RenderGraphBuilder& builder) { this->m_cullingPass.SetupNode(builder); },
@@ -147,12 +166,13 @@ DeferredRenderer::Render(
         this->m_sceneSetLayout,
         this->m_bindlessSet,
         this->m_bindlessLayout,
-        this->m_megaBuffer.GetVertexBuffer(),
-        this->m_megaBuffer.GetIndexBuffer(),
-        0,
+        blocks,
+        nBlockCount,
         this->m_cullingPass.GetCountBuffer(),
         this->m_cullingPass.GetIndirectBuffer(),
-        this->m_cullingPass.GetIndirectBuffer()->GetPerFrameSize() * nImgIdx
+        this->m_cullingPass.GetIndirectBuffer()->GetPerFrameSize() * nImgIdx,
+        drawData.nTotalBatches,
+        nMaxBatchesPerBlock
     );
 
     /* 1. G-Buffer pass (Indirect) */
@@ -179,8 +199,8 @@ DeferredRenderer::Render(
     this->m_shadowPass.SetSceneData(
         this->m_sceneSets[nImgIdx],
         this->m_sceneSetLayout,
-        this->m_megaBuffer.GetVertexBuffer(),
-        this->m_megaBuffer.GetIndexBuffer()
+        blocks,
+        nBlockCount
     );
     this->m_shadowPass.SetCameraData(
         drawData.view,
@@ -403,7 +423,7 @@ DeferredRenderer::CreateBindlessResources() {
 
 /**
 * Uploads a mesh to the global mega-buffer
-* 
+*
 * @param meshData Mesh source data
 */
 void

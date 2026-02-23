@@ -74,7 +74,7 @@ Mesh::LoadModel(String filePath) {
 		for (uint32_t f = 0; f < mesh->mNumFaces; f++) {
 			aiFace& face = mesh->mFaces[f];
 			for (uint32_t j = 0; j < face.mNumIndices; j++) {
-				subData.indices.push_back(static_cast<uint16_t>(face.mIndices[j]));
+				subData.indices.push_back(face.mIndices[j]);
 			}
 		}
 
@@ -109,4 +109,19 @@ Mesh::LoadModel(String filePath) {
 	this->m_meshData.bLoaded = true;
 
 	return true;
+}
+
+/**
+* Clear mesh texture data
+*/
+void 
+Mesh::ClearTextureData() {
+	for (auto& [idx, sub] : this->m_meshData.subMeshes) {
+		sub.albedo.data.clear();
+		sub.albedo.data.shrink_to_fit();
+		sub.orm.data.clear();
+		sub.orm.data.shrink_to_fit();
+		sub.emissive.data.clear();
+		sub.emissive.data.shrink_to_fit();
+	}
 }
