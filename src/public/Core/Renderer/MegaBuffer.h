@@ -16,9 +16,6 @@ public:
 		Ref<GPUBuffer> vertexBuffer;
 		Ref<GPUBuffer> indexBuffer;
 
-		void* pVertexMap = nullptr;
-		void* pIndexMap = nullptr;
-
 		uint32_t nMaxVertices = 0;
 		uint32_t nMaxIndices = 0;
 
