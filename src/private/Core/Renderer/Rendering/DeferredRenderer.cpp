@@ -594,7 +594,7 @@ DeferredRenderer::CreateScreenquadBuffer() {
     vboInfo.pcData = sqVertices.data();
     vboInfo.sharingMode = ESharingMode::EXCLUSIVE;
     vboInfo.type = EBufferType::VERTEX_BUFFER;
-    vboInfo.usage = EBufferUsage::VERTEX_BUFFER;
+    vboInfo.usage = EBufferUsage::VERTEX_BUFFER | EBufferUsage::TRANSFER_DST;
     
     this->m_sqVBO = this->m_device->CreateBuffer(vboInfo);
 
@@ -603,7 +603,7 @@ DeferredRenderer::CreateScreenquadBuffer() {
     iboInfo.pcData = sqIndices.data();
     iboInfo.sharingMode = ESharingMode::EXCLUSIVE;
     iboInfo.type = EBufferType::INDEX_BUFFER;
-    iboInfo.usage = EBufferUsage::INDEX_BUFFER;
+    iboInfo.usage = EBufferUsage::INDEX_BUFFER | EBufferUsage::TRANSFER_DST;
 
     this->m_sqIBO = this->m_device->CreateBuffer(iboInfo);
 }

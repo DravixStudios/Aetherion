@@ -735,14 +735,14 @@ IBLGenerator::CreateResources() {
     vboInfo.type = EBufferType::VERTEX_BUFFER;
     vboInfo.pcData = vertices.data();
     vboInfo.sharingMode = ESharingMode::EXCLUSIVE;
-    vboInfo.usage = EBufferUsage::VERTEX_BUFFER;
+    vboInfo.usage = EBufferUsage::VERTEX_BUFFER | EBufferUsage::TRANSFER_DST;
     
     BufferCreateInfo iboInfo = { };
     iboInfo.nSize = indices.size() * sizeof(uint16_t);
     iboInfo.type = EBufferType::INDEX_BUFFER;
     iboInfo.pcData = indices.data();
     iboInfo.sharingMode = ESharingMode::EXCLUSIVE;
-    iboInfo.usage = EBufferUsage::INDEX_BUFFER;
+    iboInfo.usage = EBufferUsage::INDEX_BUFFER | EBufferUsage::TRANSFER_DST;
 
     this->m_cubeVBO = this->m_device->CreateBuffer(vboInfo);
     this->m_cubeIBO = this->m_device->CreateBuffer(iboInfo);
