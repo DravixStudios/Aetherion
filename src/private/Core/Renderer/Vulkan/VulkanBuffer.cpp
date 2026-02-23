@@ -186,14 +186,97 @@ VulkanBuffer::Create(const BufferCreateInfo& createInfo) {
 	VK_CHECK(vkAllocateMemory(vkDevice, &allocInfo, nullptr, &this->m_memory), "Failed allocating buffer memory");
 	VK_CHECK(vkBindBufferMemory(vkDevice, this->m_buffer, this->m_memory, 0), "Failed binding buffer memory");
 
-	/* Copy data to buffer */
+	/* 
+		Copy data to buffer 
+
+		If buffer type is staging
+		buffer, we'll copy directly
+		to the buffer.
+
+		If it's not, we'll create a
+		staging buffer and copy to it.
+	*/
 	void* pMap = nullptr;
 	if (createInfo.pcData != nullptr && createInfo.nSize > 0) {
-		vkMapMemory(vkDevice, this->m_memory, 0, this->m_size, 0, &pMap);
+		if (createInfo.type == EBufferType::STAGING_BUFFER) {
+			vkMapMemory(vkDevice, this->m_memory, 0, this->m_size, 0, &pMap);
 		
-		memcpy(pMap, createInfo.pcData, createInfo.nSize);
+			memcpy(pMap, createInfo.pcData, createInfo.nSize);
 
-		vkUnmapMemory(vkDevice, this->m_memory);
+			vkUnmapMemory(vkDevice, this->m_memory);
+		}
+		else {
+			/* Store buffer usage */
+			VkBufferUsageFlags bufferUsage = bufferInfo.usage;
+
+			/* Create a new staging buffer */
+			BufferCreateInfo stagingInfo = { };
+			stagingInfo.pcData = createInfo.pcData;
+			stagingInfo.nSize = createInfo.nSize;
+			stagingInfo.sharingMode = ESharingMode::EXCLUSIVE;
+			stagingInfo.type = EBufferType::STAGING_BUFFER;
+			stagingInfo.usage = EBufferUsage::TRANSFER_SRC;
+
+			Ref<GPUBuffer> stagingBuffer = this->m_device->CreateBuffer(stagingInfo);
+
+			VkBufferMemoryBarrier barrier = { };
+			barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+			barrier.buffer = this->m_buffer;
+			barrier.srcAccessMask = 0;
+			barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+			barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+			barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+			barrier.offset = 0;
+			barrier.size = VK_WHOLE_SIZE;
+
+			Ref<CommandBuffer> cmdBuff = this->m_device->BeginSingleTimeCommandBuffer();
+			
+			/* Barrier before the transfer */
+			vkCmdPipelineBarrier(
+				cmdBuff.As<VulkanCommandBuffer>()->GetVkCommandBuffer(),
+				VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+				VK_PIPELINE_STAGE_TRANSFER_BIT,
+				0,
+				0, nullptr,
+				1, &barrier,
+				0, nullptr
+			);
+
+			/* Copy staging buffer to buffer */
+			VkBufferCopy copyRegion = { };
+			copyRegion.srcOffset = 0;
+			copyRegion.dstOffset = 0;
+			copyRegion.size = createInfo.nSize;
+
+			vkCmdCopyBuffer(
+				cmdBuff.As<VulkanCommandBuffer>()->GetVkCommandBuffer(),
+				stagingBuffer.As<VulkanBuffer>()->GetVkBuffer(),
+				this->m_buffer,
+				1,
+				&copyRegion
+			);
+
+			/* Barrier after the transfer */
+			VkAccessFlags dstAccess;
+			VkPipelineStageFlags dstStage;
+
+			GetBarrierInfoFromUsage(bufferUsage, dstAccess, dstStage);
+
+			barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+			barrier.dstAccessMask = dstAccess;
+			
+			vkCmdPipelineBarrier(
+				cmdBuff.As<VulkanCommandBuffer>()->GetVkCommandBuffer(),
+				VK_PIPELINE_STAGE_TRANSFER_BIT,
+				dstStage,
+				0,
+				0, nullptr,
+				1, &barrier,
+				0, nullptr
+			);
+
+			this->m_device->EndSingleTimeCommandBuffer(cmdBuff);
+		}
 	}
 	
 	pMap = nullptr;
