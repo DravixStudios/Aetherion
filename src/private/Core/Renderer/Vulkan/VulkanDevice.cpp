@@ -1,5 +1,6 @@
 #include "Core/Renderer/Vulkan/VulkanDevice.h"
 #include "Core/Renderer/Vulkan/VulkanHelpers.h"
+#include <mutex>
 
 VulkanDevice::VulkanDevice(
 	VkPhysicalDevice physicalDevice, 
@@ -247,8 +248,10 @@ VulkanDevice::CreateComputePipeline(const ComputePipelineCreateInfo& createInfo)
 /**
 * Begins a Vulkan single time command buffer
 */
-Ref<CommandBuffer> 
+Ref<CommandBuffer>
 VulkanDevice::BeginSingleTimeCommandBuffer() {
+	std::lock_guard<std::mutex> lock(this->m_transferMutex);
+	
 	Ref<CommandBuffer> commandBuff = this->m_transferPool->AllocateCommandBuffer();
 	commandBuff->Begin(true);
 
@@ -260,7 +263,7 @@ VulkanDevice::BeginSingleTimeCommandBuffer() {
 *
 * @param commandBuffer The Vulkan command buffer to end
 */
-void 
+void
 VulkanDevice::EndSingleTimeCommandBuffer(Ref<CommandBuffer> commandBuffer) {
 	commandBuffer->End();
 
@@ -284,14 +287,17 @@ VulkanDevice::EndSingleTimeCommandBuffer(Ref<CommandBuffer> commandBuffer) {
 	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 	submitInfo.commandBufferCount = 1;
 	submitInfo.pCommandBuffers = commandBuffers;
-	
+
 	vkQueueSubmit(this->m_graphicsQueue, 1, &submitInfo, fence);
 
 	/* Wait for fence */
 	vkWaitForFences(this->m_device, 1, &fence, VK_TRUE, UINT64_MAX);
 
 	/* Cleanup */
-	this->m_transferPool->FreeCommandBuffer(commandBuffer);
+	{
+		std::lock_guard<std::mutex> lock(this->m_transferMutex);
+		this->m_transferPool->FreeCommandBuffer(commandBuffer);
+	}
 	vkDestroyFence(this->m_device, fence, nullptr);
 }
 
