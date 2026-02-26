@@ -56,7 +56,17 @@ ImGuiPass::Execute(Ref<GraphicsContext> context, RenderGraphContext& graphCtx, u
     ImGui::SetNextWindowSize(ImVec2{ 200.f, hierarchyHeight });
     ImGui::Begin("Hierarchy", nullptr, ImGuiWindowFlags_NoResize);
 
-
+    ImGui::Begin("Sun Debug");
+    if (ImGui::DragFloat("Sun Rotation X", &this->m_sunRotation.x, .1f)) {
+        this->m_bSunChanged = true;
+    }
+    if (ImGui::DragFloat("Sun Rotation Y", &this->m_sunRotation.y, .1f)) {
+        this->m_bSunChanged = true;
+    }
+    if (ImGui::DragFloat("Sun Rotation Z", &this->m_sunRotation.z, .1f)) {
+        this->m_bSunChanged = true;
+    }
+    ImGui::End();
 
     ImGui::End();
 
