@@ -162,11 +162,13 @@ vec3 SafeAtmosphere(vec3 dir) {
 void main() {
     vec3 dir = normalize(inDir);
     vec3 color = SafeAtmosphere(dir);
+    vec3 sunDir = normalize(sunData.sunDir);
 
-    float cosS = dot(dir, sunData.sunDir);
+    float cosS = dot(dir, sunDir);
     float vis = clamp(sunData.sunHeight * 4.0 + 0.3, 0.0, 1.0);
     float disc = smoothstep(0.9997, 0.9999, cosS);
-    float corona = pow(max(cosS, 0.0), 128.0) * 0.15;
+    float corona = pow(max(cosS, 0.0), 512.0) * 0.8;
+    
     color += vec3(1.0, 0.95, 0.85) * (disc * 2.5 + corona) * vis;
 
     outColor = vec4(color, 1.0);
