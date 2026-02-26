@@ -250,7 +250,7 @@ VulkanDevice::CreateComputePipeline(const ComputePipelineCreateInfo& createInfo)
 */
 Ref<CommandBuffer>
 VulkanDevice::BeginSingleTimeCommandBuffer() {
-	std::lock_guard<std::mutex> lock(this->m_transferMutex);
+	this->m_transferMutex.lock();
 	
 	Ref<CommandBuffer> commandBuff = this->m_transferPool->AllocateCommandBuffer();
 	commandBuff->Begin(true);
@@ -294,11 +294,10 @@ VulkanDevice::EndSingleTimeCommandBuffer(Ref<CommandBuffer> commandBuffer) {
 	vkWaitForFences(this->m_device, 1, &fence, VK_TRUE, UINT64_MAX);
 
 	/* Cleanup */
-	{
-		std::lock_guard<std::mutex> lock(this->m_transferMutex);
-		this->m_transferPool->FreeCommandBuffer(commandBuffer);
-	}
+	this->m_transferPool->FreeCommandBuffer(commandBuffer);
 	vkDestroyFence(this->m_device, fence, nullptr);
+
+	this->m_transferMutex.unlock();
 }
 
 /**
