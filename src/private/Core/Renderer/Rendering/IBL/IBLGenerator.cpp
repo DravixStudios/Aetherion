@@ -7,9 +7,11 @@ IBLGenerator::Init(
     Ref<ImageView> skyboxView,
     Ref<Sampler> sampler,
     Ref<GPUBuffer> sqVBO,
-    Ref<GPUBuffer> sqIBO
+    Ref<GPUBuffer> sqIBO,
+    uint32_t nFramesInFlight
 ) {
     this->m_device = device;
+    this->m_nFramesInFlight = nFramesInFlight;
     this->m_skybox = skybox;
     this->m_skyboxView = skyboxView;
     this->m_sampler = sampler;
@@ -20,50 +22,32 @@ IBLGenerator::Init(
     this->CreateRenderPasses();
     this->CreatePipelines();
     this->CreateResources();
+
+    /* Write descriptor sets (once at init, not per frame) */
+    DescriptorImageInfo skyboxInfo = { };
+    skyboxInfo.texture = this->m_skybox;
+    skyboxInfo.imageView = this->m_skyboxView;
+    skyboxInfo.sampler = this->m_sampler;
+
+    this->m_irradianceSet->WriteTexture(0, 0, skyboxInfo);
+    this->m_prefilterSet->WriteTexture(0, 0, skyboxInfo);
+
+    this->m_irradianceSet->UpdateWrites();
+    this->m_prefilterSet->UpdateWrites();
+
+    /* Write viewProj descriptor */
+    DescriptorBufferInfo viewProjInfo = { };
+    viewProjInfo.buffer = this->m_viewProjBuffer->GetBuffer();
+    viewProjInfo.nOffset = 0;
+    viewProjInfo.nRange = sizeof(ViewProjection);
+
+    this->m_viewProjSet->WriteBuffer(0, 0, viewProjInfo);
+    this->m_viewProjSet->UpdateWrites();
 }
 
 void
-IBLGenerator::Generate(Ref<GraphicsContext> context) {
-    uint32_t nIrradianceSize = 64;
-    uint32_t nPrefilterSize = 128;
-    uint32_t nBRDFSize = 512;
-
-    /*
-        5 mip levels:
-            0 - 128x128
-            1 - 64x64
-            2 - 32x32
-            3 - 16x16
-            4 - 8x8
-    */
-    uint32_t nMipLevels = 5;
-
-    GPUFormat cubemapFormat = GPUFormat::RGBA32_FLOAT;
-    GPUFormat brdfFormat = GPUFormat::RG16_FLOAT;
-
-    /* Generate irradiance map */
-    TextureCreateInfo cubemapInfo = { };
-    cubemapInfo.format = cubemapFormat;
-    cubemapInfo.imageType = ETextureDimensions::TYPE_2D;
-    cubemapInfo.extent.width = nIrradianceSize;
-    cubemapInfo.extent.height = nIrradianceSize;
-    cubemapInfo.extent.depth = 1;
-    cubemapInfo.nMipLevels = 1;
-    cubemapInfo.nArrayLayers = 6;
-    cubemapInfo.flags = ETextureFlags::CUBE_COMPATIBLE;
-    cubemapInfo.tiling = ETextureTiling::OPTIMAL;
-    cubemapInfo.usage = ETextureUsage::COLOR_ATTACHMENT | ETextureUsage::SAMPLED;
-    cubemapInfo.sharingMode = ESharingMode::EXCLUSIVE;
-    cubemapInfo.initialLayout = ETextureLayout::UNDEFINED;
-    cubemapInfo.samples = ESampleCount::SAMPLE_1;
-    
-    this->m_irradiance = this->m_device->CreateTexture(cubemapInfo);
-
-    cubemapInfo.extent.width = nPrefilterSize;
-    cubemapInfo.extent.height = nPrefilterSize;
-    cubemapInfo.nMipLevels = nMipLevels;
-
-    this->m_prefilter = this->m_device->CreateTexture(cubemapInfo);
+IBLGenerator::Generate(Ref<GraphicsContext> context, uint32_t nFrameIdx) {
+    this->m_viewProjBuffer->Reset(nFrameIdx);
 
     /* Projection matrices for each cubemap face */
     glm::mat4 captureProjection = glm::perspective(glm::radians(90.f), 1.f, .1f, 10.f);
@@ -76,92 +60,36 @@ IBLGenerator::Generate(Ref<GraphicsContext> context) {
         glm::lookAt(glm::vec3(0.f), glm::vec3(0.f, 0.f, -1.f), glm::vec3(0.f, 1.f, 0.f)) // -Z
     };
 
-
-    /* Write descriptor sets */
-    DescriptorImageInfo irradianceInfo = { };
-    irradianceInfo.texture = this->m_skybox;
-    irradianceInfo.imageView = this->m_skyboxView;
-    irradianceInfo.sampler = this->m_sampler;
-
-    DescriptorImageInfo prefilterInfo = { };
-    prefilterInfo.texture = this->m_skybox;
-    prefilterInfo.imageView = this->m_skyboxView;
-    prefilterInfo.sampler = this->m_sampler;
-
-    this->m_irradianceSet->WriteTexture(0, 0, irradianceInfo);
-    this->m_prefilterSet->WriteTexture(0, 0, prefilterInfo);
-
-    this->m_irradianceSet->UpdateWrites();
-    this->m_prefilterSet->UpdateWrites();
-    
-    /* Create irradiance framebuffers */
-    Vector<Ref<Framebuffer>> irradianceFBs(6);
-    Vector<Ref<ImageView>> irradianceViews(6);
-    for (uint32_t nFace = 0; nFace < 6; nFace++) {
-        ImageViewCreateInfo viewInfo = { };
-        viewInfo.image = this->m_irradiance;
-        viewInfo.viewType = EImageViewType::TYPE_2D;
-        viewInfo.format = cubemapFormat;
-        viewInfo.subresourceRange.aspectMask = EImageAspect::COLOR;
-        viewInfo.subresourceRange.nBaseMipLevel = 0;
-        viewInfo.subresourceRange.nLevelCount = 1;
-        viewInfo.subresourceRange.nBaseArrayLayer = nFace;
-        viewInfo.subresourceRange.nLayerCount = 1;
-        
-        irradianceViews[nFace] = this->m_device->CreateImageView(viewInfo);
-
-        FramebufferCreateInfo fbInfo = { };
-        fbInfo.renderPass = this->m_irradianceRP;
-        fbInfo.attachments = Vector{ irradianceViews[nFace] };
-        fbInfo.nLayers = 1;
-        fbInfo.nWidth = nIrradianceSize;
-        fbInfo.nHeight = nIrradianceSize;
-
-        irradianceFBs[nFace] = this->m_device->CreateFramebuffer(fbInfo);
-    }
-
-    this->m_genViews.insert(this->m_genViews.end(), irradianceViews.begin(), irradianceViews.end());
-    this->m_genFramebuffers.insert(this->m_genFramebuffers.end(), irradianceFBs.begin(), irradianceFBs.end());
-
-    /* Render each irradiance map face */
     ClearValue clearValue{ { 0.f, 0.f, 0.f, 1.f } };
 
-    DescriptorBufferInfo viewProjInfo = { };
-    viewProjInfo.buffer = this->m_viewProjBuffer->GetBuffer();
-    viewProjInfo.nOffset = 0;
-    viewProjInfo.nRange = sizeof(ViewProjection);
-
-    this->m_viewProjSet->WriteBuffer(0, 0, viewProjInfo);
-    this->m_viewProjSet->UpdateWrites();
+    context->ImageBarrier(this->m_irradiance, EImageLayout::UNDEFINED, EImageLayout::COLOR_ATTACHMENT, 6, 0);
 
     for (uint32_t nFace = 0; nFace < 6; nFace++) {        
         RenderPassBeginInfo beginInfo = { };
         beginInfo.renderPass = this->m_irradianceRP;
-        beginInfo.framebuffer = irradianceFBs[nFace];
-        beginInfo.renderArea.extent = { nIrradianceSize, nIrradianceSize };
+        beginInfo.framebuffer = this->m_irradianceFBs[nFace];
+        beginInfo.renderArea.extent = { IRRADIANCE_SIZE, IRRADIANCE_SIZE };
         beginInfo.clearValues = Vector{ clearValue };
 
         context->BeginRenderPass(beginInfo);
         
         Viewport viewport = { };
-        viewport.width = static_cast<float>(nIrradianceSize);
-        viewport.height = -static_cast<float>(nIrradianceSize);
+        viewport.width = static_cast<float>(IRRADIANCE_SIZE);
+        viewport.height = -static_cast<float>(IRRADIANCE_SIZE);
         viewport.x = 0.f;
-        viewport.y = static_cast<float>(nIrradianceSize);
+        viewport.y = static_cast<float>(IRRADIANCE_SIZE);
         viewport.minDepth = 0.f;
         viewport.maxDepth = 1.f;
 
         Rect2D scissor = { };
-        scissor.extent = { nIrradianceSize, nIrradianceSize };
+        scissor.extent = { IRRADIANCE_SIZE, IRRADIANCE_SIZE };
         scissor.offset = { 0, 0 };
 
         context->SetViewport(viewport);
         context->SetScissor(scissor);
 
         context->BindPipeline(this->m_irradiancePipeline);
-
         context->BindDescriptorSets(0, Vector{ this->m_irradianceSet });
-
 
         struct {
             glm::mat4 View;
@@ -189,47 +117,16 @@ IBLGenerator::Generate(Ref<GraphicsContext> context) {
         0
     );
 
-    /* Render each prefilter mip level */
-    for (uint32_t nMip = 0; nMip < nMipLevels; nMip++) {
-        uint32_t nMipSize = nPrefilterSize >> nMip; // 128, 64, 32, 16, 8
-        float roughness = static_cast<float>(nMip) / static_cast<float>(nMipLevels - 1);
+    for (uint32_t nMip = 0; nMip < MIP_LEVELS; nMip++) {
+        uint32_t nMipSize = PREFILTER_SIZE >> nMip;
+        float roughness = static_cast<float>(nMip) / static_cast<float>(MIP_LEVELS - 1);
 
+        context->ImageBarrier(this->m_prefilter, EImageLayout::UNDEFINED, EImageLayout::COLOR_ATTACHMENT, 6, nMip);
 
-        /* Create framebuffers */
-        Vector<Ref<Framebuffer>> framebuffers(6);
-        Vector<Ref<ImageView>> prefilterViews(6);
-        for (uint32_t nFace = 0; nFace < 6; nFace++) {
-            ImageViewCreateInfo viewInfo = { };
-            viewInfo.image = this->m_prefilter;
-            viewInfo.viewType = EImageViewType::TYPE_2D;
-            viewInfo.format = cubemapFormat;
-            viewInfo.subresourceRange.aspectMask = EImageAspect::COLOR;
-            viewInfo.subresourceRange.nBaseArrayLayer = nFace;
-            viewInfo.subresourceRange.nLayerCount = 1;
-            viewInfo.subresourceRange.nBaseMipLevel = nMip;
-            viewInfo.subresourceRange.nLevelCount = 1;
-
-            prefilterViews[nFace] = this->m_device->CreateImageView(viewInfo);
-
-            FramebufferCreateInfo fbInfo = { };
-            fbInfo.renderPass = this->m_prefilterRP;
-            fbInfo.nWidth = nMipSize;
-            fbInfo.nHeight = nMipSize;
-            fbInfo.attachments = Vector{ prefilterViews[nFace] };
-            fbInfo.nLayers = 1;
-            
-            framebuffers[nFace] = this->m_device->CreateFramebuffer(fbInfo);
-        }
-
-        this->m_genViews.insert(this->m_genViews.end(), prefilterViews.begin(), prefilterViews.end());
-        this->m_genFramebuffers.insert(this->m_genFramebuffers.end(), framebuffers.begin(), framebuffers.end());
-
-
-        /* Render */
         for (uint32_t nFace = 0; nFace < 6; nFace++) {
             RenderPassBeginInfo beginInfo = { };
             beginInfo.renderPass = this->m_prefilterRP;
-            beginInfo.framebuffer = framebuffers[nFace];
+            beginInfo.framebuffer = this->m_prefilterFBs[nMip][nFace];
             beginInfo.renderArea.extent = { nMipSize, nMipSize };
             beginInfo.clearValues = Vector{ clearValue };
             
@@ -237,7 +134,6 @@ IBLGenerator::Generate(Ref<GraphicsContext> context) {
 
             context->BindPipeline(this->m_prefilterPipeline);
 
-            /* Copy view projection to uniform buffer */
             ViewProjection viewProj = {
                captureViews[nFace],
                captureProjection
@@ -305,115 +201,46 @@ IBLGenerator::Generate(Ref<GraphicsContext> context) {
         );
     }
 
-    /* Generate BRDF LUT */
-    TextureCreateInfo brdfInfo = { };
-    brdfInfo.format = brdfFormat;
-    brdfInfo.imageType = ETextureDimensions::TYPE_2D;
-    brdfInfo.samples = ESampleCount::SAMPLE_1;
-    brdfInfo.nMipLevels = 1;
-    brdfInfo.nArrayLayers = 1;
-    brdfInfo.extent = { nBRDFSize, nBRDFSize, 1 };
-    brdfInfo.sharingMode = ESharingMode::EXCLUSIVE;
-    brdfInfo.usage = ETextureUsage::COLOR_ATTACHMENT | ETextureUsage::SAMPLED;
-    brdfInfo.initialLayout = ETextureLayout::UNDEFINED;
-    brdfInfo.tiling = ETextureTiling::OPTIMAL;
-    
-    this->m_brdf = this->m_device->CreateTexture(brdfInfo);
-
     context->ImageBarrier(this->m_brdf, EImageLayout::UNDEFINED, EImageLayout::COLOR_ATTACHMENT);
 
-    /* Create a temporal image view for the framebuffer */
-    ImageViewCreateInfo viewInfo = { };
-    viewInfo.format = brdfFormat;
-    viewInfo.image = this->m_brdf;
-    viewInfo.subresourceRange.aspectMask = EImageAspect::COLOR;
-    viewInfo.viewType = EImageViewType::TYPE_2D;
-    viewInfo.subresourceRange.nBaseArrayLayer = 0;
-    viewInfo.subresourceRange.nLayerCount = 1;
-    viewInfo.subresourceRange.nBaseMipLevel = 0;
-    viewInfo.subresourceRange.nLevelCount = 1;
+    {
+        RenderPassBeginInfo beginInfo = { };
+        beginInfo.framebuffer = this->m_brdfFB;
+        beginInfo.renderPass = this->m_brdfRP;
+        beginInfo.clearValues = Vector{ clearValue };
+        beginInfo.renderArea.extent = { BRDF_SIZE, BRDF_SIZE };
+        
+        context->BeginRenderPass(beginInfo);
 
-    Ref<ImageView> brdfView = this->m_device->CreateImageView(viewInfo);
-    this->m_genViews.push_back(brdfView);
+        Viewport viewport = { };
+        viewport.width = static_cast<float>(BRDF_SIZE);
+        viewport.height = static_cast<float>(BRDF_SIZE);
+        viewport.x = 0.f;
+        viewport.y = 0.f;
+        viewport.minDepth = 0.f;
+        viewport.maxDepth = 1.f;
 
-    FramebufferCreateInfo brdfFBInfo = { };
-    brdfFBInfo.nWidth = nBRDFSize;
-    brdfFBInfo.nHeight = nBRDFSize;
-    brdfFBInfo.renderPass = this->m_brdfRP;
-    brdfFBInfo.nLayers = 1;
-    brdfFBInfo.attachments = Vector{ brdfView };
+        Rect2D scissor = { };
+        scissor.extent = { BRDF_SIZE, BRDF_SIZE };
+        scissor.offset = { 0, 0 };
 
-    Ref<Framebuffer> brdfFB = this->m_device->CreateFramebuffer(brdfFBInfo);
-    this->m_genFramebuffers.push_back(brdfFB);
+        context->SetViewport(viewport);
+        context->SetScissor(scissor);
 
-    RenderPassBeginInfo beginInfo = { };
-    beginInfo.framebuffer = brdfFB;
-    beginInfo.renderPass = this->m_brdfRP;
-    beginInfo.clearValues = Vector{ clearValue };
-    beginInfo.renderArea.extent = { nBRDFSize, nBRDFSize };
-    
-    context->BeginRenderPass(beginInfo);
+        context->BindVertexBuffers(Vector{ this->m_sqVBO });
+        context->BindIndexBuffer(this->m_sqIBO);
+        context->BindPipeline(this->m_brdfPipeline);
 
-    Viewport viewport = { };
-    viewport.width = static_cast<float>(nBRDFSize);
-    viewport.height = static_cast<float>(nBRDFSize);
-    viewport.x = 0.f;
-    viewport.y = 0.f;
-    viewport.minDepth = 0.f;
-    viewport.maxDepth = 1.f;
+        context->DrawIndexed(6);
 
-    Rect2D scissor = { };
-    scissor.extent = { nBRDFSize, nBRDFSize };
-    scissor.offset = { 0, 0 };
-
-    context->SetViewport(viewport);
-    context->SetScissor(scissor);
-
-    context->BindVertexBuffers(Vector{ this->m_sqVBO });
-    context->BindIndexBuffer(this->m_sqIBO);
-    context->BindPipeline(this->m_brdfPipeline);
-
-    context->DrawIndexed(6);
-
-    context->EndRenderPass();
+        context->EndRenderPass();
+    }
 
     context->ImageBarrier(
         this->m_brdf,
         EImageLayout::COLOR_ATTACHMENT,
         EImageLayout::SHADER_READ_ONLY
     );
-
-    /* Create image views */
-    ImageViewCreateInfo cubemapViewInfo = { };
-    cubemapViewInfo.format = cubemapFormat;
-    cubemapViewInfo.image = this->m_irradiance;
-    cubemapViewInfo.viewType = EImageViewType::TYPE_CUBE;
-     
-    cubemapViewInfo.subresourceRange.aspectMask = EImageAspect::COLOR;
-    cubemapViewInfo.subresourceRange.nBaseArrayLayer = 0;
-    cubemapViewInfo.subresourceRange.nLayerCount = 6;
-    cubemapViewInfo.subresourceRange.nBaseMipLevel = 0;
-    cubemapViewInfo.subresourceRange.nLevelCount = 1;
-
-    this->m_irradianceView = this->m_device->CreateImageView(cubemapViewInfo);
-
-    cubemapViewInfo.image = this->m_prefilter;
-    cubemapViewInfo.subresourceRange.nLevelCount = nMipLevels;
-
-    this->m_prefilterView = this->m_device->CreateImageView(cubemapViewInfo);
-
-    ImageViewCreateInfo brdfViewInfo = { };
-    brdfViewInfo.format = brdfFormat;
-    brdfViewInfo.image = this->m_brdf;
-    brdfViewInfo.viewType = EImageViewType::TYPE_2D;
-
-    brdfViewInfo.subresourceRange.aspectMask = EImageAspect::COLOR;
-    brdfViewInfo.subresourceRange.nBaseArrayLayer = 0;
-    brdfViewInfo.subresourceRange.nLayerCount = 1;
-    brdfViewInfo.subresourceRange.nBaseMipLevel = 0;
-    brdfViewInfo.subresourceRange.nLevelCount = 1;
-
-    this->m_brdfView = this->m_device->CreateImageView(brdfViewInfo);
 }
 
 void 
@@ -477,7 +304,7 @@ void
 IBLGenerator::CreateRenderPasses() {
     /* Irradiance render pass */
     AttachmentDescription irradianceAttachment = { };
-    irradianceAttachment.format = GPUFormat::RGBA32_FLOAT;
+    irradianceAttachment.format = CUBEMAP_FORMAT;
     irradianceAttachment.sampleCount = ESampleCount::SAMPLE_1;
     irradianceAttachment.loadOp = EAttachmentLoadOp::CLEAR;
     irradianceAttachment.storeOp = EAttachmentStoreOp::STORE;
@@ -501,7 +328,7 @@ IBLGenerator::CreateRenderPasses() {
 
     /* Prefilter render pass */
     AttachmentDescription prefilterAttachment = { };
-    prefilterAttachment.format = GPUFormat::RGBA32_FLOAT;
+    prefilterAttachment.format = CUBEMAP_FORMAT;
     prefilterAttachment.sampleCount = ESampleCount::SAMPLE_1;
     prefilterAttachment.loadOp = EAttachmentLoadOp::CLEAR;
     prefilterAttachment.storeOp = EAttachmentStoreOp::STORE;
@@ -523,9 +350,9 @@ IBLGenerator::CreateRenderPasses() {
 
     this->m_prefilterRP = this->m_device->CreateRenderPass(prefilterRPInfo);
 
-    /* Prefilter render pass */
+    /* BRDF render pass */
     AttachmentDescription brdfAttachment = { };
-    brdfAttachment.format = GPUFormat::RG16_FLOAT;
+    brdfAttachment.format = BRDF_FORMAT;
     brdfAttachment.sampleCount = ESampleCount::SAMPLE_1;
     brdfAttachment.loadOp = EAttachmentLoadOp::CLEAR;
     brdfAttachment.storeOp = EAttachmentStoreOp::STORE;
@@ -564,21 +391,23 @@ IBLGenerator::CreatePipelines() {
     colorBlend.bWriteR = colorBlend.bWriteG = colorBlend.bWriteB = colorBlend.bWriteA = true;
 
     ColorBlendState blendState = { };
-    blendState.attachments = Vector{ colorBlend };
-    
+    blendState.bLogicOpEnable = false;
+    blendState.attachments = { colorBlend };
+
     DepthStencilState dsState = { };
     dsState.bDepthTestEnable = false;
     dsState.bDepthWriteEnable = false;
     dsState.bStencilTestEnable = false;
 
-    /* Push constants (View + Projection) */
     PushConstantRange pushRange = { };
-    pushRange.nSize = sizeof(glm::mat4) * 2;
-    pushRange.nOffset = 0;
-    pushRange.stage = EShaderStage::VERTEX;
+
+    struct ScreenQuadVertex {
+        glm::vec3 position;
+        glm::vec2 texCoord;
+    };
 
     /* Irradiance pipeline */
-    VertexInputBinding irradianceBindingDesc = { };
+    VertexInputBinding irradianceBindingDesc(1);
     irradianceBindingDesc.nBinding = 0;
     irradianceBindingDesc.nStride = sizeof(glm::vec3);
     irradianceBindingDesc.bPerInstance = false;
@@ -588,25 +417,28 @@ IBLGenerator::CreatePipelines() {
     irradianceAttrib.nOffset = 0;
     irradianceAttrib.format = GPUFormat::RGB32_FLOAT;
     irradianceAttrib.nLocation = 0;
-    
+
     Ref<Shader> irradianceVS = Shader::CreateShared();
     Ref<Shader> irradiancePS = Shader::CreateShared();
 
     irradianceVS->LoadFromGLSL("IrradianceConvolution.vert", EShaderStage::VERTEX);
     irradiancePS->LoadFromGLSL("IrradianceConvolution.frag", EShaderStage::FRAGMENT);
 
+    pushRange.stage = EShaderStage::VERTEX;
+    pushRange.nSize = sizeof(glm::mat4) * 2;
+
     PipelineLayoutCreateInfo irradianceLayoutInfo = { };
     irradianceLayoutInfo.setLayouts = { this->m_irradianceSetLayout };
     irradianceLayoutInfo.pushConstantRanges = { pushRange };
 
     this->m_irradianceLayout = this->m_device->CreatePipelineLayout(irradianceLayoutInfo);
-    
+
     GraphicsPipelineCreateInfo irradiancePipelineInfo = { };
     irradiancePipelineInfo.colorBlendState = blendState;
     irradiancePipelineInfo.vertexBindings = { irradianceBindingDesc };
     irradiancePipelineInfo.vertexAttributes = { irradianceAttrib };
     irradiancePipelineInfo.nSubpass = 0;
-    irradiancePipelineInfo.colorFormats = { GPUFormat::RGBA32_FLOAT };
+    irradiancePipelineInfo.colorFormats = { CUBEMAP_FORMAT };
     irradiancePipelineInfo.rasterizationState = iblRaster;
     irradiancePipelineInfo.multisampleState = iblMS;
     irradiancePipelineInfo.shaders = { irradianceVS, irradiancePS };
@@ -614,11 +446,11 @@ IBLGenerator::CreatePipelines() {
     irradiancePipelineInfo.topology = EPrimitiveTopology::TRIANGLE_LIST;
     irradiancePipelineInfo.depthStencilState = dsState;
     irradiancePipelineInfo.renderPass = this->m_irradianceRP;
-    
+
     this->m_irradiancePipeline = this->m_device->CreateGraphicsPipeline(irradiancePipelineInfo);
 
     /* Prefilter pipeline */
-    VertexInputBinding prefilterBindingDesc = { };
+    VertexInputBinding prefilterBindingDesc(1);
     prefilterBindingDesc.nBinding = 0;
     prefilterBindingDesc.nStride = sizeof(glm::vec3);
     prefilterBindingDesc.bPerInstance = false;
@@ -649,7 +481,7 @@ IBLGenerator::CreatePipelines() {
     prefilterPipelineInfo.vertexBindings = { prefilterBindingDesc };
     prefilterPipelineInfo.vertexAttributes = { prefilterAttrib };
     prefilterPipelineInfo.nSubpass = 0;
-    prefilterPipelineInfo.colorFormats = { GPUFormat::RGBA32_FLOAT };
+    prefilterPipelineInfo.colorFormats = { CUBEMAP_FORMAT };
     prefilterPipelineInfo.rasterizationState = iblRaster;
     prefilterPipelineInfo.multisampleState = iblMS;
     prefilterPipelineInfo.shaders = { prefilterVS, prefilterPS };
@@ -692,7 +524,7 @@ IBLGenerator::CreatePipelines() {
     brdfPipelineInfo.vertexBindings = { brdfBindingDesc };
     brdfPipelineInfo.vertexAttributes = brdfAttribs;
     brdfPipelineInfo.nSubpass = 0;
-    brdfPipelineInfo.colorFormats = { GPUFormat::RG16_FLOAT };
+    brdfPipelineInfo.colorFormats = { BRDF_FORMAT };
     brdfPipelineInfo.rasterizationState = iblRaster;
     brdfPipelineInfo.multisampleState = iblMS;
     brdfPipelineInfo.shaders = { brdfVS, brdfPS };
@@ -749,14 +581,161 @@ IBLGenerator::CreateResources() {
 
     this->m_nIndexCount = indices.size();
 
-    /* Create view projection buffer */
+    /* Create view projection ring buffer */
     uint32_t nViewProjectionSize = sizeof(ViewProjection);
 
     RingBufferCreateInfo viewProjInfo = { };
     viewProjInfo.nAlignment = nViewProjectionSize;
-    viewProjInfo.nFramesInFlight = 1;
-    viewProjInfo.nBufferSize = nViewProjectionSize * 36; // One per cube face (6 for irradiance + 30 for prefilter)
+    viewProjInfo.nFramesInFlight = this->m_nFramesInFlight;
+    viewProjInfo.nBufferSize = nViewProjectionSize * 36 * this->m_nFramesInFlight;
     viewProjInfo.usage = EBufferUsage::UNIFORM_BUFFER;
 
     this->m_viewProjBuffer = this->m_device->CreateRingBuffer(viewProjInfo);
+
+    TextureCreateInfo cubemapInfo = { };
+    cubemapInfo.format = CUBEMAP_FORMAT;
+    cubemapInfo.imageType = ETextureDimensions::TYPE_2D;
+    cubemapInfo.extent.width = IRRADIANCE_SIZE;
+    cubemapInfo.extent.height = IRRADIANCE_SIZE;
+    cubemapInfo.extent.depth = 1;
+    cubemapInfo.nMipLevels = 1;
+    cubemapInfo.nArrayLayers = 6;
+    cubemapInfo.flags = ETextureFlags::CUBE_COMPATIBLE;
+    cubemapInfo.tiling = ETextureTiling::OPTIMAL;
+    cubemapInfo.usage = ETextureUsage::COLOR_ATTACHMENT | ETextureUsage::SAMPLED;
+    cubemapInfo.sharingMode = ESharingMode::EXCLUSIVE;
+    cubemapInfo.initialLayout = ETextureLayout::UNDEFINED;
+    cubemapInfo.samples = ESampleCount::SAMPLE_1;
+    
+    this->m_irradiance = this->m_device->CreateTexture(cubemapInfo);
+
+    this->m_irradianceFBs.resize(6);
+    this->m_irradianceFaceViews.resize(6);
+    for (uint32_t nFace = 0; nFace < 6; nFace++) {
+        ImageViewCreateInfo viewInfo = { };
+        viewInfo.image = this->m_irradiance;
+        viewInfo.viewType = EImageViewType::TYPE_2D;
+        viewInfo.format = CUBEMAP_FORMAT;
+        viewInfo.subresourceRange.aspectMask = EImageAspect::COLOR;
+        viewInfo.subresourceRange.nBaseMipLevel = 0;
+        viewInfo.subresourceRange.nLevelCount = 1;
+        viewInfo.subresourceRange.nBaseArrayLayer = nFace;
+        viewInfo.subresourceRange.nLayerCount = 1;
+        
+        this->m_irradianceFaceViews[nFace] = this->m_device->CreateImageView(viewInfo);
+
+        FramebufferCreateInfo fbInfo = { };
+        fbInfo.renderPass = this->m_irradianceRP;
+        fbInfo.attachments = Vector{ this->m_irradianceFaceViews[nFace] };
+        fbInfo.nLayers = 1;
+        fbInfo.nWidth = IRRADIANCE_SIZE;
+        fbInfo.nHeight = IRRADIANCE_SIZE;
+
+        this->m_irradianceFBs[nFace] = this->m_device->CreateFramebuffer(fbInfo);
+    }
+
+    /* Irradiance cubemap view (for sampling) */
+    ImageViewCreateInfo cubemapViewInfo = { };
+    cubemapViewInfo.format = CUBEMAP_FORMAT;
+    cubemapViewInfo.image = this->m_irradiance;
+    cubemapViewInfo.viewType = EImageViewType::TYPE_CUBE;
+    cubemapViewInfo.subresourceRange.aspectMask = EImageAspect::COLOR;
+    cubemapViewInfo.subresourceRange.nBaseArrayLayer = 0;
+    cubemapViewInfo.subresourceRange.nLayerCount = 6;
+    cubemapViewInfo.subresourceRange.nBaseMipLevel = 0;
+    cubemapViewInfo.subresourceRange.nLevelCount = 1;
+
+    this->m_irradianceView = this->m_device->CreateImageView(cubemapViewInfo);
+
+    cubemapInfo.extent.width = PREFILTER_SIZE;
+    cubemapInfo.extent.height = PREFILTER_SIZE;
+    cubemapInfo.nMipLevels = MIP_LEVELS;
+
+    this->m_prefilter = this->m_device->CreateTexture(cubemapInfo);
+
+    this->m_prefilterFBs.resize(MIP_LEVELS);
+    this->m_prefilterFaceViews.resize(MIP_LEVELS);
+    for (uint32_t nMip = 0; nMip < MIP_LEVELS; nMip++) {
+        uint32_t nMipSize = PREFILTER_SIZE >> nMip;
+
+        this->m_prefilterFBs[nMip].resize(6);
+        this->m_prefilterFaceViews[nMip].resize(6);
+
+        for (uint32_t nFace = 0; nFace < 6; nFace++) {
+            ImageViewCreateInfo viewInfo = { };
+            viewInfo.image = this->m_prefilter;
+            viewInfo.viewType = EImageViewType::TYPE_2D;
+            viewInfo.format = CUBEMAP_FORMAT;
+            viewInfo.subresourceRange.aspectMask = EImageAspect::COLOR;
+            viewInfo.subresourceRange.nBaseArrayLayer = nFace;
+            viewInfo.subresourceRange.nLayerCount = 1;
+            viewInfo.subresourceRange.nBaseMipLevel = nMip;
+            viewInfo.subresourceRange.nLevelCount = 1;
+
+            this->m_prefilterFaceViews[nMip][nFace] = this->m_device->CreateImageView(viewInfo);
+
+            FramebufferCreateInfo fbInfo = { };
+            fbInfo.renderPass = this->m_prefilterRP;
+            fbInfo.nWidth = nMipSize;
+            fbInfo.nHeight = nMipSize;
+            fbInfo.attachments = Vector{ this->m_prefilterFaceViews[nMip][nFace] };
+            fbInfo.nLayers = 1;
+            
+            this->m_prefilterFBs[nMip][nFace] = this->m_device->CreateFramebuffer(fbInfo);
+        }
+    }
+
+    /* Prefilter cubemap view (for sampling) */
+    cubemapViewInfo.image = this->m_prefilter;
+    cubemapViewInfo.subresourceRange.nLevelCount = MIP_LEVELS;
+
+    this->m_prefilterView = this->m_device->CreateImageView(cubemapViewInfo);
+
+    TextureCreateInfo brdfTexInfo = { };
+    brdfTexInfo.format = BRDF_FORMAT;
+    brdfTexInfo.imageType = ETextureDimensions::TYPE_2D;
+    brdfTexInfo.samples = ESampleCount::SAMPLE_1;
+    brdfTexInfo.nMipLevels = 1;
+    brdfTexInfo.nArrayLayers = 1;
+    brdfTexInfo.extent = { BRDF_SIZE, BRDF_SIZE, 1 };
+    brdfTexInfo.sharingMode = ESharingMode::EXCLUSIVE;
+    brdfTexInfo.usage = ETextureUsage::COLOR_ATTACHMENT | ETextureUsage::SAMPLED;
+    brdfTexInfo.initialLayout = ETextureLayout::UNDEFINED;
+    brdfTexInfo.tiling = ETextureTiling::OPTIMAL;
+    
+    this->m_brdf = this->m_device->CreateTexture(brdfTexInfo);
+
+    ImageViewCreateInfo brdfFaceViewInfo = { };
+    brdfFaceViewInfo.format = BRDF_FORMAT;
+    brdfFaceViewInfo.image = this->m_brdf;
+    brdfFaceViewInfo.viewType = EImageViewType::TYPE_2D;
+    brdfFaceViewInfo.subresourceRange.aspectMask = EImageAspect::COLOR;
+    brdfFaceViewInfo.subresourceRange.nBaseArrayLayer = 0;
+    brdfFaceViewInfo.subresourceRange.nLayerCount = 1;
+    brdfFaceViewInfo.subresourceRange.nBaseMipLevel = 0;
+    brdfFaceViewInfo.subresourceRange.nLevelCount = 1;
+
+    this->m_brdfFaceView = this->m_device->CreateImageView(brdfFaceViewInfo);
+
+    FramebufferCreateInfo brdfFBInfo = { };
+    brdfFBInfo.nWidth = BRDF_SIZE;
+    brdfFBInfo.nHeight = BRDF_SIZE;
+    brdfFBInfo.renderPass = this->m_brdfRP;
+    brdfFBInfo.nLayers = 1;
+    brdfFBInfo.attachments = Vector{ this->m_brdfFaceView };
+
+    this->m_brdfFB = this->m_device->CreateFramebuffer(brdfFBInfo);
+
+    /* BRDF sampling view */
+    ImageViewCreateInfo brdfViewInfo = { };
+    brdfViewInfo.format = BRDF_FORMAT;
+    brdfViewInfo.image = this->m_brdf;
+    brdfViewInfo.viewType = EImageViewType::TYPE_2D;
+    brdfViewInfo.subresourceRange.aspectMask = EImageAspect::COLOR;
+    brdfViewInfo.subresourceRange.nBaseArrayLayer = 0;
+    brdfViewInfo.subresourceRange.nLayerCount = 1;
+    brdfViewInfo.subresourceRange.nBaseMipLevel = 0;
+    brdfViewInfo.subresourceRange.nLevelCount = 1;
+
+    this->m_brdfView = this->m_device->CreateImageView(brdfViewInfo);
 }
