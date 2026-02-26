@@ -11,7 +11,7 @@ layout(set = 0, binding = 0) uniform CameraData {
 void main() {
     outDir = inPosition;
     
-    mat4 viewProj = camData.View * camData.Projection;
+    mat4 viewProj = camData.Projection * camData.View;
     vec4 pos = viewProj * vec4(inPosition, 1.0);
     gl_Position = pos.xyww;
 }

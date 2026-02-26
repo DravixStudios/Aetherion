@@ -1,13 +1,12 @@
 #version 450
 
-layout(location = 0) in vec4 inDir;
+layout(location = 0) in vec3 inDir;
 
 layout(location = 0) out vec4 outColor;
 
 layout(set = 1, binding = 0) uniform SunData {
     vec3 sunDir;
     float sunHeight;
-    float camAltitude;
 } sunData;
 
 const float PI = 3.14159265359;
@@ -84,7 +83,7 @@ vec3 SunTransmittance(vec3 p) {
 }
 
 vec3 Atmosphere(vec3 rd) {
-    vec3 ro = vec3(0.0, R_EARTH + sunData.camAltitude, 0.0);
+    vec3 ro = vec3(0.0, R_EARTH, 0.0);
 
     vec2 tA = RaySphere(ro, rd, R_ATMOS);
     vec2 tE = RaySphere(ro, rd, R_EARTH);
@@ -106,7 +105,7 @@ vec3 Atmosphere(vec3 rd) {
     float pR = PhaseRay(cosT);
     float pM = PhaseMie(cosT);
 
-    for(int = 0; i < VIEW_STEPS; i++) {
+    for(int i = 0; i < VIEW_STEPS; i++) {
         float t0 = tMin + (tMax - tMin) * float(i) / float(VIEW_STEPS);
         float t1 = tMin + (tMax - tMin) * float(i + 1) / float(VIEW_STEPS);
 
@@ -129,7 +128,7 @@ vec3 Atmosphere(vec3 rd) {
 }
 
 vec3 SafeAtmosphere(vec3 dir) {
-    vec3 ro = vec3(0.0, R_EARTH + sunData.camAltitude, 0.0);
+    vec3 ro = vec3(0.0, R_EARTH, 0.0);
     vec2 tA = RaySphere(ro, dir, R_ATMOS);
 
     if(tA.y < 0.0) return vec3(0.0);
@@ -138,7 +137,7 @@ vec3 SafeAtmosphere(vec3 dir) {
 
     float below = -dir.y;
     float blend = smoothstep(0.0, 0.12, below);
-    vec3 hDir = normalize(vec3(dir.x, 0.001, dir.z));
+    vec3 hDir = normalize(vec3(dir.x, max(abs(dir.y), 0.05), dir.z));
     vec3 horizon = Atmosphere(hDir);
     vec3 ground = horizon * vec3(0.55, 0.50, 0.45) * 0.35;
     return mix(horizon, ground, blend);
