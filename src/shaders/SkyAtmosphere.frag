@@ -21,6 +21,16 @@ const float MIE_G = 0.76; // Henyey-Greenstein anisotropy
 const int VIEW_STEPS = 32;
 const int SUN_STEPS = 12;
 
+/* 
+    From: Hash without sine
+    Ref: https://compute.toys/view/15
+*/
+float Hash(vec2 p) {
+    vec3 p3 = fract(vec3(p.xyx) * 0.1031);
+    p3 += dot(p3, p3.yzx + 33.33);
+    return fract((p3.x + p3.y) * p3.z);
+}
+
 /**
 * @param ro Ray origin
 * @param rd Ray direction
@@ -106,13 +116,19 @@ vec3 Atmosphere(vec3 rd) {
     float pM = PhaseMie(cosT);
 
     for(int i = 0; i < VIEW_STEPS; i++) {
-        float t0 = tMin + (tMax - tMin) * float(i) / float(VIEW_STEPS);
-        float t1 = tMin + (tMax - tMin) * float(i + 1) / float(VIEW_STEPS);
+        float u0 = float(i) / float(VIEW_STEPS);
+        float u1 = float(i + 1) / float(VIEW_STEPS);
 
-        float tm = (t0 + t1) * 0.5;
+        float t0 = mix(tMin, tMax, u0);
+        float t1 = mix(tMin, tMax, u1);
+
         float seg = t1 - t0;
 
+        float j = Hash(gl_FragCoord.xy + float(i)) - 0.5;
+        float tm = mix(t0, t1, 0.5 + j / float(VIEW_STEPS));
+
         vec3 s = ro + rd * tm;
+
         vec2 dens = LocalDensity(s) * seg;
         optD += dens;
 
