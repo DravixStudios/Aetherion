@@ -21,8 +21,9 @@ void main() {
     viewPos /= viewPos.w;
 
     vec4 worldPos = camData.inverseView * viewPos;
-    vec3 correctedCameraPos = vec3(camData.cameraPosition.x, camData.cameraPosition.y, -camData.cameraPosition.z);
+    vec3 correctedCameraPos = vec3(camData.cameraPosition.x, camData.cameraPosition.y, camData.cameraPosition.z);
     vec3 dir = normalize(worldPos.xyz - correctedCameraPos);
+    dir.x = -dir.x;
     
     float sceneDepth = texture(g_depth, vec2(inUVs.x, 1 - inUVs.y)).r; 
     if(sceneDepth < 1.0 - 0.00001) discard;
