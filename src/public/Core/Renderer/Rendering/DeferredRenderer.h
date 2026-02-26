@@ -13,6 +13,7 @@
 #include "Core/Renderer/Rendering/Passes/ImGuiPass.h"
 #include "Core/Renderer/Rendering/Passes/BentNormalPass.h"
 #include "Core/Renderer/Rendering/SunExtraction.h"
+#include "Core/Renderer/Rendering/Sky/SkyAtmosphere.h"
 
 #include "Core/Renderer/Rendering/IBL/IBLGenerator.h"
 #include "Core/Renderer/CubemapUtils.h"
@@ -63,6 +64,8 @@ private:
     ImGuiPass m_imguiPass;
     BentNormalPass m_bentNormalPass;
 
+    SkyAtmosphere m_skyAtmosphere;
+
     IBLGenerator m_iblGen;
     SunExtraction m_sunExtraction;
 
@@ -94,6 +97,8 @@ private:
     Ref<DescriptorSetLayout> m_skyboxSetLayout;
     Ref<DescriptorPool> m_skyboxPool;
     Ref<DescriptorSet> m_skyboxSet;
+
+    glm::vec3 m_sunDirection = glm::vec3(1.f);
 
     GLFWwindow* m_pWindow = nullptr;
 
