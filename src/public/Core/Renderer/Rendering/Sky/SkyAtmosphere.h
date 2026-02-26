@@ -12,7 +12,7 @@
 #include "Core/Renderer/Pipeline.h"
 #include "Core/Renderer/PipelineLayout.h"
 
-static constexpr uint32_t SKYBOX_FACE_SIZE = 512;
+static constexpr uint32_t SKYBOX_FACE_SIZE = 1024;
 
 class SkyAtmosphere {
 public:
