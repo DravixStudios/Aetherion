@@ -29,7 +29,7 @@ SkyAtmosphere::Update(Ref<GraphicsContext> context, uint32_t nFrameIdx) {
 
     SunData sunData = { };
     sunData.sunDir = this->m_sunDir;
-    sunData.sunHeight = -sunData.sunDir.y;
+    sunData.sunHeight = sunData.sunDir.y;
 
     uint32_t nSunDataOffset = 0;
     void* pSunData = this->m_sunDataBuff->Allocate(sizeof(sunData), nSunDataOffset);
