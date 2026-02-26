@@ -19,7 +19,7 @@ void main() {
     const float TWO_PI = PI * 2.0;
     const float HALF_PI = PI * 0.5;
 
-    float sampleDelta = 0.01;
+    float sampleDelta = 0.1;
     float nrSamples = 0.0;
 
     for(float phi = 0.0; phi < TWO_PI; phi += sampleDelta) {
