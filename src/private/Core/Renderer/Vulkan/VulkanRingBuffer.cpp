@@ -39,12 +39,6 @@ VulkanRingBuffer::Create(const RingBufferCreateInfo& createInfo) {
 	this->m_usage = createInfo.usage;
 	this->m_nFramesInFlight = createInfo.nFramesInFlight;
 
-	uint32_t nFixedSize = createInfo.nBufferSize / createInfo.nFramesInFlight;
-	nFixedSize = NextPowerOf2(nFixedSize);
-	nFixedSize = nFixedSize * createInfo.nFramesInFlight;
-
-	this->m_nBufferSize = nFixedSize;
-
 	VkPhysicalDeviceProperties devProps = this->m_device->GetPhysicalDeviceProperties();
 	uint32_t nMinAlignment = createInfo.nAlignment;
 
@@ -67,7 +61,11 @@ VulkanRingBuffer::Create(const RingBufferCreateInfo& createInfo) {
 
 	/* Calculate the alignment and per frame size */
 	this->m_nAlignment = std::max(createInfo.nAlignment, nMinAlignment);
-	this->m_nPerFrameSize = nFixedSize / createInfo.nFramesInFlight;
+	this->m_nPerFrameSize = this->Align(createInfo.nBufferSize / createInfo.nFramesInFlight, this->m_nAlignment);
+
+	this->m_nBufferSize = this->m_nPerFrameSize * this->m_nFramesInFlight;
+
+	uint32_t nFixedSize = this->m_nBufferSize;
 
 	/* Buffer creation */
 	BufferCreateInfo bufferInfo = { };
