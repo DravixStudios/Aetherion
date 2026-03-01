@@ -1,5 +1,8 @@
 #include "Core/Renderer/Rendering/DeferredRenderer.h"
 
+#include <glm/gtc/quaternion.hpp>
+#include <imgui/imgui.h>
+
 /**
 * Deferred renderer initialization
 */
@@ -23,7 +26,6 @@ DeferredRenderer::Init(Ref<Device> device, Ref<Swapchain> swapchain, uint32_t nF
 
     this->CreateScreenquadBuffer();
     this->LoadSkybox();
-    this->m_iblGen.Init(device, this->m_skybox, this->m_skyboxView, this->m_cubeSampler, this->m_sqVBO, this->m_sqIBO);
 
     this->m_sunExtraction.Init(device, this->m_skybox, this->m_skyboxView, this->m_cubeSampler);
 
@@ -55,6 +57,17 @@ DeferredRenderer::Init(Ref<Device> device, Ref<Swapchain> swapchain, uint32_t nF
     this->m_tonemapPass.SetDimensions(ext.width, ext.height);
     this->m_tonemapPass.SetScreenQuad(this->m_sqVBO, this->m_sqIBO, 6);
 
+    this->m_skyAtmosphere.Init(device, this->m_nFramesInFlight);
+    this->m_iblGen.Init(
+        device, 
+        this->m_skyAtmosphere.GetSkyboxTexture(),
+        this->m_skyAtmosphere.GetSkyboxView(), 
+        this->m_cubeSampler, 
+        this->m_sqVBO, 
+        this->m_sqIBO,
+        this->m_nFramesInFlight
+    );
+
     /* Create bindless resources */
     this->CreateBindlessResources();
     this->CreateSceneDescriptors();
@@ -77,6 +90,8 @@ DeferredRenderer::Resize(uint32_t nWidth, uint32_t nHeight) {
     if (nWidth == 0 || nHeight == 0) {
         return;
     }
+
+    this->m_device->WaitIdle();
 
     this->m_gbuffPass.Resize(nWidth, nHeight);
     this->m_lightingPass.SetDimensions(nWidth, nHeight);
@@ -114,19 +129,32 @@ DeferredRenderer::Render(
 ) {
     this->m_graph.Reset(nImgIdx);
 
-    if (!this->m_bIBLGenerated) {
-        this->m_iblGen.Generate(context);
-        this->m_sunExtraction.Extract(context);
-        this->m_bIBLGenerated = true;
-    }
-
     TextureHandle backBuffer = this->m_graph.ImportBackbuffer(
         swapchain->GetImage(nImgIdx),
         swapchain->GetImageView(nImgIdx)
     );
 
+    if (this->m_imguiPass.SunChanged()) {
+        glm::vec3 forward = glm::vec3(0.f, 0.f, 1.f);
+        glm::vec3 sunRotation = this->m_imguiPass.GetSunRotation();
+
+        glm::quat q = glm::quat(glm::radians(glm::vec3(-sunRotation.x, sunRotation.y, sunRotation.z)));
+        glm::vec3 sunDir = glm::normalize(q * forward);
+
+        this->m_skyAtmosphere.SetSunDirection(sunDir);
+        this->m_skyAtmosphere.SetViewProjection(drawData.view, drawData.proj);
+        this->m_skyAtmosphere.Update(context, nImgIdx);
+        this->m_shadowPass.SetSunDirection(sunDir);
+
+        this->m_iblGen.Generate(context, nImgIdx);
+        this->m_bIBLGenerated = true;
+
+        this->m_sunDirection = sunDir;
+        
+        this->m_imguiPass.NotifySunUpdated();
+    }
+
     this->UploadSceneData(drawData, nImgIdx);
-   
 
     this->m_cullingPass.SetViewProj(drawData.viewProj);
 
@@ -195,7 +223,6 @@ DeferredRenderer::Render(
     );
 
     /* 2. Shadow pass (Cascade shadow map) */
-    this->m_shadowPass.SetSunDirection(this->m_sunExtraction.ReadSunResult());
     this->m_shadowPass.SetSceneData(
         this->m_sceneSets[nImgIdx],
         this->m_sceneSetLayout,
@@ -219,7 +246,7 @@ DeferredRenderer::Render(
     /* 3. Lighting pass (HDR) */
     this->m_lightingPass.SetInput(this->m_gbuffPass.GetOutput());
     this->m_lightingPass.SetCameraPosition(drawData.cameraPosition);
-    this->m_lightingPass.SetSunData(this->m_sunExtraction.ReadSunResult(), 5.f);
+    this->m_lightingPass.SetSunData(this->m_sunDirection, 5.f);
     this->m_lightingPass.SetShadowData(
         this->m_shadowPass.GetShadowTexture(),
         this->m_shadowPass.GetShadowArrayView(),
@@ -369,9 +396,9 @@ void
 DeferredRenderer::UpdateSkyboxDescriptor() {
     /* Skybox texture */
     DescriptorImageInfo skyboxInfo = { };
-    skyboxInfo.imageView = this->m_skyboxView;
+    skyboxInfo.imageView = this->m_skyAtmosphere.GetSkyboxView();
     skyboxInfo.sampler = this->m_cubeSampler;
-    skyboxInfo.texture = this->m_skybox;
+    skyboxInfo.texture = this->m_skyAtmosphere.GetSkyboxTexture();
 
     /* Depth texture (from GBuffer) */
     DescriptorImageInfo depthInfo = { };

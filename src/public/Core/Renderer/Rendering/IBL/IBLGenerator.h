@@ -10,6 +10,12 @@
 #include "Core/Renderer/Framebuffer.h"
 
 class IBLGenerator {
+	static constexpr uint32_t IRRADIANCE_SIZE = 64;
+	static constexpr uint32_t PREFILTER_SIZE = 128;
+	static constexpr uint32_t BRDF_SIZE = 512;
+	static constexpr uint32_t MIP_LEVELS = 5;
+	static constexpr GPUFormat CUBEMAP_FORMAT = GPUFormat::RGBA32_FLOAT;
+	static constexpr GPUFormat BRDF_FORMAT = GPUFormat::RG16_FLOAT;
 public:
 	void Init(
 		Ref<Device> device, 
@@ -17,10 +23,11 @@ public:
 		Ref<ImageView> skyboxView,
 		Ref<Sampler> sampler,
 		Ref<GPUBuffer> sqVBO,
-		Ref<GPUBuffer> sqIBO
+		Ref<GPUBuffer> sqIBO,
+		uint32_t nFramesInFlight = 1
 	);
 
-	void Generate(Ref<GraphicsContext> context);
+	void Generate(Ref<GraphicsContext> context, uint32_t nFrameIdx = 0);
 
 	Ref<GPUTexture> GetIrradiance() const { return this->m_irradiance; }
 	Ref<GPUTexture> GetPrefilter() const { return this->m_prefilter; }
@@ -32,7 +39,6 @@ public:
 private:
 	void CreateDescriptors();
 	void CreateRenderPasses();
-	void CreateFramebuffers();
 	void CreatePipelines();
 	void CreateResources();
 
@@ -42,6 +48,7 @@ private:
 	};
 
 	Ref<Device> m_device;
+	uint32_t m_nFramesInFlight = 1;
 
 	Ref<RenderPass> m_irradianceRP;
 	Ref<RenderPass> m_prefilterRP;
@@ -84,8 +91,17 @@ private:
 
 	uint32_t m_nIndexCount = 0;
 
-	Vector<Ref<ImageView>> m_genViews;
-	Vector<Ref<Framebuffer>> m_genFramebuffers;
+	/* Per-face framebuffers for irradiance (6) */
+	Vector<Ref<Framebuffer>> m_irradianceFBs;
+	Vector<Ref<ImageView>> m_irradianceFaceViews;
+
+	/* Per-face, per-mip framebuffers for prefilter (6 * MIP_LEVELS) */
+	Vector<Vector<Ref<Framebuffer>>> m_prefilterFBs;
+	Vector<Vector<Ref<ImageView>>> m_prefilterFaceViews;
+
+	/* BRDF framebuffer */
+	Ref<Framebuffer> m_brdfFB;
+	Ref<ImageView> m_brdfFaceView;
 
 	Ref<GPURingBuffer> m_viewProjBuffer;
 	Ref<DescriptorSet> m_viewProjSet;

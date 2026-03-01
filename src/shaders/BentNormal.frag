@@ -21,7 +21,7 @@ vec3 GetViewPosition(vec2 uv, float depth) {
 }
 
 /* 
-    From: Hash wothout sine
+    From: Hash without sine
     Ref: https://compute.toys/view/15
 */
 float Hash(vec2 p) {
