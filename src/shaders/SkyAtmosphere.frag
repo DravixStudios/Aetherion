@@ -15,7 +15,7 @@ const float R_ATMOS = 6471e3; // 100km of atmosphere
 const float H_RAY = 8000.0; // Rayleigh height
 const float H_MIE = 1200.0; // MIE height
 const vec3 BETA_RAY = vec3(5.8e-6, 13.5e-6, 33.1e-6); // Rayleigh dispersion per RGB channel
-const float BETA_MIE = 21e-6; // Mie dispersion
+const float BETA_MIE = 4e-6; // Mie dispersion
 const float MIE_G = 0.76; // Henyey-Greenstein anisotropy
 
 const int VIEW_STEPS = 32;
@@ -152,10 +152,12 @@ vec3 SafeAtmosphere(vec3 dir) {
     if(dir.y >= 0.0) return Atmosphere(dir);
 
     float below = -dir.y;
-    float blend = smoothstep(0.0, 0.12, below);
-    vec3 hDir = normalize(vec3(dir.x, max(abs(dir.y), 0.05), dir.z));
+    float blend = smoothstep(0.0, 0.25, below);
+
+    vec3 hDir = normalize(vec3(dir.x, abs(dir.y), dir.z));
     vec3 horizon = Atmosphere(hDir);
-    vec3 ground = horizon * vec3(0.55, 0.50, 0.45) * 0.35;
+    
+    vec3 ground = horizon * vec3(0.35, 0.30, 0.25) * 0.35;
     return mix(horizon, ground, blend);
 }
 
@@ -166,10 +168,11 @@ void main() {
 
     float cosS = dot(dir, sunDir);
     float vis = clamp(sunData.sunHeight * 4.0 + 0.3, 0.0, 1.0);
-    float disc = smoothstep(0.9997, 0.9999, cosS);
-    float corona = pow(max(cosS, 0.0), 512.0) * 0.8;
+    float disc = smoothstep(0.9995, 0.99998, cosS);
+    float corona = pow(max(cosS, 0.0), 128.0) * 0.3;
+    float glow = pow(max(cosS, 0.0), 8.0) * 0.08;
     
-    color += vec3(1.0, 0.95, 0.85) * (disc * 2.5 + corona) * vis;
+    color += vec3(1.0, 0.95, 0.85) * (disc * 2.5 + corona + glow) * vis;
 
     outColor = vec4(color, 1.0);
 }
