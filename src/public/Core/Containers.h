@@ -47,3 +47,35 @@ template<typename T>
 using Deque = std::deque<T>;
 
 using String = std::string;
+
+/* Fixed string struct */
+template<size_t N>
+struct FixedString {
+	char data[N] = { };
+
+	FixedString() = default;
+
+	FixedString(const char* pcData) {
+		std::strncpy(data, pcData, N - 1);
+		this->data[N - 1] = '\0';
+	}
+
+	FixedString(const String& str) {
+		*this = str.c_str();
+	}
+
+	FixedString& operator=(const char* pcData) {
+		std::strncpy(data, pcData, N - 1);
+		this->data[N - 1] = '\0';
+		return *this;
+	}
+
+	FixedString& operator=(const String& str) {
+		return *this = str.c_str();
+	}
+
+	operator const char* () const { return data; }
+};
+
+using Name = FixedString<64>;
+using Text = FixedString<128>;
