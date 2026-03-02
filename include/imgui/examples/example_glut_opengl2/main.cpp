@@ -18,7 +18,7 @@
 //   vcpkg install freeglut --triplet=x64-windows   ; for win64
 //   vcpkg integrate install                        ; register include and libs in Visual Studio
 
-#include "imgui.h"
+#include <imgui/imgui.h>
 #include "imgui_impl_glut.h"
 #include "imgui_impl_opengl2.h"
 #define GL_SILENCE_DEPRECATION
@@ -61,6 +61,7 @@ int main(int argc, char** argv)
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO(); (void)io;
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;         // Enable Docking
 
     // Setup Dear ImGui style
     ImGui::StyleColorsDark();
