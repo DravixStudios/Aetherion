@@ -41,3 +41,4 @@
 - [xxHash](https://github.com/Cyan4973/xxHash)
 - [imgui](https://github.com/ocornut/imgui)
 - [Roboto Font](https://fonts.google.com/specimen/Roboto)
+- [NFD-Extended](https://github.com/btzy/nativefiledialog-extended)
