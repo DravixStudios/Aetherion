@@ -21,6 +21,7 @@ public:
 	~VulkanDescriptorSet() override;
 
 	void Allocate(Ref<DescriptorPool> pool, Ref<DescriptorSetLayout> layout) override;
+	void CreateFromExisting(VkDescriptorSet set);
 
 	void WriteBuffer(uint32_t nBinding, uint32_t nArrayElement, const DescriptorBufferInfo& bufferInfo) override;
 	void WriteTexture(uint32_t nBinding, uint32_t nArrayElement, const DescriptorImageInfo& imageInfo) override;
