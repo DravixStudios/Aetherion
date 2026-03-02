@@ -36,6 +36,18 @@ VulkanDescriptorSet::Allocate(Ref<DescriptorPool> pool, Ref<DescriptorSetLayout>
 	this->m_layout = layout;
 }
 
+/**
+* Creates our descriptor set
+* from an existing VkDescriptorSet
+* 
+* NOTE: Descriptor pool and Descriptor set layout
+* will not be defined
+*/
+void 
+VulkanDescriptorSet::CreateFromExisting(VkDescriptorSet set) {
+	this->m_descriptorSet = set;
+}
+
 /* Adds a buffer for writing */
 void 
 VulkanDescriptorSet::WriteBuffer(
