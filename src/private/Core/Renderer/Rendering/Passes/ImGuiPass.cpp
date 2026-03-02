@@ -1,6 +1,9 @@
 #include "Core/Renderer/Rendering/Passes/ImGuiPass.h"
 #include "Core/Renderer/Rendering/RenderGraphContext.h"
 #include "Fonts/RobotoRegular.h"
+#include "Core/Project/ProjectManager.h"
+
+#include <nfd.h>
 
 /**
 * ImGui pass initialization
@@ -22,6 +25,7 @@ void
 ImGuiPass::Init(Ref<Device> device, uint32_t nFramesInFlight) {
 	this->m_device = device;
 	this->nFramesInFlight = nFramesInFlight;
+    this->m_sceneImGuiSets.resize(nFramesInFlight);
 }
 
 /**
@@ -31,11 +35,13 @@ ImGuiPass::Init(Ref<Device> device, uint32_t nFramesInFlight) {
 */
 void
 ImGuiPass::SetupNode(RenderGraphBuilder& builder) {
-	builder.UseColorOutput(this->m_output, EImageLayout::PRESENT_SRC, EAttachmentLoadOp::LOAD);
+	builder.UseColorOutput(this->m_output, EImageLayout::PRESENT_SRC);
 	builder.SetDimensions(this->m_nWidth, this->m_nHeight);
 
 	ImGuiIO& io = ImGui::GetIO();
 	io.DisplaySize = ImVec2(static_cast<float>(this->m_nWidth), static_cast<float>(this->m_nHeight));
+    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+    io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
 }
 
 /**
@@ -46,15 +52,45 @@ ImGuiPass::SetupNode(RenderGraphBuilder& builder) {
 * @param nFramesInFlight Frames in flight count
 */
 void
-ImGuiPass::Execute(Ref<GraphicsContext> context, RenderGraphContext& graphCtx, uint32_t nFramesInFlight) {
+ImGuiPass::Execute(Ref<GraphicsContext> context, RenderGraphContext& graphCtx, uint32_t nImgIdx) {
 	this->m_imgui->NewFrame();
 
     float hierarchyPadding = 50.f;
     float hierarchyHeight = static_cast<float>(this->m_nHeight) - (hierarchyPadding * 2);
 
-    ImGui::SetNextWindowPos(ImVec2{ hierarchyPadding, hierarchyPadding });
-    ImGui::SetNextWindowSize(ImVec2{ 200.f, hierarchyHeight });
-    ImGui::Begin("Hierarchy", nullptr, ImGuiWindowFlags_NoResize);
+    ImGuiViewport* pViewport = ImGui::GetMainViewport();
+    ImGui::SetNextWindowPos(pViewport->WorkPos);
+    ImGui::SetNextWindowSize(pViewport->WorkSize);
+    ImGui::SetNextWindowViewport(pViewport->ID);
+
+    ImGuiWindowFlags windowFlags =
+        ImGuiWindowFlags_NoDocking |
+        ImGuiWindowFlags_NoTitleBar |
+        ImGuiWindowFlags_NoCollapse |
+        ImGuiWindowFlags_NoResize |
+        ImGuiWindowFlags_NoMove |
+        ImGuiWindowFlags_NoBringToFrontOnFocus |
+        ImGuiWindowFlags_NoNavFocus |
+        ImGuiWindowFlags_NoBackground;
+
+    ImGui::Begin("DockSpaceWindow", nullptr, windowFlags);
+    ImGuiID dockspaceId = ImGui::GetID("MyDockSpace");
+    ImGui::DockSpace(dockspaceId, ImVec2(0.f, 0.f), ImGuiDockNodeFlags_None);
+    ImGui::End();
+
+    ImGui::Begin("Viewport");
+    ImVec2 actualSize = ImGui::GetContentRegionAvail();
+    if (actualSize.x != this->m_viewportSize.x || actualSize.y != this->m_viewportSize.y) {
+        this->m_viewportSize = actualSize;
+        this->m_bPendingResize = true;
+        this->m_pendingSize = actualSize;
+    }
+
+    this->m_imgui->Image(this->m_sceneImGuiSets[nImgIdx], actualSize);
+    ImGui::End();
+
+    ImGui::Begin("Hierarchy");
+    ImGui::End();
 
     ImGui::Begin("Sun Debug");
     if (ImGui::DragFloat("Sun Rotation X", &this->m_sunRotation.x, .1f)) {
@@ -68,23 +104,41 @@ ImGuiPass::Execute(Ref<GraphicsContext> context, RenderGraphContext& graphCtx, u
     }
     ImGui::End();
 
-    ImGui::End();
+    /* Main menu bar */
+    if (ImGui::BeginMainMenuBar()) {
+	    if (ImGui::BeginMenu("File")) {
+            if (ImGui::MenuItem("Open project...")) {
+                /* Open a dialog for selecting the folder */
+                nfdchar_t* pPath = nullptr;
+                nfdresult_t result = NFD_PickFolder(&pPath, nullptr);
+                
+                /* Get project manager instance */
+                ProjectManager* projMgr = ProjectManager::GetInstance();
 
-	ImGui::BeginMainMenuBar();
+                switch (result) {
+                case NFD_OKAY:
+                    projMgr->OpenProject(pPath);
+                    break;
+                default:
+                    Logger::Error("ImGuiPass::Execute: Failed selecting project directory: {}", NFD_GetError());
+                    break;
+                }
+            }
+            
+            ImGui::EndMenu();
+	    }
 
-	if (ImGui::MenuItem("File")) {
+	    if (ImGui::MenuItem("Assets")) {
 
-	}
+	    }
 
-	if (ImGui::MenuItem("Assets")) {
+	    if (ImGui::MenuItem("GameObject")) {
 
-	}
+	    }
 
-	if (ImGui::MenuItem("GameObject")) {
+	    ImGui::EndMainMenuBar();
+    }
 
-	}
-
-	ImGui::EndMainMenuBar();
 	
 	this->m_imgui->Render(context);
 }
@@ -97,13 +151,42 @@ ImGuiPass::Resize(uint32_t nWidth, uint32_t nHeight) {
 	io.DisplaySize = ImVec2(static_cast<float>(this->m_nWidth), static_cast<float>(this->m_nHeight));
 }
 
+/**
+* Set imgui pass input
+*
+* @param input Scene texture handle
+* @param transientPool Transient resource pool
+*/
+void
+ImGuiPass::SetInput(TextureHandle input, TransientResourcePool& transientPool, Ref<Sampler> sampler, uint32_t nImgIdx) {
+    this->m_input = input;
+    this->m_sampler = sampler;
+
+    if (!this->m_pool) {
+        this->CreateResources();
+        this->SetupTheme();
+    }
+
+    /* Get image view from transient resource pool */
+    Ref<ImageView> sceneView = transientPool.GetImageView(input);
+
+    /* Clear last descriptor if exists */
+    if (this->m_sceneImGuiSets[nImgIdx]) {
+        this->m_imgui->RemoveTexture(this->m_sceneImGuiSets[nImgIdx]);
+        this->m_sceneImGuiSets[nImgIdx] = Ref<DescriptorSet>();
+    }
+
+    this->m_sceneImGuiSets[nImgIdx] = this->m_imgui->AddTexture(sampler, sceneView, EImageLayout::SHADER_READ_ONLY);
+}
+
+/**
+* Set imgui pass output
+* 
+* @param output Output texture handle
+*/
 void
 ImGuiPass::SetOutput(TextureHandle output) {
 	this->m_output = output;
-	if (!this->m_pool) {
-		this->CreateResources();
-		this->SetupTheme();
-	}
 }
 
 /**
@@ -156,14 +239,14 @@ ImGuiPass::CreateResources() {
 	
 	this->m_renderPass = this->m_device->CreateRenderPass(rpInfo);
 
-	/* Create ImGui */
-	ImGuiImplCreateInfo imguiInfo = { };
-	imguiInfo.descriptorPool = this->m_pool;
-	imguiInfo.nFramesInFlight = this->nFramesInFlight;
-	imguiInfo.pWindow = this->m_pWindow;
-	imguiInfo.renderPass = this->m_renderPass;
-	
-	this->m_imgui = this->m_device->CreateImGui(imguiInfo);
+    /* Create ImGui */
+    ImGuiImplCreateInfo imguiInfo = { };
+    imguiInfo.descriptorPool = this->m_pool;
+    imguiInfo.nFramesInFlight = this->nFramesInFlight;
+    imguiInfo.pWindow = this->m_pWindow;
+    imguiInfo.renderPass = this->m_renderPass;
+
+    this->m_imgui = this->m_device->CreateImGui(imguiInfo);
 }
 
 /**

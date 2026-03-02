@@ -1,4 +1,5 @@
 #include "Core/Renderer/Rendering/DeferredRenderer.h"
+#include "Core/Scene/SceneManager.h"
 
 #include <glm/gtc/quaternion.hpp>
 #include <imgui/imgui.h>
@@ -27,7 +28,7 @@ DeferredRenderer::Init(Ref<Device> device, Ref<Swapchain> swapchain, uint32_t nF
     this->CreateScreenquadBuffer();
     this->LoadSkybox();
 
-    this->m_sunExtraction.Init(device, this->m_skybox, this->m_skyboxView, this->m_cubeSampler);
+    //this->m_sunExtraction.Init(device, this->m_skybox, this->m_skyboxView, this->m_cubeSampler);
 
     /* Initialize passes */
     this->m_cullingPass.Init(device, this->m_nFramesInFlight);
@@ -86,19 +87,20 @@ DeferredRenderer::Init(Ref<Device> device, Ref<Swapchain> swapchain, uint32_t nF
 * @param nHeight Height
 */
 void
-DeferredRenderer::Resize(uint32_t nWidth, uint32_t nHeight) {
+DeferredRenderer::Resize(uint32_t nWidth, uint32_t nHeight, bool bImGuiCall) {
     if (nWidth == 0 || nHeight == 0) {
         return;
     }
 
     this->m_device->WaitIdle();
+    this->m_graph.Invalidate();
 
     this->m_gbuffPass.Resize(nWidth, nHeight);
     this->m_lightingPass.SetDimensions(nWidth, nHeight);
     this->m_skyboxPass.SetDimensions(nWidth, nHeight);
     this->m_tonemapPass.SetDimensions(nWidth, nHeight);
     this->m_bentNormalPass.SetDimensions(nWidth, nHeight);
-    this->m_imguiPass.Resize(nWidth, nHeight);
+    if (!bImGuiCall) this->m_imguiPass.Resize(nWidth, nHeight);
 
     this->m_lightingPass.SetGBufferDescriptorSet(this->m_gbuffPass.GetReadDescriptorSet());
     this->UpdateSkyboxDescriptor();
@@ -127,6 +129,15 @@ DeferredRenderer::Render(
 	const CollectedDrawData& drawData,
 	uint32_t nImgIdx
 ) {
+    if (this->m_imguiPass.HasPendingResize()) {
+        ImVec2 sz = this->m_imguiPass.GetPendingSize();
+        uint32_t nNewWidth = static_cast<uint32_t>(sz.x);
+        uint32_t nNewHeight = static_cast<uint32_t>(sz.y);
+        this->Resize(nNewWidth, nNewHeight, true);
+        SceneManager::GetInstance()->SetDimensions(nNewWidth, nNewHeight);
+        this->m_imguiPass.ClearPendingResize();
+    }
+
     this->m_graph.Reset(nImgIdx);
 
     TextureHandle backBuffer = this->m_graph.ImportBackbuffer(
@@ -298,7 +309,6 @@ DeferredRenderer::Render(
 
     /* 5. Tonemap pass */
     this->m_tonemapPass.SetInput(this->m_lightingPass.GetOutput().hdrOutput);
-    this->m_tonemapPass.SetOutput(backBuffer);
     
     this->m_graph.AddNode("Tonemap",
         [&](RenderGraphBuilder& builder) { this->m_tonemapPass.SetupNode(builder); },
@@ -308,6 +318,7 @@ DeferredRenderer::Render(
     );
 
     /* 6. ImGui Pass */
+    this->m_imguiPass.SetInput(this->m_tonemapPass.GetOutput(), this->m_graph.GetPool(), this->m_defaultSampler, nImgIdx);
     this->m_imguiPass.SetOutput(backBuffer);
     this->m_graph.AddNode("ImGui",
         [&](RenderGraphBuilder& builder) { this->m_imguiPass.SetupNode(builder); },
@@ -532,54 +543,54 @@ DeferredRenderer::UpdateSceneDescriptors(uint32_t nImgIdx) {
 */
 void
 DeferredRenderer::LoadSkybox() {
-    void* pData = nullptr;
-    uint32_t nSize = 0;
-    uint32_t nFaceSize = 0;
-    bool bSkyboxLoaded = LoadCubemap("zwartkops_curve_afternoon_4k.exr", &pData, nSize, nFaceSize);
-    if (!bSkyboxLoaded) {
-        Logger::Error("DeferredRenderer::Init: Failed loading skybox");
-        throw std::runtime_error("DeferredRenderer::Init Failed loading skybox");
-    }
+    //void* pData = nullptr;
+    //uint32_t nSize = 0;
+    //uint32_t nFaceSize = 0;
+    //bool bSkyboxLoaded = LoadCubemap("zwartkops_curve_afternoon_4k.exr", &pData, nSize, nFaceSize);
+    //if (!bSkyboxLoaded) {
+    //    Logger::Error("DeferredRenderer::Init: Failed loading skybox");
+    //    throw std::runtime_error("DeferredRenderer::Init Failed loading skybox");
+    //}
 
-    /* Create staging buffer */
-    BufferCreateInfo stagingInfo = { };
-    stagingInfo.nSize = nSize;
-    stagingInfo.pcData = pData;
-    stagingInfo.sharingMode = ESharingMode::EXCLUSIVE;
-    stagingInfo.type = EBufferType::STAGING_BUFFER;
-    stagingInfo.usage = EBufferUsage::TRANSFER_SRC;
-    
-    Ref<GPUBuffer> stagingBuff = this->m_device->CreateBuffer(stagingInfo);
+    ///* Create staging buffer */
+    //BufferCreateInfo stagingInfo = { };
+    //stagingInfo.nSize = nSize;
+    //stagingInfo.pcData = pData;
+    //stagingInfo.sharingMode = ESharingMode::EXCLUSIVE;
+    //stagingInfo.type = EBufferType::STAGING_BUFFER;
+    //stagingInfo.usage = EBufferUsage::TRANSFER_SRC;
+    //
+    //Ref<GPUBuffer> stagingBuff = this->m_device->CreateBuffer(stagingInfo);
 
-    /* Create texture */
-    TextureCreateInfo textureInfo = { };
-    textureInfo.buffer = stagingBuff;
-    textureInfo.extent = { nFaceSize, nFaceSize, 1 };
-    textureInfo.format = GPUFormat::RGBA32_FLOAT;
-    textureInfo.nMipLevels = 1;
-    textureInfo.nArrayLayers = 6;
-    textureInfo.samples = ESampleCount::SAMPLE_1;
-    textureInfo.usage = ETextureUsage::TRANSFER_DST | ETextureUsage::SAMPLED;
-    textureInfo.sharingMode = ESharingMode::EXCLUSIVE;
-    textureInfo.tiling = ETextureTiling::OPTIMAL;
-    textureInfo.imageType = ETextureDimensions::TYPE_2D;
-    textureInfo.initialLayout = ETextureLayout::UNDEFINED;
-    textureInfo.flags = ETextureFlags::CUBE_COMPATIBLE;
+    ///* Create texture */
+    //TextureCreateInfo textureInfo = { };
+    //textureInfo.buffer = stagingBuff;
+    //textureInfo.extent = { nFaceSize, nFaceSize, 1 };
+    //textureInfo.format = GPUFormat::RGBA32_FLOAT;
+    //textureInfo.nMipLevels = 1;
+    //textureInfo.nArrayLayers = 6;
+    //textureInfo.samples = ESampleCount::SAMPLE_1;
+    //textureInfo.usage = ETextureUsage::TRANSFER_DST | ETextureUsage::SAMPLED;
+    //textureInfo.sharingMode = ESharingMode::EXCLUSIVE;
+    //textureInfo.tiling = ETextureTiling::OPTIMAL;
+    //textureInfo.imageType = ETextureDimensions::TYPE_2D;
+    //textureInfo.initialLayout = ETextureLayout::UNDEFINED;
+    //textureInfo.flags = ETextureFlags::CUBE_COMPATIBLE;
 
-    this->m_skybox = this->m_device->CreateTexture(textureInfo);
+    //this->m_skybox = this->m_device->CreateTexture(textureInfo);
 
-    /* Create skybox image view */
-    ImageViewCreateInfo viewInfo = { };
-    viewInfo.viewType = EImageViewType::TYPE_CUBE;
-    viewInfo.image = this->m_skybox;
-    viewInfo.format = GPUFormat::RGBA32_FLOAT;
-    viewInfo.subresourceRange.aspectMask = EImageAspect::COLOR;
-    viewInfo.subresourceRange.nBaseArrayLayer = 0;
-    viewInfo.subresourceRange.nLayerCount = 6;
-    viewInfo.subresourceRange.nBaseMipLevel = 0;
-    viewInfo.subresourceRange.nLevelCount = 1;
+    ///* Create skybox image view */
+    //ImageViewCreateInfo viewInfo = { };
+    //viewInfo.viewType = EImageViewType::TYPE_CUBE;
+    //viewInfo.image = this->m_skybox;
+    //viewInfo.format = GPUFormat::RGBA32_FLOAT;
+    //viewInfo.subresourceRange.aspectMask = EImageAspect::COLOR;
+    //viewInfo.subresourceRange.nBaseArrayLayer = 0;
+    //viewInfo.subresourceRange.nLayerCount = 6;
+    //viewInfo.subresourceRange.nBaseMipLevel = 0;
+    //viewInfo.subresourceRange.nLevelCount = 1;
 
-    this->m_skyboxView = this->m_device->CreateImageView(viewInfo);
+    //this->m_skyboxView = this->m_device->CreateImageView(viewInfo);
 
     /* Create cube sampler */
     SamplerCreateInfo samplerInfo = { };

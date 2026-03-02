@@ -39,7 +39,14 @@ TonemapPass::Init(Ref<Device> device, Ref<Swapchain> swapchain, uint32_t nFrames
 void 
 TonemapPass::SetupNode(RenderGraphBuilder& builder) {
 	builder.ReadTexture(this->m_input);
-	builder.UseColorOutput(this->m_output, EImageLayout::COLOR_ATTACHMENT);
+
+	TextureDesc sceneDesc = { };
+	sceneDesc.format = GPUFormat::BGRA8_UNORM;
+	sceneDesc.nWidth = this->m_nWidth;
+	sceneDesc.nHeight = this->m_nHeight;
+	sceneDesc.usage = ETextureUsage::COLOR_ATTACHMENT | ETextureUsage::SAMPLED;
+
+	this->m_output = builder.CreateColorOutput(sceneDesc, EImageLayout::SHADER_READ_ONLY);
 	
 	builder.SetDimensions(this->m_nWidth, this->m_nHeight);
 }
@@ -71,11 +78,6 @@ TonemapPass::Execute(Ref<GraphicsContext> context, RenderGraphContext& graphCtx,
 void 
 TonemapPass::SetInput(TextureHandle input) {
 	this->m_input = input;
-}
-
-void 
-TonemapPass::SetOutput(TextureHandle output) {
-	this->m_output = output;
 }
 
 void 

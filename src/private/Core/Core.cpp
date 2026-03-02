@@ -117,10 +117,7 @@ Core::Update() {
             this->m_swapchain->Rebuild(static_cast<uint32_t>(nWidth), static_cast<uint32_t>(nHeight));
             this->m_deferredRenderer.Resize(nWidth, nHeight);
 
-            /* Resize the current camera */
-            Scene* scene = this->m_sceneMgr->GetCurrentScene();
-            Camera* camera = scene->GetCurrentCamera();
-            camera->Resize(nWidth, nHeight);
+            SceneManager::GetInstance()->SetDimensions(nWidth, nHeight);
 
             this->m_bWindowResized = false;
         }

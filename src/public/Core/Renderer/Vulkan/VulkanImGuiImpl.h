@@ -18,6 +18,16 @@ public:
 	void NewFrame() override;
 	void Render(Ref<GraphicsContext> context) override;
 
+	Ref<DescriptorSet> AddTexture(
+		Ref<Sampler> sampler,
+		Ref<ImageView> imageView,
+		EImageLayout imageLayout
+	) override;
+
+	void RemoveTexture(Ref<DescriptorSet> set) override;
+
+	void Image(Ref<DescriptorSet> descriptorSet, ImVec2 imageSize);
+
 	static Ptr
 	CreateShared(Ref<VulkanDevice> device) {
 		return CreateRef<VulkanImGuiImpl>(device);
