@@ -7,7 +7,7 @@
 // - Documentation        https://dearimgui.com/docs (same as your local docs/ folder).
 // - Introduction, links and more at the top of imgui.cpp
 
-#include "imgui.h"
+#include <imgui/imgui.h>
 #include "imgui_impl_sdl3.h"
 #include "imgui_impl_metal.h"
 #include <stdio.h>          // printf, fprintf
