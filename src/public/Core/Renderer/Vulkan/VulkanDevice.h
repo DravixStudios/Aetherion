@@ -94,6 +94,7 @@ public:
 	Ref<DescriptorSetLayout> CreateDescriptorSetLayout(const DescriptorSetLayoutCreateInfo& createInfo) override;
 
 	Ref<DescriptorSet> CreateDescriptorSet(Ref<DescriptorPool> pool, Ref<DescriptorSetLayout> layout) override;
+	Ref<DescriptorSet> CreateDescriptorSet(VkDescriptorSet set);
 
 	Ref<Semaphore> CreateSemaphore() override;
 	Ref<Fence> CreateFence(const FenceCreateInfo& createInfo) override;
