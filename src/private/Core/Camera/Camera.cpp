@@ -8,10 +8,29 @@ Camera::Camera(String name) {
 	this->m_time = Time::GetInstance();
 }
 
-void Camera::Start() {
+void 
+Camera::Start() {
 
 }
 
-void Camera::Update() {
+void
+Camera::Update() {
 
+}
+
+/**
+* Resizes the camera 
+* 
+* @param nWidth New width
+* @param nHeight New height
+*/
+void 
+Camera::Resize(uint32_t nWidth, uint32_t nHeight) {
+	if (nWidth <= 0 || nHeight <= 0) {
+		Logger::Error("Camera::Resize: Width or height can't be 0");
+		return;
+	}
+
+	this->m_nWidth = nWidth;
+	this->m_nHeight = nHeight;
 }

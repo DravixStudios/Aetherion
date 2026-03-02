@@ -19,6 +19,8 @@ public:
 	void Start();
 	void Update();
 
+	void SetDimensions(uint32_t nWidth, uint32_t nHeight);
+
 	static SceneManager* GetInstance();
 private:
 	Scene* m_currentScene;
