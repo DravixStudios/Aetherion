@@ -29,7 +29,7 @@
 class DeferredRenderer {
 public:
     void Init(Ref<Device> device, Ref<Swapchain> swapchain, uint32_t nFramesInFlight, GLFWwindow* pWindow);
-    void Resize(uint32_t nWidth, uint32_t nHeight);
+    void Resize(uint32_t nWidth, uint32_t nHeight, bool bImGuiCall = false);
     void Invalidate();
 
     void Render(

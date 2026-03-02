@@ -5,10 +5,9 @@
 #include "Core/Renderer/ImGuiImpl.h"
 
 #include <imgui/imgui.h>
-
 #include <glm/glm.hpp>
 
-#define IMGUI_DESCRIPTOR_POOL_SIZE 8
+#define IMGUI_DESCRIPTOR_POOL_SIZE 64
 
 class ImGuiPass : public BasePass {
 public:
@@ -17,13 +16,18 @@ public:
 
 	void SetupNode(RenderGraphBuilder& builder) override;
 
-	void Execute(Ref<GraphicsContext> context, RenderGraphContext& graphCtx, uint32_t nFrameIndex = 0) override;
+	void Execute(Ref<GraphicsContext> context, RenderGraphContext& graphCtx, uint32_t nImgIdx = 0) override;
 	void Resize(uint32_t nWidth, uint32_t nHeight);
+
+	bool HasPendingResize() const { return m_bPendingResize; }
+	ImVec2 GetPendingSize() const { return m_pendingSize; }
+	void ClearPendingResize() { m_bPendingResize = false; }
 
 	glm::vec3 GetSunRotation() const { return this->m_sunRotation; }
 	bool SunChanged() { return this->m_bSunChanged; }
 	void NotifySunUpdated() { this->m_bSunChanged = false; }
 
+	void SetInput(TextureHandle input, TransientResourcePool& transientPool, Ref<Sampler> sampler, uint32_t nImgIdx);
 	void SetOutput(TextureHandle output);
 	void SetWindow(GLFWwindow* pWindow);
 
@@ -31,6 +35,7 @@ private:
 	void CreateResources();
 	void SetupTheme();
 
+	TextureHandle m_input;
 	TextureHandle m_output;
 
 	uint32_t nFramesInFlight = 0;
@@ -41,6 +46,12 @@ private:
 	Ref<DescriptorPool> m_pool;
 	Ref<RenderPass> m_renderPass;
 	Ref<ImGuiImpl> m_imgui;
+	Ref<Sampler> m_sampler;
+	Vector<Ref<DescriptorSet>> m_sceneImGuiSets;
+
+	ImVec2 m_viewportSize;
+	bool m_bPendingResize = false;
+	ImVec2 m_pendingSize = { 0, 0 };
 
 	GLFWwindow* m_pWindow = nullptr;
 };

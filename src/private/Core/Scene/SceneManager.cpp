@@ -63,3 +63,17 @@ SceneManager::GetInstance() {
 		SceneManager::m_instance = new SceneManager();
 	return SceneManager::m_instance;
 }
+
+/**
+* Sets the scene dimensions
+* 
+* Note: This only changes the 
+* current camera dimensions
+* 
+* @param nWidth Width
+* @param nHeight Height
+*/
+void 
+SceneManager::SetDimensions(uint32_t nWidth, uint32_t nHeight) {
+	this->m_currentScene->currentCamera->Resize(nWidth, nHeight);
+}

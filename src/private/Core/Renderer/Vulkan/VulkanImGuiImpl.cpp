@@ -47,6 +47,8 @@ VulkanImGuiImpl::NewFrame() {
 
 /**
 * Renders the GUI
+* 
+* @param context Graphics context
 */
 void
 VulkanImGuiImpl::Render(Ref<GraphicsContext> context) {
@@ -56,5 +58,63 @@ VulkanImGuiImpl::Render(Ref<GraphicsContext> context) {
 	ImGui_ImplVulkan_RenderDrawData(
 		ImGui::GetDrawData(),
 		commandBuff.As<VulkanCommandBuffer>()->GetVkCommandBuffer()
+	);
+
+	ImGui::UpdatePlatformWindows();
+	ImGui::RenderPlatformWindowsDefault();
+}
+
+/**
+* Registers a texture in imgui
+* 
+* @param sampler Image sampler
+* @param imageView Image view
+* @param imageLayout Image layout
+*/
+Ref<DescriptorSet> 
+VulkanImGuiImpl::AddTexture(
+	Ref<Sampler> sampler,
+	Ref<ImageView> imageView,
+	EImageLayout imageLayout
+) {
+	Ref<VulkanSampler> vkSampler = sampler.As<VulkanSampler>();
+	Ref<VulkanImageView> vkView = imageView.As<VulkanImageView>();
+	VkImageLayout vkLayout = VulkanHelpers::ConvertImageLayout(imageLayout);
+
+	VkDescriptorSet vkDescriptorSet = ImGui_ImplVulkan_AddTexture(
+		vkSampler->GetVkSampler(),
+		vkView->GetVkImageView(),
+		vkLayout
+	);
+
+	Ref<DescriptorSet> set = this->m_device->CreateDescriptorSet(vkDescriptorSet);
+
+	return set;
+}
+
+/**
+* Removes a texture from imgui
+* 
+* @param set Descriptor set
+*/
+void 
+VulkanImGuiImpl::RemoveTexture(Ref<DescriptorSet> set) {
+	Ref<VulkanDescriptorSet> vkSet = set.As<VulkanDescriptorSet>();
+
+	ImGui_ImplVulkan_RemoveTexture(vkSet->GetVkSet());
+}
+
+/**
+* Executes ImGui::Image
+* 
+* @param descriptorSet Descriptor set returned by AddTexture
+* @param imageSize Image size
+*/
+void 
+VulkanImGuiImpl::Image(Ref<DescriptorSet> descriptorSet, ImVec2 imageSize) {
+	Ref<VulkanDescriptorSet> vkSet = descriptorSet.As<VulkanDescriptorSet>();
+	ImGui::Image(
+		(ImTextureID)vkSet->GetVkSet(),
+		imageSize
 	);
 }
