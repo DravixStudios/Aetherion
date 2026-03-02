@@ -683,6 +683,23 @@ VulkanDevice::CreateDescriptorSet(Ref<DescriptorPool> pool, Ref<DescriptorSetLay
 }
 
 /**
+* Creates a descriptor set from a VkDescriptorSet
+* 
+* NOTE: This is an overload for specific use cases
+* 
+* @param set Vulkan descriptor set
+* 
+* @returns Created descriptor set
+*/
+Ref<DescriptorSet> 
+VulkanDevice::CreateDescriptorSet(VkDescriptorSet set) {
+	Ref<VulkanDescriptorSet> descriptorSet = VulkanDescriptorSet::CreateShared(this->m_device);
+	descriptorSet->CreateFromExisting(set);
+
+	return descriptorSet.As<DescriptorSet>();
+}
+
+/**
 * Creates a Vulkan semaphore
 *
 * @returns Created Vulkan semaphore
