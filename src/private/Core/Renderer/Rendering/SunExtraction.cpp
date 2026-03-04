@@ -34,7 +34,6 @@ SunExtraction::Init(Ref<Device> device, Ref<GPUTexture> skybox, Ref<ImageView> s
 */
 void 
 SunExtraction::Extract(Ref<GraphicsContext> context) {
-	context->GlobalBarrier();
 	context->BindPipeline(this->m_pipeline);
 
 	context->BindDescriptorSets(0, { this->m_descriptorSet });

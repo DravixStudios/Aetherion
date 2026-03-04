@@ -95,7 +95,6 @@ SkyAtmosphere::Update(Ref<GraphicsContext> context, uint32_t nFrameIdx) {
         context->EndRenderPass();
     }
     context->ImageBarrier(this->m_skybox, EImageLayout::COLOR_ATTACHMENT, EImageLayout::SHADER_READ_ONLY, 6, 0, 0);
-    context->GlobalBarrier();
 }
 
 /**
@@ -327,10 +326,11 @@ SkyAtmosphere::CreatePipeline() {
     SubpassDescription subpass = { };
     subpass.colorAttachments = Vector{ colorAttachmentRef };
     subpass.bHasDepthStencil = false;
-    
+
     RenderPassCreateInfo rpInfo = { };
     rpInfo.subpasses = Vector{ subpass };
     rpInfo.attachments = Vector{ colorAttachment };
+    rpInfo.dependencies = GetDefaultSubpassDependencies();
 
     this->m_renderPass = this->m_device->CreateRenderPass(rpInfo);
 

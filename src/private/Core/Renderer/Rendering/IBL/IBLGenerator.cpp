@@ -323,6 +323,7 @@ IBLGenerator::CreateRenderPasses() {
     RenderPassCreateInfo irradianceRPInfo = { };
     irradianceRPInfo.attachments = Vector{ irradianceAttachment };
     irradianceRPInfo.subpasses = Vector{ irradianceSubpass };
+    irradianceRPInfo.dependencies = GetDefaultSubpassDependencies(true);
 
     this->m_irradianceRP = this->m_device->CreateRenderPass(irradianceRPInfo);
 
@@ -347,6 +348,7 @@ IBLGenerator::CreateRenderPasses() {
     RenderPassCreateInfo prefilterRPInfo = { };
     prefilterRPInfo.attachments = Vector{ prefilterAttachment };
     prefilterRPInfo.subpasses = Vector{ prefilterSubpass };
+    prefilterRPInfo.dependencies = GetDefaultSubpassDependencies(true);
 
     this->m_prefilterRP = this->m_device->CreateRenderPass(prefilterRPInfo);
 
@@ -371,6 +373,7 @@ IBLGenerator::CreateRenderPasses() {
     RenderPassCreateInfo brdfRPInfo = { };
     brdfRPInfo.attachments = Vector{ brdfAttachment };
     brdfRPInfo.subpasses = Vector{ brdfSubpass };
+    brdfRPInfo.dependencies = GetDefaultSubpassDependencies();
 
     this->m_brdfRP = this->m_device->CreateRenderPass(brdfRPInfo);
 }
