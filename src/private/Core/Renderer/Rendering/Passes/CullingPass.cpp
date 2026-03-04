@@ -96,7 +96,7 @@ CullingPass::Execute(
 	context->Dispatch(nGroups, 1, 1);
 
 	context->BufferMemoryBarrier(
-	this->m_indirectBuffer->GetBuffer(),
+		this->m_indirectBuffer->GetBuffer(),
 		EAccess::SHADER_WRITE, 
 		EAccess::INDIRECT_COMMAND_READ
 	);

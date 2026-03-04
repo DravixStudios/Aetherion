@@ -201,6 +201,7 @@ RenderGraph::Execute(Ref<GraphicsContext> context) {
     for(GraphNode& node : this->m_nodes) {
         if (node.bIsComputeOnly) {
             node.execute(context, graphCtx);
+            context->GlobalBarrier();
             continue;
         }
 

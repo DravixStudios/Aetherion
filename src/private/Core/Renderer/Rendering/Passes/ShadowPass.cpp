@@ -158,8 +158,6 @@ ShadowPass::Execute(Ref<GraphicsContext> context, RenderGraphContext& graphCtx, 
 
 		context->EndRenderPass();
 	}
-
-	context->GlobalBarrier();
 }
 
 void
@@ -416,9 +414,26 @@ ShadowPass::CreateShadowResources() {
 	subpass.colorAttachments = { };
 	subpass.bHasDepthStencil = true;
 
+	SubpassDependency inDependency = { };
+	inDependency.nSrcSubpass = SUBPASS_EXTERNAL;
+	inDependency.nDstSubpass = 0;
+	inDependency.srcStageMask = EPipelineStage::FRAGMENT_SHADER;
+	inDependency.dstStageMask = EPipelineStage::EARLY_FRAGMENT_TESTS;
+	inDependency.srcAccessMask = EAccess::SHADER_READ;
+	inDependency.dstAccessMask = EAccess::DEPTH_STENCIL_WRITE;
+
+	SubpassDependency outDependency = { };
+	outDependency.nSrcSubpass = 0;
+	outDependency.nDstSubpass = SUBPASS_EXTERNAL;
+	outDependency.srcStageMask = EPipelineStage::LATE_FRAGMENT_TESTS;
+	outDependency.dstStageMask = EPipelineStage::FRAGMENT_SHADER;
+	outDependency.srcAccessMask = EAccess::DEPTH_STENCIL_WRITE;
+	outDependency.dstAccessMask = EAccess::SHADER_READ;
+	   
 	RenderPassCreateInfo rpInfo = { };
 	rpInfo.attachments = Vector{ depthAttachment };
 	rpInfo.subpasses = Vector{ subpass };
+	rpInfo.dependencies = Vector{ inDependency, outDependency };
 	
 	this->m_shadowRenderPass = this->m_device->CreateRenderPass(rpInfo);
 
