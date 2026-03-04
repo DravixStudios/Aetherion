@@ -166,6 +166,8 @@ TonemapPass::CreatePipeline(GPUFormat format) {
 
 	/* Compatible RenderPass */
 	RenderPassCreateInfo rpInfo = { };
+	rpInfo.dependencies = GetDefaultSubpassDependencies(false);
+
 	AttachmentDescription colorAttachment = { };
 	colorAttachment.format = format; 
 	colorAttachment.sampleCount = ESampleCount::SAMPLE_1;

@@ -204,6 +204,7 @@ GBufferPass::CreatePipeline() {
 	/* Create a compatible render pass */
 	/* TODO: Use dynamic rendering */
 	RenderPassCreateInfo rpInfo = { };
+	rpInfo.dependencies = GetDefaultSubpassDependencies(true);
 
 	/* Attachment 0: Base color - RGBA16_FLOAT */
 	AttachmentDescription colorAttachment = { };

@@ -110,6 +110,32 @@ struct RenderPassBeginInfo {
 	Vector<ClearValue> clearValues;
 };
 
+inline Vector<SubpassDependency>
+GetDefaultSubpassDependencies(bool bHasDepth = false) {
+	SubpassDependency inDependency = { };
+	inDependency.nSrcSubpass = SUBPASS_EXTERNAL;
+	inDependency.nDstSubpass = 0;
+	inDependency.srcStageMask = EPipelineStage::COLOR_ATTACHMENT_OUTPUT | EPipelineStage::LATE_FRAGMENT_TESTS;
+	inDependency.dstStageMask = EPipelineStage::COLOR_ATTACHMENT_OUTPUT | EPipelineStage::EARLY_FRAGMENT_TESTS;
+	inDependency.srcAccessMask = EAccess::COLOR_ATTACHMENT_WRITE | EAccess::DEPTH_STENCIL_WRITE;
+	inDependency.dstAccessMask = EAccess::COLOR_ATTACHMENT_WRITE | EAccess::DEPTH_STENCIL_WRITE;
+
+	SubpassDependency outDependency = { };
+	outDependency.nSrcSubpass = 0;
+	outDependency.nDstSubpass = SUBPASS_EXTERNAL;
+	outDependency.srcStageMask = EPipelineStage::COLOR_ATTACHMENT_OUTPUT;
+	outDependency.dstStageMask = EPipelineStage::FRAGMENT_SHADER;
+	outDependency.srcAccessMask = EAccess::COLOR_ATTACHMENT_WRITE;
+	outDependency.dstAccessMask = EAccess::SHADER_READ;
+
+	if (bHasDepth) {
+		outDependency.srcStageMask = outDependency.srcStageMask | EPipelineStage::LATE_FRAGMENT_TESTS;
+		outDependency.srcAccessMask = outDependency.srcAccessMask | EAccess::DEPTH_STENCIL_WRITE;
+	}
+
+	return { inDependency, outDependency };
+}
+
 class RenderPass {
 public:
 	static constexpr const char* CLASS_NAME = "RenderPass";

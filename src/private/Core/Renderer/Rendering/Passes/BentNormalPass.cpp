@@ -183,6 +183,7 @@ BentNormalPass::CreatePipeline() {
 	RenderPassCreateInfo rpInfo = { };
 	rpInfo.attachments = Vector{ attachment };
 	rpInfo.subpasses = Vector{ subpass };
+	rpInfo.dependencies = GetDefaultSubpassDependencies(false);
 	
 	this->m_renderPass = this->m_device->CreateRenderPass(rpInfo);
 
