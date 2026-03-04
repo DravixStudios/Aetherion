@@ -190,6 +190,7 @@ SkyboxPass::CreatePipeline() {
 
 	/* Create a compatible render pass */
 	RenderPassCreateInfo rpInfo = { };
+	rpInfo.dependencies = GetDefaultSubpassDependencies(false);
 
 	AttachmentDescription colorAttachment = { };
 	colorAttachment.format = GPUFormat::RGBA16_FLOAT;

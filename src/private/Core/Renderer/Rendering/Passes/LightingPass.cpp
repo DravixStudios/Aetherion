@@ -344,6 +344,7 @@ LightingPass::CreatePipeline() {
 	/* Create a compatible render pass */
 	/* TODO: Use dynamic rendering */
 	RenderPassCreateInfo rpInfo = { };
+	rpInfo.dependencies = GetDefaultSubpassDependencies(false);
 
 	/* Attachment 0: HDR Output - RGBA16_FLOAT */
 	AttachmentDescription colorAttachment = { };

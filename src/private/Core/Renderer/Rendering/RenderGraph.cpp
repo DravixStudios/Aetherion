@@ -136,7 +136,7 @@ RenderGraph::CreateRenderPasses() {
             subpass.colorAttachments.push_back({ i, EImageLayout::COLOR_ATTACHMENT });
         }
 
-        if(node.bHasDepth) {
+        if (node.bHasDepth) {
             subpass.bHasDepthStencil = true;
             subpass.depthStencilAttachment = {
                 static_cast<uint32_t>(node.colorOutputs.size()),
@@ -145,6 +145,7 @@ RenderGraph::CreateRenderPasses() {
         }
 
         rpInfo.subpasses.push_back(subpass);
+        rpInfo.dependencies = GetDefaultSubpassDependencies(node.bHasDepth);
 
         node.renderPass = this->m_device->CreateRenderPass(rpInfo);
 
@@ -202,9 +203,6 @@ RenderGraph::Execute(Ref<GraphicsContext> context) {
             node.execute(context, graphCtx);
             continue;
         }
-
-        /* Synchronization */
-        context->GlobalBarrier();
 
         /* Prepare the render pass */
         RenderPassBeginInfo beginInfo = { };
