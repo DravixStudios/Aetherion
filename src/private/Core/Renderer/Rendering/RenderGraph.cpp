@@ -54,7 +54,7 @@ RenderGraph::Compile() {
 */
 void
 RenderGraph::CreateRenderPasses() {
-    std::map<TextureHandle, EImageLayout> lastLayouts;
+    Map<TextureHandle, EImageLayout> lastLayouts;
 
     for(GraphNode& node : this->m_nodes) {
         if (node.bIsComputeOnly) {

@@ -4,6 +4,8 @@
 #include "Core/Renderer/MegaBuffer.h"
 #include "Core/Renderer/ResourceManager.h"
 
+#include "Core/Containers.h"
+
 struct UploadedSubMesh {
 	MegaBufferAllocation geometry;
 	uint32_t nAlbedoIndex = UINT32_MAX;
@@ -13,7 +15,7 @@ struct UploadedSubMesh {
 };
 
 struct UploadedMesh {
-	std::map<uint32_t, UploadedSubMesh> subMeshes;
+	Map<uint32_t, UploadedSubMesh> subMeshes;
 };
 
 struct PendingTextureUpload {

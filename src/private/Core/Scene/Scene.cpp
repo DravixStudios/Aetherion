@@ -22,7 +22,7 @@ Scene::GetCurrentCamera() {
 	return this->currentCamera;
 }
 
-std::map<String, GameObject*> 
+Map<String, GameObject*> 
 Scene::GetObjects() {
 	return this->m_gameObjects;
 }

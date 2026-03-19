@@ -25,8 +25,8 @@ SceneCollector::Collect(Scene* scene) {
 
 	for (auto& [name, gameObject] : scene->GetObjects()) {
 		/* Find a mesh component on the current GameObject */
-		std::map<String, Component*> components = gameObject->GetComponents();
-		std::map<String, Component*>::iterator it = components.find("Mesh");
+		Map<String, Component*> components = gameObject->GetComponents();
+		Map<String, Component*>::iterator it = components.find("Mesh");
 		if (it == components.end()) continue;
 
 		Mesh* mesh = dynamic_cast<Mesh*>(it->second);
@@ -34,7 +34,7 @@ SceneCollector::Collect(Scene* scene) {
 
 		/* Check if the mesh is on the uploaded meshes cache */
 		const String& meshName = mesh->GetMeshData().name;
-		std::map<String, UploadedMesh>::const_iterator uploadIt = this->m_uploadedMeshes->find(meshName);
+		Map<String, UploadedMesh>::const_iterator uploadIt = this->m_uploadedMeshes->find(meshName);
 
 		if (uploadIt == this->m_uploadedMeshes->end()) continue;
 

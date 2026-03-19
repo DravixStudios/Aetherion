@@ -1,7 +1,5 @@
 #pragma once
 #include <iostream>
-#include <map>
-
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
@@ -68,8 +66,8 @@ private:
 
 	GLFWwindow* m_pWindow;
 
-	std::map<char, EInputState> m_keys;
-	std::map<EMouseButton, EInputState> m_buttons;
+	Map<char, EInputState> m_keys;
+	Map<EMouseButton, EInputState> m_buttons;
 
 
 	static Input* m_instance;

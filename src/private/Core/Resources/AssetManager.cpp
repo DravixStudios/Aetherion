@@ -33,12 +33,12 @@ AssetManager::SaveMesh(const String& filename, const MeshAsset& asset) {
 		return false;
 	}
 
-	AssetType type = AssetType::MESH;
+	EAssetType type = EAssetType::MESH;
 
 	/* Write MeshAsset into the file */
 	file.write(reinterpret_cast<const char*>(&MAGIC_NUMBER), sizeof(MAGIC_NUMBER));
 	file.write(reinterpret_cast<const char*>(&VERSION), sizeof(VERSION));
-	file.write(reinterpret_cast<const char*>(&type), sizeof(AssetType));
+	file.write(reinterpret_cast<const char*>(&type), sizeof(EAssetType));
 
 	file.write(reinterpret_cast<const char*>(&asset.header), sizeof(MeshAssetHeader));
 
@@ -85,9 +85,9 @@ AssetManager::ReadMesh(const String& filename) {
 	}
 
 	/* Check if is a mesh */
-	AssetType type = static_cast<AssetType>(nRawType);
+	EAssetType type = static_cast<EAssetType>(nRawType);
 
-	if (type != AssetType::MESH) {
+	if (type != EAssetType::MESH) {
 		Logger::Error("AssetManager::ReadMesh: Not a mesh file. {}", filename);
 		return asset;
 	}

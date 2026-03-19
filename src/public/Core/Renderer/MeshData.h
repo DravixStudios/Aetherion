@@ -1,6 +1,7 @@
 #pragma once
 #include "Utils.h"
-#include <map>
+
+#include "Core/Containers.h"
 
 struct TextureData {
 	String name;
@@ -20,6 +21,6 @@ struct SubMeshData {
 
 struct MeshData {
 	String name;
-	std::map<uint32_t, SubMeshData> subMeshes;
+	Map<uint32_t, SubMeshData> subMeshes;
 	bool bLoaded = false;
 };

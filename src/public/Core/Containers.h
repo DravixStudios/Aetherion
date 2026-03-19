@@ -1,6 +1,7 @@
 #pragma once
 #include <iostream>
 #include <vector>
+#include <map>
 #include <deque>
 #include <memory>
 
@@ -45,6 +46,9 @@ using Vector = std::vector<T>;
 
 template<typename T>
 using Deque = std::deque<T>;
+
+template<typename K, typename V>
+using Map = std::map<K, V>;
 
 using String = std::string;
 

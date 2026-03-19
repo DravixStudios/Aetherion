@@ -25,7 +25,7 @@ void GameObject::Update() {
 	}
 }
 
-std::map<String, Component*> GameObject::GetComponents() {
+Map<String, Component*> GameObject::GetComponents() {
 	return this->m_components;
 }
 

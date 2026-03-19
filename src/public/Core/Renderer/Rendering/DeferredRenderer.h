@@ -44,7 +44,7 @@ public:
     LightingPass& GetLightingPass() { return this->m_lightingPass; }
     SkyboxPass& GetSkyboxPass() { return this->m_skyboxPass; }
 
-    const std::map<String, UploadedMesh>& GetUploadedMeshes() const { return this->m_uploadedMeshes; }
+    const Map<String, UploadedMesh>& GetUploadedMeshes() const { return this->m_uploadedMeshes; }
 
     void UploadMesh(const MeshData& meshData);
     void FinalizeMeshUploads() { this->m_meshUploader.FinalizeUploads(); }
@@ -81,7 +81,7 @@ private:
 
     MegaBuffer m_megaBuffer;
     MeshUploader m_meshUploader;
-    std::map<String, UploadedMesh> m_uploadedMeshes;
+    Map<String, UploadedMesh> m_uploadedMeshes;
 
     Ref<DescriptorPool> m_scenePool;
     Ref<DescriptorSetLayout> m_sceneSetLayout;
