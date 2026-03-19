@@ -9,7 +9,7 @@
 static constexpr uint32_t MAGIC_NUMBER = 0x48544541; // AETH
 static constexpr uint32_t VERSION = 1;
 
-enum class AssetType : uint32_t {
+enum class EAssetType : uint32_t {
 	MESH = 0x01,
 	TEXTURE = 0x02,
 	MATERIAL = 0x03

@@ -35,7 +35,7 @@ ResourceManager::RegisterTexture(const String& name, uint32_t nBindlessIndex) {
 */
 uint32_t
 ResourceManager::GetTextureIndex(const String& name) const {
-	std::map<String, uint32_t>::const_iterator it = this->m_textureIndices.find(name);
+	Map<String, uint32_t>::const_iterator it = this->m_textureIndices.find(name);
 	return (it != this->m_textureIndices.end()) ? it->second : UINT32_MAX;
 }
 

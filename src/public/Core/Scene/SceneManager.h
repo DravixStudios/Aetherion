@@ -24,7 +24,7 @@ public:
 	static SceneManager* GetInstance();
 private:
 	Scene* m_currentScene;
-	std::map<String, Scene*> m_scenes;
+	Map<String, Scene*> m_scenes;
 
 	static SceneManager* m_instance;
 };

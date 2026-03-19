@@ -15,7 +15,7 @@ public:
 	Scene(String name);
 
 	void AddObject(GameObject* object);
-	std::map<String, GameObject*> GetObjects();
+	Map<String, GameObject*> GetObjects();
 
 	Camera* GetCurrentCamera();
 
@@ -25,8 +25,8 @@ public:
 private:
 	String m_name;
 
-	std::map<String, GameObject*> m_gameObjects;
+	Map<String, GameObject*> m_gameObjects;
 
 	Camera* currentCamera;
-	std::map<String, Camera*> m_cameras;
+	Map<String, Camera*> m_cameras;
 };

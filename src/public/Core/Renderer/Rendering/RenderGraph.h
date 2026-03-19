@@ -68,6 +68,6 @@ private:
 	uint32_t m_nFramesInFlight = 0;
 	uint32_t m_nFrameIndex = 0;
 
-	std::map<String, Ref<RenderPass>> m_cachedRenderPasses;
-	std::map<String, Vector<Ref<Framebuffer>>> m_cachedFramebuffers;
+	Map<String, Ref<RenderPass>> m_cachedRenderPasses;
+	Map<String, Vector<Ref<Framebuffer>>> m_cachedFramebuffers;
 };
