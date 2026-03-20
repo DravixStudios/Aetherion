@@ -21,14 +21,21 @@ class Ref {
 public:
 	Ref() = default;
 	Ref(SharedPtr<T> ptr) : m_ptr(ptr) {}
+	Ref(nullptr_t) : m_ptr(nullptr) {}
 
 	T* operator->() { return this->m_ptr.get(); }
 	const T* operator->() const { return this->m_ptr.get(); }
 
 	T& operator*() { return *this->m_ptr; }
 	const T& operator*() const { return *this->m_ptr; }
+	
+	Ref<T>& operator=(nullptr_t) {
+		this->m_ptr = nullptr;
+		return *this;
+	}
 
 	explicit operator bool() const { return this->m_ptr != nullptr; }
+	bool IsValid() const { return this->m_ptr != nullptr; }
 
 	SharedPtr<T> Get() const { return this->m_ptr; }
 
@@ -37,6 +44,7 @@ public:
 	As() const {
 		return std::static_pointer_cast<U>(this->m_ptr);
 	}
+
 private:
 	SharedPtr<T> m_ptr;
 };
