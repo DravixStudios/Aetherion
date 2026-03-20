@@ -5,12 +5,22 @@
 #include <deque>
 #include <memory>
 
+/* Pointer type aliases */
+template<typename T>
+using WeakRef = std::weak_ptr<T>;
+
+template<typename T>
+using SharedPtr = std::shared_ptr<T>;
+
+template<typename T>
+using UniquePtr = std::unique_ptr<T>;
+
 /* Shared pointers */
 template<typename T>
 class Ref {
 public:
 	Ref() = default;
-	Ref(std::shared_ptr<T> ptr) : m_ptr(ptr) {}
+	Ref(SharedPtr<T> ptr) : m_ptr(ptr) {}
 
 	T* operator->() { return this->m_ptr.get(); }
 	const T* operator->() const { return this->m_ptr.get(); }
@@ -20,7 +30,7 @@ public:
 
 	explicit operator bool() const { return this->m_ptr != nullptr; }
 
-	std::shared_ptr<T> Get() const { return this->m_ptr; }
+	SharedPtr<T> Get() const { return this->m_ptr; }
 
 	template<typename U>
 	Ref<U> 
@@ -28,11 +38,9 @@ public:
 		return std::static_pointer_cast<U>(this->m_ptr);
 	}
 private:
-	std::shared_ptr<T> m_ptr;
+	SharedPtr<T> m_ptr;
 };
 
-template<typename T>
-using WeakRef = std::weak_ptr<T>;
 
 template<typename T, typename... Args>
 Ref<T> 
