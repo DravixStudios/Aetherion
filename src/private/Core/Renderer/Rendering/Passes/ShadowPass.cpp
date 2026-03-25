@@ -204,7 +204,7 @@ ShadowPass::CalculateCascadeSplits() {
 
 		lambda = blend factor (0 = uniform, 1 = logarithmic)
 	*/
-	constexpr float lambda = 0.7f;
+	constexpr float lambda = 0.92f;
 
 	float splits[CSM_CASCADE_COUNT + 1];
 	splits[0] = this->m_nearPlane;

@@ -1,6 +1,7 @@
 #pragma once
 #include <iostream>
-#include <map>
+
+#include "Core/Containers.h"
 
 #include "Core/GameObject/Components/Component.h"
 #include "Core/GameObject/Components/Mesh.h"
@@ -14,12 +15,12 @@ public:
 
 	virtual void Start();
 	virtual void Update();
-	std::map<String, Component*> GetComponents();
+	Map<String, Component*> GetComponents();
 	void AddComponent(String name, Component* component);
 
 	Transform transform;
 private:
 	String m_name;
 	
-	std::map<String, Component*> m_components;
+	Map<String, Component*> m_components;
 };
