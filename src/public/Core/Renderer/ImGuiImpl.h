@@ -39,4 +39,5 @@ public:
 	virtual void RemoveTexture(Ref<DescriptorSet> set) = 0;
 
 	virtual void Image(Ref<DescriptorSet> descriptorSet, ImVec2 imageSize) = 0;
+	virtual bool ImageButton(Ref<DescriptorSet> descriptorSet, const String& label, ImVec2 size) = 0;
 };
