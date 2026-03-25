@@ -5,6 +5,8 @@
 #include "Core/Renderer/ImGuiImpl.h"
 #include "Core/Project/ProjectManager.h"
 
+#include "Icons/Folder.h"
+
 #include <imgui/imgui.h>
 #include <glm/glm.hpp>
 
@@ -28,11 +30,13 @@ public:
 	bool SunChanged() { return this->m_bSunChanged; }
 	void NotifySunUpdated() { this->m_bSunChanged = false; }
 
-	void SetInput(TextureHandle input, TransientResourcePool& transientPool, Ref<Sampler> sampler, uint32_t nImgIdx);
+	void SetInput(TextureHandle input, TransientResourcePool& transientPool, uint32_t nImgIdx);
 	void SetOutput(TextureHandle output);
 	void SetWindow(GLFWwindow* pWindow);
 
 private:
+	void ShowAssetBrowser();
+
 	void CreateResources();
 	void SetupTheme();
 

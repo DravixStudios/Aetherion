@@ -217,7 +217,7 @@ VulkanGraphicsContext::DrawIndexedIndirect(
 		vkCmdDrawIndexedIndirect(
 			this->m_commandBuffer->GetVkCommandBuffer(),
 			vkBuffer,
-			nCountBufferOffset,
+			nOffset,
 			nDrawCount,
 			nStride
 		);
