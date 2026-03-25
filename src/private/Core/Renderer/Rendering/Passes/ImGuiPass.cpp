@@ -1,9 +1,15 @@
 #include "Core/Renderer/Rendering/Passes/ImGuiPass.h"
 #include "Core/Renderer/Rendering/RenderGraphContext.h"
 #include "Fonts/RobotoRegular.h"
-#include "Core/Project/ProjectManager.h"
 
 #include <nfd.h>
+
+struct AssetBrowserState {
+    Ref<ProjectTree::TreeNode> currentNode;
+    Deque<Ref<ProjectTree::TreeNode>> history;
+};
+
+static AssetBrowserState s_browserState;
 
 /**
 * ImGui pass initialization
@@ -24,7 +30,7 @@ ImGuiPass::Init(Ref<Device> device) {
 void 
 ImGuiPass::Init(Ref<Device> device, uint32_t nFramesInFlight) {
 	this->m_device = device;
-	this->nFramesInFlight = nFramesInFlight;
+	this->m_nFramesInFlight = nFramesInFlight;
     this->m_sceneImGuiSets.resize(nFramesInFlight);
 }
 
