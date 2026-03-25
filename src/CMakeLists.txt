@@ -1,4 +1,4 @@
-file(GLOB_RECURSE SOURCES "private/**/*.cpp" "main.cpp" "private/stb_image_impl.cpp" "private/tinyexr_impl.cpp")
+file(GLOB_RECURSE SOURCES "private/**/*.cpp" "main.cpp" "private/stb_image_impl.cpp" "private/tinyexr_impl.cpp" "private/nanosvg_impl.cpp")
 file(GLOB_RECURSE HEADERS "public/**/*.h")
 add_executable("Aetherion" ${SOURCES} ${HEADERS})
 
