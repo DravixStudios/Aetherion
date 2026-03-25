@@ -3,6 +3,7 @@
 #include "Core/Renderer/Rendering/RenderGraphBuilder.h"
 #include "Core/Renderer/Rendering/GraphNode.h"
 #include "Core/Renderer/ImGuiImpl.h"
+#include "Core/Project/ProjectManager.h"
 
 #include <imgui/imgui.h>
 #include <glm/glm.hpp>
@@ -38,7 +39,7 @@ private:
 	TextureHandle m_input;
 	TextureHandle m_output;
 
-	uint32_t nFramesInFlight = 0;
+	uint32_t m_nFramesInFlight = 0;
 
 	glm::vec3 m_sunRotation = glm::vec3(70.f, 70.f, 0.f);
 	bool m_bSunChanged = true; // True by default for first calculations
