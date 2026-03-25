@@ -11,6 +11,9 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/matrix_inverse.hpp>
 
+#include <nanosvg/nanosvg.h>
+#include <nanosvg/nanosvgrast.h>
+
 #if defined(_WIN32)
     #include <windows.h>
 #elif defined(__APPLE__)
@@ -155,4 +158,32 @@ NextPowerOf2(uint32_t x) {
     x++;
 
     return x;
+}
+
+inline Vector<unsigned char> 
+LoadSVG(const char* pcSVG, float dpi, uint32_t& nOutWidth, uint32_t& nOutHeight) {
+    Vector<char> svgBuff(pcSVG, pcSVG + strlen(pcSVG) + 1);
+
+    NSVGimage* pImage = nsvgParse(svgBuff.data(), "px", dpi);
+    if (!pImage) {
+        Logger::Error("LoadSVG: Failed to parse SVG");
+        nOutWidth = 0;
+        nOutHeight = 0;
+        return Vector<unsigned char>();
+    }
+
+    int nWidth = static_cast<uint32_t>(pImage->width);
+    int nHeight = static_cast<uint32_t>(pImage->height);
+
+    Vector<unsigned char> bitmap(nWidth * nHeight * 4);
+
+    NSVGrasterizer* pRaster = nsvgCreateRasterizer();
+    nsvgRasterize(pRaster, pImage, 0, 0, 1.f, bitmap.data(), nWidth, nHeight, nWidth * 4);
+    nsvgDeleteRasterizer(pRaster);
+    nsvgDelete(pImage);
+
+    nOutWidth = nWidth;
+    nOutHeight = nHeight;
+
+    return bitmap;
 }
