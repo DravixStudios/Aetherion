@@ -114,7 +114,39 @@ void
 VulkanImGuiImpl::Image(Ref<DescriptorSet> descriptorSet, ImVec2 imageSize) {
 	Ref<VulkanDescriptorSet> vkSet = descriptorSet.As<VulkanDescriptorSet>();
 	ImGui::Image(
-		(ImTextureID)vkSet->GetVkSet(),
+		reinterpret_cast<ImTextureID>(vkSet->GetVkSet()),
 		imageSize
 	);
+}
+
+/**
+* Executes ImGui::ImageButton
+* 
+* @param descriptorSet Descriptor set returned by AddTexture
+* @param label Button label
+* @param size Button size
+* 
+* @returns True if button has been pressed
+*/
+bool
+VulkanImGuiImpl::ImageButton(Ref<DescriptorSet> descriptorSet, const String& label, ImVec2 size) {
+	Ref<VulkanDescriptorSet> vkSet = descriptorSet.As<VulkanDescriptorSet>();
+	ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.f, 0.f, 0.f, 0.f));
+
+	bool bClicked = ImGui::ImageButton(
+		label.c_str(),
+		reinterpret_cast<ImTextureID>(vkSet->GetVkSet()),
+		size
+	);
+	ImGui::PopStyleColor();
+
+	float textWidth = ImGui::CalcTextSize(label.c_str()).x;
+	float offset = (size.x - textWidth) * .5f;
+
+	ImGui::SetCursorPosX(ImGui::GetCursorPosX() + offset);
+	ImGui::TextWrapped("%s", label.c_str());
+
+	ImGui::PopID();
+
+	return bClicked;
 }

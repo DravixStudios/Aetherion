@@ -26,7 +26,8 @@ public:
 
 	void RemoveTexture(Ref<DescriptorSet> set) override;
 
-	void Image(Ref<DescriptorSet> descriptorSet, ImVec2 imageSize);
+	void Image(Ref<DescriptorSet> descriptorSet, ImVec2 imageSize) override;
+	bool ImageButton(Ref<DescriptorSet> descriptorSet, const String& label, ImVec2 size) override;
 
 	static Ptr
 	CreateShared(Ref<VulkanDevice> device) {
