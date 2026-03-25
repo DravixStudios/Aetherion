@@ -105,8 +105,8 @@ ProjectManager::OpenProject(const String& projectPath) {
 		if (entry.is_directory() && !entry.is_regular_file()) {
 			fs::path relPath = fs::relative(entry.path(), assetsPath);
 
-			Ref<ProjectTree::TreeNode> parentNode = nullptr;
-			fs::path buildPath;
+			Ref<ProjectTree::TreeNode> parentNode = this->m_tree.root;
+			fs::path buildPath = assetsPath;
 
 			for (const auto& part : relPath) {
 				buildPath /= part;
@@ -119,7 +119,7 @@ ProjectManager::OpenProject(const String& projectPath) {
 				}
 
 				Directory dir = { };
-				dir.name = (assetsPath / buildPath).string();
+				dir.name = buildPath.string();
 
 				/* Check if valid directory */
 				if (!dir.IsValid() || !dir.Exists()) continue;
@@ -175,7 +175,7 @@ ProjectManager::OpenProject(const String& projectPath) {
 		fs::path relPath = fs::relative(entry.path().parent_path(), assetsPath);
 
 		Ref<ProjectTree::TreeNode> node = this->m_tree.root;
-		fs::path buildPath;
+		fs::path buildPath = assetsPath;
 
 		for (const auto& part : relPath) {
 			buildPath /= part;
