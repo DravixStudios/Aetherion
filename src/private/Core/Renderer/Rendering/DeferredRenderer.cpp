@@ -318,7 +318,7 @@ DeferredRenderer::Render(
     );
 
     /* 6. ImGui Pass */
-    this->m_imguiPass.SetInput(this->m_tonemapPass.GetOutput(), this->m_graph.GetPool(), this->m_defaultSampler, nImgIdx);
+    this->m_imguiPass.SetInput(this->m_tonemapPass.GetOutput(), this->m_graph.GetPool(), nImgIdx);
     this->m_imguiPass.SetOutput(backBuffer);
     this->m_graph.AddNode("ImGui",
         [&](RenderGraphBuilder& builder) { this->m_imguiPass.SetupNode(builder); },

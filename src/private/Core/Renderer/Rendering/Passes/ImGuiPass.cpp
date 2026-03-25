@@ -11,6 +11,14 @@ struct AssetBrowserState {
 
 static AssetBrowserState s_browserState;
 
+struct EditorIcons {
+    Ref<GPUTexture> folderImage = nullptr;
+    Ref<ImageView> folderView = nullptr;
+    Ref<DescriptorSet> folderSet = nullptr;
+};
+
+static EditorIcons s_icons;
+
 /**
 * ImGui pass initialization
 * 
@@ -31,7 +39,7 @@ void
 ImGuiPass::Init(Ref<Device> device, uint32_t nFramesInFlight) {
 	this->m_device = device;
 	this->m_nFramesInFlight = nFramesInFlight;
-    this->m_sceneImGuiSets.resize(nFramesInFlight);
+    this->m_sceneImGuiSets.resize(nFramesInFlight, Ref<DescriptorSet>());
 }
 
 /**
@@ -80,7 +88,7 @@ ImGuiPass::Execute(Ref<GraphicsContext> context, RenderGraphContext& graphCtx, u
         ImGuiWindowFlags_NoBackground;
 
     ImGui::Begin("DockSpaceWindow", nullptr, windowFlags);
-    ImGuiID dockspaceId = ImGui::GetID("MyDockSpace");
+    ImGuiID dockspaceId = ImGui::GetID("EditorDockSpace");
     ImGui::DockSpace(dockspaceId, ImVec2(0.f, 0.f), ImGuiDockNodeFlags_None);
     ImGui::End();
 
@@ -97,6 +105,8 @@ ImGuiPass::Execute(Ref<GraphicsContext> context, RenderGraphContext& graphCtx, u
 
     ImGui::Begin("Hierarchy");
     ImGui::End();
+
+    this->ShowAssetBrowser();
 
     ImGui::Begin("Sun Debug");
     if (ImGui::DragFloat("Sun Rotation X", &this->m_sunRotation.x, .1f)) {
@@ -124,6 +134,9 @@ ImGuiPass::Execute(Ref<GraphicsContext> context, RenderGraphContext& graphCtx, u
                 switch (result) {
                 case NFD_OKAY:
                     projMgr->OpenProject(pPath);
+
+                    s_browserState = { };
+                    s_browserState.currentNode = projMgr->GetProjectTree().root;
                     break;
                 default:
                     Logger::Error("ImGuiPass::Execute: Failed selecting project directory: {}", NFD_GetError());
@@ -149,6 +162,119 @@ ImGuiPass::Execute(Ref<GraphicsContext> context, RenderGraphContext& graphCtx, u
 	this->m_imgui->Render(context);
 }
 
+/**
+* Show asset browser
+* 
+* @param node Asset browser node
+*/
+void 
+ImGuiPass::ShowAssetBrowser() {
+    ImGui::Begin("Project");
+
+    Ref<ProjectTree::TreeNode> node = s_browserState.currentNode;
+    if (!node) {
+        ImGui::Text("No folder selected");
+        ImGui::End();
+        return;
+    }
+
+    /* Breadcrumb system */
+    Vector<Ref<ProjectTree::TreeNode>> breadcrumb;
+
+    {
+        Ref<ProjectTree::TreeNode> n = s_browserState.currentNode;
+        while (n) {
+            breadcrumb.push_back(n);
+            Ref<ProjectTree::TreeNode> parent = n->parent.lock();
+
+            if (!parent) break;
+            n = parent;
+        }
+
+        std::reverse(breadcrumb.begin(), breadcrumb.end());
+    }
+
+    for (uint32_t i = 0; i < breadcrumb.size(); ++i) {
+        if (i > 0) {
+            ImGui::SameLine();
+            ImGui::TextDisabled(">");
+            ImGui::SameLine();
+        }
+
+        String name = fs::path(breadcrumb[i]->dir.name).filename().string();
+
+        if (i == breadcrumb.size() - 1) {
+            ImGui::Text("%s", name.c_str());
+        }
+        else {
+            ImGui::PushID(static_cast<int>(i));
+            if (ImGui::SmallButton(name.c_str())) {
+                s_browserState.history.clear();
+                for (uint32_t j = 0; j < i; ++j) {
+                    s_browserState.history.push_back(breadcrumb[j]);
+                }
+                s_browserState.currentNode = breadcrumb[i];
+            }
+            ImGui::PopID();
+        }
+    }
+
+    ImGui::Separator();
+
+    /* Asset browser elements */
+    float cellSize = 128.f;
+    float panelWidth = ImGui::GetContentRegionAvail().x;
+    int nColumnCount = static_cast<int>(panelWidth / cellSize);
+
+    if (nColumnCount < 1) nColumnCount = 1;
+
+    ImGui::Columns(nColumnCount, 0, false);
+
+    for (auto& [id, child] : node->subNodes) {
+        ImGui::PushID(id);
+        String name = fs::path(child->dir.name).filename().string();
+
+        float iconSize = cellSize - 20.f;
+        float textWidth = ImGui::CalcTextSize(name.c_str()).x;
+        float offsetX = (cellSize - iconSize) * .5f;
+
+        if (this->m_imgui->ImageButton(s_icons.folderSet, name, ImVec2{ cellSize - 10, cellSize - 10 })) {
+            s_browserState.history.push_back(node);
+            s_browserState.currentNode = child;
+        }
+
+        ImGui::NextColumn();
+    }
+
+    for (uint32_t i = 0; i < node->assets.size(); ++i) {
+        const AssetVariant& asset = node->assets[i];
+
+        std::visit([&](const auto& a) {
+            using T = std::decay_t<decltype(a)>;
+            
+            ImGui::PushID(i);
+
+            String name = String(a.header.displayName);
+            
+            String label;
+            if constexpr (std::is_same_v<T, MeshAsset>) {
+                label = name;
+            }
+
+            if (ImGui::Button(label.c_str(), ImVec2{ cellSize - 10, cellSize - 10 })) {
+                Logger::Debug("Clicked Asset: {}", name);
+            }
+
+            ImGui::NextColumn();
+            ImGui::PopID();
+        }, asset);
+    }
+
+    ImGui::Columns(1);
+
+    ImGui::End();
+}
+
 void
 ImGuiPass::Resize(uint32_t nWidth, uint32_t nHeight) {
 	this->SetDimensions(nWidth, nHeight);
@@ -164,9 +290,8 @@ ImGuiPass::Resize(uint32_t nWidth, uint32_t nHeight) {
 * @param transientPool Transient resource pool
 */
 void
-ImGuiPass::SetInput(TextureHandle input, TransientResourcePool& transientPool, Ref<Sampler> sampler, uint32_t nImgIdx) {
+ImGuiPass::SetInput(TextureHandle input, TransientResourcePool& transientPool, uint32_t nImgIdx) {
     this->m_input = input;
-    this->m_sampler = sampler;
 
     if (!this->m_pool) {
         this->CreateResources();
@@ -182,7 +307,7 @@ ImGuiPass::SetInput(TextureHandle input, TransientResourcePool& transientPool, R
         this->m_sceneImGuiSets[nImgIdx] = Ref<DescriptorSet>();
     }
 
-    this->m_sceneImGuiSets[nImgIdx] = this->m_imgui->AddTexture(sampler, sceneView, EImageLayout::SHADER_READ_ONLY);
+    this->m_sceneImGuiSets[nImgIdx] = this->m_imgui->AddTexture(this->m_sampler, sceneView, EImageLayout::SHADER_READ_ONLY);
 }
 
 /**
@@ -221,6 +346,17 @@ ImGuiPass::CreateResources() {
 	
 	this->m_pool = this->m_device->CreateDescriptorPool(poolInfo);
 
+    /* Create sampler */
+    SamplerCreateInfo samplerInfo = { };
+    samplerInfo.addressModeU = EAddressMode::CLAMP_TO_EDGE;
+    samplerInfo.addressModeV = EAddressMode::CLAMP_TO_EDGE;
+    samplerInfo.addressModeW = EAddressMode::CLAMP_TO_EDGE;
+    samplerInfo.minFilter = EFilter::NEAREST;
+    samplerInfo.magFilter = EFilter::NEAREST;
+    samplerInfo.mipmapMode = EMipmapMode::MIPMAP_MODE_NEAREST;
+
+    this->m_sampler = this->m_device->CreateSampler(samplerInfo);
+
 	/* 
 		Create compatible render pass 
 
@@ -249,11 +385,60 @@ ImGuiPass::CreateResources() {
     /* Create ImGui */
     ImGuiImplCreateInfo imguiInfo = { };
     imguiInfo.descriptorPool = this->m_pool;
-    imguiInfo.nFramesInFlight = this->nFramesInFlight;
+    imguiInfo.nFramesInFlight = this->m_nFramesInFlight;
     imguiInfo.pWindow = this->m_pWindow;
     imguiInfo.renderPass = this->m_renderPass;
 
     this->m_imgui = this->m_device->CreateImGui(imguiInfo);
+
+    /* Load icons */
+    s_icons = { };
+
+    /* Folder Icon */
+    uint32_t nFolderWidth = 0;
+    uint32_t nFolderHeight = 0;
+    const Vector<unsigned char> folderData = LoadSVG(FolderSVG, 256.f, nFolderWidth, nFolderHeight);
+
+    BufferCreateInfo folderBuffInfo = { };
+    folderBuffInfo.type = EBufferType::STAGING_BUFFER;
+    folderBuffInfo.pcData = folderData.data();
+    folderBuffInfo.nSize = folderData.size();
+    folderBuffInfo.usage = EBufferUsage::TRANSFER_SRC;
+    folderBuffInfo.sharingMode = ESharingMode::EXCLUSIVE;
+    
+    Ref<GPUBuffer> folderBuff = this->m_device->CreateBuffer(folderBuffInfo);
+
+    TextureCreateInfo folderInfo = { };
+    folderInfo.buffer = folderBuff;
+    folderInfo.extent.width = nFolderWidth;
+    folderInfo.extent.height = nFolderHeight;
+    folderInfo.extent.depth = 1;
+    folderInfo.format = GPUFormat::RGBA8_UNORM;
+    folderInfo.imageType = ETextureDimensions::TYPE_2D;
+    folderInfo.initialLayout = ETextureLayout::UNDEFINED;
+    folderInfo.nMipLevels = 1;
+    folderInfo.nArrayLayers = 1;
+    folderInfo.sharingMode = ESharingMode::EXCLUSIVE;
+    folderInfo.samples = ESampleCount::SAMPLE_1;
+    folderInfo.tiling = ETextureTiling::OPTIMAL;
+    folderInfo.usage = ETextureUsage::SAMPLED | ETextureUsage::TRANSFER_DST;
+
+    Ref<GPUTexture> folderIcon = this->m_device->CreateTexture(folderInfo);
+    
+    ImageViewCreateInfo folderViewInfo = { };
+    folderViewInfo.image = folderIcon;
+    folderViewInfo.format = folderInfo.format;
+    folderViewInfo.viewType = EImageViewType::TYPE_2D;
+    folderViewInfo.subresourceRange.nBaseArrayLayer = 0;
+    folderViewInfo.subresourceRange.nBaseMipLevel = 0;
+    folderViewInfo.subresourceRange.nLayerCount = 1;
+    folderViewInfo.subresourceRange.nLevelCount = 1;
+
+    Ref<ImageView> folderView = this->m_device->CreateImageView(folderViewInfo);
+
+    s_icons.folderImage = folderIcon;
+    s_icons.folderView = folderView;
+    s_icons.folderSet = this->m_imgui->AddTexture(this->m_sampler, folderView, EImageLayout::SHADER_READ_ONLY);
 }
 
 /**
