@@ -230,7 +230,7 @@ ImGuiPass::ShowAssetBrowser() {
     ImGui::Separator();
 
     /* Asset browser elements */
-    float cellSize = 128.f;
+    float cellSize = 96.f;
     float panelWidth = ImGui::GetContentRegionAvail().x;
     int nColumnCount = static_cast<int>(panelWidth / cellSize);
 
