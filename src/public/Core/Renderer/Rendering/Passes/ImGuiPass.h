@@ -5,9 +5,6 @@
 #include "Core/Renderer/ImGuiImpl.h"
 #include "Core/Project/ProjectManager.h"
 
-#include "Icons/Folder.h"
-#include "Icons/Mesh.h"
-
 #include <imgui/imgui.h>
 #include <glm/glm.hpp>
 
