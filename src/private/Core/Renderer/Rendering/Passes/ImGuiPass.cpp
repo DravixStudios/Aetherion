@@ -15,6 +15,10 @@ struct EditorIcons {
     Ref<GPUTexture> folderImage = nullptr;
     Ref<ImageView> folderView = nullptr;
     Ref<DescriptorSet> folderSet = nullptr;
+
+    Ref<GPUTexture> meshImage = nullptr;
+    Ref<ImageView> meshView = nullptr;
+    Ref<DescriptorSet> meshSet = nullptr;
 };
 
 static EditorIcons s_icons;
@@ -251,8 +255,6 @@ ImGuiPass::ShowAssetBrowser() {
 
         std::visit([&](const auto& a) {
             using T = std::decay_t<decltype(a)>;
-            
-            ImGui::PushID(i);
 
             String name = String(a.header.displayName);
             
@@ -261,12 +263,13 @@ ImGuiPass::ShowAssetBrowser() {
                 label = name;
             }
 
-            if (ImGui::Button(label.c_str(), ImVec2{ cellSize - 10, cellSize - 10 })) {
+            ImGui::PushID(i);
+
+            if (this->m_imgui->ImageButton(s_icons.meshSet, label, ImVec2{ cellSize - 10, cellSize - 10 })) {
                 Logger::Debug("Clicked Asset: {}", name);
             }
 
             ImGui::NextColumn();
-            ImGui::PopID();
         }, asset);
     }
 
@@ -439,6 +442,52 @@ ImGuiPass::CreateResources() {
     s_icons.folderImage = folderIcon;
     s_icons.folderView = folderView;
     s_icons.folderSet = this->m_imgui->AddTexture(this->m_sampler, folderView, EImageLayout::SHADER_READ_ONLY);
+
+    /* Mesh icon */
+    uint32_t nMeshWidth = 0;
+    uint32_t nMeshHeight = 0;
+    const Vector<unsigned char> meshData = LoadSVG(MeshSVG, 256.f, nMeshWidth, nMeshHeight);
+
+    BufferCreateInfo meshBuffInfo = { };
+    meshBuffInfo.type = EBufferType::STAGING_BUFFER;
+    meshBuffInfo.pcData = meshData.data();
+    meshBuffInfo.nSize = meshData.size();
+    meshBuffInfo.usage = EBufferUsage::TRANSFER_SRC;
+    meshBuffInfo.sharingMode = ESharingMode::EXCLUSIVE;
+
+    Ref<GPUBuffer> meshBuff = this->m_device->CreateBuffer(meshBuffInfo);
+
+    TextureCreateInfo meshInfo = { };
+    meshInfo.buffer = meshBuff;
+    meshInfo.extent.width = nMeshWidth;
+    meshInfo.extent.height = nMeshHeight;
+    meshInfo.extent.depth = 1;
+    meshInfo.format = GPUFormat::RGBA8_UNORM;
+    meshInfo.imageType = ETextureDimensions::TYPE_2D;
+    meshInfo.initialLayout = ETextureLayout::UNDEFINED;
+    meshInfo.nMipLevels = 1;
+    meshInfo.nArrayLayers = 1;
+    meshInfo.sharingMode = ESharingMode::EXCLUSIVE;
+    meshInfo.samples = ESampleCount::SAMPLE_1;
+    meshInfo.tiling = ETextureTiling::OPTIMAL;
+    meshInfo.usage = ETextureUsage::SAMPLED | ETextureUsage::TRANSFER_DST;
+
+    Ref<GPUTexture> meshIcon = this->m_device->CreateTexture(meshInfo);
+
+    ImageViewCreateInfo meshViewInfo = { };
+    meshViewInfo.image = meshIcon;
+    meshViewInfo.format = meshInfo.format;
+    meshViewInfo.viewType = EImageViewType::TYPE_2D;
+    meshViewInfo.subresourceRange.nBaseArrayLayer = 0;
+    meshViewInfo.subresourceRange.nBaseMipLevel = 0;
+    meshViewInfo.subresourceRange.nLayerCount = 1;
+    meshViewInfo.subresourceRange.nLevelCount = 1;
+
+    Ref<ImageView> meshView = this->m_device->CreateImageView(meshViewInfo);
+
+    s_icons.meshImage = meshIcon;
+    s_icons.meshView = meshView;
+    s_icons.meshSet = this->m_imgui->AddTexture(this->m_sampler, meshView, EImageLayout::SHADER_READ_ONLY);
 }
 
 /**
