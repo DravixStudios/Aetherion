@@ -146,7 +146,6 @@ VulkanImGuiImpl::ImageButton(Ref<DescriptorSet> descriptorSet, const String& lab
 	ImGui::SetCursorPosX(ImGui::GetCursorPosX() + offset);
 	ImGui::TextWrapped("%s", label.c_str());
 
-	ImGui::PopID();
 
 	return bClicked;
 }

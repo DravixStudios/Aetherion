@@ -251,6 +251,7 @@ ImGuiPass::ShowAssetBrowser() {
             s_browserState.currentNode = child;
         }
 
+        ImGui::PopID();
         ImGui::NextColumn();
     }
 
@@ -273,6 +274,7 @@ ImGuiPass::ShowAssetBrowser() {
                 Logger::Debug("Clicked Asset: {}", name);
             }
 
+            ImGui::PopID();
             ImGui::NextColumn();
         }, asset);
     }
