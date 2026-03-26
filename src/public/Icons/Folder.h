@@ -4,8 +4,8 @@
 
 static const char FolderSVG[] = R"svg(
 <svg
-   width="64"
-   height="64"
+   width="256"
+   height="256"
    viewBox="0 0 381.97192 347.13644"
    version="1.1"
    id="svg1"
