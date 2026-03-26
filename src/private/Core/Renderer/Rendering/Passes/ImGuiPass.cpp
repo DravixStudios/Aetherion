@@ -2,6 +2,10 @@
 #include "Core/Renderer/Rendering/RenderGraphContext.h"
 #include "Fonts/RobotoRegular.h"
 
+#include "Icons/Folder.h"
+#include "Icons/Mesh.h"
+
+#include <functional>
 #include <nfd.h>
 
 struct AssetBrowserState {
@@ -395,99 +399,87 @@ ImGuiPass::CreateResources() {
     this->m_imgui = this->m_device->CreateImGui(imguiInfo);
 
     /* Load icons */
+
+    /*
+        loadIcon lambda function
+
+        This function rasterizes the
+        SVG of our icon, loads it to
+        the GPU and adds it to ImGuiImpl
+    */
+    std::function<void(
+        const char*, 
+        Ref<GPUTexture>&, 
+        Ref<ImageView>&,
+        Ref<DescriptorSet>&
+    )> loadIcon = [this](
+            const char* svg,
+            Ref<GPUTexture>& outTexture,
+            Ref<ImageView>& outView,
+            Ref<DescriptorSet>& outSet
+    ) {
+        /* Load SVG */
+        uint32_t nWidth = 0;
+        uint32_t nHeight = 0;
+
+        const Vector<unsigned char> data = LoadSVG(svg, 256.f, nWidth, nHeight);
+
+        /* Create staging buffer */
+        BufferCreateInfo buffInfo = { };
+        buffInfo.type = EBufferType::STAGING_BUFFER;
+        buffInfo.pcData = data.data();
+        buffInfo.nSize = data.size();
+        buffInfo.usage = EBufferUsage::TRANSFER_SRC;
+        buffInfo.sharingMode = ESharingMode::EXCLUSIVE;
+
+        Ref<GPUBuffer> staging = this->m_device->CreateBuffer(buffInfo);
+
+        /* Create texture */
+        TextureCreateInfo textureInfo = { };
+        textureInfo.buffer = staging;
+        textureInfo.extent.width = nWidth;
+        textureInfo.extent.height = nHeight;
+        textureInfo.extent.depth = 1;
+        textureInfo.format = GPUFormat::RGBA8_UNORM;
+        textureInfo.imageType = ETextureDimensions::TYPE_2D;
+        textureInfo.initialLayout = ETextureLayout::UNDEFINED;
+        textureInfo.nMipLevels = 1;
+        textureInfo.nArrayLayers = 1;
+        textureInfo.sharingMode = ESharingMode::EXCLUSIVE;
+        textureInfo.samples = ESampleCount::SAMPLE_1;
+        textureInfo.tiling = ETextureTiling::OPTIMAL;
+        textureInfo.usage = ETextureUsage::SAMPLED | ETextureUsage::TRANSFER_DST;
+
+        Ref<GPUTexture> texture = this->m_device->CreateTexture(textureInfo);
+
+        /* Create image view */
+        ImageViewCreateInfo viewInfo = { };
+        viewInfo.image = texture;
+        viewInfo.format = textureInfo.format;
+        viewInfo.viewType = EImageViewType::TYPE_2D;
+        viewInfo.subresourceRange.nBaseArrayLayer = 0;
+        viewInfo.subresourceRange.nBaseMipLevel = 0;
+        viewInfo.subresourceRange.nLayerCount = 1;
+        viewInfo.subresourceRange.nLevelCount = 1;
+
+        Ref<ImageView> imageView = this->m_device->CreateImageView(viewInfo);
+
+        /* Add texture to ImGuiImpl */
+        Ref<DescriptorSet> set = this->m_imgui->AddTexture(this->m_sampler, imageView, EImageLayout::SHADER_READ_ONLY);
+
+        /* Output */
+        outTexture = texture;
+        outView = imageView;
+        outSet = set;
+    };
+
     s_icons = { };
 
     /* Folder Icon */
-    uint32_t nFolderWidth = 0;
-    uint32_t nFolderHeight = 0;
-    const Vector<unsigned char> folderData = LoadSVG(FolderSVG, 256.f, nFolderWidth, nFolderHeight);
-
-    BufferCreateInfo folderBuffInfo = { };
-    folderBuffInfo.type = EBufferType::STAGING_BUFFER;
-    folderBuffInfo.pcData = folderData.data();
-    folderBuffInfo.nSize = folderData.size();
-    folderBuffInfo.usage = EBufferUsage::TRANSFER_SRC;
-    folderBuffInfo.sharingMode = ESharingMode::EXCLUSIVE;
-    
-    Ref<GPUBuffer> folderBuff = this->m_device->CreateBuffer(folderBuffInfo);
-
-    TextureCreateInfo folderInfo = { };
-    folderInfo.buffer = folderBuff;
-    folderInfo.extent.width = nFolderWidth;
-    folderInfo.extent.height = nFolderHeight;
-    folderInfo.extent.depth = 1;
-    folderInfo.format = GPUFormat::RGBA8_UNORM;
-    folderInfo.imageType = ETextureDimensions::TYPE_2D;
-    folderInfo.initialLayout = ETextureLayout::UNDEFINED;
-    folderInfo.nMipLevels = 1;
-    folderInfo.nArrayLayers = 1;
-    folderInfo.sharingMode = ESharingMode::EXCLUSIVE;
-    folderInfo.samples = ESampleCount::SAMPLE_1;
-    folderInfo.tiling = ETextureTiling::OPTIMAL;
-    folderInfo.usage = ETextureUsage::SAMPLED | ETextureUsage::TRANSFER_DST;
-
-    Ref<GPUTexture> folderIcon = this->m_device->CreateTexture(folderInfo);
-    
-    ImageViewCreateInfo folderViewInfo = { };
-    folderViewInfo.image = folderIcon;
-    folderViewInfo.format = folderInfo.format;
-    folderViewInfo.viewType = EImageViewType::TYPE_2D;
-    folderViewInfo.subresourceRange.nBaseArrayLayer = 0;
-    folderViewInfo.subresourceRange.nBaseMipLevel = 0;
-    folderViewInfo.subresourceRange.nLayerCount = 1;
-    folderViewInfo.subresourceRange.nLevelCount = 1;
-
-    Ref<ImageView> folderView = this->m_device->CreateImageView(folderViewInfo);
-
-    s_icons.folderImage = folderIcon;
-    s_icons.folderView = folderView;
-    s_icons.folderSet = this->m_imgui->AddTexture(this->m_sampler, folderView, EImageLayout::SHADER_READ_ONLY);
+    loadIcon(FolderSVG, s_icons.folderImage, s_icons.folderView, s_icons.folderSet);
 
     /* Mesh icon */
-    uint32_t nMeshWidth = 0;
-    uint32_t nMeshHeight = 0;
-    const Vector<unsigned char> meshData = LoadSVG(MeshSVG, 256.f, nMeshWidth, nMeshHeight);
-
-    BufferCreateInfo meshBuffInfo = { };
-    meshBuffInfo.type = EBufferType::STAGING_BUFFER;
-    meshBuffInfo.pcData = meshData.data();
-    meshBuffInfo.nSize = meshData.size();
-    meshBuffInfo.usage = EBufferUsage::TRANSFER_SRC;
-    meshBuffInfo.sharingMode = ESharingMode::EXCLUSIVE;
-
-    Ref<GPUBuffer> meshBuff = this->m_device->CreateBuffer(meshBuffInfo);
-
-    TextureCreateInfo meshInfo = { };
-    meshInfo.buffer = meshBuff;
-    meshInfo.extent.width = nMeshWidth;
-    meshInfo.extent.height = nMeshHeight;
-    meshInfo.extent.depth = 1;
-    meshInfo.format = GPUFormat::RGBA8_UNORM;
-    meshInfo.imageType = ETextureDimensions::TYPE_2D;
-    meshInfo.initialLayout = ETextureLayout::UNDEFINED;
-    meshInfo.nMipLevels = 1;
-    meshInfo.nArrayLayers = 1;
-    meshInfo.sharingMode = ESharingMode::EXCLUSIVE;
-    meshInfo.samples = ESampleCount::SAMPLE_1;
-    meshInfo.tiling = ETextureTiling::OPTIMAL;
-    meshInfo.usage = ETextureUsage::SAMPLED | ETextureUsage::TRANSFER_DST;
-
-    Ref<GPUTexture> meshIcon = this->m_device->CreateTexture(meshInfo);
-
-    ImageViewCreateInfo meshViewInfo = { };
-    meshViewInfo.image = meshIcon;
-    meshViewInfo.format = meshInfo.format;
-    meshViewInfo.viewType = EImageViewType::TYPE_2D;
-    meshViewInfo.subresourceRange.nBaseArrayLayer = 0;
-    meshViewInfo.subresourceRange.nBaseMipLevel = 0;
-    meshViewInfo.subresourceRange.nLayerCount = 1;
-    meshViewInfo.subresourceRange.nLevelCount = 1;
-
-    Ref<ImageView> meshView = this->m_device->CreateImageView(meshViewInfo);
-
-    s_icons.meshImage = meshIcon;
-    s_icons.meshView = meshView;
-    s_icons.meshSet = this->m_imgui->AddTexture(this->m_sampler, meshView, EImageLayout::SHADER_READ_ONLY);
+    loadIcon(MeshSVG, s_icons.meshImage, s_icons.meshView, s_icons.meshSet);
 }
 
 /**
