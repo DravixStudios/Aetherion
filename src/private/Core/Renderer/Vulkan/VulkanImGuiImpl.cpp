@@ -133,11 +133,14 @@ VulkanImGuiImpl::ImageButton(Ref<DescriptorSet> descriptorSet, const String& lab
 	Ref<VulkanDescriptorSet> vkSet = descriptorSet.As<VulkanDescriptorSet>();
 	ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.f, 0.f, 0.f, 0.f));
 
-	bool bClicked = ImGui::ImageButton(
+	ImGui::ImageButton(
 		label.c_str(),
 		reinterpret_cast<ImTextureID>(vkSet->GetVkSet()),
 		size
 	);
+	
+	bool bDoubleClick = ImGui::IsItemClicked() && ImGui::IsMouseDoubleClicked(0);
+
 	ImGui::PopStyleColor();
 
 	float textWidth = ImGui::CalcTextSize(label.c_str()).x;
@@ -146,6 +149,5 @@ VulkanImGuiImpl::ImageButton(Ref<DescriptorSet> descriptorSet, const String& lab
 	ImGui::SetCursorPosX(ImGui::GetCursorPosX() + offset);
 	ImGui::TextWrapped("%s", label.c_str());
 
-
-	return bClicked;
+	return bDoubleClick;
 }

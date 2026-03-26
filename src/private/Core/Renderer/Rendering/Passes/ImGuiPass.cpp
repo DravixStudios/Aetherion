@@ -246,7 +246,7 @@ ImGuiPass::ShowAssetBrowser() {
         float textWidth = ImGui::CalcTextSize(name.c_str()).x;
         float offsetX = (cellSize - iconSize) * .5f;
 
-        if (this->m_imgui->ImageButton(s_icons.folderSet, name, ImVec2{ cellSize - 10, cellSize - 10 })) {
+        if (this->m_imgui->ImageButton(s_icons.folderSet, name, ImVec2{ cellSize - 20, cellSize - 20 })) {
             s_browserState.history.push_back(node);
             s_browserState.currentNode = child;
         }
@@ -270,7 +270,7 @@ ImGuiPass::ShowAssetBrowser() {
 
             ImGui::PushID(i);
 
-            if (this->m_imgui->ImageButton(s_icons.meshSet, label, ImVec2{ cellSize - 10, cellSize - 10 })) {
+            if (this->m_imgui->ImageButton(s_icons.meshSet, label, ImVec2{ cellSize - 20, cellSize - 20 })) {
                 Logger::Debug("Clicked Asset: {}", name);
             }
 
@@ -480,7 +480,12 @@ ImGuiPass::CreateResources() {
     /* Folder Icon */
     loadIcon(FolderSVG, s_icons.folderImage, s_icons.folderView, s_icons.folderSet);
 
-    /* Mesh icon */
+    /* 
+        Mesh icon 
+        
+        TODO: Generate a preview of
+        the mesh when uploading the mesh
+    */
     loadIcon(MeshSVG, s_icons.meshImage, s_icons.meshView, s_icons.meshSet);
 }
 
