@@ -243,7 +243,7 @@ DeferredRenderer::Render(
     this->m_shadowPass.SetCameraData(
         drawData.view,
         drawData.proj,
-        1.f,
+        3.f,
         200.f
     );
 
