@@ -20,9 +20,9 @@ public:
 	void Execute(Ref<GraphicsContext> context, RenderGraphContext& graphCtx, uint32_t nImgIdx = 0) override;
 	void Resize(uint32_t nWidth, uint32_t nHeight);
 
-	bool HasPendingResize() const { return m_bPendingResize; }
-	ImVec2 GetPendingSize() const { return m_pendingSize; }
-	void ClearPendingResize() { m_bPendingResize = false; }
+	bool HasPendingResize() const { return this->m_bPendingResize; }
+	ImVec2 GetPendingSize() const { return this->m_pendingSize; }
+	void ClearPendingResize() { this->m_bPendingResize = false; }
 
 	glm::vec3 GetSunRotation() const { return this->m_sunRotation; }
 	bool SunChanged() { return this->m_bSunChanged; }
