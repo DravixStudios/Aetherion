@@ -303,6 +303,32 @@ struct ProjectTree {
 	}
 
 	/**
+	* Finds the specified
+	* asset on the specified node
+	* 
+	* @param node Finding node
+	* @param name Asset name
+	* 
+	* @returns A pointer to the asset. nullptr if not found
+	*/
+	template<typename T>
+	T*
+	FindAssetInNode(Ref<TreeNode> node, const Name& name) {
+		if (!node) return;
+
+		/* Search asset in the node asset list */
+		for (AssetVariant& asset : node->assets) {
+			if (ProjectManagerHelpers::GetAssetName(asset) == name) {
+				if (T* ptr = std::get_if<T>(&asset)) {
+					return ptr;
+				}
+			}
+		}
+
+		return nullptr;
+	}
+
+	/**
 	* Find a node by relative path
 	* 
 	* @param current Current node
