@@ -5,6 +5,51 @@
 #include "Core/Resources/MeshAsset.h"
 #include "Core/Resources/TextureAsset.h"
 
+/* Asset version structure */
+struct AssetVersion {
+	uint16_t major = 1;
+	uint16_t minor = 0;
+	uint16_t patch = 0;
+
+	AssetVersion() = default;
+	constexpr AssetVersion(uint16_t maj, uint16_t min, uint16_t patch) : major(maj), minor(min), patch(patch) {}
+
+	bool 
+	operator==(const AssetVersion& other) const {
+		return this->major == other.major && this->minor == other.minor && this->patch == other.patch;
+	}
+
+	bool 
+	operator!=(const AssetVersion& other) const {
+		return !(*this == other);
+	}
+
+	bool
+	operator<(const AssetVersion& other) const {
+		if (this->major != other.major) return this->major < other.major;
+		if (this->minor != other.minor) return this->minor < other.minor;
+		return this->patch < other.patch;
+	}
+
+	bool operator>(const AssetVersion& other) const {
+		return other < *this;
+	}
+
+	bool operator<=(const AssetVersion& other) const {
+		return !(*this > other);
+	}
+
+	bool operator>=(const AssetVersion& other) const {
+		return !(*this < other);
+	}
+};
+
+/* Different asset type versions */
+static constexpr AssetVersion MESH_VERSION(1, 0, 0);
+static constexpr AssetVersion TEXTURE_VERSION(1, 0, 0);
+static constexpr AssetVersion MATERIAL_VERSION(1, 0, 0);
+static constexpr AssetVersion GAMEOBJECT_VERSION(1, 0, 0);
+
 /* File magic number and version */
 static constexpr uint32_t MAGIC_NUMBER = 0x48544541; // AETH
 static constexpr uint32_t VERSION = 1;
