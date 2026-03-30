@@ -31,16 +31,37 @@ struct AssetVersion {
 		return this->patch < other.patch;
 	}
 
-	bool operator>(const AssetVersion& other) const {
+	bool 
+	operator>(const AssetVersion& other) const {
 		return other < *this;
 	}
 
-	bool operator<=(const AssetVersion& other) const {
+	bool 
+	operator<=(const AssetVersion& other) const {
 		return !(*this > other);
 	}
 
-	bool operator>=(const AssetVersion& other) const {
+	bool 
+	operator>=(const AssetVersion& other) const {
 		return !(*this < other);
+	}
+
+	uint64_t
+	Serialize() const {
+		return (static_cast<uint64_t>(this->major) << 32) |
+			(static_cast<uint64_t>(this->minor) << 16) |
+			static_cast<uint64_t>(this->patch);
+	}
+	
+	static constexpr AssetVersion 
+	Deserialize(uint64_t nValue) {
+		AssetVersion v = { };
+
+		v.major = static_cast<uint16_t>((nValue >> 32) & 0xFFFF);
+		v.minor = static_cast<uint16_t>((nValue >> 16) & 0xFFFF);
+		v.patch = static_cast<uint16_t>(nValue & 0xFFFF);
+
+		return v;
 	}
 };
 
@@ -69,9 +90,12 @@ public:
 	bool SaveMesh(const String& filename, const MeshAsset& asset);
 	MeshAsset ReadMesh(const String& filename);
 
+	MeshAsset& GetMesh(const String& path);
+
 	static AssetManager* GetInstance();
 private:
-	
-
 	static AssetManager* m_instance;
+
+	Map<String, MeshAsset> m_meshCache;
+	Map<String, TextureAsset> m_textureCache;
 };
