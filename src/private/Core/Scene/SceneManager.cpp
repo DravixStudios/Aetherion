@@ -2,12 +2,16 @@
 
 SceneManager* SceneManager::m_instance;
 
-/* Constructor */
+/** 
+* Constructor 
+*/
 SceneManager::SceneManager() {
 	this->m_currentScene = new Scene("SampleScene");
 }
 
-/* Add a scene to our scene map */
+/** 
+* Add a scene to our scene map 
+*/
 void 
 SceneManager::AddScene(Scene* scene) {
 	if (this->SceneExists(scene->m_name)) {
@@ -18,7 +22,13 @@ SceneManager::AddScene(Scene* scene) {
 	this->m_scenes[scene->m_name] = scene;
 }
 
-/* Get scene by name */
+/** 
+* Get scene by name
+* 
+* @param name Scene name
+* 
+* @returns Specified scene
+*/
 Scene* 
 SceneManager::GetScene(String name) {
 	if (!this->SceneExists(name)) {
@@ -29,17 +39,31 @@ SceneManager::GetScene(String name) {
 	return this->m_scenes[name];
 }
 
-/* Check if the scene actually exists */
+/** 
+* Check if the specified scene exists 
+* 
+* @param name Scene name
+* 
+* @returns True if scene exists
+*/
 bool 
 SceneManager::SceneExists(String name) {
 	return this->m_scenes.count(name) > 0;
 }
 
+/**
+* Get the current scene
+* 
+* @returns The current scene
+*/
 Scene* 
 SceneManager::GetCurrentScene() {
 	return this->m_currentScene;
 }
 
+/**
+* Scene manager Start method
+*/
 void 
 SceneManager::Start() {
 	GameObject* sampleObj = new GameObject("Sample object");
@@ -52,6 +76,9 @@ SceneManager::Start() {
 	this->m_currentScene->Start();
 }
 
+/**
+* Scene manager Update method
+*/
 void 
 SceneManager::Update() {
 	this->m_currentScene->Update();
