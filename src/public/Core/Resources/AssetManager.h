@@ -1,9 +1,16 @@
 #pragma once
+#include <iostream>
+#include <variant>
+
 #include "Core/Containers.h"
 #include "Utils.h"
 
 #include "Core/Resources/MeshAsset.h"
 #include "Core/Resources/TextureAsset.h"
+
+#include "Core/Resources/AssetHandle.h"
+
+using AssetVariant = std::variant<MeshAsset, TextureAsset>;
 
 /* Asset version structure */
 struct AssetVersion {
@@ -16,7 +23,9 @@ struct AssetVersion {
 
 	bool 
 	operator==(const AssetVersion& other) const {
-		return this->major == other.major && this->minor == other.minor && this->patch == other.patch;
+		return (this->major == other.major)
+			&& (this->minor == other.minor) 
+			&& (this->patch == other.patch);
 	}
 
 	bool 
@@ -48,9 +57,9 @@ struct AssetVersion {
 
 	uint64_t
 	Serialize() const {
-		return (static_cast<uint64_t>(this->major) << 32) |
-			(static_cast<uint64_t>(this->minor) << 16) |
-			static_cast<uint64_t>(this->patch);
+		return (static_cast<uint64_t>(this->major) << 32)
+			| (static_cast<uint64_t>(this->minor) << 16)
+			| static_cast<uint64_t>(this->patch);
 	}
 	
 	static constexpr AssetVersion 
@@ -74,12 +83,6 @@ static constexpr AssetVersion GAMEOBJECT_VERSION(1, 0, 0);
 /* File magic number */
 static constexpr uint32_t MAGIC_NUMBER = 0x48544541; // AETH
 
-enum class EAssetType : uint32_t {
-	MESH = 0x01,
-	TEXTURE = 0x02,
-	MATERIAL = 0x03
-};
-
 class AssetManager {
 public:
 	AssetManager();
@@ -87,9 +90,13 @@ public:
 	~AssetManager() = default;
 
 	bool SaveMesh(const String& filename, const MeshAsset& asset);
-	MeshAsset ReadMesh(const String& filename);
+	AssetHandle ReadMesh(const String& filename);
 
 	MeshAsset& GetMesh(const String& path);
+
+	void RegisterAsset(const String& path, EAssetType type);
+
+	const AssetVariant& GetAsset(const AssetHandle& handle);
 
 	static AssetManager* GetInstance();
 private:
@@ -97,4 +104,7 @@ private:
 
 	Map<String, MeshAsset> m_meshCache;
 	Map<String, TextureAsset> m_textureCache;
+
+	Map<AssetHandle, AssetVariant> m_assetCache;
+	Map<AssetHandle, String> m_handleToPath;
 };

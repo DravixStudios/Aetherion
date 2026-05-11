@@ -66,15 +66,15 @@ AssetManager::SaveMesh(const String& filename, const MeshAsset& asset) {
 * Read a Mesh asset from a
 * .aeth asset file
 */
-MeshAsset 
+AssetHandle 
 AssetManager::ReadMesh(const String& filename) {
-	MeshAsset asset = { };
+	AssetHandle handle = { };
 
 	/* Read file */
 	std::ifstream file(filename, std::ios::binary);
 	if (!file.is_open()) {
 		Logger::Error("AssetManager::ReadMesh: Couldn't open {} file", filename);
-		return asset;
+		return handle;
 	}
 
 	/* Read file header */
@@ -89,7 +89,7 @@ AssetManager::ReadMesh(const String& filename) {
 	/* Check magic number */
 	if (nMagic != MAGIC_NUMBER) {
 		Logger::Error("AssetManager::ReadMesh: Mesh asset file {} has no valid magic number", filename);
-		return asset;
+		return handle;
 	}
 
 	/* Check if is a mesh */
@@ -98,7 +98,7 @@ AssetManager::ReadMesh(const String& filename) {
 	if (type != EAssetType::MESH) {
 		Logger::Error("AssetManager::ReadMesh: Not a mesh file. {}", filename);
 		file.close();
-		return asset;
+		return handle;
 	}
 
 	/* Check asset version */
@@ -114,7 +114,7 @@ AssetManager::ReadMesh(const String& filename) {
 	if (header.nTotalByteSize <= 0) {
 		Logger::Error("AssetManager::ReadMesh: Mesh asset size is 0. {}", static_cast<const char*>(header.displayName));
 		file.close();
-		return asset;
+		return handle;
 	}
 
 	/* Read asset data */
@@ -130,20 +130,40 @@ AssetManager::ReadMesh(const String& filename) {
 
 		buffer.clear();
 
-		return asset;
+		return handle;
 	}
-
-	asset.header = std::move(header);
-	asset.buffer = std::move(buffer);
 
 	file.close();
 
-	return asset;
+	/* Create mesh asset */
+	MeshAsset asset = { };
+	asset.header = std::move(header);
+	asset.buffer = std::move(buffer);
+
+	this->m_meshCache[filename] = asset;
+
+	handle = AssetHandle::FromPath(filename, EAssetType::MESH);
+
+	this->m_assetCache[handle] = static_cast<AssetVariant>(asset);
+
+	return handle;
 }
 
 /**
-* Get mesh from cache
-* or load it
+* Register asset without loading it
+* 
+* @param path Asset path
+* @param type Asset type
+*/
+void 
+AssetManager::RegisterAsset(const String& path, EAssetType type) {
+	AssetHandle handle = AssetHandle::FromPath(path, type);
+	this->m_handleToPath[handle] = path;
+}
+
+/**
+* Get asset path from handle
+* and load asset
 * 
 * @param path Asset path
 * 
@@ -151,11 +171,45 @@ AssetManager::ReadMesh(const String& filename) {
 */
 MeshAsset&
 AssetManager::GetMesh(const String& path) {
-	if(!this->m_meshCache.contains(path)) {
-		this->m_meshCache[path] = this->ReadMesh(path);
+	/* Check if mesh stored on the cache */
+	if (!this->m_meshCache.contains(path)) {
+		/* Create a handle from path */
+		AssetHandle handle = AssetHandle::FromPath(path, EAssetType::MESH);
+
+		/* If handle found, load the mesh */
+		if (this->m_handleToPath.contains(handle)) {
+			this->ReadMesh(path);
+			return this->m_meshCache[path];
+		}
+
+		static MeshAsset emptyMesh = { };
+		return emptyMesh;
 	}
 
 	return this->m_meshCache[path];
+}
+
+/**
+* Get an asset by it's handle
+* 
+* @param handle Asset handle
+*/
+const AssetVariant& 
+AssetManager::GetAsset(const AssetHandle& handle) {
+	if (this->m_assetCache.contains(handle)) return this->m_assetCache[handle];
+
+	if (this->m_handleToPath.contains(handle)) {
+		const String& path = this->m_handleToPath[handle];
+
+		if (handle.type == EAssetType::MESH) {
+			this->ReadMesh(path);
+
+			return this->m_assetCache[handle];
+		}
+	}
+
+	static AssetVariant emptyAsset = { };
+	return emptyAsset;
 }
 
 AssetManager*

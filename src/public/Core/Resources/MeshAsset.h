@@ -1,5 +1,6 @@
 #pragma once
 #include "Core/Containers.h"
+#include "Core/Resources/AssetHandle.h"
 
 struct MeshAssetHeader {
 	uint32_t nVertexCount;
@@ -9,7 +10,7 @@ struct MeshAssetHeader {
 	uint32_t nIndexOffset;
 	uint32_t nIndexStride;
 	uint32_t nTotalByteSize;
-	uint32_t nMaterialId;
+	AssetHandle materialHandle;
 	Name displayName;
 };
 

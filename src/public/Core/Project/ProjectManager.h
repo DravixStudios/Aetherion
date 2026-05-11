@@ -11,8 +11,6 @@
 
 namespace fs = std::filesystem;
 
-using AssetVariant = std::variant<MeshAsset, TextureAsset>;
-
 namespace ProjectManagerHelpers {
 	/**
 	* Get asset displayName
@@ -22,7 +20,9 @@ namespace ProjectManagerHelpers {
 	* @returns Asset display name
 	*/
 	inline const Name& 
-	GetAssetName(const AssetVariant& asset) {
+	GetAssetName(const AssetHandle& handle) {
+		const AssetVariant& asset = AssetManager::GetInstance()->GetAsset(handle);
+
 		return std::visit([](const auto& a) -> const Name& {
 			return a.header.displayName;
 		}, asset);
@@ -44,7 +44,7 @@ struct ProjectTree {
 
 		Directory dir;
 		Map<uint32_t, Ref<TreeNode>> subNodes;
-		Vector<AssetVariant> assets;
+		Vector<AssetHandle> assets;
 
 		WeakRef<TreeNode> parent;
 
@@ -164,8 +164,8 @@ struct ProjectTree {
 		if (!node) return;
 
 		/* Remove assets from index */
-		for (AssetVariant& asset : node->assets) {
-			Name name = ProjectManagerHelpers::GetAssetName(asset);
+		for (AssetHandle& handle : node->assets) {
+			Name name = ProjectManagerHelpers::GetAssetName(handle);
 			Vector<uint32_t>& vec = this->assetIndices[name];
 			vec.erase(std::remove(vec.begin(), vec.end(), node->id), vec.end());
 		}
@@ -206,11 +206,11 @@ struct ProjectTree {
 	* @param asset Added asset
 	*/
 	void
-	AddAsset(Ref<TreeNode> node, const AssetVariant& asset) {
+	AddAsset(Ref<TreeNode> node, const AssetHandle& handle) {
 		if (!node) return;
 
 		/* Push asset to node assets list */
-		node->assets.push_back(asset);
+		node->assets.push_back(handle);
 
 		/* Get asset name */
 		const Name& name = ProjectManagerHelpers::GetAssetName(node->assets.back());
@@ -235,12 +235,12 @@ struct ProjectTree {
 	MoveAsset(Ref<TreeNode> from, Ref<TreeNode> to, const Name& name) {
 		if (!from || !to) return false;
 
-		for (Vector<AssetVariant>::iterator it = from->assets.begin(); it != from->assets.end(); it) {
+		for (Vector<AssetHandle>::iterator it = from->assets.begin(); it != from->assets.end(); it) {
 			if (ProjectManagerHelpers::GetAssetName(*it) == name) {
-				AssetVariant asset = *it;
+				AssetHandle handle = *it;
 
 				this->RemoveAsset(from, name);
-				AddAsset(to, asset);
+				AddAsset(to, handle);
 
 				return true;
 			}
@@ -260,14 +260,14 @@ struct ProjectTree {
 	RemoveAsset(Ref<TreeNode> node, const Name& name) {
 		if (!node) return;
 
-		Vector<AssetVariant>& nodeAssets = node->assets;
+		Vector<AssetHandle>& nodeAssets = node->assets;
 
 		nodeAssets.erase(std::remove_if(nodeAssets.begin(), nodeAssets.end(),
-			[&](AssetVariant& a) {
-				bool bMatch = ProjectManagerHelpers::GetAssetName(a) == name;
+			[&](AssetHandle& h) {
+				bool bMatch = ProjectManagerHelpers::GetAssetName(h) == name;
 
 				if (bMatch) {
-					Vector<uint32_t>& vec = assetIndices[name];
+					Vector<uint32_t>& vec = this->assetIndices[name];
 					vec.erase(std::remove(vec.begin(), vec.end(), node->id), vec.end());
 				}
 
@@ -284,17 +284,17 @@ struct ProjectTree {
 	* 
 	* @returns Found assets
 	*/
-	Vector<AssetVariant*>
+	Vector<AssetHandle*>
 	FindAssetsByName(const Name& name) {
-		Vector<AssetVariant*> result;
+		Vector<AssetHandle*> result;
 
 		if (!this->assetIndices.contains(name)) return result;
 
 		for (uint32_t nNodeID : this->assetIndices[name]) {
 			Ref<TreeNode> node = this->nodeIndices[nNodeID];
-			for (AssetVariant& asset : node->assets) {
-				if (ProjectManagerHelpers::GetAssetName(asset) == name) {
-					result.push_back(&asset);
+			for (AssetHandle& handle : node->assets) {
+				if (ProjectManagerHelpers::GetAssetName(handle) == name) {
+					result.push_back(&handle);
 				}
 			}
 		}
@@ -317,13 +317,16 @@ struct ProjectTree {
 		if (!node) return;
 
 		/* Search asset in the node asset list */
-		for (AssetVariant& asset : node->assets) {
-			if (ProjectManagerHelpers::GetAssetName(asset) == name) {
+		for (AssetHandle& handle : node->assets) {
+			if (ProjectManagerHelpers::GetAssetName(handle) == name) {
+				AssetVariant& asset = AssetManager::GetInstance()->GetAsset(handle);
 				if (T* ptr = std::get_if<T>(&asset)) {
 					return ptr;
 				}
 			}
 		}
+
+		Logger::Warn("ProjectTree::FindAssetInNode: Asset {} not found", name);
 
 		return nullptr;
 	}
@@ -373,7 +376,7 @@ public:
 	*/
 	ProjectTree GetProjectTree() const { return this->m_tree; }
 
-	Vector<AssetVariant> GetNodeAssets(Ref<ProjectTree::TreeNode> node);
+	Vector<AssetHandle> GetNodeAssets(Ref<ProjectTree::TreeNode> node);
 private:
 	ProjectTree m_tree;
 
