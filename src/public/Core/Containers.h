@@ -68,6 +68,8 @@ using Map = std::map<K, V>;
 
 using String = std::string;
 
+using Byte = std::byte;
+
 /* Fixed string struct */
 template<size_t N>
 struct FixedString {
