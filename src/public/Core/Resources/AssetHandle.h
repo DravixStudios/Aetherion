@@ -7,6 +7,7 @@ enum class EAssetType : uint32_t {
 	TEXTURE = 0x02,
 	MATERIAL = 0x03,
 	GAMEOBJECT = 0x04,
+	SCENE = 0x05,
 	UNDEFINED = 0xFF
 };
 
@@ -15,17 +16,17 @@ struct AssetHandle {
 	EAssetType type = EAssetType::UNDEFINED;
 
 	bool
-		operator>(const AssetHandle& other) const {
+	operator>(const AssetHandle& other) const {
 		return this->uuid > other.uuid;
 	}
 
 	bool
-		operator<(const AssetHandle& other) const {
+	operator<(const AssetHandle& other) const {
 		return this->uuid < other.uuid;
 	}
 
 	bool
-		operator==(const AssetHandle& other) const {
+	operator==(const AssetHandle& other) const {
 		return this->uuid == other.uuid;
 	}
 
