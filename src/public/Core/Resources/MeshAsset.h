@@ -15,5 +15,5 @@ struct MeshAssetHeader {
 
 struct MeshAsset {
 	MeshAssetHeader header;
-	const void* pcData = nullptr;
+	Vector<Byte> buffer;
 };
