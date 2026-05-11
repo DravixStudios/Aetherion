@@ -23,7 +23,7 @@ namespace ProjectManagerHelpers {
 	*/
 	inline const Name& 
 	GetAssetName(const AssetVariant& asset) {
-		return std::visit([](const auto& a) -> Name {
+		return std::visit([](const auto& a) -> const Name& {
 			return a.header.displayName;
 		}, asset);
 	}
