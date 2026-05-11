@@ -191,8 +191,8 @@ ProjectManager::OpenProject(const String& projectPath) {
 		switch (type) {
 		case EAssetType::MESH:
 			{
-				MeshAsset meshAsset = this->m_assetMgr->ReadMesh(fullPath);
-				this->m_tree.AddAsset(node, meshAsset);
+				AssetHandle handle = this->m_assetMgr->ReadMesh(fullPath);
+				this->m_tree.AddAsset(node, handle);
 			}
 
 			break;
@@ -213,21 +213,21 @@ ProjectManager::OpenProject(const String& projectPath) {
 *
 * @returns The assets on the node
 */
-Vector<AssetVariant> 
+Vector<AssetHandle> 
 ProjectManager::GetNodeAssets(Ref<ProjectTree::TreeNode> node) {
 	/* Check if directory exists */
 	if(!node->dir.Exists()) {
 		Logger::Error("ProjectManager::GetNodeAssets: Node directory doesn't exist: {}", node->dir.name);
-		return Vector<AssetVariant>();
+		return Vector<AssetHandle>();
 	}
 
 	/* Check if directory is valid */
 	if(!node->dir.IsValid()) {
 		Logger::Error("ProjectManager::GetNodeAssets: Node directory is not valid: {}", node->dir.name);
-		return Vector<AssetVariant>();
+		return Vector<AssetHandle>();
 	}
 
-	Vector<AssetVariant> assets = node->assets;
+	Vector<AssetHandle> assets = node->assets;
 
 	return assets;
 }

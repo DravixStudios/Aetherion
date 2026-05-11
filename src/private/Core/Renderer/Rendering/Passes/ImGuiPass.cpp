@@ -256,27 +256,29 @@ ImGuiPass::ShowAssetBrowser() {
     }
 
     for (uint32_t i = 0; i < node->assets.size(); ++i) {
-        const AssetVariant& asset = node->assets[i];
+        const AssetHandle& asset = node->assets[i];
+        EAssetType assetType = asset.type;
 
-        std::visit([&](const auto& a) {
-            using T = std::decay_t<decltype(a)>;
+        switch (assetType) {
+            case EAssetType::MESH:
+            {
+                Name name = ProjectManagerHelpers::GetAssetName(asset);
+                String label = String(name);
 
-            String name = String(a.header.displayName);
-            
-            String label;
-            if constexpr (std::is_same_v<T, MeshAsset>) {
-                label = name;
+                ImGui::PushID(i);
+
+                if (this->m_imgui->ImageButton(s_icons.meshSet, label, ImVec2{ cellSize - 20, cellSize - 20 })) {
+                    Logger::Debug("Clicked asset: {}", label);
+                }
+
+                ImGui::PopID();
+                ImGui::NextColumn();
             }
+                break;
+            default:
+                break;
+        }
 
-            ImGui::PushID(i);
-
-            if (this->m_imgui->ImageButton(s_icons.meshSet, label, ImVec2{ cellSize - 20, cellSize - 20 })) {
-                Logger::Debug("Clicked Asset: {}", name);
-            }
-
-            ImGui::PopID();
-            ImGui::NextColumn();
-        }, asset);
     }
 
     ImGui::Columns(1);

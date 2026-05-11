@@ -12,5 +12,5 @@ struct TextureAssetHeader {
 
 struct TextureAsset {
 	TextureAssetHeader header;
-	const void* pcData = nullptr;
+	Vector<Byte> buffer;
 };
