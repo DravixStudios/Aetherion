@@ -43,3 +43,4 @@
 - [Roboto Font](https://fonts.google.com/specimen/Roboto)
 - [NFD-Extended](https://github.com/btzy/nativefiledialog-extended)
 - [nanosvg](https://github.com/memononen/nanosvg)
+- [nlohmann/json](https://github.com/nlohmann/json)
