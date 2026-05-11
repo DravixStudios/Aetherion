@@ -9,7 +9,7 @@ struct MeshAssetHeader {
 	uint32_t nIndexOffset;
 	uint32_t nIndexStride;
 	uint32_t nTotalByteSize;
-	uint32_t nNameSize;
+	uint32_t nMaterialId;
 	Name displayName;
 };
 

@@ -130,6 +130,10 @@ VulkanImGuiImpl::Image(Ref<DescriptorSet> descriptorSet, ImVec2 imageSize) {
 */
 bool
 VulkanImGuiImpl::ImageButton(Ref<DescriptorSet> descriptorSet, const String& label, ImVec2 size) {
+	if (!descriptorSet) {
+		return ImGui::Button(label.c_str(), size);
+	}
+
 	Ref<VulkanDescriptorSet> vkSet = descriptorSet.As<VulkanDescriptorSet>();
 	ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.f, 0.f, 0.f, 0.f));
 

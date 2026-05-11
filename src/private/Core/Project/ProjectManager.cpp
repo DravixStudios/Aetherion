@@ -102,7 +102,7 @@ ProjectManager::OpenProject(const String& projectPath) {
 			create a node and add it to the
 			project tree
 		*/
-		if (entry.is_directory() && !entry.is_regular_file()) {
+		if (entry.is_directory()) {
 			fs::path relPath = fs::relative(entry.path(), assetsPath);
 
 			Ref<ProjectTree::TreeNode> parentNode = this->m_tree.root;
@@ -147,7 +147,7 @@ ProjectManager::OpenProject(const String& projectPath) {
 
 		/* Read magic number, version and raw asset type */
 		uint32_t nMagic = 0;
-		uint32_t nVersion = 0;
+		uint64_t nVersion = 0;
 		uint32_t nRawType = 0;
 		
 		file.read(reinterpret_cast<char*>(&nMagic), sizeof(nMagic));

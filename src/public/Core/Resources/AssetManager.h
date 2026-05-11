@@ -71,9 +71,8 @@ static constexpr AssetVersion TEXTURE_VERSION(1, 0, 0);
 static constexpr AssetVersion MATERIAL_VERSION(1, 0, 0);
 static constexpr AssetVersion GAMEOBJECT_VERSION(1, 0, 0);
 
-/* File magic number and version */
+/* File magic number */
 static constexpr uint32_t MAGIC_NUMBER = 0x48544541; // AETH
-static constexpr uint32_t VERSION = 1;
 
 enum class EAssetType : uint32_t {
 	MESH = 0x01,
