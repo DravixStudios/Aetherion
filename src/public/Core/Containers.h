@@ -2,6 +2,7 @@
 #include <iostream>
 #include <vector>
 #include <map>
+#include <unordered_map>
 #include <deque>
 #include <memory>
 
@@ -65,6 +66,9 @@ using Deque = std::deque<T>;
 
 template<typename K, typename V>
 using Map = std::map<K, V>;
+
+template<typename K, typename V>
+using HashMap = std::unordered_map<K, V>;
 
 using String = std::string;
 
