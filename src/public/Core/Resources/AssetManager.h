@@ -79,6 +79,15 @@ static constexpr AssetVersion MESH_VERSION(1, 0, 0);
 static constexpr AssetVersion TEXTURE_VERSION(1, 0, 0);
 static constexpr AssetVersion MATERIAL_VERSION(1, 0, 0);
 static constexpr AssetVersion GAMEOBJECT_VERSION(1, 0, 0);
+static constexpr AssetVersion SCENE_VERSION(1, 0, 0);
+
+inline static HashMap<EAssetType, AssetVersion> s_assetVersions = {
+	{ EAssetType::MESH, MESH_VERSION },
+	{ EAssetType::TEXTURE, TEXTURE_VERSION },
+	{ EAssetType::MATERIAL, MATERIAL_VERSION },
+	{ EAssetType::GAMEOBJECT, GAMEOBJECT_VERSION },
+	{ EAssetType::SCENE, SCENE_VERSION }
+};
 
 /* File magic number */
 static constexpr uint32_t MAGIC_NUMBER = 0x48544541; // AETH
