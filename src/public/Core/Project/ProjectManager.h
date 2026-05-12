@@ -5,9 +5,11 @@
 #include "Core/Resources/AssetManager.h"
 #include "Core/Resources/MeshAsset.h"
 #include "Core/Resources/TextureAsset.h"
+#include "Core/Resources/ProjectAsset.h"
 
 #include <variant>
 #include <filesystem>
+#include <functional>
 
 namespace fs = std::filesystem;
 
@@ -360,6 +362,8 @@ struct ProjectTree {
 
 class ProjectManager {
 public:
+	using OnProjectOpenedCallback = std::function<void(const Project::Asset& projectAsset)>;
+
 	ProjectManager();
 	~ProjectManager() = default;
 
@@ -377,7 +381,14 @@ public:
 	ProjectTree GetProjectTree() const { return this->m_tree; }
 
 	Vector<AssetHandle> GetNodeAssets(Ref<ProjectTree::TreeNode> node);
+
+	void
+	SetOnProjectOpenedCallback(OnProjectOpenedCallback callback) {
+		this->m_onProjectOpened = callback;
+	}
 private:
+	OnProjectOpenedCallback m_onProjectOpened;
+
 	ProjectTree m_tree;
 
 	AssetManager* m_assetMgr;
