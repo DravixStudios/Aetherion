@@ -1,6 +1,7 @@
 #include "Core/Core.h"
 #include "Core/Scene/SceneManager.h"
 #include "Core/Renderer/ResourceManager.h"
+#include "Core/Project/ProjectManager.h"
 
 Core* Core::m_instance;
 
@@ -89,6 +90,15 @@ Core::Init() {
     this->m_sceneMgr = SceneManager::GetInstance();
     this->m_sceneMgr->Start();
     this->m_sceneMgr->SetDimensions(WIDTH, HEIGHT);
+
+    glfwSetWindowTitle(this->m_pWindow, "No project - Aetherion");
+
+    ProjectManager::GetInstance()->SetOnProjectOpenedCallback(
+        [this](const Project::Asset& projectAsset) {
+            String title = projectAsset.name + " - Aetherion Engine";
+            glfwSetWindowTitle(this->m_pWindow, title.c_str());
+        }
+    );
 }
 
 /* Our core update method */

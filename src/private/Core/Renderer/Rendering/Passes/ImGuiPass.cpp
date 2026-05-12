@@ -132,16 +132,21 @@ ImGuiPass::Execute(Ref<GraphicsContext> context, RenderGraphContext& graphCtx, u
     if (ImGui::BeginMainMenuBar()) {
 	    if (ImGui::BeginMenu("File")) {
             if (ImGui::MenuItem("Open project...")) {
-                /* Open a dialog for selecting the folder */
-                nfdchar_t* pPath = nullptr;
-                nfdresult_t result = NFD_PickFolder(&pPath, nullptr);
+                /* Open a dialog for selecting the project */
+                nfdu8char_t* pOutPath;
+                nfdu8filteritem_t filters[1] = { { "Aetherion Project", "aethproj" } };
+                nfdopendialogu8args_t args = {  };
+                args.filterList = filters;
+                args.filterCount = 1;
+
+                nfdresult_t result = NFD_OpenDialogU8_With(&pOutPath, &args);
                 
                 /* Get project manager instance */
                 ProjectManager* projMgr = ProjectManager::GetInstance();
 
                 switch (result) {
                 case NFD_OKAY:
-                    projMgr->OpenProject(pPath);
+                    projMgr->OpenProject(pOutPath);
 
                     s_browserState = { };
                     s_browserState.currentNode = projMgr->GetProjectTree().root;

@@ -50,8 +50,67 @@ bool
 ProjectManager::OpenProject(const String& projectPath) {
 	if (!this->m_assetMgr) this->m_assetMgr = AssetManager::GetInstance();
 
+	/* Separate filename and directory */
 	Directory projectDir = { };
-	projectDir.name = projectPath;
+	String projectFile;
+
+	{
+		fs::path p(projectPath);
+
+		if (fs::exists(p)
+			&& fs::is_regular_file(p)
+			&& !fs::is_directory(p)
+			&& p.has_extension()
+			&& p.extension() == ".aethproj"
+		) {
+			projectFile = p.filename().string();
+
+			String dir = p.parent_path().string();
+			projectDir.name = dir;
+		}
+		else {
+			Logger::Error("ProjectManager::OpenProject: Invalid project file");
+
+			return false;
+		}
+
+	}
+
+	/* Read project file */
+	Project::Asset projectAsset = { };
+	{
+		std::ifstream file(projectPath);
+
+		if (!file.is_open()) {
+			Logger::Error("ProjectManager::OpenProject: Failed opening project {}", projectFile);
+			return false;
+		}
+
+		/* Parse JSON file */
+		json j;
+		
+		try {
+			j = json::parse(file);
+		}
+		catch (const json::parse_error& e) {
+			Logger::Error("ProjectManager::OpenProject: JSON parse error {}", e.what());
+			return false;
+		}
+		
+		/* Check project file fields */
+		if (!j.contains("name")
+			|| !j.contains("description")
+			|| !j.contains("editorScene")
+			|| !j.contains("runtimeScene")
+		) {
+			Logger::Error("ProjectManager::OpenProject: Missing required fields in project file");
+			return false;
+		}
+
+		projectAsset = j.get<Project::Asset>();
+	}
+
+	Logger::Info("ProjectManager::OpenProject: Opening project {}", projectAsset.name);
 
 	/* Check if project directory exists */
 	if (!projectDir.Exists()) {
@@ -67,7 +126,7 @@ ProjectManager::OpenProject(const String& projectPath) {
 
 	/* Check if assets directory exists */
 	Directory assetsDir = { };
-	fs::path assetsPath = fs::path(projectPath) / "Assets";
+	fs::path assetsPath = fs::path(projectDir.name) / "Assets";
 	assetsDir.name = assetsPath.string();
 
 	if (!assetsDir.Exists()) {
@@ -199,6 +258,12 @@ ProjectManager::OpenProject(const String& projectPath) {
 		case EAssetType::TEXTURE:
 			break;
 		}
+	}
+
+	/* Call OnProjectOpenedCallback */
+	if (this->m_onProjectOpened) {
+		String projectName = fs::path(projectPath).filename().string();
+		this->m_onProjectOpened(projectAsset);
 	}
 
 	return true;
