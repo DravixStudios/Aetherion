@@ -9,6 +9,8 @@
 #include "Core/Camera/EditorCamera.h"
 #include "Utils.h"
 
+struct SceneAsset;
+
 class Scene {
 	friend class SceneManager;
 public:
@@ -21,6 +23,13 @@ public:
 
 	void Start();
 	void Update();
+
+	const String 
+	GetName() { 
+		return this->m_name;
+	}
+
+	const SceneAsset SerializeScene();
 
 private:
 	String m_name;
