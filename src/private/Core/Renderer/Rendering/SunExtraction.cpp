@@ -128,7 +128,7 @@ SunExtraction::CreateDescriptors() {
 void 
 SunExtraction::CreatePipeline() {
 	Ref<Shader> shader = Shader::CreateShared();
-	shader->LoadFromGLSL("SunExtraction.comp", EShaderStage::COMPUTE);
+	shader->LoadFromGLSL("shaders/SunExtraction.comp", EShaderStage::COMPUTE);
 
 	ComputePipelineCreateInfo pipelineInfo = { };
 	pipelineInfo.shader = shader;

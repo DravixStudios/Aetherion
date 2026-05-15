@@ -126,10 +126,10 @@ void
 TonemapPass::CreatePipeline(GPUFormat format) {
 	/* Shaders */
 	Ref<Shader> vert = Shader::CreateShared();
-	vert->LoadFromGLSL("TonemapPass.vert", EShaderStage::VERTEX);
+	vert->LoadFromGLSL("shaders/TonemapPass.vert", EShaderStage::VERTEX);
 	
 	Ref<Shader> frag = Shader::CreateShared();
-	frag->LoadFromGLSL("TonemapPass.frag", EShaderStage::FRAGMENT);
+	frag->LoadFromGLSL("shaders/TonemapPass.frag", EShaderStage::FRAGMENT);
 
 	GraphicsPipelineCreateInfo pipelineInfo = { };
 	pipelineInfo.shaders = { vert, frag };

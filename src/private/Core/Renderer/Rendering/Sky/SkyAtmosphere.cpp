@@ -305,8 +305,8 @@ SkyAtmosphere::CreatePipeline() {
     Ref<Shader> vertexShader = Shader::CreateShared();
     Ref<Shader> pixelShader = Shader::CreateShared();
 
-    vertexShader->LoadFromGLSL("SkyAtmosphere.vert", EShaderStage::VERTEX);
-    pixelShader->LoadFromGLSL("SkyAtmosphere.frag", EShaderStage::FRAGMENT);
+    vertexShader->LoadFromGLSL("shaders/SkyAtmosphere.vert", EShaderStage::VERTEX);
+    pixelShader->LoadFromGLSL("shaders/SkyAtmosphere.frag", EShaderStage::FRAGMENT);
 
     /* Create render pass */
     AttachmentDescription colorAttachment = { };

@@ -673,7 +673,7 @@ void
 ShadowPass::CreatePipeline() {
 	/* Compile shaders */
 	Ref<Shader> vertexShader = Shader::CreateShared();
-	vertexShader->LoadFromGLSL("ShadowPass.vert", EShaderStage::VERTEX);
+	vertexShader->LoadFromGLSL("shaders/ShadowPass.vert", EShaderStage::VERTEX);
 
 	/* Create pipeline layout */
 	PushConstantRange pushRange = { };

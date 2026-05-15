@@ -424,8 +424,8 @@ IBLGenerator::CreatePipelines() {
     Ref<Shader> irradianceVS = Shader::CreateShared();
     Ref<Shader> irradiancePS = Shader::CreateShared();
 
-    irradianceVS->LoadFromGLSL("IrradianceConvolution.vert", EShaderStage::VERTEX);
-    irradiancePS->LoadFromGLSL("IrradianceConvolution.frag", EShaderStage::FRAGMENT);
+    irradianceVS->LoadFromGLSL("shaders/IrradianceConvolution.vert", EShaderStage::VERTEX);
+    irradiancePS->LoadFromGLSL("shaders/IrradianceConvolution.frag", EShaderStage::FRAGMENT);
 
     pushRange.stage = EShaderStage::VERTEX;
     pushRange.nSize = sizeof(glm::mat4) * 2;
@@ -467,8 +467,8 @@ IBLGenerator::CreatePipelines() {
     Ref<Shader> prefilterVS = Shader::CreateShared();
     Ref<Shader> prefilterPS = Shader::CreateShared();
 
-    prefilterVS->LoadFromGLSL("PrefilterEnvMap.vert", EShaderStage::VERTEX);
-    prefilterPS->LoadFromGLSL("PrefilterEnvMap.frag", EShaderStage::FRAGMENT);
+    prefilterVS->LoadFromGLSL("shaders/PrefilterEnvMap.vert", EShaderStage::VERTEX);
+    prefilterPS->LoadFromGLSL("shaders/PrefilterEnvMap.frag", EShaderStage::FRAGMENT);
 
     pushRange.stage = EShaderStage::VERTEX | EShaderStage::FRAGMENT;
     pushRange.nSize = sizeof(uint32_t) * 2;
@@ -515,8 +515,8 @@ IBLGenerator::CreatePipelines() {
     Ref<Shader> brdfVS = Shader::CreateShared();
     Ref<Shader> brdfPS = Shader::CreateShared();
 
-    brdfVS->LoadFromGLSL("BRDFIntegration.vert", EShaderStage::VERTEX);
-    brdfPS->LoadFromGLSL("BRDFIntegration.frag", EShaderStage::FRAGMENT);
+    brdfVS->LoadFromGLSL("shaders/BRDFIntegration.vert", EShaderStage::VERTEX);
+    brdfPS->LoadFromGLSL("shaders/BRDFIntegration.frag", EShaderStage::FRAGMENT);
 
     PipelineLayoutCreateInfo brdfLayoutInfo = { };
 

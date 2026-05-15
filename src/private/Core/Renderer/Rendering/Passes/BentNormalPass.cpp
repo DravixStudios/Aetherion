@@ -157,8 +157,8 @@ BentNormalPass::CreatePipeline() {
 	Ref<Shader> VShader = Shader::CreateShared();
 	Ref<Shader> PShader = Shader::CreateShared();
 
-	VShader->LoadFromGLSL("BentNormal.vert", EShaderStage::VERTEX);
-	PShader->LoadFromGLSL("BentNormal.frag", EShaderStage::FRAGMENT);
+	VShader->LoadFromGLSL("shaders/BentNormal.vert", EShaderStage::VERTEX);
+	PShader->LoadFromGLSL("shaders/BentNormal.frag", EShaderStage::FRAGMENT);
 	
 	/* Create pipeline layout */
 	PipelineLayoutCreateInfo layoutInfo = { };
