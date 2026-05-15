@@ -158,10 +158,10 @@ GBufferPass::CreatePipeline() {
 
 	/* Compile shaders (GLSL) */
 	Ref<Shader> vertexShader = Shader::CreateShared();
-	vertexShader->LoadFromGLSL("GBufferPass.vert", EShaderStage::VERTEX);
+	vertexShader->LoadFromGLSL("shaders/GBufferPass.vert", EShaderStage::VERTEX);
 
 	Ref<Shader> pixelShader = Shader::CreateShared();
-	pixelShader->LoadFromGLSL("GBufferPass.frag", EShaderStage::FRAGMENT);
+	pixelShader->LoadFromGLSL("shaders/GBufferPass.frag", EShaderStage::FRAGMENT);
 
 	/* Create graphics pipeline */
 	GraphicsPipelineCreateInfo pipelineInfo = { };

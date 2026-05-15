@@ -304,10 +304,10 @@ LightingPass::CreatePipeline() {
 
 	/* Compile shaders (GLSL) */
 	Ref<Shader> vertexShader = Shader::CreateShared();
-	vertexShader->LoadFromGLSL("LightingPass.vert", EShaderStage::VERTEX);
+	vertexShader->LoadFromGLSL("shaders/LightingPass.vert", EShaderStage::VERTEX);
 
 	Ref<Shader> pixelShader = Shader::CreateShared();
-	pixelShader->LoadFromGLSL("LightingPass.frag", EShaderStage::FRAGMENT);
+	pixelShader->LoadFromGLSL("shaders/LightingPass.frag", EShaderStage::FRAGMENT);
 
 	/* Create graphics pipeline */
 	GraphicsPipelineCreateInfo pipelineInfo = { };

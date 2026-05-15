@@ -107,7 +107,7 @@ void
 CullingPass::CreatePipeline() {
 	/* Compile shader */
 	Ref<Shader> computeShader = Shader::CreateShared();
-	computeShader->LoadFromGLSL("GPUCulling.comp", EShaderStage::COMPUTE);
+	computeShader->LoadFromGLSL("shaders/GPUCulling.comp", EShaderStage::COMPUTE);
 
 	/* Push constants */
 	PushConstantRange pushRange = { };
