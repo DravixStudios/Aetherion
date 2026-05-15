@@ -28,6 +28,8 @@ Mesh::LoadModel(String filePath) {
 		return false;
 	}
 
+	this->m_filePath = filePath;
+
 	String exePath = GetExecutableDir();
 	std::filesystem::path fullFilePath = std::filesystem::path(exePath) / filePath;
 

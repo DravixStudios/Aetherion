@@ -25,6 +25,11 @@ public:
 
 	void ClearTextureData();
 
+	const String 
+	GetFilePath() { return this->m_filePath; }
+
 private:
 	MeshData m_meshData;
+
+	String m_filePath;
 };
