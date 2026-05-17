@@ -21,13 +21,15 @@ namespace ProjectManagerHelpers {
 	* 
 	* @returns Asset display name
 	*/
-	inline const Name& 
-	GetAssetName(const AssetHandle& handle) {
-		const AssetVariant& asset = AssetManager::GetInstance()->GetAsset(handle);
+	inline const Name&
+	GetAssetName(const AssetHandle& handle)
+	{
+		const AssetVariant& asset =
+			AssetManager::GetInstance()->GetAsset(handle);
 
 		return std::visit([](const auto& a) -> const Name& {
-			return a.header.displayName;
-		}, asset);
+				return a.header.displayName;
+			}, asset);
 	}
 }
 
