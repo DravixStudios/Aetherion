@@ -4,6 +4,7 @@
 
 #include "Icons/Folder.h"
 #include "Icons/Mesh.h"
+#include "Icons/Scene.h"
 
 #include <functional>
 #include <nfd.h>
@@ -23,6 +24,10 @@ struct EditorIcons {
     Ref<GPUTexture> meshImage = nullptr;
     Ref<ImageView> meshView = nullptr;
     Ref<DescriptorSet> meshSet = nullptr;
+
+    Ref<GPUTexture> sceneImage = nullptr;
+    Ref<ImageView> sceneView = nullptr;
+    Ref<DescriptorSet> sceneSet = nullptr;
 };
 
 static EditorIcons s_icons;
@@ -494,6 +499,9 @@ ImGuiPass::CreateResources() {
         the mesh when uploading the mesh
     */
     loadIcon(MeshSVG, s_icons.meshImage, s_icons.meshView, s_icons.meshSet);
+
+    /* Scene icon */
+    loadIcon(SceneSVG, s_icons.sceneImage, s_icons.sceneView, s_icons.sceneSet);
 }
 
 /**
