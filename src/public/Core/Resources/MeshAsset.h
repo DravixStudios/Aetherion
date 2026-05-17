@@ -2,7 +2,7 @@
 #include "Core/Containers.h"
 #include "Core/Resources/AssetHandle.h"
 
-struct MeshAssetHeader {
+struct SubMeshAssetHeader {
 	uint32_t nVertexCount;
 	uint32_t nVertexOffset;
 	uint32_t nVertexStride;
@@ -14,7 +14,17 @@ struct MeshAssetHeader {
 	Name displayName;
 };
 
+struct SubMeshAsset {
+	SubMeshAssetHeader header;
+	Vector<Byte> buffer;
+};
+
+struct MeshAssetHeader {
+	uint32_t nSubMeshCount;
+	Name displayName;
+};
+
 struct MeshAsset {
 	MeshAssetHeader header;
-	Vector<Byte> buffer;
+	Vector<SubMeshAsset> subMeshes;
 };
