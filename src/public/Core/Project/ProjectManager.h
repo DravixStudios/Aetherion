@@ -318,12 +318,12 @@ struct ProjectTree {
 	template<typename T>
 	T*
 	FindAssetInNode(Ref<TreeNode> node, const Name& name) {
-		if (!node) return;
+		if (!node) return nullptr;
 
 		/* Search asset in the node asset list */
 		for (AssetHandle& handle : node->assets) {
 			if (ProjectManagerHelpers::GetAssetName(handle) == name) {
-				AssetVariant& asset = AssetManager::GetInstance()->GetAsset(handle);
+				const AssetVariant& asset = AssetManager::GetInstance()->GetAsset(handle);
 				if (T* ptr = std::get_if<T>(&asset)) {
 					return ptr;
 				}
