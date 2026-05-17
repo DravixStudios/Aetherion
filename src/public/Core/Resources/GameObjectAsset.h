@@ -4,7 +4,7 @@
 #include "Core/Resources/AssetHandle.h"
  
 /* Asset component structure */
-enum class EAssetComponent : uint32_t{
+enum class EAssetComponent : uint32_t {
 	MESH = 1,
 	
 	/* TODO */
