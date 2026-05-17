@@ -373,6 +373,12 @@ public:
 	
 	static ProjectManager* GetInstance();
 
+	bool 
+	ProjectLoaded() {
+		return this->m_projectDir.IsValid() 
+			&& this->m_assetsDir.IsValid();
+	}
+
 	/**
 	* Get all the assets 
 	* on the project
