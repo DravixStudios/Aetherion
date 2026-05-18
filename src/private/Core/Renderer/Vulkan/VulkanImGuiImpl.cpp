@@ -130,28 +130,49 @@ VulkanImGuiImpl::Image(Ref<DescriptorSet> descriptorSet, ImVec2 imageSize) {
 */
 bool
 VulkanImGuiImpl::ImageButton(Ref<DescriptorSet> descriptorSet, const String& label, ImVec2 size) {
-	if (!descriptorSet) {
-		return ImGui::Button(label.c_str(), size);
+
+	ImVec2 pos = ImGui::GetCursorScreenPos();
+
+	/* Create an invisible button */
+	ImGui::InvisibleButton("##imgbtn", size);
+
+	bool bClicked = ImGui::IsItemClicked();
+	bool bDoubleClick = bClicked && ImGui::IsMouseDoubleClicked(0);
+
+	bool bHovered = ImGui::IsItemHovered();
+
+	ImU32 hoverColor = ImGui::GetColorU32(ImGuiCol_ButtonHovered);
+
+	/* Get window draw list */
+	ImDrawList* draw = ImGui::GetWindowDrawList();
+	if (bHovered) {
+		draw->AddRectFilled(
+			pos,
+			ImVec2{ pos.x + size.x, pos.y + size.y },
+			hoverColor,
+			4.f
+		);
 	}
 
-	Ref<VulkanDescriptorSet> vkSet = descriptorSet.As<VulkanDescriptorSet>();
-	ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.f, 0.f, 0.f, 0.f));
+	/* Add image to draw list */
+	if (descriptorSet)
+	{
+		Ref<VulkanDescriptorSet> vkSet = descriptorSet.As<VulkanDescriptorSet>();
 
-	ImGui::ImageButton(
-		label.c_str(),
-		reinterpret_cast<ImTextureID>(vkSet->GetVkSet()),
-		size
-	);
-	
-	bool bDoubleClick = ImGui::IsItemClicked() && ImGui::IsMouseDoubleClicked(0);
+		draw->AddImage(
+			reinterpret_cast<ImTextureID>(vkSet->GetVkSet()),
+			pos,
+			ImVec2{ pos.x + size.x, pos.y + size.y }
+		);
+	}
 
-	ImGui::PopStyleColor();
-
+	/* Add label */
 	float textWidth = ImGui::CalcTextSize(label.c_str()).x;
-	float offset = (size.x - textWidth) * .5f;
-
-	ImGui::SetCursorPosX(ImGui::GetCursorPosX() + offset);
-	ImGui::TextWrapped("%s", label.c_str());
+	draw->AddText(
+		ImVec2(pos.x + (size.x - textWidth) * 0.5f, pos.y + size.y + 2),
+		ImGui::GetColorU32(ImGuiCol_Text),
+		label.c_str()
+	);
 
 	return bDoubleClick;
 }
