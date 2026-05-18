@@ -6,6 +6,7 @@ struct TextureAssetHeader {
 	uint32_t nWidth;
 	uint32_t nHeight;
 	uint32_t nTotalByteSize;
+	bool bCompressed = false;
 	GPUFormat format;
 	Name displayName;
 };
