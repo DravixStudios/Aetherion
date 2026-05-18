@@ -4,6 +4,7 @@
 #include "Math/Vector4.h"
 
 enum class EMaterialFlags : uint32_t {
+    NONE = 0,
     HAS_ALBEDO_TEXTURE = 1,
     HAS_ORM_TEXTURE = 1 << 1,
     HAS_EMISSIVE_TEXTURE = 1 << 2,
@@ -34,8 +35,8 @@ struct MaterialAsset {
     AssetHandle normalHandle;
 
     Vector4 albedo;
+    Vector4 emissiveColor;
     float ao = 0.f;
     float roughness = .5f;
     float metallic = .5f;
-    Vector4 emissiveColor;
 };
