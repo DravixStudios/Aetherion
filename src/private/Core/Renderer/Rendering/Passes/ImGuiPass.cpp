@@ -6,6 +6,7 @@
 #include "Icons/Mesh.h"
 #include "Icons/Scene.h"
 #include "Icons/Texture.h"
+#include "Icons/Material.h"
 
 #include <functional>
 #include <nfd.h>
@@ -510,6 +511,9 @@ ImGuiPass::CreateResources() {
 
     /* Texture icon */
     loadIcon(TextureSVG, s_icons.textureImage, s_icons.textureView, s_icons.textureSet);
+
+    /* Material icon */
+    loadIcon(MaterialSVG, s_icons.materialImage, s_icons.materialView, s_icons.materialSet);
 }
 
 /**
