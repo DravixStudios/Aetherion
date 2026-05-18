@@ -1,12 +1,5 @@
 #include "Math/Vector4.h"
 
-Vector4::Vector4(const Vector4& v) {
-    this->x = v.x;
-    this->y = v.y;
-    this->z= v.z;
-    this->w = v.w;
-}
-
 Vector4::Vector4(float x, float y, float z, float w) {
     this->x = x;
     this->y = y;
