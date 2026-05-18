@@ -5,6 +5,7 @@
 #include "Icons/Folder.h"
 #include "Icons/Mesh.h"
 #include "Icons/Scene.h"
+#include "Icons/Texture.h"
 
 #include <functional>
 #include <nfd.h>
@@ -28,6 +29,10 @@ struct EditorIcons {
     Ref<GPUTexture> sceneImage = nullptr;
     Ref<ImageView> sceneView = nullptr;
     Ref<DescriptorSet> sceneSet = nullptr;
+
+    Ref<GPUTexture> textureImage = nullptr;
+    Ref<ImageView> textureView = nullptr;
+    Ref<DescriptorSet> textureSet = nullptr;
 };
 
 static EditorIcons s_icons;
@@ -502,6 +507,9 @@ ImGuiPass::CreateResources() {
 
     /* Scene icon */
     loadIcon(SceneSVG, s_icons.sceneImage, s_icons.sceneView, s_icons.sceneSet);
+
+    /* Texture icon */
+    loadIcon(TextureSVG, s_icons.textureImage, s_icons.textureView, s_icons.textureSet);
 }
 
 /**
