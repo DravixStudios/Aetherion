@@ -8,10 +8,11 @@
 #include "Core/Resources/MeshAsset.h"
 #include "Core/Resources/TextureAsset.h"
 #include "Core/Resources/SceneAsset.h"
+#include "Core/Resources/MaterialAsset.h"
 
 #include "Core/Resources/AssetHandle.h"
 
-using AssetVariant = std::variant<MeshAsset, TextureAsset, SceneAsset>;
+using AssetVariant = std::variant<MeshAsset, TextureAsset, SceneAsset, MaterialAsset>;
 
 /* Asset version structure */
 struct AssetVersion {
