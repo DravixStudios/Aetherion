@@ -190,7 +190,7 @@ ProjectManager::OpenProject(const String& projectPath) {
 			continue;
 		}
 
-		/* If is not a regular file or directory */
+		/* Check if is a regular file */
 		if (!entry.is_regular_file()) {
 			continue;
 		}
@@ -230,6 +230,8 @@ ProjectManager::OpenProject(const String& projectPath) {
 		String assetPath = SplitPath(entry.path().string(), "Assets");
 		String fullPath = entry.path().string();
 
+		this->m_assetMgr->RegisterAsset(fullPath, type);
+
 		/* Find asset node */
 		fs::path relPath = fs::relative(entry.path().parent_path(), assetsPath);
 
@@ -246,18 +248,9 @@ ProjectManager::OpenProject(const String& projectPath) {
 			}
 		}
 
-		/* Read file with AssetManager depending on it's type */
-		switch (type) {
-		case EAssetType::MESH:
-			{
-				AssetHandle handle = this->m_assetMgr->ReadMesh(fullPath);
-				this->m_tree.AddAsset(node, handle);
-			}
-
-			break;
-		case EAssetType::TEXTURE:
-			break;
-		}
+		/* Register asset and add it to the node */
+		AssetHandle asset = this->m_assetMgr->RegisterAsset(fullPath, type);
+		this->m_tree.AddAsset(node, asset);
 	}
 
 	/* Call OnProjectOpenedCallback */
