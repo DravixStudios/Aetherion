@@ -101,20 +101,38 @@ public:
 	~AssetManager() = default;
 
 	bool SaveMesh(const String& filename, const MeshAsset& asset);
-	AssetHandle ReadMesh(const String& filename);
 
-	MeshAsset& GetMesh(const String& path);
+	bool SaveScene(const String& filename, const SceneAsset& asset);
 
-	void RegisterAsset(const String& path, EAssetType type);
+	bool SaveMaterial(const String& filename, const MaterialAsset& asset);
+
+	bool SaveTexture(const String& filename, const TextureAsset& asset);
+
+	template<typename TAsset, typename THeader>
+	AssetHandle ReadAsset(const String& filename, EAssetType expectedType);
+
+	AssetHandle RegisterAsset(const String& path, EAssetType type);
 
 	const AssetVariant& GetAsset(const AssetHandle& handle);
 
+	bool ImportAsset(const String& path, const String& projectAssets);
+
 	static AssetManager* GetInstance();
 private:
+	template<typename TAsset, typename THeader>
+	AssetHandle
+	ReadAssetData(const String& filename, std::ifstream& file, const THeader& header) {
+		Logger::Error("AssetManager::ReadAssetData: Tried to read a non implemented asset type");
+		static_assert(sizeof(TAsset) == 0, "AssetManager::ReadAssetData: Tried to read a non implemented asset type");
+		return AssetHandle{};
+	}
+
 	static AssetManager* m_instance;
 
 	Map<String, MeshAsset> m_meshCache;
 	Map<String, TextureAsset> m_textureCache;
+	Map<String, SceneAsset> m_sceneCache;
+	Map<String, MaterialAsset> m_materialCache;
 
 	Map<AssetHandle, AssetVariant> m_assetCache;
 	Map<AssetHandle, String> m_handleToPath;
