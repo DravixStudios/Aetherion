@@ -12,6 +12,8 @@
 
 class ImGuiPass : public BasePass {
 public:
+	using OnSceneSaveCallback = std::function<void()>;
+
 	void Init(Ref<Device> device) override;
 	void Init(Ref<Device> device, uint32_t nFramesInFlight);
 
@@ -31,6 +33,11 @@ public:
 	void SetInput(TextureHandle input, TransientResourcePool& transientPool, uint32_t nImgIdx);
 	void SetOutput(TextureHandle output);
 	void SetWindow(GLFWwindow* pWindow);
+
+	void 
+	SetOnSceneSaveCallback(OnSceneSaveCallback callback) {
+		this->m_sceneSaveCallback = callback;
+	}
 
 private:
 	void ShowAssetBrowser();
@@ -57,4 +64,6 @@ private:
 	ImVec2 m_pendingSize = { 0, 0 };
 
 	GLFWwindow* m_pWindow = nullptr;
+
+	OnSceneSaveCallback m_sceneSaveCallback;
 };

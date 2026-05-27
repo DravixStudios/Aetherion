@@ -91,14 +91,103 @@ Core::Init() {
     this->m_sceneMgr->Start();
     this->m_sceneMgr->SetDimensions(WIDTH, HEIGHT);
 
-    glfwSetWindowTitle(this->m_pWindow, "No project - Aetherion");
+    glfwSetWindowTitle(this->m_pWindow, "No active project - Aetherion");
 
     ProjectManager::GetInstance()->SetOnProjectOpenedCallback(
         [this](const Project::Asset& projectAsset) {
             String title = projectAsset.name + " - Aetherion Engine";
             glfwSetWindowTitle(this->m_pWindow, title.c_str());
+
+            String editorScene = projectAsset.editorScene;
+            String runtimeScene = projectAsset.runtimeScene;
+
+            /* TODO: Switch between editor and runtime scenes */
+            AssetHandle sceneHandle = AssetHandle::FromPath(editorScene, EAssetType::SCENE);
+
+            AssetVariant sceneAssetVariant = AssetManager::GetInstance()->GetAsset(sceneHandle);
+            
+            /* Check if asset variant holds SceneAsset */
+            if (SceneAsset* pSceneAsset = std::get_if<SceneAsset>(&sceneAssetVariant)) {
+
+            }
+            else {
+                Logger::Error("Core::Init:[OnProjectOpenedCallback]: Not a SceneAsset");
+                return;
+            }
+
         }
     );
+
+    this->m_deferredRenderer.SetOnSceneSaveCallback([this]() {
+        /* Get project manager */
+        ProjectManager* projectMgr = ProjectManager::GetInstance();
+
+        /* Check if we have any project loaded */
+        if (!projectMgr->ProjectLoaded()) {
+            Logger::Error("Core::Init:[OnSceneSaveCallback]: No project open");
+            return;
+        }
+
+        /* Get current scene and project tree */
+        Scene* scene = this->m_sceneMgr->GetCurrentScene();
+        ProjectTree projectTree = projectMgr->GetProjectTree();
+        Directory projectDir = projectTree.root->dir;
+
+        /*
+            Open a NFD Dialog
+
+            TODO: Move this part to a separate class
+            or system
+        */
+        nfdu8char_t* outPath;
+        nfdu8filteritem_t filters[1] = { { "Aetherion Scene", "aeth" } };
+
+        fs::path projectPath = projectDir.name;
+        String sceneName = scene->GetName();
+        String sceneFile = sceneName + ".aeth";
+
+        nfdresult_t result = NFD_SaveDialogU8(
+            &outPath,
+            filters,
+            1,
+            reinterpret_cast<const nfdu8char_t*>(projectPath.u8string().c_str()),
+            reinterpret_cast<const nfdu8char_t*>(sceneFile.c_str())
+        );
+
+        /* Check NFD result */
+        switch (result) {
+            case NFD_OKAY:
+                Logger::Debug("Core::Init:[OnSceneSaveCallback]: Saving scene. {}", outPath);
+                break;
+            case NFD_CANCEL:
+                Logger::Debug("Core::Init:[OnSceneSaveCallback]: User cancelled dialog");
+                return;
+            case NFD_ERROR:
+            {
+                const char* error = NFD_GetError();
+                Logger::Error("Core::Init:[OnSceneSaveCallback]: {}", error);
+                return;
+            }
+        }
+
+        String scenePath = outPath;
+
+        /* 
+            Serialize scene and save it
+
+            TODO: Check that file is correctly saved
+        */
+        SceneAsset sceneAsset = scene->SerializeScene();
+
+        AssetManager* assetMgr = AssetManager::GetInstance();
+
+        if(!assetMgr->SaveScene(scenePath, sceneAsset)) {
+            Logger::Error("Core::Init:[OnSceneSaveCallback]: Failed saving scene {}", scenePath);
+            return;
+        }
+
+        Logger::Info("Core::Init:[OnSceneSaveCallback]: Scene {} saved at {}", sceneName, scenePath);
+    });
 }
 
 /* Our core update method */

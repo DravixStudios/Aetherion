@@ -167,6 +167,12 @@ ImGuiPass::Execute(Ref<GraphicsContext> context, RenderGraphContext& graphCtx, u
                     break;
                 }
             }
+
+            if (ImGui::MenuItem("Save scene...")) {
+                if (this->m_sceneSaveCallback) {
+                    this->m_sceneSaveCallback();
+                }
+            }
             
             ImGui::EndMenu();
 	    }

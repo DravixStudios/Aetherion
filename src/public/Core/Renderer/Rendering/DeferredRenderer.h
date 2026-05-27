@@ -50,6 +50,11 @@ public:
     void FinalizeMeshUploads() { this->m_meshUploader.FinalizeUploads(); }
     MegaBuffer& GetMegaBuffer() { return this->m_megaBuffer; }
 
+    void 
+    SetOnSceneSaveCallback(ImGuiPass::OnSceneSaveCallback callback) {
+        this->m_imguiPass.SetOnSceneSaveCallback(callback);
+    }
+
 private:
     Ref<Device> m_device;
     RenderGraph m_graph;
