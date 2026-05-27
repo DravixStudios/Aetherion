@@ -71,6 +71,8 @@ SceneManager::Start() {
 	Mesh* mesh = new Mesh("MeshComponent");
 	mesh->LoadModel("DamagedHelmet.glb");
 	sampleObj->AddComponent("Mesh", mesh);
+	//sampleObj->transform.scale = Vector3(.05f, .05f, .05f);
+	sampleObj->transform.Rotate(90.f, 0.f, 0.f);
 
 	this->m_currentScene->AddObject(sampleObj);
 	this->m_currentScene->Start();
