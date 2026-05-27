@@ -3,7 +3,26 @@
 #include "Core/Renderer/ResourceManager.h"
 #include "Core/Project/ProjectManager.h"
 
+#include <nfd.h>
+
 Core* Core::m_instance;
+
+/* Drop callback for GLFW */
+void
+DropCallback(GLFWwindow* window, int nCount, const char** paths) {
+    for (uint32_t i = 0; i < nCount; i++) {
+        const char* path = paths[i];
+
+        ProjectManager* projMgr = ProjectManager::GetInstance();
+
+        if (!projMgr->ProjectLoaded()) {
+            return;
+        }
+
+        Directory assetsDir = projMgr->GetAssetsDir();
+        AssetManager::GetInstance()->ImportAsset(path, assetsDir.name);
+    }
+}
 
 /* Core constructor */
 Core::Core()
@@ -81,6 +100,7 @@ Core::Init() {
 
     this->m_input->SetWindow(this->m_pWindow);
     glfwSetKeyCallback(this->m_pWindow, Input::KeyCallback);
+    glfwSetDropCallback(this->m_pWindow, DropCallback);
     glfwSetMouseButtonCallback(this->m_pWindow, Input::MouseButtonCallback);
 
     this->m_deferredRenderer.Init(this->m_device, this->m_swapchain, this->m_nImageCount, this->m_pWindow);

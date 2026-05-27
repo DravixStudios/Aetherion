@@ -130,7 +130,6 @@ VulkanImGuiImpl::Image(Ref<DescriptorSet> descriptorSet, ImVec2 imageSize) {
 */
 bool
 VulkanImGuiImpl::ImageButton(Ref<DescriptorSet> descriptorSet, const String& label, ImVec2 size) {
-
 	ImVec2 pos = ImGui::GetCursorScreenPos();
 
 	/* Create an invisible button */
