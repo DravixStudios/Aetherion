@@ -9,6 +9,7 @@
 #include "Icons/Material.h"
 
 #include <functional>
+#include <cstring>
 #include <nfd.h>
 
 struct AssetBrowserState {
@@ -34,9 +35,24 @@ struct EditorIcons {
     Ref<GPUTexture> textureImage = nullptr;
     Ref<ImageView> textureView = nullptr;
     Ref<DescriptorSet> textureSet = nullptr;
+
+    Ref<GPUTexture> materialImage = nullptr;
+    Ref<ImageView> materialView = nullptr;
+    Ref<DescriptorSet> materialSet = nullptr;
 };
 
 static EditorIcons s_icons;
+
+enum class EDragType : uint32_t {
+    MATERIAL,
+    TEXTURE,
+    MESH
+};
+
+struct DragPayload {
+    EDragType type;
+    char assetName[64];
+};
 
 /**
 * ImGui pass initialization
@@ -120,6 +136,35 @@ ImGuiPass::Execute(Ref<GraphicsContext> context, RenderGraphContext& graphCtx, u
     }
 
     this->m_imgui->Image(this->m_sceneImGuiSets[nImgIdx], actualSize);
+
+    if (ImGui::BeginDragDropTarget()) {
+        const ImGuiPayload* pPayload = ImGui::AcceptDragDropPayload("ASSET");
+
+        if (pPayload) {
+            void* pData = pPayload->Data;
+            
+            DragPayload* pDragPayload = static_cast<DragPayload*>(pData);
+            Logger::Debug("ImGuiPass::Execute: Dropped asset: {} on viewport", pDragPayload->assetName);
+
+            AssetManager* assetMgr = AssetManager::GetInstance();
+
+            EDragType dragType = pDragPayload->type;
+
+            switch (dragType) {
+                case EDragType::MATERIAL:
+                    break;
+                case EDragType::TEXTURE:
+                    break;
+                case EDragType::MESH:
+                    break;
+                default:
+                    Logger::Error("ImguiPass::Execute: Drag & Drop, invalid drag payload type");
+                    break;
+            }
+        }
+
+        ImGui::EndDragDropTarget();
+    }
     ImGui::End();
 
     ImGui::Begin("Hierarchy");
@@ -252,7 +297,7 @@ ImGuiPass::ShowAssetBrowser() {
     ImGui::Separator();
 
     /* Asset browser elements */
-    float cellSize = 96.f;
+    float cellSize = 128.f;
     float panelWidth = ImGui::GetContentRegionAvail().x;
     int nColumnCount = static_cast<int>(panelWidth / cellSize);
 
@@ -276,7 +321,8 @@ ImGuiPass::ShowAssetBrowser() {
         ImGui::PopID();
         ImGui::NextColumn();
     }
-
+    
+    ImGui::PushID("asset_scope");
     for (uint32_t i = 0; i < node->assets.size(); ++i) {
         const AssetHandle& asset = node->assets[i];
         EAssetType assetType = asset.type;
@@ -293,15 +339,96 @@ ImGuiPass::ShowAssetBrowser() {
                     Logger::Debug("Clicked asset: {}", label);
                 }
 
+                if (ImGui::BeginDragDropSource()) {
+                    const char* assetName = label.c_str();
+
+                    DragPayload payload = { EDragType::MESH };
+                    std::strncpy(payload.assetName, assetName, sizeof(payload.assetName) - 1);
+                    payload.assetName[sizeof(payload.assetName) - 1] = '\0';
+
+                    ImGui::SetDragDropPayload(
+                        "ASSET",
+                        &payload,
+                        sizeof(payload)
+                    );
+
+                    ImGui::EndDragDropSource();
+                }
+
                 ImGui::PopID();
                 ImGui::NextColumn();
+                break;
             }
+            case EAssetType::TEXTURE:
+            {
+                Name name = ProjectManagerHelpers::GetAssetName(asset);
+                String label = String(name);
+
+                ImGui::PushID(i);
+
+                if (this->m_imgui->ImageButton(s_icons.textureSet, label, ImVec2{cellSize - 20, cellSize - 20})) {
+                    Logger::Debug("Clicked asset: {}", label);
+                }
+
+                if (ImGui::BeginDragDropSource()) {
+                    const char* assetName = label.c_str();
+
+                    DragPayload payload = { EDragType::TEXTURE };
+                    std::strncpy(payload.assetName, assetName, sizeof(payload.assetName) - 1);
+                    payload.assetName[sizeof(payload.assetName) - 1] = '\0';
+
+                    ImGui::SetDragDropPayload(
+                        "ASSET",
+                        &payload,
+                        sizeof(payload)
+                    );
+
+                    ImGui::EndDragDropSource();
+                }
+
+                ImGui::PopID();
+                ImGui::NextColumn();
+                break;
+            }
+            case EAssetType::MATERIAL:
+            {
+                Name name = ProjectManagerHelpers::GetAssetName(asset);
+                String label = String(name);
+
+                ImGui::PushID(i);
+
+                if (this->m_imgui->ImageButton(s_icons.materialSet, label, ImVec2{cellSize - 20, cellSize - 20})) {
+                    Logger::Debug("Clicked asset: {}", label);
+                }
+
+                if (ImGui::BeginDragDropSource()) {
+                    const char* assetName = label.c_str();
+
+                    DragPayload payload = { EDragType::MATERIAL };
+                    std::strncpy(payload.assetName, assetName, sizeof(payload.assetName) - 1);
+                    payload.assetName[sizeof(payload.assetName) - 1] = '\0';
+
+                    ImGui::SetDragDropPayload(
+                        "ASSET",
+                        &payload,
+                        sizeof(payload)
+                    );
+
+                    ImGui::EndDragDropSource();
+                }
+
+                ImGui::PopID();
+                ImGui::NextColumn();
+                break;
+            }
+            case EAssetType::SCENE:
                 break;
             default:
                 break;
         }
 
     }
+    ImGui::PopID();
 
     ImGui::Columns(1);
 
