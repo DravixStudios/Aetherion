@@ -6,6 +6,11 @@
 
 /**
 * Deferred renderer initialization
+* 
+* @param device Logical device
+* @param swapchain Swap chain
+* @param nFramesInFlight Frames in flight count
+* @param pWindow Output window
 */
 void
 DeferredRenderer::Init(Ref<Device> device, Ref<Swapchain> swapchain, uint32_t nFramesInFlight, GLFWwindow* pWindow) {
