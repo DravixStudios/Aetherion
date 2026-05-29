@@ -94,6 +94,29 @@ AssetManager::SaveMesh(const String& filename, const MeshAsset& asset) {
 		return false;
 	}
 
+	/* Copy SubMeshes */
+	static_assert(std::is_trivially_copyable_v<SubMeshAssetHeader>);
+
+	for (const SubMeshAsset& subMesh : asset.subMeshes) {
+		file.write(reinterpret_cast<const char*>(&subMesh.header), sizeof(SubMeshAssetHeader));
+
+		uint32_t nBufferSize = subMesh.buffer.size() * sizeof(Byte);
+		
+		std::streampos beforeBuffer = file.tellp();
+		file.write(reinterpret_cast<const char*>(subMesh.buffer.data()), nBufferSize);
+		std::streampos afterBuffer = file.tellp();
+
+		uint32_t nWrittenBytes = static_cast<uint32_t>(afterBuffer - beforeBuffer);
+
+		if (nWrittenBytes != nBufferSize) {
+			Logger::Error("AssetManager::SaveMesh: SubMesh buffer size mismatch. Expected {} got {}",
+				nBufferSize, nWrittenBytes
+			);
+
+			return false;
+		}
+	}
+
 	file.write(reinterpret_cast<const char*>(
 		asset.subMeshes.data()),
 		sizeof(SubMeshAsset) * asset.header.nSubMeshCount
@@ -389,7 +412,31 @@ AssetManager::ReadAssetData<MeshAsset, MeshAssetHeader>(
 
 	/* Read SubMeshes */
 	Vector<SubMeshAsset> subMeshes(header.nSubMeshCount);
-	file.read(reinterpret_cast<char*>(subMeshes.data()), subMeshes.size());
+	for (uint32_t i = 0; i < header.nSubMeshCount; i++) {
+		SubMeshAsset subMesh = { };
+		file.read(reinterpret_cast<char*>(&subMesh.header), sizeof(SubMeshAssetHeader));
+
+		subMesh.buffer.resize(subMesh.header.nTotalByteSize);
+
+		std::streamsize beforeBuffer = file.tellg();
+		file.read(reinterpret_cast<char*>(subMesh.buffer.data()), subMesh.header.nTotalByteSize);
+		std::streamsize afterBuffer = file.tellg();
+
+		uint32_t nReadSize = static_cast<uint32_t>(afterBuffer - beforeBuffer);
+
+		if (nReadSize != subMesh.header.nTotalByteSize) {
+			Logger::Error("AssetManager::ReadAssetData[MeshAsset]: Asset file mismatch. Expected {} got {}",
+				subMesh.header.nTotalByteSize, nReadSize
+			);
+		}
+
+		if (!file.good() || !file) {
+			Logger::Error("AssetManager::ReadAssetData[MeshAsset]: File error!");
+			return emptyAsset;
+		}
+
+		subMeshes[i] = std::move(subMesh);
+	}
 
 	if (!file) {
 		Logger::Error(
@@ -399,7 +446,7 @@ AssetManager::ReadAssetData<MeshAsset, MeshAssetHeader>(
 
 		subMeshes.clear();
 
-		return handle;
+		return emptyAsset;
 	}
 
 	file.close();
@@ -808,11 +855,14 @@ AssetManager::ImportAsset(const String& path, const String& projectAssets) {
 				/* Create sub mesh */
 				SubMeshAsset subMesh = { };
 				subMesh.header.nVertexCount = nNumVertices;
+				subMesh.header.nVertexOffset = 0;
 				subMesh.header.nVertexStride = nVertexStride;
-				subMesh.header.displayName = subMeshName;
 				subMesh.header.nIndexCount = nNumIndices;
+				subMesh.header.nIndexOffset = 0;
 				subMesh.header.nIndexStride = sizeof(uint32_t);
 				subMesh.header.materialHandle = materialHandle;
+				subMesh.header.nTotalByteSize = combined.size() * sizeof(Byte);
+				subMesh.header.displayName = subMeshName;
 				subMesh.buffer = std::move(combined);
 
 				meshAsset.subMeshes[i] = subMesh;
@@ -831,6 +881,28 @@ AssetManager::ImportAsset(const String& path, const String& projectAssets) {
 	}
 
 	return true;
+}
+
+/**
+* Get asset path from handle
+* 
+* @param handle Asset handle
+* 
+* @returns Asset path if registered
+*/
+String 
+AssetManager::GetAssetPath(const AssetHandle& handle) {
+	if (!handle.IsValid()) {
+		Logger::Error("AssetManager::GetAssetPath: Invalid asset handle");
+		return "";
+	}
+
+	if (!this->m_handleToPath.contains(handle)) {
+		Logger::Warn("AssetManager::GetAssetPath: Asset {} not registered", handle.uuid);
+		return "";
+	}
+
+	return this->m_handleToPath.at(handle);
 }
 
 AssetManager*

@@ -117,6 +117,8 @@ public:
 
 	bool ImportAsset(const String& path, const String& projectAssets);
 
+	String GetAssetPath(const AssetHandle& handle);
+
 	static AssetManager* GetInstance();
 private:
 	template<typename TAsset, typename THeader>
