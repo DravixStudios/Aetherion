@@ -1,6 +1,5 @@
 #pragma once
 #include "Core/Renderer/Rendering/Passes/BasePass.h"
-#include <array>
 
 class CullingPass : public BasePass {
 public:
