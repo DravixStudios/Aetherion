@@ -38,10 +38,12 @@ public:
 	static constexpr const char* CLASS_NAME = "Shader";
 
 	explicit Shader();
-	~Shader();
+	~Shader() = default;
 	void LoadFromGLSL(const String& path, EShaderStage shaderStage);
 	void LoadFromGLSLSource(const String& source, const String& name, EShaderStage shaderStage);
 	
+	void AddMacroDefinition(const char* name, const char* value = nullptr);
+
 	/**
 	* 
 	* Returns the SPIR-V bytecode of the shader
@@ -69,6 +71,8 @@ private:
 	String m_sourceGLSL;
 	String m_filename;
 	EShaderStage m_stage;
+
+	Map<const char*, const char*> m_macros;
 
 	Vector<uint32_t> CompileGLSLToSPIRV(const String& source, const String& name, EShaderStage stage);
 	String TranspileSPIRVToGLSL(const Vector<uint32_t>& spirv, uint32_t nVersion);

@@ -4,13 +4,7 @@
 #include <shaderc/shaderc.hpp>
 #include <spirv_cross/spirv_glsl.hpp>
 
-Shader::Shader() : m_stage(EShaderStage::ALL) {
-
-}
-
-Shader::~Shader() {
-
-}
+Shader::Shader() : m_stage(EShaderStage::ALL) { }
 
 /**
  * Loads a GLSL shader from a file 
@@ -68,6 +62,17 @@ Shader::LoadFromGLSLSource(const String& source, const String& name, EShaderStag
     );
 }
 
+/**
+* Adds a macro definition to our shader
+* 
+* @param name Macro name
+* @param value Macro value
+*/
+void 
+Shader::AddMacroDefinition(const char* name, const char* value) {
+    this->m_macros[name] = value;
+}
+
 /** 
  * Compiles GLSL into SPIR-V with shaderc
  * 
@@ -88,6 +93,10 @@ Shader::CompileGLSLToSPIRV(const String& source, const String& name, EShaderStag
     options.SetTargetSpirv(shaderc_spirv_version_1_5);
     options.SetOptimizationLevel(shaderc_optimization_level_performance);
     options.SetForcedVersionProfile(450, shaderc_profile_none);
+    
+    for (auto& [name, value] : this->m_macros) {
+        options.AddMacroDefinition(name, value);
+    }
 
     shaderc_shader_kind kind;
     switch(stage) {
