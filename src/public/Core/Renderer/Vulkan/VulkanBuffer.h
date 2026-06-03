@@ -15,7 +15,7 @@ public:
 	explicit VulkanBuffer(Ref<VulkanDevice> device);
 	~VulkanBuffer() override;
 
-	void Create(const BufferCreateInfo& createInfo) override;
+	void Create(const BufferCreateInfo& createInfo, const String& debugName = "GPUBuffer") override;
 
 	void* Map() override;
 	void Unmap() override;

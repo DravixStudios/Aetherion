@@ -20,7 +20,7 @@ void EditorCamera::Update() {
 	this->m_projection = glm::perspectiveFovRH(
 		glm::radians(70.f), 
 		static_cast<float>(this->m_nWidth), static_cast<float>(this->m_nHeight), 
-		1.f, 1000.f
+		.01f, 1000.f
 	);
 
 	if (this->m_input->GetButtonDown(EMouseButton::RIGHT)) {

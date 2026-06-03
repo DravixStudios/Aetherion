@@ -216,7 +216,9 @@ DeferredRenderer::Render(
         this->m_cullingPass.GetIndirectBuffer(),
         this->m_cullingPass.GetIndirectBuffer()->GetPerFrameSize() * nImgIdx,
         drawData.nTotalBatches,
-        nMaxBatchesPerBlock
+        nMaxBatchesPerBlock,
+        this->m_cullingPass.GetWVPBuffer()->GetAlignment(),
+        this->m_cullingPass.GetMaterialBuffer()->GetAlignment()
     );
 
     /* 1. G-Buffer pass (Indirect) */
@@ -348,6 +350,7 @@ DeferredRenderer::UploadSceneData(const CollectedDrawData& data, uint32_t nFrame
 
     /* Reset ring buffers */
     this->m_cullingPass.GetInstanceBuffer()->Reset(nFrameIdx);
+    this->m_cullingPass.GetMaterialBuffer()->Reset(nFrameIdx);
     this->m_cullingPass.GetBatchBuffer()->Reset(nFrameIdx);
     this->m_cullingPass.GetWVPBuffer()->Reset(nFrameIdx);
 
@@ -361,6 +364,14 @@ DeferredRenderer::UploadSceneData(const CollectedDrawData& data, uint32_t nFrame
     );
 
     memcpy(ptr, data.instances.data(), data.instances.size() * sizeof(ObjectInstanceData));
+
+    /* Material instance data */
+    ptr = this->m_cullingPass.GetMaterialBuffer()->Allocate(
+        static_cast<uint32_t>(data.materials.size() * sizeof(MaterialInstanceData)),
+        nOffset
+    );
+
+    memcpy(ptr, data.materials.data(), data.materials.size() * sizeof(MaterialInstanceData));
 
     /* Draw batches */
     ptr = this->m_cullingPass.GetBatchBuffer()->Allocate(
@@ -488,11 +499,13 @@ DeferredRenderer::CreateSceneDescriptors() {
     /*
         Scene Descriptor layout (Set 0)
         Binding 0: Instance Data (Storage Buffer)
-        Binding 4: WVP Data (Storage buffer)
+        Binding 1: Material Data (Storage Buffer)
+        Binding 5: WVP Data (Storage buffer)
     */
     Vector<DescriptorSetLayoutBinding> bindings = {
         { 0, EDescriptorType::STORAGE_BUFFER, 1, EShaderStage::VERTEX | EShaderStage::FRAGMENT, false },
-        { 4, EDescriptorType::STORAGE_BUFFER, 1, EShaderStage::VERTEX, false }
+        { 1, EDescriptorType::STORAGE_BUFFER, 1, EShaderStage::VERTEX | EShaderStage::FRAGMENT, false },
+        { 5, EDescriptorType::STORAGE_BUFFER, 1, EShaderStage::VERTEX, false }
     };
 
     /* Create descriptor set layout */
@@ -505,7 +518,7 @@ DeferredRenderer::CreateSceneDescriptors() {
     DescriptorPoolCreateInfo poolInfo = { };
     poolInfo.nMaxSets = this->m_nFramesInFlight;
     poolInfo.poolSizes = {
-        { EDescriptorType::STORAGE_BUFFER, 2 * this->m_nFramesInFlight }
+        { EDescriptorType::STORAGE_BUFFER, 3 * this->m_nFramesInFlight }
     };
 
     this->m_scenePool = this->m_device->CreateDescriptorPool(poolInfo);
@@ -532,14 +545,21 @@ DeferredRenderer::UpdateSceneDescriptors(uint32_t nImgIdx) {
     instanceInfo.nOffset = this->m_cullingPass.GetInstanceBuffer()->GetPerFrameSize() * nImgIdx;
     instanceInfo.nRange = this->m_cullingPass.GetInstanceBuffer()->GetPerFrameSize();
 
-    /* Binding 4: WVP Data (from CullingPass) */
+    /* Binding 1: Material data (from CullingPass) */
+    DescriptorBufferInfo materialInfo = { };
+    materialInfo.buffer = this->m_cullingPass.GetMaterialBuffer()->GetBuffer();
+    materialInfo.nOffset = this->m_cullingPass.GetMaterialBuffer()->GetPerFrameSize() * nImgIdx;
+    materialInfo.nRange = this->m_cullingPass.GetMaterialBuffer()->GetPerFrameSize();
+
+    /* Binding 5: WVP Data (from CullingPass) */
     DescriptorBufferInfo wvpInfo = { };
     wvpInfo.buffer = this->m_cullingPass.GetWVPBuffer()->GetBuffer();
     wvpInfo.nOffset = this->m_cullingPass.GetWVPBuffer()->GetPerFrameSize() * nImgIdx;
     wvpInfo.nRange = this->m_cullingPass.GetWVPBuffer()->GetPerFrameSize();
     
     currentSceneSet->WriteBuffer(0, 0, instanceInfo);
-    currentSceneSet->WriteBuffer(4, 0, wvpInfo);
+    currentSceneSet->WriteBuffer(1, 0, materialInfo);
+    currentSceneSet->WriteBuffer(5, 0, wvpInfo);
     currentSceneSet->UpdateWrites();
 }
 

@@ -4,6 +4,8 @@
 #include "Utils.h"
 #include "Core/Logger.h"
 
+#include "Core/Resources/ShaderReference.h"
+
 enum class EShaderStage {
 	VERTEX = 1 << 0,
 	FRAGMENT = 1 << 1,
@@ -41,7 +43,8 @@ public:
 	~Shader() = default;
 	void LoadFromGLSL(const String& path, EShaderStage shaderStage);
 	void LoadFromGLSLSource(const String& source, const String& name, EShaderStage shaderStage);
-	
+	void LoadFromReference(const ShaderReference& ref, const String& name, EShaderStage shaderStage);
+
 	void AddMacroDefinition(const char* name, const char* value = nullptr);
 
 	/**

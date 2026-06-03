@@ -52,6 +52,7 @@ enum class EDragType : uint32_t {
 struct DragPayload {
     EDragType type;
     char assetName[64];
+    AssetHandle handle;
 };
 
 /**
@@ -144,11 +145,14 @@ ImGuiPass::Execute(Ref<GraphicsContext> context, RenderGraphContext& graphCtx, u
             void* pData = pPayload->Data;
             
             DragPayload* pDragPayload = static_cast<DragPayload*>(pData);
-            Logger::Debug("ImGuiPass::Execute: Dropped asset: {} on viewport", pDragPayload->assetName);
 
             AssetManager* assetMgr = AssetManager::GetInstance();
 
             EDragType dragType = pDragPayload->type;
+
+            if (this->m_dropCallback) {
+                this->m_dropCallback(pDragPayload->handle);
+            }
 
             switch (dragType) {
                 case EDragType::MATERIAL:
@@ -327,6 +331,9 @@ ImGuiPass::ShowAssetBrowser() {
         const AssetHandle& asset = node->assets[i];
         EAssetType assetType = asset.type;
 
+        AssetManager* assetMgr = AssetManager::GetInstance();
+        String assetPath = assetMgr->GetAssetPath(asset);
+
         switch (assetType) {
             case EAssetType::MESH:
             {
@@ -345,6 +352,7 @@ ImGuiPass::ShowAssetBrowser() {
                     DragPayload payload = { EDragType::MESH };
                     std::strncpy(payload.assetName, assetName, sizeof(payload.assetName) - 1);
                     payload.assetName[sizeof(payload.assetName) - 1] = '\0';
+                    payload.handle = asset;
 
                     ImGui::SetDragDropPayload(
                         "ASSET",
@@ -376,6 +384,7 @@ ImGuiPass::ShowAssetBrowser() {
                     DragPayload payload = { EDragType::TEXTURE };
                     std::strncpy(payload.assetName, assetName, sizeof(payload.assetName) - 1);
                     payload.assetName[sizeof(payload.assetName) - 1] = '\0';
+                    payload.handle = asset;
 
                     ImGui::SetDragDropPayload(
                         "ASSET",
@@ -407,6 +416,7 @@ ImGuiPass::ShowAssetBrowser() {
                     DragPayload payload = { EDragType::MATERIAL };
                     std::strncpy(payload.assetName, assetName, sizeof(payload.assetName) - 1);
                     payload.assetName[sizeof(payload.assetName) - 1] = '\0';
+                    payload.handle = asset;
 
                     ImGui::SetDragDropPayload(
                         "ASSET",

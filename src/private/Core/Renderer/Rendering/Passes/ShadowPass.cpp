@@ -543,13 +543,14 @@ ShadowPass::CreateCullingResources() {
 
 	for (uint32_t i = 0; i < CSM_CASCADE_COUNT; i++) {
 		/* Define per frame sizes */
-		std::array<uint32_t, 6> frameSizes = {
+		std::array<uint32_t, 7> frameSizes = {
 			this->m_pCullingPass->GetInstanceBuffer()->GetPerFrameSize(), // 0
-			this->m_pCullingPass->GetBatchBuffer()->GetPerFrameSize(), // 1
-			this->m_shadowIndirectBuffers[i]->GetPerFrameSize(), // 2
-			0, // 3 (Is not per frame)
-			this->m_pCullingPass->GetWVPBuffer()->GetPerFrameSize(), // 4
-			this->m_shadowFrustumBuffer->GetPerFrameSize(), // 5
+			this->m_pCullingPass->GetMaterialBuffer()->GetPerFrameSize(), // 1
+			this->m_pCullingPass->GetBatchBuffer()->GetPerFrameSize(), // 2
+			this->m_shadowIndirectBuffers[i]->GetPerFrameSize(), // 3
+			0, // 4 (Is not per frame)
+			this->m_pCullingPass->GetWVPBuffer()->GetPerFrameSize(), // 5
+			this->m_shadowFrustumBuffer->GetPerFrameSize(), // 6
 		};
 
 		/* Create a descriptor set per frame in flight */
@@ -563,29 +564,34 @@ ShadowPass::CreateCullingResources() {
 				this->m_pCullingPass->GetInstanceBuffer()->GetBuffer(), frameSizes[0] * j, frameSizes[0]
 				});
 
-			/* Binding 1: Batch data */
+			/* Binding 1: Material data (Unused) */
 			set->WriteBuffer(1, 0, {
-				this->m_pCullingPass->GetBatchBuffer()->GetBuffer(), frameSizes[1] * j, frameSizes[1]
+				this->m_pCullingPass->GetMaterialBuffer()->GetBuffer(), frameSizes[1] * j, frameSizes[2]
+			});
+
+			/* Binding 1: Batch data */
+			set->WriteBuffer(2, 0, {
+				this->m_pCullingPass->GetBatchBuffer()->GetBuffer(), frameSizes[2] * j, frameSizes[2]
 				});
 
 			/* Binding 2: Output commands */
-			set->WriteBuffer(2, 0, {
-				this->m_shadowIndirectBuffers[i]->GetBuffer(), frameSizes[2] * j, frameSizes[2]
+			set->WriteBuffer(3, 0, {
+				this->m_shadowIndirectBuffers[i]->GetBuffer(), frameSizes[3] * j, frameSizes[3]
 				});
 
 			/* Binding 3: Draw count */
-			set->WriteBuffer(3, 0, {
-				this->m_shadowCountBuffers[i], frameSizes[3] * j, 64 * sizeof(uint32_t)
+			set->WriteBuffer(4, 0, {
+				this->m_shadowCountBuffers[i], frameSizes[4] * j, 64 * sizeof(uint32_t)
 			});
 
 			/* Binding 4: WVP Data */
-			set->WriteBuffer(4, 0, {
-				this->m_pCullingPass->GetWVPBuffer()->GetBuffer(), frameSizes[4] * j, frameSizes[4]
+			set->WriteBuffer(5, 0, {
+				this->m_pCullingPass->GetWVPBuffer()->GetBuffer(), frameSizes[5] * j, frameSizes[5]
 			});
 
 			/* Binding 5: Frustum data */
-			set->WriteBuffer(5, 0, {
-				this->m_shadowFrustumBuffer->GetBuffer(), frameSizes[5] * j, frameSizes[5]
+			set->WriteBuffer(6, 0, {
+				this->m_shadowFrustumBuffer->GetBuffer(), frameSizes[6] * j, frameSizes[6]
 			});
 
 			set->UpdateWrites();
@@ -631,6 +637,7 @@ ShadowPass::DispatchShadowCulling(Ref<GraphicsContext> context, uint32_t nCascad
 	struct {
 		uint32_t nTotalBatches;
 		uint32_t nWvpAlignment;
+		uint32_t nMaterialAlignment;
 		uint32_t nFrustumOffset;
 		uint32_t nFrustumAlignment;
 		uint32_t nMaxDrawsPerBlock;
@@ -639,6 +646,7 @@ ShadowPass::DispatchShadowCulling(Ref<GraphicsContext> context, uint32_t nCascad
 
 	pushData.nTotalBatches = this->m_pCullingPass->GetTotalBatches();
 	pushData.nWvpAlignment = this->m_pCullingPass->GetWVPBuffer()->GetAlignment();
+	pushData.nMaterialAlignment = this->m_pCullingPass->GetMaterialBuffer()->GetAlignment();
 	pushData.nFrustumOffset = nFrustumOffset;
 	pushData.nFrustumAlignment = this->m_shadowFrustumBuffer->GetAlignment();
 	pushData.nMaxDrawsPerBlock = this->m_pCullingPass->GetMaxBatchesPerBlock();

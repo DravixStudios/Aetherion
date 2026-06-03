@@ -72,7 +72,7 @@ using HashMap = std::unordered_map<K, V>;
 
 using String = std::string;
 
-using Byte = std::byte;
+using Byte = unsigned char;
 
 /* Fixed string struct */
 template<size_t N>
@@ -82,7 +82,9 @@ struct FixedString {
 	FixedString() = default;
 
 	FixedString(const char* pcData) {
-		std::strncpy(data, pcData, N - 1);
+		size_t len = std::min(std::strlen(pcData), N - 1);
+		this->writtenBytes = len;
+		std::strncpy(data, pcData, len);
 		this->data[N - 1] = '\0';
 	}
 
@@ -100,8 +102,21 @@ struct FixedString {
 		return *this = str.c_str();
 	}
 
+	String string() const {
+		return String(this->data);
+	}
+
 	operator const char* () const { return data; }
+
+
+	size_t Length() const {
+		return this->writtenBytes;
+	}
+
+private:
+	size_t writtenBytes = 0;
 };
 
 using Name = FixedString<64>;
 using Text = FixedString<128>;
+using Path = FixedString<256>;

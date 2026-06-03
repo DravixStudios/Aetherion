@@ -38,7 +38,9 @@ public:
 		Ref<GPURingBuffer> indirectBuffer,
 		uint32_t nIndirectOffset,
 		uint32_t nTotalBatches,
-		uint32_t nMaxBatchesPerBlock
+		uint32_t nMaxBatchesPerBlock,
+		uint32_t nWvpAlignment,
+		uint32_t nMaterialAlignment
 	);
 
 	Ref<DescriptorSet> GetReadDescriptorSet() const { return this->m_gbuffer.GetReadDescriptorSet(); }
@@ -64,6 +66,8 @@ private:
 	uint32_t m_nIndirectOffset = 0;
 	uint32_t m_nTotalBatches = 0;
 	uint32_t m_nMaxBatchesPerBlock = 0;
+	uint32_t m_nWvpAlignment = 0;
+	uint32_t m_nMaterialAlignment = 0;
 
 	void CreatePipeline();
 };

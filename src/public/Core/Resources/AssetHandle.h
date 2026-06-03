@@ -8,6 +8,7 @@ enum class EAssetType : uint32_t {
 	MATERIAL = 0x03,
 	GAMEOBJECT = 0x04,
 	SCENE = 0x05,
+	SHADER = 0x06,
 	UNDEFINED = 0xFF
 };
 

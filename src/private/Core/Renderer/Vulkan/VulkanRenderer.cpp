@@ -49,6 +49,10 @@ void VulkanRenderer::Create(GLFWwindow* pWindow) {
 	extensions.push_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
 #endif // __APPLE__
 
+#ifndef NDEBUG
+	extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+#endif // NDEBUG
+
 	size_t nExtensionCount = extensions.size();
 
 	Logger::Debug("VulkanRenderer::Create: Required extension count {}", nExtensionCount);
@@ -80,6 +84,11 @@ void VulkanRenderer::Create(GLFWwindow* pWindow) {
 	}
 
 	VK_CHECK(vkCreateInstance(&instanceInfo, nullptr, &this->m_instance), "Failed creating Vulkan instance");
+
+	/* Initialize debug utils */
+#ifndef NDEBUG
+	impl::init_debug_utils(this->m_instance);
+#endif // NDEBUG
 
 	/* Setup debug messenger */
 	if (this->m_bEnableValidationLayers) {

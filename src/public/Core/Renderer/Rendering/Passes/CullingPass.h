@@ -13,6 +13,7 @@ public:
 	) override;
 
 	Ref<GPURingBuffer> GetInstanceBuffer() { return this->m_instanceBuffer; }
+	Ref<GPURingBuffer> GetMaterialBuffer() { return this->m_materialBuffer; }
 	Ref<GPURingBuffer> GetIndirectBuffer() { return this->m_indirectBuffer; }
 	Ref<GPURingBuffer> GetBatchBuffer() { return this->m_batchBuffer; }
 	Ref<GPURingBuffer> GetWVPBuffer() { return this->m_wvpBuffer; }
@@ -38,6 +39,7 @@ private:
 
 	/* Ring buffers */
 	Ref<GPURingBuffer> m_instanceBuffer;
+	Ref<GPURingBuffer> m_materialBuffer;
 	Ref<GPURingBuffer> m_indirectBuffer;
 	Ref<GPURingBuffer> m_batchBuffer;
 	Ref<GPURingBuffer> m_wvpBuffer;

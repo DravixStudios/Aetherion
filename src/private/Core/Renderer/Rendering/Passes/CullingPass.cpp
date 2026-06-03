@@ -1,6 +1,8 @@
 #include "Core/Renderer/Rendering/Passes/CullingPass.h"
 #include "Core/Renderer/Rendering/RenderGraphBuilder.h"
 
+#include <array>
+
 /**
 * Culling pass initialization
 * 
@@ -57,6 +59,10 @@ CullingPass::Execute(
 	context->FillBuffer(this->m_countBuffer, 0, 64 * sizeof(uint32_t), 0);
 	context->BufferMemoryBarrier(this->m_countBuffer, EAccess::TRANSFER_WRITE, EAccess::SHADER_WRITE);
 
+	if (this->m_nTotalBatches == 0) {
+		return;
+	}
+
 	context->BindPipeline(this->m_computePipeline);
 	context->BindDescriptorSets(0, { this->m_cullingSets[nFrameIndex]});
 	
@@ -80,6 +86,7 @@ CullingPass::Execute(
 	struct {
 		uint32_t nTotalBatches;
 		uint32_t nWvpAlignment;
+		uint32_t nMaterialAlignment;
 		uint32_t nFrustumOffset;
 		uint32_t nFrustumAlignment;
 		uint32_t nMaxDrawsPerBlock;
@@ -87,6 +94,7 @@ CullingPass::Execute(
 
 	pushData.nTotalBatches = this->m_nTotalBatches;
 	pushData.nWvpAlignment = this->m_wvpBuffer->GetAlignment();
+	pushData.nMaterialAlignment = this->m_materialBuffer->GetAlignment();
 	pushData.nFrustumOffset = nFrustumDataOffset;
 	pushData.nFrustumAlignment = this->m_frustumBuffer->GetAlignment();
 	pushData.nMaxDrawsPerBlock = this->m_nMaxBatchesPerBlock;
@@ -113,7 +121,7 @@ CullingPass::CreatePipeline() {
 	PushConstantRange pushRange = { };
 	pushRange.stage = EShaderStage::COMPUTE;
 	pushRange.nOffset = 0;
-	pushRange.nSize = 5 * sizeof(uint32_t);
+	pushRange.nSize = 6 * sizeof(uint32_t);
 
 	ComputePipelineCreateInfo pipelineInfo = { };
 	pipelineInfo.shader = computeShader;
@@ -130,21 +138,31 @@ CullingPass::CreatePipeline() {
 void 
 CullingPass::CreateResources() {
 	constexpr uint32_t MAX_OBJECT = 131072; // Max objects (2^17)
+	constexpr uint32_t MAX_MATERIALS = 131072; // Max objects (2^17)
 	constexpr uint32_t MAX_BATCHES = 131072; // Max objects (2^17)
 	constexpr uint32_t MAX_DRAWS = 131072; // Max objects (2^17)
 
 	/* 
 		ObjectInstanceData ring buffer 
 		
-		Alignment: 16 (4 uint32_t)
+		Alignment: 8 (2 uint32_t)
 	*/
 	RingBufferCreateInfo instanceInfo = { };
-	instanceInfo.nAlignment = 16;
+	instanceInfo.nAlignment = 8;
 	instanceInfo.nFramesInFlight = this->m_nFramesInFlight;
 	instanceInfo.nBufferSize = MAX_OBJECT * sizeof(ObjectInstanceData);
 	instanceInfo.usage = EBufferUsage::STORAGE_BUFFER;
 
 	this->m_instanceBuffer = this->m_device->CreateRingBuffer(instanceInfo);
+
+	/* MaterialInstanceData ring buffer */
+	RingBufferCreateInfo materialInfo = { };
+	materialInfo.nAlignment = 64;
+	materialInfo.nFramesInFlight = this->m_nFramesInFlight;
+	materialInfo.nBufferSize = MAX_MATERIALS * sizeof(MaterialInstanceData);
+	materialInfo.usage = EBufferUsage::STORAGE_BUFFER;
+
+	this->m_materialBuffer = this->m_device->CreateRingBuffer(materialInfo);
 
 	/* DrawIndexedIndirectCommand ring buffer */
 	RingBufferCreateInfo indirectInfo = { };
@@ -212,7 +230,7 @@ CullingPass::CreateResources() {
 */
 void
 CullingPass::CreateDescriptors() {
-	Vector<DescriptorSetLayoutBinding> bindings(6);
+	Vector<DescriptorSetLayoutBinding> bindings(7);
 	
 	/* Binding 0: Instance data (ObjectInstanceData) */
 	bindings[0].nBinding = 0;
@@ -220,35 +238,41 @@ CullingPass::CreateDescriptors() {
 	bindings[0].stageFlags = EShaderStage::COMPUTE | EShaderStage::VERTEX;
 	bindings[0].descriptorType = EDescriptorType::STORAGE_BUFFER;
 
-	/* Binding 1: Draw batches (DrawBatch) */
+	/* Binding 1: Material data (MaterialInstanceData) */
 	bindings[1].nBinding = 1;
 	bindings[1].nDescriptorCount = 1;
-	bindings[1].stageFlags = EShaderStage::COMPUTE;
+	bindings[1].stageFlags = EShaderStage::COMPUTE | EShaderStage::VERTEX | EShaderStage::FRAGMENT;
 	bindings[1].descriptorType = EDescriptorType::STORAGE_BUFFER;
 
-	/* Binding 2: Output commands (DrawIndexedIndirectCommand) */
+	/* Binding 2: Draw batches (DrawBatch) */
 	bindings[2].nBinding = 2;
 	bindings[2].nDescriptorCount = 1;
 	bindings[2].stageFlags = EShaderStage::COMPUTE;
 	bindings[2].descriptorType = EDescriptorType::STORAGE_BUFFER;
 
-	/* Binding 3: Draw count */
+	/* Binding 3: Output commands (DrawIndexedIndirectCommand) */
 	bindings[3].nBinding = 3;
 	bindings[3].nDescriptorCount = 1;
 	bindings[3].stageFlags = EShaderStage::COMPUTE;
 	bindings[3].descriptorType = EDescriptorType::STORAGE_BUFFER;
 
-	/* Binding 4: WVP Ring buffer (read only) */
+	/* Binding 4: Draw count */
 	bindings[4].nBinding = 4;
 	bindings[4].nDescriptorCount = 1;
-	bindings[4].stageFlags = EShaderStage::COMPUTE | EShaderStage::VERTEX;
+	bindings[4].stageFlags = EShaderStage::COMPUTE;
 	bindings[4].descriptorType = EDescriptorType::STORAGE_BUFFER;
-	
-	/* Binding 5: Frustum data ring buffer */
+
+	/* Binding 5: WVP Ring buffer (read only) */
 	bindings[5].nBinding = 5;
 	bindings[5].nDescriptorCount = 1;
-	bindings[5].stageFlags = EShaderStage::COMPUTE;
+	bindings[5].stageFlags = EShaderStage::COMPUTE | EShaderStage::VERTEX;
 	bindings[5].descriptorType = EDescriptorType::STORAGE_BUFFER;
+	
+	/* Binding 6: Frustum data ring buffer */
+	bindings[6].nBinding = 6;
+	bindings[6].nDescriptorCount = 1;
+	bindings[6].stageFlags = EShaderStage::COMPUTE;
+	bindings[6].descriptorType = EDescriptorType::STORAGE_BUFFER;
 
 	/* Create descriptor set layout */
 	DescriptorSetLayoutCreateInfo layoutInfo = { };
@@ -261,7 +285,7 @@ CullingPass::CreateDescriptors() {
 	/* Create descriptor pool */
 	DescriptorPoolSize poolSize = { };
 	poolSize.type = EDescriptorType::STORAGE_BUFFER;
-	poolSize.nDescriptorCount = 6 * this->m_nFramesInFlight;
+	poolSize.nDescriptorCount = 7 * this->m_nFramesInFlight;
 
 	DescriptorPoolCreateInfo poolInfo = { };
 	poolInfo.nMaxSets = this->m_nFramesInFlight;
@@ -277,15 +301,16 @@ CullingPass::CreateDescriptors() {
 	}
 
 	/* Writes descriptor sets */
-	Vector<DescriptorBufferInfo> bufferInfos(6);
+	Vector<DescriptorBufferInfo> bufferInfos(7);
 	
-	std::array<uint32_t, 6> frameSizes = {
+	std::array<uint32_t, 7> frameSizes = {
 		this->m_instanceBuffer->GetPerFrameSize(), // 0
-		this->m_batchBuffer->GetPerFrameSize(), // 1
-		this->m_indirectBuffer->GetPerFrameSize(), // 2
-		0, // 3 (Is not per frame)
-		this->m_wvpBuffer->GetPerFrameSize(), // 4
-		this->m_frustumBuffer->GetPerFrameSize(), // 5
+		this->m_materialBuffer->GetPerFrameSize(), // 1
+		this->m_batchBuffer->GetPerFrameSize(), // 2
+		this->m_indirectBuffer->GetPerFrameSize(), // 3
+		0, // 4 (Is not per frame)
+		this->m_wvpBuffer->GetPerFrameSize(), // 5
+		this->m_frustumBuffer->GetPerFrameSize(), // 6
 	};
 
 	/* Binding 0: Instance data */
@@ -293,36 +318,40 @@ CullingPass::CreateDescriptors() {
 	bufferInfos[0].nOffset = 0;
 	bufferInfos[0].nRange = this->m_instanceBuffer->GetPerFrameSize();
 
-	/* Binding 1: Batch data */
-	bufferInfos[1].buffer = this->m_batchBuffer->GetBuffer();
+	/* Binding 1: Material data */
+	bufferInfos[1].buffer = this->m_materialBuffer->GetBuffer();
 	bufferInfos[1].nOffset = 0;
-	bufferInfos[1].nRange = this->m_batchBuffer->GetPerFrameSize();
+	bufferInfos[1].nRange = this->m_materialBuffer->GetPerFrameSize();
 
-	/* Binding 2: Output commands */
-	bufferInfos[2].buffer = this->m_indirectBuffer->GetBuffer();
+	/* Binding 2: Batch data */
+	bufferInfos[2].buffer = this->m_batchBuffer->GetBuffer();
 	bufferInfos[2].nOffset = 0;
-	bufferInfos[2].nRange = this->m_indirectBuffer->GetPerFrameSize();
-
-	/* Binding 3: Draw count */
-	bufferInfos[3].buffer = this->m_countBuffer;
+	bufferInfos[2].nRange = this->m_batchBuffer->GetPerFrameSize();
+	
+	/* Binding 3: Output commands */
+	bufferInfos[3].buffer = this->m_indirectBuffer->GetBuffer();
 	bufferInfos[3].nOffset = 0;
-	bufferInfos[3].nRange = 64 * sizeof(uint32_t);
+	bufferInfos[3].nRange = this->m_indirectBuffer->GetPerFrameSize();
 
-	/* Binding 4: WVP Buffer */
-	bufferInfos[4].buffer = this->m_wvpBuffer->GetBuffer();
+	/* Binding 4: Draw count */
+	bufferInfos[4].buffer = this->m_countBuffer;
 	bufferInfos[4].nOffset = 0;
-	bufferInfos[4].nRange = this->m_wvpBuffer->GetPerFrameSize();
+	bufferInfos[4].nRange = 64 * sizeof(uint32_t);
 
-	/* Binding 5: Frustum buffer */
-	bufferInfos[5].buffer = this->m_frustumBuffer->GetBuffer();
+	/* Binding 5: WVP Buffer */
+	bufferInfos[5].buffer = this->m_wvpBuffer->GetBuffer();
 	bufferInfos[5].nOffset = 0;
-	bufferInfos[5].nRange = this->m_frustumBuffer->GetPerFrameSize();
+	bufferInfos[5].nRange = this->m_wvpBuffer->GetPerFrameSize();
 
+	/* Binding 6: Frustum buffer */
+	bufferInfos[6].buffer = this->m_frustumBuffer->GetBuffer();
+	bufferInfos[6].nOffset = 0;
+	bufferInfos[6].nRange = this->m_frustumBuffer->GetPerFrameSize();
 
 	for (uint32_t i = 0; i < this->m_nFramesInFlight; i++) {
 		Ref<DescriptorSet> set = this->m_cullingSets[i];
 		
-		for (uint32_t j = 0; j < 6; j++) {
+		for (uint32_t j = 0; j < 7; j++) {
 			DescriptorBufferInfo& bufferInfo = bufferInfos[j];
 			bufferInfo.nOffset = frameSizes[j] * i;
 			set->WriteBuffer(j, 0, bufferInfo);
