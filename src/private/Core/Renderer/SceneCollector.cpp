@@ -26,7 +26,7 @@ SceneCollector::Collect(Scene* scene) {
 	for (auto& [name, gameObject] : scene->GetObjects()) {
 		/* Find a mesh component on the current GameObject */
 		Map<String, Component*> components = gameObject->GetComponents();
-		Map<String, Component*>::iterator it = components.find("Mesh");
+		Map<String, Component*>::iterator it = components.find("MeshComponent");
 		if (it == components.end()) continue;
 
 		Mesh* mesh = dynamic_cast<Mesh*>(it->second);
@@ -43,6 +43,7 @@ SceneCollector::Collect(Scene* scene) {
 
 		for (auto& [idx, subMesh] : uploadedMesh.subMeshes) {
 			uint32_t nWvpIdx = static_cast<uint32_t>(result.wvps.size());
+			uint32_t nMaterialIdx = static_cast<uint32_t>(result.materials.size());
 
 			WVP wvp = { };
 			wvp.World = world;
@@ -51,11 +52,26 @@ SceneCollector::Collect(Scene* scene) {
 
 			result.wvps.push_back(wvp);
 
+			UploadedSubMeshMaterial uploadedMaterial = subMesh.material;
+
+			MaterialInstanceData material = { };
+			material.albedoIndex = uploadedMaterial.nAlbedoIndex;
+			material.ormIndex = uploadedMaterial.nORMIndex;
+			material.emissiveIndex = uploadedMaterial.nEmissiveIndex;
+			material.normalIndex = uploadedMaterial.nNormalIndex;
+
+			material.albedoColor = uploadedMaterial.albedoColor;
+			material.emissiveColor = uploadedMaterial.emissiveColor;
+			material.ao = uploadedMaterial.ao;
+			material.roughness = uploadedMaterial.roughness;
+			material.metallic = uploadedMaterial.metallic;
+			material.materialFlags = uploadedMaterial.materialFlags;
+
+			result.materials.push_back(material);
+
 			ObjectInstanceData instance = { };
 			instance.wvpOffset = nWvpIdx * sizeof(WVP);
-			instance.textureIndex = subMesh.nAlbedoIndex;
-			instance.ormTextureIndex = subMesh.nORMIndex;
-			instance.emissiveTextureIndex = subMesh.nEmissiveIndex;
+			instance.materialOffset = nMaterialIdx * sizeof(MaterialInstanceData);
 
 			result.instances.push_back(instance);
 

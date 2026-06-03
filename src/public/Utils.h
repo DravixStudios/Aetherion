@@ -29,6 +29,11 @@
         impl::vk_check_impl(res, CLASS_NAME, __func__, msg); \
     } while(0)
 
+#define VK_SET_NAME(device, objectType, objectHandle, name) \
+    do {\
+        impl::vk_set_obj_name(device, objectType, objectHandle, name.c_str()); \
+    } while(0)
+
 /* 
     Implementations we don't want to be visible from anywhere. 
 
@@ -36,6 +41,27 @@
     need to access them like impl::foo_impl(x);
 */
 namespace impl {
+#ifndef NDEBUG
+    inline PFN_vkSetDebugUtilsObjectNameEXT pfnSetDebugUtilsObjectName = nullptr;
+
+    /**
+    * Initialize debug utils
+    * 
+    * REMINDER: This function will only be compiled in
+    * debug mode, and it must be called only by 
+    * VulkanRenderer. 
+    * 
+    * @param instance Vulkan instance
+    */
+    inline void init_debug_utils(VkInstance instance) {
+        if(pfnSetDebugUtilsObjectName == nullptr) {
+            pfnSetDebugUtilsObjectName = reinterpret_cast<PFN_vkSetDebugUtilsObjectNameEXT>(
+                vkGetInstanceProcAddr(instance, "vkSetDebugUtilsObjectNameEXT")
+            );
+        }
+    }
+#endif // NDEBUG
+
     inline void 
     vk_check_impl(
         VkResult res,
@@ -47,6 +73,27 @@ namespace impl {
             Logger::Error("{}::{}: {}", className, func, msg);
             throw std::runtime_error(msg);
         }
+    }
+
+    inline void
+    vk_set_obj_name(
+        VkDevice device,
+        VkObjectType type, 
+        uint64_t handle,
+        const char* name
+    ) {
+#ifndef NDEBUG
+        if (!pfnSetDebugUtilsObjectName) return;
+
+        VkDebugUtilsObjectNameInfoEXT nameInfo = { };
+        nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+        nameInfo.objectType = type;
+        nameInfo.objectHandle = handle;
+        nameInfo.pObjectName = name;
+        nameInfo.pNext = nullptr;
+
+        pfnSetDebugUtilsObjectName(device, &nameInfo);
+#endif // NDEBUG
     }
 }
 
@@ -69,9 +116,22 @@ struct WVP {
 
 struct ObjectInstanceData {
     uint32_t wvpOffset;
-    uint32_t textureIndex;
-    uint32_t ormTextureIndex;
-    uint32_t emissiveTextureIndex;
+    uint32_t materialOffset;
+};
+
+struct MaterialInstanceData {
+    uint32_t albedoIndex;
+    uint32_t ormIndex;
+    uint32_t emissiveIndex;
+    uint32_t normalIndex;
+
+    glm::vec4 albedoColor;
+    glm::vec4 emissiveColor;
+    float ao;
+    float roughness;
+    float metallic;
+
+    uint32_t materialFlags;
 };
 
 struct DrawIndexedIndirectCommand {
@@ -100,6 +160,7 @@ struct FrameIndirectData {
 
 struct CollectedDrawData {
     Vector<ObjectInstanceData> instances;
+    Vector<MaterialInstanceData> materials;
     Vector<DrawBatch> batches;
     Vector<WVP> wvps;
     uint32_t nTotalBatches = 0;

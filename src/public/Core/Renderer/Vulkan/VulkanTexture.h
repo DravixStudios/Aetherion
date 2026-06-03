@@ -17,7 +17,7 @@ public:
 	explicit VulkanTexture(Ref<VulkanDevice> device);
 	~VulkanTexture() override;
 
-	void Create(const TextureCreateInfo& createInfo) override;
+	void Create(const TextureCreateInfo& createInfo, const String& debugName = "GPUTexture") override;
 	void Create(const VkImage& image);
 
 	VkImage GetVkImage() const { return this->m_image; }

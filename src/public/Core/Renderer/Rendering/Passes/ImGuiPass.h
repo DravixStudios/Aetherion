@@ -13,6 +13,7 @@
 class ImGuiPass : public BasePass {
 public:
 	using OnSceneSaveCallback = std::function<void()>;
+	using OnDropToViewport = std::function<void(const AssetHandle&)>;
 
 	void Init(Ref<Device> device) override;
 	void Init(Ref<Device> device, uint32_t nFramesInFlight);
@@ -37,6 +38,11 @@ public:
 	void 
 	SetOnSceneSaveCallback(OnSceneSaveCallback callback) {
 		this->m_sceneSaveCallback = callback;
+	}
+
+	void
+	SetOnDropToViewport(OnDropToViewport callback) {
+		this->m_dropCallback = callback;
 	}
 
 private:
@@ -66,4 +72,5 @@ private:
 	GLFWwindow* m_pWindow = nullptr;
 
 	OnSceneSaveCallback m_sceneSaveCallback;
+	OnDropToViewport m_dropCallback;
 };

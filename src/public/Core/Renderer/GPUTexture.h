@@ -114,7 +114,7 @@ public:
 	* 
 	* @param createInfo Texture create info
 	*/
-	virtual void Create(const TextureCreateInfo& createInfo) = 0;
+	virtual void Create(const TextureCreateInfo& createInfo, const String& debugName = "GPUTexture") = 0;
 
 	virtual uint32_t GetSize() const = 0;
 

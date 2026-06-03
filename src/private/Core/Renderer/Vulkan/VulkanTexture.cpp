@@ -14,7 +14,7 @@ VulkanTexture::~VulkanTexture() {
 * @param createInfo Texture create info
 */
 void 
-VulkanTexture::Create(const TextureCreateInfo& createInfo) {
+VulkanTexture::Create(const TextureCreateInfo& createInfo, const String& debugName) {
 	VkDevice vkDevice = this->m_device->GetVkDevice();
 
 	/* Create image */
@@ -124,6 +124,13 @@ VulkanTexture::Create(const TextureCreateInfo& createInfo) {
 		);
 
 		this->m_device->EndSingleTimeCommandBuffer(commandBuff);
+
+		VK_SET_NAME(
+			vkDevice,
+			VK_OBJECT_TYPE_IMAGE,
+			reinterpret_cast<uint64_t>(this->m_image),
+			debugName
+		);
 	}
 }
 

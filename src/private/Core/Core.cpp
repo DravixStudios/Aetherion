@@ -208,6 +208,40 @@ Core::Init() {
 
         Logger::Info("Core::Init:[OnSceneSaveCallback]: Scene {} saved at {}", sceneName, scenePath);
     });
+
+    this->m_deferredRenderer.SetOnDropToViewportCallback([](const AssetHandle& handle) {
+        /* Get required managers */
+        AssetManager* assetMgr = AssetManager::GetInstance();
+        SceneManager* sceneMgr = SceneManager::GetInstance();
+
+        Logger::Debug("Core::Init:[OnDropToViewportCallback]: Dropped asset: {} to viewport", handle.uuid);
+
+        EAssetType assetType = handle.type;
+
+        switch (assetType) {
+            case EAssetType::MESH: 
+            {
+                /* 
+                * If mesh asset dropped to viewport,
+                * create a new gameobject with a MeshComponent 
+                */
+                GameObject* pObj = new GameObject(std::to_string(handle.uuid));
+                Mesh* pMesh = new Mesh("MeshComponent");
+                pMesh->LoadAsset(handle);
+                
+                pObj->AddComponent("MeshComponent", pMesh);
+
+                Scene* currentScene = sceneMgr->GetCurrentScene();
+                
+                //pObj->transform.scale = Vector3(.1f, .1f, .1f);
+                currentScene->AddObject(pObj);
+
+                break;
+            }
+            default:
+                break;
+        }
+    });
 }
 
 /* Our core update method */
@@ -259,7 +293,7 @@ Core::Update() {
 
         for (auto& [name, gameObject] : currentScene->GetObjects()) {
             auto components = gameObject->GetComponents();
-            auto it = components.find("Mesh");
+            auto it = components.find("MeshComponent");
             if (it != components.end()) {
                 Mesh* mesh = dynamic_cast<Mesh*>(it->second);
                 if (mesh && mesh->IsLoaded()) {
@@ -272,7 +306,7 @@ Core::Update() {
 
         this->m_deferredRenderer.FinalizeMeshUploads();
 
-        const Map<String, UploadedMesh> meshCache = this->m_deferredRenderer.GetUploadedMeshes();
+        const auto& meshCache = this->m_deferredRenderer.GetUploadedMeshes();
         this->m_sceneCollector.SetUploadedMeshes(&meshCache);
         CollectedDrawData drawData = this->m_sceneCollector.Collect(currentScene);
 

@@ -138,6 +138,44 @@ Shader::CompileGLSLToSPIRV(const String& source, const String& name, EShaderStag
 }
 
 /**
+* Load a shader from Shader reference
+* 
+* TODO: Handle other shader languages
+* 
+* @param ref Shader reference
+* @param name Shader name
+* @param shaderStage Shader stage
+*/
+void 
+Shader::LoadFromReference(const ShaderReference& ref, const String& name, EShaderStage shaderStage) {
+    /* Check if shader reference is valid */
+    if (!ref) {
+        Logger::Error("Shader::LoadFromReference: Invalid shader reference");
+        return;
+    }
+
+    Path shaderPath = ref.shaderPath;
+    
+    /* Convert path to absolute path if is not absolute */
+    std::filesystem::path absPath = shaderPath.string();
+    if (!absPath.is_absolute()) {
+        String executableDir = GetExecutableDir();
+        absPath = std::filesystem::path(executableDir) / shaderPath.string();
+    }
+
+    std::ifstream file(absPath);
+    if (!file.is_open()) {
+        Logger::Error("Shader::LoadFromGLSL: Cannot open file: {}", shaderPath.string());
+        throw std::runtime_error("Shader::LoadFromGLSL: Cannot open file");
+    }
+
+    std::stringstream buffer;
+    buffer << file.rdbuf();
+
+    this->LoadFromGLSLSource(buffer.str(), shaderPath.string(), shaderStage);
+}
+
+/**
  * Transpiles SPIR-V code to GLSL with SPIRV-Cross
  * 
  * @param spirv SPIR-V Code

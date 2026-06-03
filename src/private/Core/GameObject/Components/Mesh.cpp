@@ -2,6 +2,8 @@
 #include "Core/Core.h"
 #include "Core/Renderer/Vulkan/VulkanRenderer.h"
 
+#include "Core/Resources/AssetManager.h"
+
 #include <stb/stb_image.h>
 
 Mesh::Mesh(String name) : Component::Component(name) { }
@@ -16,97 +18,148 @@ Mesh::Update() {
 	Component::Update();
 }
 
-/*
-	Load model from file (mainly FBX or GLB)
-		NOTES:
-			- If Mesh component already imported any Model, will throw error.
+/**
+* Load mesh asset
+* 
+* @param handle Mesh asset handle
+* 
+* @returns True if success
 */
 bool 
-Mesh::LoadModel(String filePath) {
+Mesh::LoadAsset(const AssetHandle& handle) {
 	if (this->m_meshData.bLoaded) {
-		Logger::Error("Mesh::LoadModel: Mesh already loaded");
+		Logger::Error("Mesh::LoadAsset: Mesh already loaded");
 		return false;
 	}
 
-	this->m_filePath = filePath;
+	this->m_meshHandle = handle;
 
-	String exePath = GetExecutableDir();
-	std::filesystem::path fullFilePath = std::filesystem::path(exePath) / filePath;
-
-	/* Import our scene */
-	Assimp::Importer importer;
-	const aiScene* scene = importer.ReadFile(fullFilePath.string().c_str(),
-		aiProcess_Triangulate |
-		aiProcess_JoinIdenticalVertices |
-		aiProcess_GenNormals |
-		aiProcess_FlipUVs
-	);
-
-	/* If scene is null, get out and return false */
-	if (scene == nullptr) {
-		Logger::Error("Mesh::LoadModel: Scene couldn't be imported. Filename: {}", filePath.c_str());
+	AssetManager* assetMgr = AssetManager::GetInstance();
+	const AssetVariant& assetVariant = assetMgr->GetAsset(handle);
+	if (assetVariant.valueless_by_exception()) {
+		Logger::Error("Mesh::LoadAsset: Invalid asset given");
 		return false;
 	}
 
-	this->m_meshData.name = filePath;
 
-	uint32_t nNumMeshes = scene->mNumMeshes; // Enumerate our mesh count
+	const MeshAsset& meshAsset = std::get<MeshAsset>(assetVariant);
 
-	/* Get each mesh from our scene */
-	for (uint32_t i = 0; i < nNumMeshes; i++) {
-		const aiMesh* mesh = scene->mMeshes[i];
-		SubMeshData subData = { };
+	uint32_t nSubMeshes = meshAsset.header.nSubMeshCount;
+	for (uint32_t i = 0; i < nSubMeshes; i++) {
+		const SubMeshAsset& subMesh = meshAsset.subMeshes[i];
 
-		subData.vertices.resize(mesh->mNumVertices);
+		uint32_t nVertexCount = subMesh.header.nVertexCount;
+		uint32_t nVertexStride = subMesh.header.nVertexStride;
+		uint32_t nVertexOffset = subMesh.header.nVertexOffset;
 
-		/* Vertices */
-		for (uint32_t v = 0; v < mesh->mNumVertices; v++) {
-			aiVector3D pos = mesh->mVertices[v];
-			aiVector3D uv = mesh->HasTextureCoords(0) ? mesh->mTextureCoords[0][v] : aiVector3D(0, 0, 0);
-			aiVector3D normals = mesh->HasNormals() ? mesh->mNormals[v] : aiVector3D(0, 0, 0);
+		uint32_t nIndexCount = subMesh.header.nIndexCount;
+		uint32_t nIndexStride = subMesh.header.nIndexStride;
+		uint32_t nIndexOffset = subMesh.header.nIndexOffset;
 
-			subData.vertices[v] = {
-				{ pos.x, pos.y, pos.z },
-				{ normals.x, normals.y, normals.z },
-				{ uv.x, uv.y }
-			};
+		uint32_t nTotalByteSize = subMesh.header.nTotalByteSize;
+
+		uint32_t nVertexSize = nVertexCount * nVertexStride;
+		uint32_t nIndexSize = nIndexCount * nIndexStride;
+
+		/* Check if there's any mismatch with the size */
+		if ((nVertexSize + nIndexSize) != nTotalByteSize) {
+			Logger::Error("Mesh::LoadAsset: Size mismatch. Expected {} got {}", 
+				nTotalByteSize, nVertexSize + nIndexSize
+			);
+
+			return false;
 		}
 
-		/* Indices */
-		for (uint32_t f = 0; f < mesh->mNumFaces; f++) {
-			aiFace& face = mesh->mFaces[f];
-			for (uint32_t j = 0; j < face.mNumIndices; j++) {
-				subData.indices.push_back(face.mIndices[j]);
-			}
+		/* Check Vertex size is the same as in vertex stride */
+		if (sizeof(Vertex) != nVertexStride) {
+			Logger::Error("Mesh::LoadAsset: Stride mismatch. Expected {} got {}", sizeof(Vertex), nVertexStride);
+			/* TODO: Handle asset update */
+			return false;
 		}
 
-		/* Embedded textures */
-		const aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
+		Vector<Vertex> vertices(nVertexCount);
+		Vector<uint32_t> indices(nIndexCount);
 
-		std::function<void(aiTextureType, TextureData&)> loadEmbedded = [&](aiTextureType type, TextureData& out) {
-			aiString path;
-			if (material->GetTextureCount(type) > 0 && material->GetTexture(type, 0, &path) == AI_SUCCESS) {
-				const aiTexture* texture = scene->GetEmbeddedTexture(path.C_Str());
+		const Byte* pVerticesBegin = subMesh.buffer.data();
+		const Byte* pIndicesBegin = subMesh.buffer.data() + nVertexSize;
 
-				if (texture) {
-					out.name = path.C_Str();
-					out.nWidth = texture->mWidth;
-					out.nHeight = texture->mHeight;
-					out.bCompressed = (texture->mHeight == 0);
+		memcpy(vertices.data(), pVerticesBegin, nVertexSize);
+		memcpy(indices.data(), pIndicesBegin, nIndexSize);
 
-					size_t size = out.bCompressed ? texture->mWidth : (texture->mWidth * texture->mHeight * 4);
-					out.data.resize(size);
-					memcpy(out.data.data(), texture->pcData, size);
-				}
+		pVerticesBegin = nullptr;
+		pIndicesBegin = nullptr;
+
+		AssetHandle materialHandle = subMesh.header.materialHandle;
+		Material material;
+		if (materialHandle.IsValid()) {
+			const AssetVariant& materialVariant = assetMgr->GetAsset(materialHandle);
+
+			if (materialVariant.valueless_by_exception()) {
+				Logger::Error("Mesh::LoadAsset: Invalid material");
+				continue;
 			}
+
+			const MaterialAsset& materialAsset = std::get<MaterialAsset>(materialVariant);
+
+			material = this->ProcessMaterial(materialAsset);
+		}
+
+		/* Get material asset handles */
+		std::function<TextureData(const AssetHandle&)> loadTexture = 
+		[&](const AssetHandle& handle) -> TextureData {
+			const AssetVariant& variant = assetMgr->GetAsset(handle);
+
+			if (variant.valueless_by_exception() || !handle.IsValid()) {
+				Logger::Error("Mesh::LoadAsset: Invalid texture asset");
+				return TextureData{};
+			}
+
+			const TextureAsset& asset = std::get<TextureAsset>(variant);
+			
+			Vector<Byte> texBuffer = asset.buffer;
+
+			TextureData texData = { };
+			texData.nWidth = asset.header.nWidth;
+			texData.nHeight = asset.header.nHeight;
+			texData.name = asset.header.displayName;
+			texData.bCompressed = asset.header.bCompressed;
+			texData.data = std::move(texBuffer);
+			
+			return texData;
 		};
+		
+		AssetHandle albedoHandle = material.m_albedoHandle;
+		AssetHandle ormHandle = material.m_ormHandle;
+		AssetHandle emissiveHandle = material.m_emissiveHandle;
+		AssetHandle normalHandle = material.m_normalHandle;
 
-		loadEmbedded(aiTextureType_DIFFUSE, subData.albedo);
-		loadEmbedded(aiTextureType_METALNESS, subData.orm);
-		loadEmbedded(aiTextureType_EMISSIVE, subData.emissive);
+		TextureData albedoData = loadTexture(albedoHandle);
+		TextureData ormData = loadTexture(ormHandle);
+		TextureData emissiveData = loadTexture(emissiveHandle);
+		TextureData normalData = loadTexture(normalHandle);
+		
+		
+		/* Prepare SubMesh data */
+		SubMeshData subData = { };
+		subData.vertices = std::move(vertices);
+		subData.indices = std::move(indices);
+
+		subData.materialFlags = material.GetFlags();
+		subData.albedoColor = material.m_albedo;
+		subData.ao = material.m_ao;
+		subData.roughness = material.m_roughness;
+		subData.metallic = material.m_metallic;
+		subData.emissiveColor = material.m_emissiveColor;
+
+		subData.albedo = albedoData;
+		subData.orm = ormData;
+		subData.emissive = emissiveData;
+		subData.normal = normalData;
 
 		this->m_meshData.subMeshes[i] = std::move(subData);
 	}
+
+	this->m_meshData.name = meshAsset.header.displayName;
 
 	this->m_meshData.bLoaded = true;
 
@@ -126,4 +179,19 @@ Mesh::ClearTextureData() {
 		sub.emissive.data.clear();
 		sub.emissive.data.shrink_to_fit();
 	}
+}
+
+/**
+* Material processor (MaterialAsset -> Material)
+* 
+* @param asset Material asset
+* 
+* @returns Processed material
+*/
+Material 
+Mesh::ProcessMaterial(const MaterialAsset& asset) {
+	Material material;
+	material.Create(asset);
+
+	return material;
 }

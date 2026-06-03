@@ -55,6 +55,11 @@ public:
         this->m_imguiPass.SetOnSceneSaveCallback(callback);
     }
 
+    void
+    SetOnDropToViewportCallback(ImGuiPass::OnDropToViewport callback) {
+        this->m_imguiPass.SetOnDropToViewport(callback);
+    }
+
 private:
     Ref<Device> m_device;
     RenderGraph m_graph;

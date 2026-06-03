@@ -711,9 +711,9 @@ AssetManager::ImportAsset(const String& path, const String& projectAssets) {
 						: aiVector3D(0.f, 0.f, 0.f);
 
 					vertices[v] = {
-						{ pos.x, pos.y, pos.x },
+						{ pos.x, pos.y, pos.z },
 						{ normals.x, normals.y, normals.z },
-						{ uv.x, uv.z }
+						{ uv.x, uv.y }
 					};
 				}
 
@@ -808,6 +808,7 @@ AssetManager::ImportAsset(const String& path, const String& projectAssets) {
 							AssetHandle handle = this->RegisterAsset(texPath.string(), EAssetType::TEXTURE);
 							return handle;
 						}
+						return AssetHandle{};
 					};
 
 				/* Load textures */
@@ -828,7 +829,6 @@ AssetManager::ImportAsset(const String& path, const String& projectAssets) {
 					};
 
 				EMaterialFlags materialFlags = EMaterialFlags::NONE;
-
 				materialFlags = setFlagIf(bHasAlbedo, EMaterialFlags::HAS_ALBEDO_TEXTURE)
 						| setFlagIf(bHasORM, EMaterialFlags::HAS_ORM_TEXTURE)
 						| setFlagIf(bHasEmissive, EMaterialFlags::HAS_EMISSIVE_TEXTURE)

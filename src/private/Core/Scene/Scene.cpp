@@ -68,15 +68,15 @@ Scene::SerializeScene() {
 
 		/* Serialize mesh asset */
 		Map<String, Component*> components =  pObj->GetComponents();
-		if (components.contains("Mesh")) {
-			Mesh* meshComponent = dynamic_cast<Mesh*>(components["Mesh"]);
+		if (components.contains("MeshComponent")) {
+			Mesh* meshComponent = dynamic_cast<Mesh*>(components["MeshComponent"]);
 
 			if (meshComponent) {
 				objAsset.header.displayName = pObj->GetName();
 				objAsset.components = objAsset.components | EAssetComponent::MESH;
 				objAsset.transform = pObj->transform;
 
-				AssetHandle meshHandle = AssetHandle::FromPath(meshComponent->GetFilePath(), EAssetType::MESH);
+				const AssetHandle meshHandle = meshComponent->GetAssetHandle();
 				objAsset.meshHandle = meshHandle;
 			}	
 		}
