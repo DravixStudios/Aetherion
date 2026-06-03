@@ -8,6 +8,8 @@
 - Was made for having a propietary next-gen game engine
 - It's actually under development. May have issues that need to be solved.
 
+- Currently working on project management system
+
 ## Features
 - Deferred rendering
 - PBR
