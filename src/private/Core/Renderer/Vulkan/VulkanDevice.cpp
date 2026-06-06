@@ -265,38 +265,27 @@ VulkanDevice::BeginSingleTimeCommandBuffer() {
 */
 void
 VulkanDevice::EndSingleTimeCommandBuffer(Ref<CommandBuffer> commandBuffer) {
+	/* End command buffer */
 	commandBuffer->End();
 
-	/* TODO: Create a CreateFence method */
-	VkFenceCreateInfo fenceInfo = { };
-	fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-
 	/* Create fence */
-	VkFence fence;
-	VK_CHECK(vkCreateFence(this->m_device, &fenceInfo, nullptr, &fence), "Failed creating fence");
-
-	/* Convert the command buffer */
-	Ref<VulkanCommandBuffer> vkCommandBuff = commandBuffer.As<VulkanCommandBuffer>();
-
-	const VkCommandBuffer commandBuffers[] = {
-		vkCommandBuff->GetVkCommandBuffer()
-	};
+	FenceCreateInfo fenceInfo = { };
+	Ref<Fence> fence = this->CreateFence(fenceInfo);
+	fence->Reset();
 
 	/* Submit command buffer */
-	VkSubmitInfo submitInfo = { };
-	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-	submitInfo.commandBufferCount = 1;
-	submitInfo.pCommandBuffers = commandBuffers;
+	Vector<Ref<CommandBuffer>> commandBuffers = { commandBuffer };
 
-	vkQueueSubmit(this->m_graphicsQueue, 1, &submitInfo, fence);
+	SubmitInfo submitInfo = { };
+	submitInfo.commandBuffers = commandBuffers;
+
+	this->Submit(submitInfo, fence);
 
 	/* Wait for fence */
-	vkWaitForFences(this->m_device, 1, &fence, VK_TRUE, UINT64_MAX);
+	this->WaitForFence(fence);
 
 	/* Cleanup */
 	this->m_transferPool->FreeCommandBuffer(commandBuffer);
-	vkDestroyFence(this->m_device, fence, nullptr);
-
 	this->m_transferMutex.unlock();
 }
 
