@@ -79,7 +79,7 @@ void VulkanRenderer::Create(GLFWwindow* pWindow) {
 	}
 	else {
 		instanceInfo.enabledLayerCount = 0;
-		instanceInfo.ppEnabledExtensionNames = nullptr;
+		instanceInfo.ppEnabledLayerNames = nullptr;
 		instanceInfo.pNext = nullptr;
 	}
 
@@ -97,7 +97,15 @@ void VulkanRenderer::Create(GLFWwindow* pWindow) {
 
 		this->PopulateDebugMessengerCreateInfo(messengerInfo);
 
-		VK_CHECK(this->CreateDebugUtilsMessengerEXT(this->m_instance, &messengerInfo, nullptr, &this->m_debugMessenger), "Failed to setup Vulkan debug messenger");
+		VK_CHECK(
+			this->CreateDebugUtilsMessengerEXT(
+				this->m_instance, 
+				&messengerInfo,
+				nullptr, 
+				&this->m_debugMessenger
+			), 
+			"Failed to setup Vulkan debug messenger"
+		);
 	}
 
 	/* Create window surface */
@@ -122,10 +130,12 @@ Ref<Device>
 VulkanRenderer::CreateDevice() {
 	DeviceCreateInfo deviceInfo = { };
 	deviceInfo.bEnableMultiDrawIndirect = true;
-	deviceInfo.bEnableSamplerAnisotroply = true;
+	deviceInfo.bEnableSamplerAnisotropy = true;
 	deviceInfo.bEnableDepthClamp = false;
 	deviceInfo.bEnableGeometryShader = false;
-	deviceInfo.validationLayers = validationLayers;
+	if (this->m_bEnableValidationLayers) {
+		deviceInfo.validationLayers = validationLayers;
+	}
 	deviceInfo.requiredExtensions = deviceExtensions;
 
 	Ref<VulkanDevice> device = VulkanDevice::CreateShared(this->m_physicalDevice, this->m_instance, this->m_surface);
