@@ -66,13 +66,14 @@ void main() {
     outAlbedoColor = albedoColor;
 
     /* Normals */
+    vec3 N = normalize(inNormals);
+    normals = N;
     if(HasFlag(materialFlags, MATERIAL_FLAG_NORMAL)) {
         vec3 tangentNormals = texture(
             g_textures[nonuniformEXT(material.normalIndex)],
             inUVs
         ).xyz * 2.0 - 1.0;
 
-        vec3 N = normalize(inNormals);
         vec3 dp1 = dFdx(fragPos);
         vec3 dp2 = dFdy(fragPos);
 
