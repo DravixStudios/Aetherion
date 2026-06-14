@@ -44,7 +44,7 @@ struct Directory {
 
 struct ProjectTree {
 	struct TreeNode {
-		uint32_t id;
+		uint32_t id = -1;
 
 		Directory dir;
 		Map<uint32_t, Ref<TreeNode>> subNodes;
