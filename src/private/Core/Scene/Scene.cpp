@@ -2,9 +2,11 @@
 #include "Core/Resources/SceneAsset.h"
 #include "Core/Resources/GameObjectAsset.h"
 
-Scene::Scene(String name) {
-	this->m_name = name;
-	this->currentCamera = new EditorCamera("EditorCamera");
+Scene::Scene(const String& name) : m_name(name) {
+	this->m_currentCamera = new EditorCamera("EditorCamera");
+
+	/* Setup scene hierarchy */
+	this->m_hierarchy = Hierarchy::Create(name);
 }
 
 void 
@@ -17,11 +19,7 @@ Scene::AddObject(GameObject* object) {
 	}
 
 	this->m_gameObjects[objName] = object;
-}
-
-Camera* 
-Scene::GetCurrentCamera() {
-	return this->currentCamera;
+	this->m_hierarchy.CreateNode(object->GetName(), this->m_hierarchy.root, object);
 }
 
 Map<String, GameObject*> 
@@ -34,7 +32,7 @@ Scene::Start() {
 	for (std::pair<String, GameObject*> obj : this->m_gameObjects) {
 		obj.second->Start();
 	}
-	this->currentCamera->Start();
+	this->m_currentCamera->Start();
 }
 
 void
@@ -42,7 +40,7 @@ Scene::Update() {
 	for (std::pair<String, GameObject*> obj : this->m_gameObjects) {
 		obj.second->Update();
 	}
-	this->currentCamera->Update();
+	this->m_currentCamera->Update();
 }
 
 /**
