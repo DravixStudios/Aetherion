@@ -35,6 +35,10 @@ public:
 		return *this;
 	}
 
+
+	bool operator==(const Ref<T>& other) const { return this->m_ptr == other.m_ptr; }
+	bool operator!=(const Ref<T>& other) const { return this->m_ptr != other.m_ptr; }
+
 	explicit operator bool() const { return this->m_ptr != nullptr; }
 	bool IsValid() const { return this->m_ptr != nullptr; }
 
