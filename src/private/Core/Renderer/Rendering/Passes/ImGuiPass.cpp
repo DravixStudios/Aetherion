@@ -350,7 +350,7 @@ ImGuiPass::ShowAssetBrowser() {
                     const char* assetName = label.c_str();
 
                     DragPayload payload = { EDragType::MESH };
-                    std::strncpy(payload.assetName, assetName, sizeof(payload.assetName) - 1);
+                    std::snprintf(payload.assetName, sizeof(payload.assetName), "%s", assetName);
                     payload.assetName[sizeof(payload.assetName) - 1] = '\0';
                     payload.handle = asset;
 
@@ -382,7 +382,7 @@ ImGuiPass::ShowAssetBrowser() {
                     const char* assetName = label.c_str();
 
                     DragPayload payload = { EDragType::TEXTURE };
-                    std::strncpy(payload.assetName, assetName, sizeof(payload.assetName) - 1);
+                    std::snprintf(payload.assetName, sizeof(payload.assetName), "%s", assetName);
                     payload.assetName[sizeof(payload.assetName) - 1] = '\0';
                     payload.handle = asset;
 
@@ -414,7 +414,7 @@ ImGuiPass::ShowAssetBrowser() {
                     const char* assetName = label.c_str();
 
                     DragPayload payload = { EDragType::MATERIAL };
-                    std::strncpy(payload.assetName, assetName, sizeof(payload.assetName) - 1);
+                    std::snprintf(payload.assetName, sizeof(payload.assetName), "%s", assetName);
                     payload.assetName[sizeof(payload.assetName) - 1] = '\0';
                     payload.handle = asset;
 
