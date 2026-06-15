@@ -151,7 +151,7 @@ struct Hierarchy {
 		if (!parent) return;
 
 		/* Remove node from parent */
-		Vector<Ref<HierarchyNode>> parentChildren = parent->children;
+		Vector<Ref<HierarchyNode>>& parentChildren = parent->children;
 		parentChildren.erase(
 			std::remove_if(
 				parentChildren.begin(),
