@@ -28,7 +28,7 @@ DropCallback(GLFWwindow* window, int nCount, const char** paths) {
 Core::Core()
     : m_renderBackend(ERenderBackend::VULKAN), 
     m_resMgr(ResourceManager::GetInstance()), m_input(Input::GetInstance()),
-    m_sampleCount(ESampleCount::SAMPLE_8), m_nImageCount(3) {}
+    m_sampleCount(ESampleCount::SAMPLE_8), m_nImageCount(3), m_sceneMgr(SceneManager::GetInstance()) {}
 
 /* Core init method */
 void 
