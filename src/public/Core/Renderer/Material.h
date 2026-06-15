@@ -46,8 +46,8 @@ public:
 	AssetHandle m_emissiveHandle;
 	AssetHandle m_normalHandle;
 
-	Vector4 m_albedo;
-	Vector4 m_emissiveColor;
+	Vector4 m_albedo = Vector4(1.f);
+	Vector4 m_emissiveColor = Vector4(0.f);
 	float m_ao = 1.f;
 	float m_roughness = .5f;
 	float m_metallic = .5f;

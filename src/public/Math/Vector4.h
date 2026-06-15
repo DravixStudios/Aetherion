@@ -7,6 +7,7 @@ struct Vector4 {
 
     /* Constructors */
     Vector4() = default;
+    Vector4(float xyzw) : x(xyzw), y(xyzw), z(xyzw), w(xyzw) {}
     Vector4(const Vector4&) = default;
     Vector4& operator=(const Vector4&) = default;
     
