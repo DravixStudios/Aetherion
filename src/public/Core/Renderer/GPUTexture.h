@@ -5,6 +5,7 @@
 #include "Core/Renderer/Extent3D.h"
 #include "Core/Renderer/GPUFormat.h"
 #include "Core/Renderer/GPUBuffer.h"
+#include "Core/Renderer/UploadContext.h"
 
 enum class ETextureType {
 	TEXTURE,
@@ -86,6 +87,7 @@ enum class ETextureLayout {
 
 struct TextureCreateInfo {
 	Ref<GPUBuffer> buffer;
+	Ref<UploadContext> uploadContext;
 	ETextureFlags flags;
 	ETextureDimensions imageType;
 	GPUFormat format;

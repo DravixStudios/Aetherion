@@ -1,6 +1,7 @@
 #pragma once
 #include <iostream>
 #include <variant>
+#include <mutex>
 
 #include "Core/Containers.h"
 #include "Utils.h"
@@ -130,11 +131,7 @@ private:
 	}
 
 	static AssetManager* m_instance;
-
-	Map<String, MeshAsset> m_meshCache;
-	Map<String, TextureAsset> m_textureCache;
-	Map<String, SceneAsset> m_sceneCache;
-	Map<String, MaterialAsset> m_materialCache;
+	std::mutex m_cacheMutex;
 
 	Map<AssetHandle, AssetVariant> m_assetCache;
 	Map<AssetHandle, String> m_handleToPath;

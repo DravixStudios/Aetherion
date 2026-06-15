@@ -456,8 +456,6 @@ AssetManager::ReadAssetData<MeshAsset, MeshAssetHeader>(
 	asset.header = std::move(header);
 	asset.subMeshes = std::move(subMeshes);
 
-	this->m_meshCache[filename] = asset;
-
 	handle = AssetHandle::FromPath(filename, EAssetType::MESH);
 
 	this->m_assetCache[handle] = static_cast<AssetVariant>(asset);
@@ -486,8 +484,6 @@ AssetManager::ReadAssetData<SceneAsset, SceneAssetHeader>(
 	asset.header = std::move(header);
 	asset.objects = std::move(objects);
 
-	this->m_sceneCache[filename] = asset;
-
 	handle = AssetHandle::FromPath(filename, EAssetType::SCENE);
 
 	this->m_assetCache[handle] = static_cast<AssetVariant>(asset);
@@ -515,8 +511,6 @@ AssetManager::ReadAssetData<TextureAsset, TextureAssetHeader>(
 	TextureAsset asset = { };
 	asset.header = std::move(header);
 	asset.buffer = std::move(buffer);
-
-	this->m_textureCache[filename] = asset;
 
 	handle = AssetHandle::FromPath(filename, EAssetType::TEXTURE);
 
@@ -563,8 +557,6 @@ AssetManager::ReadAssetData<MaterialAsset, MaterialAssetHeader>(
 	asset.roughness = floatValues[1];
 	asset.metallic = floatValues[2];
 
-	this->m_materialCache[filename] = asset;
-
 	handle = AssetHandle::FromPath(filename, EAssetType::MATERIAL);
 
 	this->m_assetCache[handle] = static_cast<AssetVariant>(asset);
@@ -595,6 +587,8 @@ AssetManager::RegisterAsset(const String& path, EAssetType type) {
 */
 const AssetVariant& 
 AssetManager::GetAsset(const AssetHandle& handle) {
+	std::lock_guard<std::mutex> lock(this->m_cacheMutex);
+
 	/* Check asset cache */
 	auto it = this->m_assetCache.find(handle);
 	if (it != this->m_assetCache.end()) {

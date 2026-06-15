@@ -110,7 +110,6 @@ Mesh::LoadAsset(const AssetHandle& handle) {
 			const AssetVariant& variant = assetMgr->GetAsset(handle);
 
 			if (variant.valueless_by_exception() || !handle.IsValid()) {
-				Logger::Error("Mesh::LoadAsset: Invalid texture asset");
 				return TextureData{};
 			}
 
@@ -178,6 +177,8 @@ Mesh::ClearTextureData() {
 		sub.orm.data.shrink_to_fit();
 		sub.emissive.data.clear();
 		sub.emissive.data.shrink_to_fit();
+		sub.normal.data.clear();
+		sub.normal.data.shrink_to_fit();
 	}
 }
 

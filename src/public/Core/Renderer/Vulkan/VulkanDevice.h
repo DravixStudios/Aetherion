@@ -142,6 +142,7 @@ private:
 
 	Ref<CommandPool> m_transferPool;
 	std::mutex m_transferMutex;
+	std::mutex m_queueMutex;
 
 	Ref<TextureUploader> m_textureUploader;
 	

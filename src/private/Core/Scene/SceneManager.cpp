@@ -104,5 +104,5 @@ SceneManager::GetInstance() {
 */
 void 
 SceneManager::SetDimensions(uint32_t nWidth, uint32_t nHeight) {
-	this->m_currentScene->currentCamera->Resize(nWidth, nHeight);
+	this->m_currentScene->m_currentCamera->Resize(nWidth, nHeight);
 }

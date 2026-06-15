@@ -844,6 +844,7 @@ VulkanDevice::Submit(const SubmitInfo& submitInfo, Ref<Fence> fence) {
 
 	VkFence vkFence = fence ? fence.As<VulkanFence>()->GetVkFence() : VK_NULL_HANDLE;
 
+	std::lock_guard<std::mutex> queueLock(this->m_queueMutex);
 	VK_CHECK(
 		vkQueueSubmit(this->m_graphicsQueue, 1, &vkSubmit, vkFence),
 		"Failed to submit to graphics queue"
