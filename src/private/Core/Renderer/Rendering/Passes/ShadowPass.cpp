@@ -245,65 +245,55 @@ ShadowPass::CalculateCascadeViewProj(
 	float nearSplit,
 	float farSplit
 ) {
-	/* Inverse camera viewProj */
-	glm::mat4 invVP = glm::inverse(this->m_cameraProj * this->m_cameraView);
+	/* Calculate local center */
+	float tanHalfFOVY = 1.f / std::abs(this->m_cameraProj[1][1]);
+	float aspect = std::abs(this->m_cameraProj[1][1] / this->m_cameraProj[0][0]);
 
-	/* 8 frustum corners in NDC */
-	glm::vec4 frustumCorners[8] = {
-		/* Near plane */
-		{ -1.f, -1.f, 0.f, 1.f },
-		{ 1.f, -1.f, 0.f, 1.f },
-		{ 1.f, 1.f, 0.f, 1.f },
-		{ -1.f, 1.f, 0.f, 1.f },
+	float hn = nearSplit * tanHalfFOVY;
+	float wn = hn * aspect;
+	float hf = farSplit * tanHalfFOVY;
+	float wf = hf * aspect;
 
-		/* Far plane */
-		{ -1.f, -1.f, 1.f, 1.f },
-		{ 1.f, -1.f, 1.f, 1.f },
-		{ 1.f, 1.f, 1.f, 1.f },
-		{ -1.f, 1.f, 1.f, 1.f }
+	glm::vec3 localCorners[8] = {
+		{ -wn, hn, -nearSplit },
+		{ wn, hn, -nearSplit },
+		{ wn, -hn, -nearSplit },
+		{ -wn, -hn, -nearSplit },
+
+		{ -wf, hf, -farSplit },
+		{ wf, hf, -farSplit },
+		{ wf, -hf, -farSplit },
+		{ -wf, -hf, -farSplit },
+
 	};
 
-	/* Transform to world space */
-	glm::vec3 worldCorners[8];
-	for (uint32_t i = 0; i < 8; i++) {
-		glm::vec4 w = invVP * frustumCorners[i];
-		worldCorners[i] = glm::vec3(w) / w.w;
+	glm::vec3 localCenter(0.f);
+	for(const glm::vec3& corner : localCorners) {
+		localCenter += corner;
 	}
 
-	float nearRatio = (nearSplit - this->m_nearPlane) / (this->m_farPlane - this->m_nearPlane);
-	float farRatio = (farSplit - this->m_nearPlane) / (this->m_farPlane - this->m_nearPlane);
+	localCenter /= 8.f;
 
-	glm::vec3 cascadeCorners[8];
-	for (uint32_t i = 0; i < 4; i++) {
-		glm::vec3 ray = worldCorners[i + 4] - worldCorners[i];
-		cascadeCorners[i] = worldCorners[i] + ray * nearRatio;
-		cascadeCorners[i + 4] = worldCorners[i] + ray * farRatio;
+	float radius = 0.f;
+	for (const glm::vec3& corner : localCorners) {
+		radius = std::max(radius, glm::distance(localCenter, corner));
 	}
 
-	/* Use the center of the bounding sphere for maximum stability */
-	glm::vec3 center(0.f);
-	for (const glm::vec3& corner : cascadeCorners) {
-		center += corner;
-	}
-	center /= 8.f;
-
-	/* Calculate radius of the bounding sphere */
-	float frustumDiagonal = glm::distance(cascadeCorners[0], cascadeCorners[6]);
-	float radius = frustumDiagonal * .5f;
-	radius = std::ceil(radius * 16.f) / 16.f; // Quantize radius
+	glm::mat4 cameraWorld = glm::inverse(this->m_cameraView);
+	glm::vec3 worldCenter = glm::vec3(cameraWorld * glm::vec4(localCenter, 1.f));
 
 	/* Stable light direction and view matrix */
 	glm::vec3 lightDir = glm::normalize(this->m_sunDirection);
 	glm::vec3 up = (std::abs(lightDir.y) > .99f) ? glm::vec3(0.f, 0.f, 1.f) : glm::vec3(0.f, 1.f, 0.f);
 
 	glm::mat4 lightView = glm::lookAt(
-		center + lightDir * radius, 
-		center,
+		worldCenter + lightDir * radius, 
+		worldCenter,
 		up
 	);
 
 	/* Orthographic projection centered on the sphere */
-	glm::mat4 lightOrtho = glm::ortho(-radius, radius, -radius, radius, -radius * 100.f, radius * 100.f);
+	glm::mat4 lightOrtho = glm::ortho(-radius, radius, -radius, radius, -radius * 10.f, radius * 10.f);
 
 	/* Correction Matrix (Flip Y + Map Z 0..1) */
 	glm::mat4 correction = glm::mat4(
