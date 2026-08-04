@@ -62,6 +62,21 @@ SceneManager::GetCurrentScene() {
 }
 
 /**
+* Set the current scene
+* 
+* @param name Scene name
+*/
+void 
+SceneManager::SetCurrentScene(const String& name) {
+	if (this->m_scenes.count(name) <= 0) {
+		Logger::Error("SceneManager::SetCurrentScene: Scene {} not found", name);
+		return;
+	}
+	
+	this->m_currentScene = this->m_scenes.at(name);
+}
+
+/**
 * Scene manager Start method
 */
 void 

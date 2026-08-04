@@ -15,6 +15,7 @@ public:
 	bool SceneExists(String name);
 
 	Scene* GetCurrentScene();
+	void SetCurrentScene(const String& name);
 
 	void Start();
 	void Update();
