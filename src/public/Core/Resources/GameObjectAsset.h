@@ -48,4 +48,11 @@ struct GameObjectAsset {
 	AssetHandle boxColliderHandle;
 	AssetHandle capsuleColliderHandle;
 	AssetHandle sphereColliderHandle;
+
+	bool 
+	HasComponent(const EAssetComponent& component) const {
+		if ((this->components & component) != static_cast<EAssetComponent>(0))
+			return true;
+		return false;
+	}
 };
