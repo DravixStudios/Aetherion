@@ -27,7 +27,19 @@ Scene::GetObjects() {
 	return this->m_gameObjects;
 }
 
-void
+void 
+Scene::DeleteObject(GameObject* pObj) {
+	if (pObj == nullptr) return;
+
+	String objName = pObj->GetName();
+
+	if (this->m_gameObjects.count(objName) > 0) {
+		this->m_gameObjects.erase(objName);
+	}
+
+	delete pObj;
+}
+
 Scene::Start() {
 	for (std::pair<String, GameObject*> obj : this->m_gameObjects) {
 		obj.second->Start();

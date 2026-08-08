@@ -173,6 +173,8 @@ public:
 	void AddObject(GameObject* object);
 	Map<String, GameObject*> GetObjects();
 
+	void DeleteObject(GameObject* pObj);
+
 	void Start();
 	void Update();
 
