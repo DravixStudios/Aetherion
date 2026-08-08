@@ -47,6 +47,7 @@ public:
     const Map<String, UploadedMesh>& GetUploadedMeshes() const { return this->m_uploadedMeshes; }
 
     void UploadMesh(const MeshData& meshData);
+    void UnloadMesh(const String& name);
     void FinalizeMeshUploads() { this->m_meshUploader.FinalizeUploads(); }
     MegaBuffer& GetMegaBuffer() { return this->m_megaBuffer; }
 

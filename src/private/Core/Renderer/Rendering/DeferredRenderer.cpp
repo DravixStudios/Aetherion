@@ -494,6 +494,24 @@ DeferredRenderer::UploadMesh(const MeshData& meshData) {
 }
 
 /**
+* Unloads a mesh allocation from the mega-buffer
+* 
+* @param name Mesh name
+*/
+void 
+DeferredRenderer::UnloadMesh(const String& name) {
+    if (this->m_uploadedMeshes.count(name) > 0) {
+        const UploadedMesh& uploadedMesh = this->m_uploadedMeshes.at(name);
+
+        for (auto& [idx, subMesh] : uploadedMesh.subMeshes) {
+            this->m_megaBuffer.Free(subMesh.geometry);
+        }
+
+        this->m_uploadedMeshes.erase(name);
+    }
+}
+
+/**
 * Initializes scene-wide descriptor sets and layouts (transformations, instances)
 */
 void
