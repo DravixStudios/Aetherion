@@ -320,6 +320,14 @@ ShadowPass::CalculateCascadeViewProj(
 	lightOrtho[3] += roundOffset;
 
 	this->m_cascades[nCascadeIdx].viewProj = lightOrtho * lightView;
+
+	/* 
+		HOLD ON! If you're here, it's because you're researching about 
+		how Aetherion calculates it's shadow cascades... 
+
+		Take a break and listen to this banger:
+		https://open.spotify.com/track/2b0Aosp8Qa3Gt3AVvp2DJl?si=b9e99bb1c8864d78
+	*/
 }
 
 /**
