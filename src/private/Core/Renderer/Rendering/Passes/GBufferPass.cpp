@@ -77,6 +77,16 @@ GBufferPass::Execute(Ref<GraphicsContext> context, RenderGraphContext& graphCtx,
 
 	uint32_t nCurrentOffset = 0;
 
+	struct {
+		uint32_t nWvpAlignment;
+		uint32_t nMaterialAlignment;
+	} pcData;
+
+	pcData.nWvpAlignment = this->m_nWvpAlignment;
+	pcData.nMaterialAlignment = this->m_nMaterialAlignment;
+
+	context->PushConstants(this->m_pipelineLayout, EShaderStage::VERTEX, 0, sizeof(pcData), &pcData);
+
 	for (uint32_t i = 0; i < this->m_nBlockCount; i++) {
 		Ref<GPUBuffer> VBO = this->m_blocks[i].vertexBuffer;
 		Ref<GPUBuffer> IBO = this->m_blocks[i].indexBuffer;
@@ -121,7 +131,9 @@ GBufferPass::SetSceneData(
 	Ref<GPURingBuffer> indirectBuffer,
 	uint32_t nIndirectOffset,
 	uint32_t nTotalBatches,
-	uint32_t nMaxBatchesPerBlock
+	uint32_t nMaxBatchesPerBlock,
+	uint32_t nWvpAlignment,
+	uint32_t nMaterialAlignment
 ) {
 	this->m_sceneSet = sceneSet;
 	this->m_sceneSetLayout = sceneSetLayout;
@@ -141,6 +153,9 @@ GBufferPass::SetSceneData(
 
 	this->m_nMaxBatchesPerBlock = nMaxBatchesPerBlock;
 
+	this->m_nWvpAlignment = nWvpAlignment;
+	this->m_nMaterialAlignment = nMaterialAlignment;
+
 	if (this->m_device && !this->m_pipeline) {
 		this->CreatePipeline();
 	}
@@ -151,17 +166,17 @@ GBufferPass::CreatePipeline() {
 	PipelineLayoutCreateInfo plInfo = { };
 	plInfo.setLayouts = { this->m_sceneSetLayout, this->m_bindlessSetLayout };
 	plInfo.pushConstantRanges = {
-		{ EShaderStage::VERTEX, 0, sizeof(uint32_t)} // wvpAlignment
+		{ EShaderStage::VERTEX, 0, 2 * sizeof(uint32_t)} // wvpAlignment
 	};
 
 	this->m_pipelineLayout = this->m_device->CreatePipelineLayout(plInfo);
 
 	/* Compile shaders (GLSL) */
 	Ref<Shader> vertexShader = Shader::CreateShared();
-	vertexShader->LoadFromGLSL("GBufferPass.vert", EShaderStage::VERTEX);
+	vertexShader->LoadFromGLSL("shaders/GBufferPass.vert", EShaderStage::VERTEX);
 
 	Ref<Shader> pixelShader = Shader::CreateShared();
-	pixelShader->LoadFromGLSL("GBufferPass.frag", EShaderStage::FRAGMENT);
+	pixelShader->LoadFromGLSL("shaders/GBufferPass.frag", EShaderStage::FRAGMENT);
 
 	/* Create graphics pipeline */
 	GraphicsPipelineCreateInfo pipelineInfo = { };
@@ -204,6 +219,7 @@ GBufferPass::CreatePipeline() {
 	/* Create a compatible render pass */
 	/* TODO: Use dynamic rendering */
 	RenderPassCreateInfo rpInfo = { };
+	rpInfo.dependencies = GetDefaultSubpassDependencies(true);
 
 	/* Attachment 0: Base color - RGBA16_FLOAT */
 	AttachmentDescription colorAttachment = { };

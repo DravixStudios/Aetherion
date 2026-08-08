@@ -153,6 +153,22 @@ float CalculateShadow(vec3 worldPos, vec3 normal, float viewDepth) {
     return shadow;
 }
 
+/* 
+    Simplified Disney Diffuse (Burley) 
+
+    https://disneyanimation.com/publications/physically-based-shading-at-disney/
+*/
+float DiffuseDisney(float NdotL, float NdotV, float roughness) {
+    float FL = pow(1.0 - NdotL, 5.0);
+    float FV = pow(1.0 - NdotV, 5.0);
+
+    float FD90 = 0.5 + 2 * roughness;
+
+    float fd = mix(1.0, FD90, FL) * mix(1.0, FD90, FV);
+
+    return fd / PI;
+}
+
 void main() {
     vec3 albedo = texture(g_gbuffers[0], vec2(inUVs.x, 1.0 - inUVs.y)).rgb;
     vec3 N = normalize(texture(g_gbuffers[1], vec2(inUVs.x, 1.0 - inUVs.y)).rgb * 2.0 - 1.0);
@@ -164,13 +180,12 @@ void main() {
     vec3 bentN = normalize(bentNormalData.xyz * 2.0 - 1.0);
     float bentAO = bentNormalData.a;
 
-    vec3 color = vec3(0.0);
-
     float ao = orm.r;
     float roughness = clamp(orm.g, 0.05, 1.0);
     float metalness = orm.b;
 
     vec3 correctedCameraPos = vec3(pc.cameraPosition.x, pc.cameraPosition.y, -pc.cameraPosition.z);
+    
     vec3 V = normalize(correctedCameraPos - position);
     vec3 R = reflect(-V, N);
 
@@ -178,6 +193,7 @@ void main() {
     F0 = mix(F0, albedo, metalness);
 
     /* ==== DIRECTIONAL LIGHT ==== */
+    vec3 color = vec3(0.0);
     vec3 Lo = vec3(0.0);
 
     /* SUN LIGHT */
@@ -185,18 +201,22 @@ void main() {
         vec3 L = normalize(pc.sunDirection);
         vec3 H = normalize(V + L);
 
+        float HdotV = clamp(dot(H, V), 0.0, 1.0);
+        float NdotL = max(dot(N, L), 0.0);
+        float NdotV = max(dot(N, V), 0.0);
+
         float NDF = DistributionGGX(N, H, roughness);
         float G = GeometrySmith(N, V, L, roughness);
-        vec3 F = FresnelSchlick(clamp(dot(H, V), 0.0, 1.0), F0);
+        vec3 F = FresnelSchlick(HdotV, F0);
+        
+        vec3 numerator = NDF * G * F;
+        float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.0001;
 
         vec3 kS = F;
         vec3 kD = (1.0 - kS) * (1.0 - metalness);
 
-        vec3 numerator = NDF * G * F;
-        float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.0001;
         vec3 specular = numerator / denominator;
-
-        float NdotL = max(dot(N, L), 0.0);
+        vec3 diffuse = albedo * DiffuseDisney(NdotL, NdotV, roughness);
 
         /* Calculate view-space depth for selecting the cascade */
         float viewDepth = length(correctedCameraPos - position);
@@ -204,53 +224,32 @@ void main() {
 
         /* Sun radiance (color * intensity * shadow) */
         vec3 sunRadiance = vec3(1.0) * pc.sunIntensity;
-        Lo += (kD * albedo / PI + specular) * sunRadiance * NdotL * shadow;
-    }
-
-    /* POINT LIGHT 1 */
-    {
-        vec3 L = normalize(lightPos - position);
-        vec3 H = normalize(V + L);
-        float distance = length(lightPos - position);
-        float attenuation = 1.0 / (distance * distance + 0.1);
-        vec3 radiance = lightColor * attenuation;
-        radiance *= (1.0 + metalness * 0.2);
-
-        float NDF = DistributionGGX(N, H, roughness);
-        float G = GeometrySmith(N, V, L, roughness);
-        vec3 F = FresnelSchlick(clamp(dot(H, V), 0.0, 1.0), F0);
-
-        vec3 kS = F;
-        vec3 kD = (1.0 - kS) * (1.0 - metalness);
-
-        vec3 numerator = NDF * G * F;
-        float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.0001;
-        vec3 specular = numerator / denominator;
-
-        float NdotL = max(dot(N, L), 0.0);
-        // Lo += (kD * albedo / PI + specular) * radiance * NdotL;
-        // Lo += F;
+        Lo += (kD * diffuse + specular) * sunRadiance * NdotL * shadow;
     }
 
     color += Lo;
 
     /* ==== IBL (Ambient lighting for environment) ==== */
-    vec3 F_ibl = FresnelSchlickRoughness(max(dot(N, V), 0.0), F0, roughness);
+    vec3 ambient = vec3(0.0);
+    {
+        const float MAX_REFLECTION_LOD = 4.0;
+        vec3 irradiance = texture(g_iblMaps[0], vec3(-bentN.x, bentN.y, bentN.z)).rgb;
+        vec3 prefilteredColor = textureLod(g_iblMaps[1], vec3(R.x, R.y, R.z), roughness * MAX_REFLECTION_LOD).rgb;
+        vec2 brdf = texture(g_brdfLUT, vec2(max(dot(N, V), 0.0), roughness)).rg;
 
-    vec3 kS_ibl = F_ibl;
-    vec3 kD_ibl = (1.0 - kS_ibl) * (1.0 - metalness);
+        vec3 F = FresnelSchlickRoughness(max(dot(N, V), 0.0), F0, roughness);
 
-    /* Diffuse IBL */
-    vec3 irradiance = texture(g_iblMaps[0], vec3(-bentN.x, bentN.y, bentN.z)).rgb;
-    vec3 diffuse = irradiance * albedo;
+        vec3 kS = F;
+        vec3 kD = (1.0 - kS) * (1.0 - metalness);
 
-    /* Specular IBL */
-    const float MAX_REFLECTION_LOD = 4.0;
-    vec3 prefilteredColor = textureLod(g_iblMaps[1], vec3(R.x, R.y, R.z), roughness * MAX_REFLECTION_LOD).rgb;
-    vec2 brdf = texture(g_brdfLUT, vec2(max(dot(N, V), 0.0), roughness)).rg;
-    vec3 specular_ibl = prefilteredColor * (F0 * brdf.x + brdf.y);
+        /* Diffuse IBL */
+        vec3 diffuse = irradiance * albedo;
+    
+        /* Specular IBL */
+        vec3 specular = prefilteredColor * (F0 * brdf.x + brdf.y);
+        ambient += (kD * diffuse + specular) * bentAO;
+    }
 
-    vec3 ambient = (kD_ibl * diffuse + specular_ibl) * bentAO;
 
     /* ==== COMBINE ==== */
     color += ambient;

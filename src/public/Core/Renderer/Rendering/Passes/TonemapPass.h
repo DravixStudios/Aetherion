@@ -27,11 +27,11 @@ public:
 	void SetInput(TextureHandle input);
 
 	/**
-	* Sets the output image (Backbuffer)
+	* Get tonemap pass output
 	* 
-	* @param output Output image
+	* @returns Tonemap pass output texture handle
 	*/
-	void SetOutput(TextureHandle output);
+	TextureHandle GetOutput() const { return this->m_output; }
 
 	/**
 	* Sets the screen quad data

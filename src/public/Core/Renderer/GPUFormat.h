@@ -1,6 +1,6 @@
 #pragma once
 
-enum class GPUFormat {
+enum class GPUFormat : uint32_t {
 	RGBA8_UNORM,
 	BGRA8_UNORM,
 	RGBA8_SRGB,

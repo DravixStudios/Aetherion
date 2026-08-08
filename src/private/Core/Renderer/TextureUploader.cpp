@@ -69,6 +69,22 @@ TextureUploader::UploadTextureTask(
 ) {
 	auto startTime = std::chrono::high_resolution_clock::now();
 
+	struct ThreadLocalContext {
+		Ref<CommandPool> commandPool;
+		Ref<UploadContext> uploadContext;
+	};
+
+	static thread_local ThreadLocalContext threadContext;
+
+	if (!threadContext.commandPool) {
+		CommandPoolCreateInfo poolInfo = { };
+		poolInfo.flags = ECommandPoolFlags::RESET_COMMAND_BUFFER;
+		
+		threadContext.commandPool = this->m_device->CreateCommandPool(poolInfo, EQueueType::GRAPHICS);
+		threadContext.uploadContext = CreateRef<UploadContext>();
+		threadContext.uploadContext->commandBuffer = threadContext.commandPool->AllocateCommandBuffer();
+	}
+
 	try {
 		/* Create staging buffer */
 		uint32_t nBufferSize = pixelData.size();
@@ -87,11 +103,34 @@ TextureUploader::UploadTextureTask(
 		memcpy(pData, pixelData.data(), nBufferSize);
 		stagingBuffer->Unmap();
 
+		threadContext.uploadContext->commandBuffer->Reset();
+		threadContext.uploadContext->commandBuffer->Begin(true);
+
 		/* Create a texture with staging buffer */
 		TextureCreateInfo textureInfo = createInfo;
 		textureInfo.buffer = stagingBuffer;
+		textureInfo.uploadContext = threadContext.uploadContext;
 
 		GPUTexture::Ptr texture = this->m_device->CreateTexture(textureInfo);
+
+		threadContext.uploadContext->commandBuffer->End();
+
+		/* Create a fence for the thread */
+		FenceCreateInfo fenceInfo = { };
+		fenceInfo.flags = EFenceFlags::SIGNALED;
+
+		Ref<Fence> fence = this->m_device->CreateFence(fenceInfo);
+		fence->Reset();
+
+		/* Submit to graphics queue */
+		Vector<Ref<CommandBuffer>> commandBuffers = { threadContext.uploadContext->commandBuffer };
+
+		SubmitInfo submitInfo = { };
+		submitInfo.commandBuffers = commandBuffers;
+
+		this->m_device->Submit(submitInfo, fence);
+
+		this->m_device->WaitForFence(fence);
 
 		stagingBuffer = Ref<GPUBuffer>();
 

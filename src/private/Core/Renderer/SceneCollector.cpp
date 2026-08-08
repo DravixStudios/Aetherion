@@ -23,10 +23,14 @@ SceneCollector::Collect(Scene* scene) {
 	result.proj = proj;
 	result.cameraPosition = glm::vec3(cam->transform.location.x, cam->transform.location.y, cam->transform.location.z);
 
-	for (auto& [name, gameObject] : scene->GetObjects()) {
+	Map<String, GameObject*> gameObjects;
+	Ref<Hierarchy::HierarchyNode> rootNode = scene->GetHierarchy().root;
+	this->CollectGameObjects(rootNode, gameObjects);
+
+	for (auto& [name, gameObject] : gameObjects) {
 		/* Find a mesh component on the current GameObject */
-		std::map<String, Component*> components = gameObject->GetComponents();
-		std::map<String, Component*>::iterator it = components.find("Mesh");
+		Map<String, Component*> components = gameObject->GetComponents();
+		Map<String, Component*>::iterator it = components.find("MeshComponent");
 		if (it == components.end()) continue;
 
 		Mesh* mesh = dynamic_cast<Mesh*>(it->second);
@@ -34,7 +38,7 @@ SceneCollector::Collect(Scene* scene) {
 
 		/* Check if the mesh is on the uploaded meshes cache */
 		const String& meshName = mesh->GetMeshData().name;
-		std::map<String, UploadedMesh>::const_iterator uploadIt = this->m_uploadedMeshes->find(meshName);
+		Map<String, UploadedMesh>::const_iterator uploadIt = this->m_uploadedMeshes->find(meshName);
 
 		if (uploadIt == this->m_uploadedMeshes->end()) continue;
 
@@ -43,6 +47,7 @@ SceneCollector::Collect(Scene* scene) {
 
 		for (auto& [idx, subMesh] : uploadedMesh.subMeshes) {
 			uint32_t nWvpIdx = static_cast<uint32_t>(result.wvps.size());
+			uint32_t nMaterialIdx = static_cast<uint32_t>(result.materials.size());
 
 			WVP wvp = { };
 			wvp.World = world;
@@ -51,11 +56,26 @@ SceneCollector::Collect(Scene* scene) {
 
 			result.wvps.push_back(wvp);
 
+			UploadedSubMeshMaterial uploadedMaterial = subMesh.material;
+
+			MaterialInstanceData material = { };
+			material.albedoIndex = uploadedMaterial.nAlbedoIndex;
+			material.ormIndex = uploadedMaterial.nORMIndex;
+			material.emissiveIndex = uploadedMaterial.nEmissiveIndex;
+			material.normalIndex = uploadedMaterial.nNormalIndex;
+
+			material.albedoColor = uploadedMaterial.albedoColor;
+			material.emissiveColor = uploadedMaterial.emissiveColor;
+			material.ao = uploadedMaterial.ao;
+			material.roughness = uploadedMaterial.roughness;
+			material.metallic = uploadedMaterial.metallic;
+			material.materialFlags = uploadedMaterial.materialFlags;
+
+			result.materials.push_back(material);
+
 			ObjectInstanceData instance = { };
 			instance.wvpOffset = nWvpIdx * sizeof(WVP);
-			instance.textureIndex = subMesh.nAlbedoIndex;
-			instance.ormTextureIndex = subMesh.nORMIndex;
-			instance.emissiveTextureIndex = subMesh.nEmissiveIndex;
+			instance.materialOffset = nMaterialIdx * sizeof(MaterialInstanceData);
 
 			result.instances.push_back(instance);
 
@@ -73,4 +93,16 @@ SceneCollector::Collect(Scene* scene) {
 	result.nTotalBatches = static_cast<uint32_t>(result.batches.size());
 
 	return result;
+}
+
+void 
+SceneCollector::CollectGameObjects(Ref<Hierarchy::HierarchyNode> node, Map<String, GameObject*>& outObjects) {
+	if (node->pObj != nullptr)
+		outObjects[String(node->name)] = node->pObj;
+
+	if (!node->HasChildren())
+		return;
+
+	for(Ref<Hierarchy::HierarchyNode> children : node->children)
+		this->CollectGameObjects(children, outObjects);
 }

@@ -304,10 +304,10 @@ LightingPass::CreatePipeline() {
 
 	/* Compile shaders (GLSL) */
 	Ref<Shader> vertexShader = Shader::CreateShared();
-	vertexShader->LoadFromGLSL("LightingPass.vert", EShaderStage::VERTEX);
+	vertexShader->LoadFromGLSL("shaders/LightingPass.vert", EShaderStage::VERTEX);
 
 	Ref<Shader> pixelShader = Shader::CreateShared();
-	pixelShader->LoadFromGLSL("LightingPass.frag", EShaderStage::FRAGMENT);
+	pixelShader->LoadFromGLSL("shaders/LightingPass.frag", EShaderStage::FRAGMENT);
 
 	/* Create graphics pipeline */
 	GraphicsPipelineCreateInfo pipelineInfo = { };
@@ -344,6 +344,7 @@ LightingPass::CreatePipeline() {
 	/* Create a compatible render pass */
 	/* TODO: Use dynamic rendering */
 	RenderPassCreateInfo rpInfo = { };
+	rpInfo.dependencies = GetDefaultSubpassDependencies(false);
 
 	/* Attachment 0: HDR Output - RGBA16_FLOAT */
 	AttachmentDescription colorAttachment = { };

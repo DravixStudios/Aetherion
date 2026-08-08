@@ -47,6 +47,8 @@ VulkanImGuiImpl::NewFrame() {
 
 /**
 * Renders the GUI
+* 
+* @param context Graphics context
 */
 void
 VulkanImGuiImpl::Render(Ref<GraphicsContext> context) {
@@ -57,4 +59,119 @@ VulkanImGuiImpl::Render(Ref<GraphicsContext> context) {
 		ImGui::GetDrawData(),
 		commandBuff.As<VulkanCommandBuffer>()->GetVkCommandBuffer()
 	);
+
+	ImGui::UpdatePlatformWindows();
+	ImGui::RenderPlatformWindowsDefault();
+}
+
+/**
+* Registers a texture in imgui
+* 
+* @param sampler Image sampler
+* @param imageView Image view
+* @param imageLayout Image layout
+*/
+Ref<DescriptorSet> 
+VulkanImGuiImpl::AddTexture(
+	Ref<Sampler> sampler,
+	Ref<ImageView> imageView,
+	EImageLayout imageLayout
+) {
+	Ref<VulkanSampler> vkSampler = sampler.As<VulkanSampler>();
+	Ref<VulkanImageView> vkView = imageView.As<VulkanImageView>();
+	VkImageLayout vkLayout = VulkanHelpers::ConvertImageLayout(imageLayout);
+
+	VkDescriptorSet vkDescriptorSet = ImGui_ImplVulkan_AddTexture(
+		vkSampler->GetVkSampler(),
+		vkView->GetVkImageView(),
+		vkLayout
+	);
+
+	Ref<DescriptorSet> set = this->m_device->CreateDescriptorSet(vkDescriptorSet);
+
+	return set;
+}
+
+/**
+* Removes a texture from imgui
+* 
+* @param set Descriptor set
+*/
+void 
+VulkanImGuiImpl::RemoveTexture(Ref<DescriptorSet> set) {
+	Ref<VulkanDescriptorSet> vkSet = set.As<VulkanDescriptorSet>();
+
+	ImGui_ImplVulkan_RemoveTexture(vkSet->GetVkSet());
+}
+
+/**
+* Executes ImGui::Image
+* 
+* @param descriptorSet Descriptor set returned by AddTexture
+* @param imageSize Image size
+*/
+void 
+VulkanImGuiImpl::Image(Ref<DescriptorSet> descriptorSet, ImVec2 imageSize) {
+	Ref<VulkanDescriptorSet> vkSet = descriptorSet.As<VulkanDescriptorSet>();
+	ImGui::Image(
+		reinterpret_cast<ImTextureID>(vkSet->GetVkSet()),
+		imageSize
+	);
+}
+
+/**
+* Executes ImGui::ImageButton
+* 
+* @param descriptorSet Descriptor set returned by AddTexture
+* @param label Button label
+* @param size Button size
+* 
+* @returns True if button has been pressed
+*/
+bool
+VulkanImGuiImpl::ImageButton(Ref<DescriptorSet> descriptorSet, const String& label, ImVec2 size) {
+	ImVec2 pos = ImGui::GetCursorScreenPos();
+
+	/* Create an invisible button */
+	ImGui::InvisibleButton("##imgbtn", size);
+
+	bool bClicked = ImGui::IsItemClicked();
+	bool bDoubleClick = bClicked && ImGui::IsMouseDoubleClicked(0);
+
+	bool bHovered = ImGui::IsItemHovered();
+
+	ImU32 hoverColor = ImGui::GetColorU32(ImGuiCol_ButtonHovered);
+
+	/* Get window draw list */
+	ImDrawList* draw = ImGui::GetWindowDrawList();
+	if (bHovered) {
+		draw->AddRectFilled(
+			pos,
+			ImVec2{ pos.x + size.x, pos.y + size.y },
+			hoverColor,
+			4.f
+		);
+	}
+
+	/* Add image to draw list */
+	if (descriptorSet)
+	{
+		Ref<VulkanDescriptorSet> vkSet = descriptorSet.As<VulkanDescriptorSet>();
+
+		draw->AddImage(
+			reinterpret_cast<ImTextureID>(vkSet->GetVkSet()),
+			pos,
+			ImVec2{ pos.x + size.x, pos.y + size.y }
+		);
+	}
+
+	/* Add label */
+	float textWidth = ImGui::CalcTextSize(label.c_str()).x;
+	draw->AddText(
+		ImVec2(pos.x + (size.x - textWidth) * 0.5f, pos.y + size.y + 2),
+		ImGui::GetColorU32(ImGuiCol_Text),
+		label.c_str()
+	);
+
+	return bDoubleClick;
 }

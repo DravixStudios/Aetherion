@@ -95,4 +95,7 @@ private:
 
     void CreateSwapchain();
     void CreateSyncObjects();
+
+    void SetupCallbacks();
+    void SetupSceneCallbacks();
 };

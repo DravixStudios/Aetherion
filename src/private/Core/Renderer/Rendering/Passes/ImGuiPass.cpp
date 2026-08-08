@@ -2,6 +2,59 @@
 #include "Core/Renderer/Rendering/RenderGraphContext.h"
 #include "Fonts/RobotoRegular.h"
 
+#include "Icons/Folder.h"
+#include "Icons/Mesh.h"
+#include "Icons/Scene.h"
+#include "Icons/Texture.h"
+#include "Icons/Material.h"
+
+#include <functional>
+#include <cstring>
+#include <nfd.h>
+
+struct AssetBrowserState {
+    Ref<ProjectTree::TreeNode> currentNode;
+    Deque<Ref<ProjectTree::TreeNode>> history;
+};
+
+static AssetBrowserState s_browserState;
+
+struct EditorIcons {
+    Ref<GPUTexture> folderImage = nullptr;
+    Ref<ImageView> folderView = nullptr;
+    Ref<DescriptorSet> folderSet = nullptr;
+
+    Ref<GPUTexture> meshImage = nullptr;
+    Ref<ImageView> meshView = nullptr;
+    Ref<DescriptorSet> meshSet = nullptr;
+
+    Ref<GPUTexture> sceneImage = nullptr;
+    Ref<ImageView> sceneView = nullptr;
+    Ref<DescriptorSet> sceneSet = nullptr;
+
+    Ref<GPUTexture> textureImage = nullptr;
+    Ref<ImageView> textureView = nullptr;
+    Ref<DescriptorSet> textureSet = nullptr;
+
+    Ref<GPUTexture> materialImage = nullptr;
+    Ref<ImageView> materialView = nullptr;
+    Ref<DescriptorSet> materialSet = nullptr;
+};
+
+static EditorIcons s_icons;
+
+enum class EDragType : uint32_t {
+    MATERIAL,
+    TEXTURE,
+    MESH
+};
+
+struct DragPayload {
+    EDragType type;
+    char assetName[64];
+    AssetHandle handle;
+};
+
 /**
 * ImGui pass initialization
 * 
@@ -21,7 +74,8 @@ ImGuiPass::Init(Ref<Device> device) {
 void 
 ImGuiPass::Init(Ref<Device> device, uint32_t nFramesInFlight) {
 	this->m_device = device;
-	this->nFramesInFlight = nFramesInFlight;
+	this->m_nFramesInFlight = nFramesInFlight;
+    this->m_sceneImGuiSets.resize(nFramesInFlight, Ref<DescriptorSet>());
 }
 
 /**
@@ -31,11 +85,13 @@ ImGuiPass::Init(Ref<Device> device, uint32_t nFramesInFlight) {
 */
 void
 ImGuiPass::SetupNode(RenderGraphBuilder& builder) {
-	builder.UseColorOutput(this->m_output, EImageLayout::PRESENT_SRC, EAttachmentLoadOp::LOAD);
+	builder.UseColorOutput(this->m_output, EImageLayout::PRESENT_SRC);
 	builder.SetDimensions(this->m_nWidth, this->m_nHeight);
 
 	ImGuiIO& io = ImGui::GetIO();
 	io.DisplaySize = ImVec2(static_cast<float>(this->m_nWidth), static_cast<float>(this->m_nHeight));
+    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+    io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
 }
 
 /**
@@ -46,15 +102,100 @@ ImGuiPass::SetupNode(RenderGraphBuilder& builder) {
 * @param nFramesInFlight Frames in flight count
 */
 void
-ImGuiPass::Execute(Ref<GraphicsContext> context, RenderGraphContext& graphCtx, uint32_t nFramesInFlight) {
+ImGuiPass::Execute(Ref<GraphicsContext> context, RenderGraphContext& graphCtx, uint32_t nImgIdx) {
 	this->m_imgui->NewFrame();
 
     float hierarchyPadding = 50.f;
     float hierarchyHeight = static_cast<float>(this->m_nHeight) - (hierarchyPadding * 2);
 
-    ImGui::SetNextWindowPos(ImVec2{ hierarchyPadding, hierarchyPadding });
-    ImGui::SetNextWindowSize(ImVec2{ 200.f, hierarchyHeight });
-    ImGui::Begin("Hierarchy", nullptr, ImGuiWindowFlags_NoResize);
+    ImGuiViewport* pViewport = ImGui::GetMainViewport();
+    ImGui::SetNextWindowPos(pViewport->WorkPos);
+    ImGui::SetNextWindowSize(pViewport->WorkSize);
+    ImGui::SetNextWindowViewport(pViewport->ID);
+
+    ImGuiWindowFlags windowFlags =
+        ImGuiWindowFlags_NoDocking |
+        ImGuiWindowFlags_NoTitleBar |
+        ImGuiWindowFlags_NoCollapse |
+        ImGuiWindowFlags_NoResize |
+        ImGuiWindowFlags_NoMove |
+        ImGuiWindowFlags_NoBringToFrontOnFocus |
+        ImGuiWindowFlags_NoNavFocus |
+        ImGuiWindowFlags_NoBackground;
+
+    ImGui::Begin("DockSpaceWindow", nullptr, windowFlags);
+    ImGuiID dockspaceId = ImGui::GetID("EditorDockSpace");
+    ImGui::DockSpace(dockspaceId, ImVec2(0.f, 0.f), ImGuiDockNodeFlags_None);
+    ImGui::End();
+
+    ImGui::Begin("Viewport");
+    ImVec2 actualSize = ImGui::GetContentRegionAvail();
+    if (actualSize.x != this->m_viewportSize.x || actualSize.y != this->m_viewportSize.y) {
+        this->m_viewportSize = actualSize;
+        this->m_bPendingResize = true;
+        this->m_pendingSize = actualSize;
+    }
+
+    this->m_imgui->Image(this->m_sceneImGuiSets[nImgIdx], actualSize);
+
+    if (ImGui::BeginDragDropTarget()) {
+        const ImGuiPayload* pPayload = ImGui::AcceptDragDropPayload("ASSET");
+
+        if (pPayload) {
+            void* pData = pPayload->Data;
+            
+            DragPayload* pDragPayload = static_cast<DragPayload*>(pData);
+
+            AssetManager* assetMgr = AssetManager::GetInstance();
+
+            EDragType dragType = pDragPayload->type;
+
+            if (this->m_dropCallback) {
+                this->m_dropCallback(pDragPayload->handle);
+            }
+
+            switch (dragType) {
+                case EDragType::MATERIAL:
+                    break;
+                case EDragType::TEXTURE:
+                    break;
+                case EDragType::MESH:
+                    break;
+                default:
+                    Logger::Error("ImguiPass::Execute: Drag & Drop, invalid drag payload type");
+                    break;
+            }
+        }
+
+        ImGui::EndDragDropTarget();
+    }
+    ImGui::End();
+
+    /* Hierarchy window */
+    ImGui::Begin("Hierarchy");
+
+    if (ProjectManager::GetInstance()->ProjectLoaded()) {
+        SceneManager* sceneMgr = SceneManager::GetInstance();
+        Scene* pCurrentScene = sceneMgr->GetCurrentScene();
+
+        if (pCurrentScene != nullptr) {
+            ImGuiTreeNodeFlags treeFlags = ImGuiTreeNodeFlags_DefaultOpen;
+
+            Hierarchy& hierarchy = pCurrentScene->GetHierarchy();
+            Ref<Hierarchy::HierarchyNode> rootNode = hierarchy.root;
+
+            if (rootNode) {
+                this->DrawHierarchyNode(hierarchy, rootNode);
+            }
+        }
+    }
+    else {
+        ImGui::Text("No project open");
+    }
+
+    ImGui::End();
+
+    this->ShowAssetBrowser();
 
     ImGui::Begin("Sun Debug");
     if (ImGui::DragFloat("Sun Rotation X", &this->m_sunRotation.x, .1f)) {
@@ -68,25 +209,299 @@ ImGuiPass::Execute(Ref<GraphicsContext> context, RenderGraphContext& graphCtx, u
     }
     ImGui::End();
 
-    ImGui::End();
+    /* Main menu bar */
+    if (ImGui::BeginMainMenuBar()) {
+	    if (ImGui::BeginMenu("File")) {
+            if (ImGui::MenuItem("Open project...")) {
+                /* Open a dialog for selecting the project */
+                nfdu8char_t* pOutPath;
+                nfdu8filteritem_t filters[1] = { { "Aetherion Project", "aethproj" } };
+                nfdopendialogu8args_t args = {  };
+                args.filterList = filters;
+                args.filterCount = 1;
 
-	ImGui::BeginMainMenuBar();
+                nfdresult_t result = NFD_OpenDialogU8_With(&pOutPath, &args);
+                
+                /* Get project manager instance */
+                ProjectManager* projMgr = ProjectManager::GetInstance();
 
-	if (ImGui::MenuItem("File")) {
+                switch (result) {
+                case NFD_OKAY:
+                    projMgr->OpenProject(pOutPath);
 
-	}
+                    s_browserState = { };
+                    s_browserState.currentNode = projMgr->GetProjectTree().root;
+                    break;
+                default:
+                    Logger::Error("ImGuiPass::Execute: Failed selecting project directory: {}", NFD_GetError());
+                    break;
+                }
+            }
 
-	if (ImGui::MenuItem("Assets")) {
+            if (ImGui::MenuItem("Save scene...")) {
+                if (this->m_sceneSaveCallback) {
+                    this->m_sceneSaveCallback();
+                }
+            }
+            
+            ImGui::EndMenu();
+	    }
 
-	}
+	    if (ImGui::MenuItem("Assets")) {
 
-	if (ImGui::MenuItem("GameObject")) {
+	    }
 
-	}
+	    if (ImGui::MenuItem("GameObject")) {
 
-	ImGui::EndMainMenuBar();
+	    }
+
+	    ImGui::EndMainMenuBar();
+    }
+
 	
 	this->m_imgui->Render(context);
+}
+
+/**
+* Show asset browser
+* 
+* @param node Asset browser node
+*/
+void 
+ImGuiPass::ShowAssetBrowser() {
+    ImGui::Begin("Project");
+
+    Ref<ProjectTree::TreeNode> node = s_browserState.currentNode;
+    if (!node) {
+        ImGui::Text("No folder selected");
+        ImGui::End();
+        return;
+    }
+
+    /* Breadcrumb system */
+    Vector<Ref<ProjectTree::TreeNode>> breadcrumb;
+
+    {
+        Ref<ProjectTree::TreeNode> n = s_browserState.currentNode;
+        while (n) {
+            breadcrumb.push_back(n);
+            Ref<ProjectTree::TreeNode> parent = n->parent.lock();
+
+            if (!parent) break;
+            n = parent;
+        }
+
+        std::reverse(breadcrumb.begin(), breadcrumb.end());
+    }
+
+    for (uint32_t i = 0; i < breadcrumb.size(); ++i) {
+        if (i > 0) {
+            ImGui::SameLine();
+            ImGui::TextDisabled(">");
+            ImGui::SameLine();
+        }
+
+        String name = fs::path(breadcrumb[i]->dir.name).filename().string();
+
+        if (i == breadcrumb.size() - 1) {
+            ImGui::Text("%s", name.c_str());
+        }
+        else {
+            ImGui::PushID(static_cast<int>(i));
+            if (ImGui::SmallButton(name.c_str())) {
+                s_browserState.history.clear();
+                for (uint32_t j = 0; j < i; ++j) {
+                    s_browserState.history.push_back(breadcrumb[j]);
+                }
+                s_browserState.currentNode = breadcrumb[i];
+            }
+            ImGui::PopID();
+        }
+    }
+
+    ImGui::Separator();
+
+    /* Asset browser elements */
+    float cellSize = 128.f;
+    float panelWidth = ImGui::GetContentRegionAvail().x;
+    int nColumnCount = static_cast<int>(panelWidth / cellSize);
+
+    if (nColumnCount < 1) nColumnCount = 1;
+
+    ImGui::Columns(nColumnCount, 0, false);
+
+    for (auto& [id, child] : node->subNodes) {
+        ImGui::PushID(id);
+        String name = fs::path(child->dir.name).filename().string();
+
+        float iconSize = cellSize - 20.f;
+        float textWidth = ImGui::CalcTextSize(name.c_str()).x;
+        float offsetX = (cellSize - iconSize) * .5f;
+
+        if (this->m_imgui->ImageButton(s_icons.folderSet, name, ImVec2{ cellSize - 20, cellSize - 20 })) {
+            s_browserState.history.push_back(node);
+            s_browserState.currentNode = child;
+        }
+
+        ImGui::PopID();
+        ImGui::NextColumn();
+    }
+    
+    ImGui::PushID("asset_scope");
+    for (uint32_t i = 0; i < node->assets.size(); ++i) {
+        const AssetHandle& asset = node->assets[i];
+        EAssetType assetType = asset.type;
+
+        AssetManager* assetMgr = AssetManager::GetInstance();
+        String assetPath = assetMgr->GetAssetPath(asset);
+
+        switch (assetType) {
+            case EAssetType::MESH:
+            {
+                Name name = ProjectManagerHelpers::GetAssetName(asset);
+                String label = String(name);
+
+                ImGui::PushID(i);
+
+                if (this->m_imgui->ImageButton(s_icons.meshSet, label, ImVec2{ cellSize - 20, cellSize - 20 })) {
+                    Logger::Debug("Clicked asset: {}", label);
+                }
+
+                if (ImGui::BeginDragDropSource()) {
+                    const char* assetName = label.c_str();
+
+                    DragPayload payload = { EDragType::MESH };
+                    std::snprintf(payload.assetName, sizeof(payload.assetName), "%s", assetName);
+                    payload.assetName[sizeof(payload.assetName) - 1] = '\0';
+                    payload.handle = asset;
+
+                    ImGui::SetDragDropPayload(
+                        "ASSET",
+                        &payload,
+                        sizeof(payload)
+                    );
+
+                    ImGui::EndDragDropSource();
+                }
+
+                ImGui::PopID();
+                ImGui::NextColumn();
+                break;
+            }
+            case EAssetType::TEXTURE:
+            {
+                Name name = ProjectManagerHelpers::GetAssetName(asset);
+                String label = String(name);
+
+                ImGui::PushID(i);
+
+                if (this->m_imgui->ImageButton(s_icons.textureSet, label, ImVec2{cellSize - 20, cellSize - 20})) {
+                    Logger::Debug("Clicked asset: {}", label);
+                }
+
+                if (ImGui::BeginDragDropSource()) {
+                    const char* assetName = label.c_str();
+
+                    DragPayload payload = { EDragType::TEXTURE };
+                    std::snprintf(payload.assetName, sizeof(payload.assetName), "%s", assetName);
+                    payload.assetName[sizeof(payload.assetName) - 1] = '\0';
+                    payload.handle = asset;
+
+                    ImGui::SetDragDropPayload(
+                        "ASSET",
+                        &payload,
+                        sizeof(payload)
+                    );
+
+                    ImGui::EndDragDropSource();
+                }
+
+                ImGui::PopID();
+                ImGui::NextColumn();
+                break;
+            }
+            case EAssetType::MATERIAL:
+            {
+                Name name = ProjectManagerHelpers::GetAssetName(asset);
+                String label = String(name);
+
+                ImGui::PushID(i);
+
+                if (this->m_imgui->ImageButton(s_icons.materialSet, label, ImVec2{cellSize - 20, cellSize - 20})) {
+                    Logger::Debug("Clicked asset: {}", label);
+                }
+
+                if (ImGui::BeginDragDropSource()) {
+                    const char* assetName = label.c_str();
+
+                    DragPayload payload = { EDragType::MATERIAL };
+                    std::snprintf(payload.assetName, sizeof(payload.assetName), "%s", assetName);
+                    payload.assetName[sizeof(payload.assetName) - 1] = '\0';
+                    payload.handle = asset;
+
+                    ImGui::SetDragDropPayload(
+                        "ASSET",
+                        &payload,
+                        sizeof(payload)
+                    );
+
+                    ImGui::EndDragDropSource();
+                }
+
+                ImGui::PopID();
+                ImGui::NextColumn();
+                break;
+            }
+            case EAssetType::SCENE:
+                break;
+            default:
+                break;
+        }
+
+    }
+    ImGui::PopID();
+
+    ImGui::Columns(1);
+
+    ImGui::End();
+}
+
+/**
+* Draw a hierarchy node
+* 
+* @param node Hierarchy node to draw
+*/
+void 
+ImGuiPass::DrawHierarchyNode(Hierarchy& hierarchy, const Ref<Hierarchy::HierarchyNode>& node) {
+    ImGuiTreeNodeFlags flags = 0;
+
+    const char* nodeID = node->name.data;
+
+    if (!node->HasChildren()) {
+        flags |= ImGuiTreeNodeFlags_Leaf;
+    }
+
+    bool bOpen = ImGui::TreeNodeEx(
+        static_cast<void*>(node.Get().get()),
+        flags,
+        "%s",
+        nodeID
+    );
+
+    if (ImGui::BeginPopupContextItem()) {
+        if (ImGui::MenuItem("Delete")) {
+            hierarchy.DeleteNode(node);
+        }
+        ImGui::EndPopup();
+    }
+
+    if (bOpen) {
+        for (const Ref<Hierarchy::HierarchyNode>& child : node->children) {
+            DrawHierarchyNode(hierarchy, child);
+        }
+
+        ImGui::TreePop();
+    }
 }
 
 void
@@ -97,13 +512,41 @@ ImGuiPass::Resize(uint32_t nWidth, uint32_t nHeight) {
 	io.DisplaySize = ImVec2(static_cast<float>(this->m_nWidth), static_cast<float>(this->m_nHeight));
 }
 
+/**
+* Set imgui pass input
+*
+* @param input Scene texture handle
+* @param transientPool Transient resource pool
+*/
+void
+ImGuiPass::SetInput(TextureHandle input, TransientResourcePool& transientPool, uint32_t nImgIdx) {
+    this->m_input = input;
+
+    if (!this->m_pool) {
+        this->CreateResources();
+        this->SetupTheme();
+    }
+
+    /* Get image view from transient resource pool */
+    Ref<ImageView> sceneView = transientPool.GetImageView(input);
+
+    /* Clear last descriptor if exists */
+    if (this->m_sceneImGuiSets[nImgIdx]) {
+        this->m_imgui->RemoveTexture(this->m_sceneImGuiSets[nImgIdx]);
+        this->m_sceneImGuiSets[nImgIdx] = Ref<DescriptorSet>();
+    }
+
+    this->m_sceneImGuiSets[nImgIdx] = this->m_imgui->AddTexture(this->m_sampler, sceneView, EImageLayout::SHADER_READ_ONLY);
+}
+
+/**
+* Set imgui pass output
+* 
+* @param output Output texture handle
+*/
 void
 ImGuiPass::SetOutput(TextureHandle output) {
 	this->m_output = output;
-	if (!this->m_pool) {
-		this->CreateResources();
-		this->SetupTheme();
-	}
 }
 
 /**
@@ -132,6 +575,17 @@ ImGuiPass::CreateResources() {
 	
 	this->m_pool = this->m_device->CreateDescriptorPool(poolInfo);
 
+    /* Create sampler */
+    SamplerCreateInfo samplerInfo = { };
+    samplerInfo.addressModeU = EAddressMode::CLAMP_TO_EDGE;
+    samplerInfo.addressModeV = EAddressMode::CLAMP_TO_EDGE;
+    samplerInfo.addressModeW = EAddressMode::CLAMP_TO_EDGE;
+    samplerInfo.minFilter = EFilter::NEAREST;
+    samplerInfo.magFilter = EFilter::NEAREST;
+    samplerInfo.mipmapMode = EMipmapMode::MIPMAP_MODE_NEAREST;
+
+    this->m_sampler = this->m_device->CreateSampler(samplerInfo);
+
 	/* 
 		Create compatible render pass 
 
@@ -153,17 +607,115 @@ ImGuiPass::CreateResources() {
 	RenderPassCreateInfo rpInfo = { };
 	rpInfo.attachments = Vector{ attachment };
 	rpInfo.subpasses = Vector{ subpass };
+    rpInfo.dependencies = GetDefaultSubpassDependencies(false);
 	
 	this->m_renderPass = this->m_device->CreateRenderPass(rpInfo);
 
-	/* Create ImGui */
-	ImGuiImplCreateInfo imguiInfo = { };
-	imguiInfo.descriptorPool = this->m_pool;
-	imguiInfo.nFramesInFlight = this->nFramesInFlight;
-	imguiInfo.pWindow = this->m_pWindow;
-	imguiInfo.renderPass = this->m_renderPass;
-	
-	this->m_imgui = this->m_device->CreateImGui(imguiInfo);
+    /* Create ImGui */
+    ImGuiImplCreateInfo imguiInfo = { };
+    imguiInfo.descriptorPool = this->m_pool;
+    imguiInfo.nFramesInFlight = this->m_nFramesInFlight;
+    imguiInfo.pWindow = this->m_pWindow;
+    imguiInfo.renderPass = this->m_renderPass;
+
+    this->m_imgui = this->m_device->CreateImGui(imguiInfo);
+
+    /* Load icons */
+
+    /*
+        loadIcon lambda function
+
+        This function rasterizes the
+        SVG of our icon, loads it to
+        the GPU and adds it to ImGuiImpl
+    */
+    std::function<void(
+        const char*, 
+        Ref<GPUTexture>&, 
+        Ref<ImageView>&,
+        Ref<DescriptorSet>&
+    )> loadIcon = [this](
+            const char* svg,
+            Ref<GPUTexture>& outTexture,
+            Ref<ImageView>& outView,
+            Ref<DescriptorSet>& outSet
+    ) {
+        /* Load SVG */
+        uint32_t nWidth = 0;
+        uint32_t nHeight = 0;
+
+        const Vector<unsigned char> data = LoadSVG(svg, 256.f, nWidth, nHeight);
+
+        /* Create staging buffer */
+        BufferCreateInfo buffInfo = { };
+        buffInfo.type = EBufferType::STAGING_BUFFER;
+        buffInfo.pcData = data.data();
+        buffInfo.nSize = data.size();
+        buffInfo.usage = EBufferUsage::TRANSFER_SRC;
+        buffInfo.sharingMode = ESharingMode::EXCLUSIVE;
+
+        Ref<GPUBuffer> staging = this->m_device->CreateBuffer(buffInfo);
+
+        /* Create texture */
+        TextureCreateInfo textureInfo = { };
+        textureInfo.buffer = staging;
+        textureInfo.extent.width = nWidth;
+        textureInfo.extent.height = nHeight;
+        textureInfo.extent.depth = 1;
+        textureInfo.format = GPUFormat::RGBA8_UNORM;
+        textureInfo.imageType = ETextureDimensions::TYPE_2D;
+        textureInfo.initialLayout = ETextureLayout::UNDEFINED;
+        textureInfo.nMipLevels = 1;
+        textureInfo.nArrayLayers = 1;
+        textureInfo.sharingMode = ESharingMode::EXCLUSIVE;
+        textureInfo.samples = ESampleCount::SAMPLE_1;
+        textureInfo.tiling = ETextureTiling::OPTIMAL;
+        textureInfo.usage = ETextureUsage::SAMPLED | ETextureUsage::TRANSFER_DST;
+
+        Ref<GPUTexture> texture = this->m_device->CreateTexture(textureInfo);
+
+        /* Create image view */
+        ImageViewCreateInfo viewInfo = { };
+        viewInfo.image = texture;
+        viewInfo.format = textureInfo.format;
+        viewInfo.viewType = EImageViewType::TYPE_2D;
+        viewInfo.subresourceRange.nBaseArrayLayer = 0;
+        viewInfo.subresourceRange.nBaseMipLevel = 0;
+        viewInfo.subresourceRange.nLayerCount = 1;
+        viewInfo.subresourceRange.nLevelCount = 1;
+
+        Ref<ImageView> imageView = this->m_device->CreateImageView(viewInfo);
+
+        /* Add texture to ImGuiImpl */
+        Ref<DescriptorSet> set = this->m_imgui->AddTexture(this->m_sampler, imageView, EImageLayout::SHADER_READ_ONLY);
+
+        /* Output */
+        outTexture = texture;
+        outView = imageView;
+        outSet = set;
+    };
+
+    s_icons = { };
+
+    /* Folder Icon */
+    loadIcon(FolderSVG, s_icons.folderImage, s_icons.folderView, s_icons.folderSet);
+
+    /* 
+        Mesh icon 
+        
+        TODO: Generate a preview of
+        the mesh when uploading the mesh
+    */
+    loadIcon(MeshSVG, s_icons.meshImage, s_icons.meshView, s_icons.meshSet);
+
+    /* Scene icon */
+    loadIcon(SceneSVG, s_icons.sceneImage, s_icons.sceneView, s_icons.sceneSet);
+
+    /* Texture icon */
+    loadIcon(TextureSVG, s_icons.textureImage, s_icons.textureView, s_icons.textureSet);
+
+    /* Material icon */
+    loadIcon(MaterialSVG, s_icons.materialImage, s_icons.materialView, s_icons.materialSet);
 }
 
 /**

@@ -10,8 +10,14 @@ struct MegaBufferAllocation {
 	uint32_t nIndexCount;
 };
 
+
 class MegaBuffer {
 public:
+	struct FreeSegment {
+		uint32_t nOffset;
+		uint32_t nCount;
+	};
+
 	struct Block {
 		Ref<GPUBuffer> vertexBuffer;
 		Ref<GPUBuffer> indexBuffer;
@@ -21,10 +27,15 @@ public:
 
 		uint32_t nCurrentVertexOffset = 0;
 		uint32_t nCurrentIndexOffset = 0;
+
+		Vector<FreeSegment> freeVertices;
+		Vector<FreeSegment> freeIndices;
 	};
 
 	void Init(Ref<Device> device, uint32_t nMaxVertices, uint32_t nMaxIndices);
 	MegaBufferAllocation Upload(const Vector<Vertex>& vertices, const Vector<uint32_t>& indices);
+
+	void Free(const MegaBufferAllocation& alloc);
 
 	const Vector<Block>& GetBlocks() const { return this->m_blocks; }
 	uint32_t GetBlockCount() const { return static_cast<uint32_t>(this->m_blocks.size()); }

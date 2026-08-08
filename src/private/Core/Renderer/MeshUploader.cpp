@@ -27,12 +27,36 @@ MeshUploader::Upload(const MeshData& meshData) {
 	UploadedMesh result = { };
 
 	for (auto& [idx, subData] : meshData.subMeshes) {
-		UploadedSubMesh uploaded = { };
+		/* Material */
+		UploadedSubMeshMaterial material = { };
+		material.nAlbedoIndex = this->QueueTextureUpload(subData.albedo);
+		material.nORMIndex = this->QueueTextureUpload(subData.orm);
+		material.nEmissiveIndex = this->QueueTextureUpload(subData.emissive);
+		material.nNormalIndex = this->QueueTextureUpload(subData.normal);
 
+		material.albedoColor = glm::vec4(
+			subData.albedoColor.x,
+			subData.albedoColor.y,
+			subData.albedoColor.z,
+			subData.albedoColor.w
+		);
+
+		material.emissiveColor = glm::vec4(
+			subData.emissiveColor.x,
+			subData.emissiveColor.y,
+			subData.emissiveColor.z,
+			subData.emissiveColor.w
+		);
+
+		material.ao = subData.ao;
+		material.roughness = subData.roughness;
+		material.metallic = subData.metallic;
+		material.materialFlags = static_cast<uint32_t>(subData.materialFlags);
+
+		/* SubMesh */
+		UploadedSubMesh uploaded = { };
 		uploaded.geometry = this->m_megaBuffer->Upload(subData.vertices, subData.indices);
-		uploaded.nAlbedoIndex = this->QueueTextureUpload(subData.albedo);
-		uploaded.nORMIndex = this->QueueTextureUpload(subData.orm);
-		uploaded.nEmissiveIndex = this->QueueTextureUpload(subData.emissive);
+		uploaded.material = material;
 		uploaded.nBlockIdx = uploaded.geometry.nBlockIndex;
 
 		result.subMeshes[idx] = uploaded;
@@ -55,10 +79,17 @@ MeshUploader::QueueTextureUpload(const TextureData& textureData) {
 		return UINT32_MAX;
 	}
 
+	uint64_t hash = XXH64(textureData.data.data(), textureData.data.size(), 0);
+	String hashString = HashToString(hash);
+
+	if (this->m_resourceMgr->IsTextureRegistered(hashString)) {
+		return this->m_resourceMgr->GetTextureIndex(hashString);
+	}
+
 	/* Retrieve texture width and height */
 	int nWidth = textureData.nWidth;
 	int nHeight = textureData.nHeight;
-	unsigned char* pixels = nullptr;
+	Byte* pixels = nullptr;
 	bool bNeedsFree = false;
 
 	if (textureData.bCompressed) {
@@ -77,16 +108,7 @@ MeshUploader::QueueTextureUpload(const TextureData& textureData) {
 		bNeedsFree = true;
 	}
 	else {
-		pixels = const_cast<unsigned char*>(textureData.data.data());
-	}
-
-	/* Create a texture hash to avoid duplicates */
-	size_t size = nWidth * nHeight * 4;
-	uint64_t hash = XXH64(pixels, size, 0);
-	String hashString = HashToString(hash);
-
-	if (this->m_resourceMgr->IsTextureRegistered(hashString)) {
-		return this->m_resourceMgr->GetTextureIndex(hashString);
+		pixels = const_cast<Byte*>(textureData.data.data());
 	}
 
 	/* Get texture uploader */
@@ -126,6 +148,10 @@ MeshUploader::QueueTextureUpload(const TextureData& textureData) {
 	this->m_pendingTextureUploads.push_back(std::move(pendingUpload));
 
 	this->m_resourceMgr->RegisterTexture(hashString, nTextureIndex);
+
+	if (this->m_pendingTextureUploads.size() >= 4) {
+		this->FinalizeUploads();
+	}
 
 	return nTextureIndex;
 }

@@ -1,5 +1,4 @@
 #include "Core/Camera/EditorCamera.h"
-#include "Core/Core.h"
 
 EditorCamera::EditorCamera(String name) : Camera::Camera(name) {
 	this->m_input = Input::GetInstance();
@@ -16,7 +15,14 @@ void EditorCamera::Start() {
 
 void EditorCamera::Update() {
 	Camera::Update();
-	
+
+	/* Always recalculate projection with current aspect ratio */
+	this->m_projection = glm::perspectiveFovRH(
+		glm::radians(70.f), 
+		static_cast<float>(this->m_nWidth), static_cast<float>(this->m_nHeight), 
+		.01f, 1000.f
+	);
+
 	if (this->m_input->GetButtonDown(EMouseButton::RIGHT)) {
 		this->m_input->ShowCursor(false);
 
@@ -61,7 +67,7 @@ void EditorCamera::Update() {
 			glm::vec3(
 				this->transform.Forward().x, 
 				this->transform.Forward().y,
-				this->transform.Forward().x
+				this->transform.Forward().z
 			)
 		);
 
@@ -73,12 +79,6 @@ void EditorCamera::Update() {
 			-this->transform.location.y,
 			this->transform.location.z
 		});
-
-		this->m_projection = glm::perspectiveFovRH(
-			glm::radians(70.f), 
-			static_cast<float>(WIDTH), static_cast<float>(HEIGHT), 
-			1.f, 1000.f
-		);
 	}
 	else {
 		this->m_input->ShowCursor(true);

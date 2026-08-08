@@ -1,12 +1,14 @@
 # Aetherion
 - Aetherion Game engine source code
 
-![Aetherion Logo](./aetherion_logo.png)
+![Aetherion Logo](./screenshots/aetherion_logo.png)
 
 ## Description
 - Aetherion is a game engine made in C++ and Vulkan (and soon DirectX 12) by Dravix Studios
 - Was made for having a propietary next-gen game engine
 - It's actually under development. May have issues that need to be solved.
+
+- Currently working on project management system
 
 ## Features
 - Deferred rendering
@@ -16,10 +18,10 @@
 - Render Graph
 - Indirect Drawing 
 - GUI
+- Disney BRDF
+- Project management ⚠️
 - Cascade Shadow Maps (CSM) [Video](https://youtu.be/cHQ8zL5gVL8?si=c8efP4bEGF4RaUyC)
-- Disney BRDF ❌
 - C# Scripting system ❌
-- Project management ❌
 - More soon!
 
 ## Current Screenshot
@@ -41,3 +43,6 @@
 - [xxHash](https://github.com/Cyan4973/xxHash)
 - [imgui](https://github.com/ocornut/imgui)
 - [Roboto Font](https://fonts.google.com/specimen/Roboto)
+- [NFD-Extended](https://github.com/btzy/nativefiledialog-extended)
+- [nanosvg](https://github.com/memononen/nanosvg)
+- [nlohmann/json](https://github.com/nlohmann/json)

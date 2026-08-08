@@ -9,6 +9,7 @@
     "spdlog",
     "glm",
     "assimp",
-    "xxhash"
+    "xxhash",
+    "nativefiledialog-extended"
   ]
 }

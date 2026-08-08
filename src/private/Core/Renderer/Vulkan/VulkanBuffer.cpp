@@ -127,7 +127,7 @@ VulkanBuffer::~VulkanBuffer() {
 * @param createInfo Buffer create info
 */
 void 
-VulkanBuffer::Create(const BufferCreateInfo& createInfo) {
+VulkanBuffer::Create(const BufferCreateInfo& createInfo, const String& debugName) {
 	VkDevice vkDevice = this->m_device->GetVkDevice();
 	this->m_bufferType = createInfo.type;
 	this->m_bufferUsage = createInfo.usage;
@@ -160,23 +160,23 @@ VulkanBuffer::Create(const BufferCreateInfo& createInfo) {
 	*/
 	VkMemoryPropertyFlags memProps = 0;
 	switch (createInfo.type) {
-	case EBufferType::VERTEX_BUFFER:
-	case EBufferType::INDEX_BUFFER:
-		memProps |= VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
-		break;
-	case EBufferType::STAGING_BUFFER:
-		memProps |= VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
-		memProps |= VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-		memProps |= VK_MEMORY_PROPERTY_HOST_CACHED_BIT;
-		break;
-	case EBufferType::UNIFORM_BUFFER:
-	case EBufferType::STORAGE_BUFFER:
-		memProps |= VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
-		memProps |= VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-		break;
-	default:
-		Logger::Debug("VulkanBuffer::Create: Unknown buffer type");
-		return;
+		case EBufferType::VERTEX_BUFFER:
+		case EBufferType::INDEX_BUFFER:
+			memProps |= VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+			break;
+		case EBufferType::STAGING_BUFFER:
+			memProps |= VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
+			memProps |= VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+			memProps |= VK_MEMORY_PROPERTY_HOST_CACHED_BIT;
+			break;
+		case EBufferType::UNIFORM_BUFFER:
+		case EBufferType::STORAGE_BUFFER:
+			memProps |= VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
+			memProps |= VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+			break;
+		default:
+			Logger::Debug("VulkanBuffer::Create: Unknown buffer type");
+			return;
 	}
 	
 	VkMemoryAllocateInfo allocInfo = { };
@@ -281,6 +281,13 @@ VulkanBuffer::Create(const BufferCreateInfo& createInfo) {
 	}
 	
 	pMap = nullptr;
+
+	/*VK_SET_NAME(
+		this->m_device->GetVkDevice(),
+		VK_OBJECT_TYPE_BUFFER,
+		reinterpret_cast<uint64_t>(this->m_buffer),
+		debugName
+	);*/
 }
 
 /**

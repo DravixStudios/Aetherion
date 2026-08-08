@@ -158,8 +158,6 @@ ShadowPass::Execute(Ref<GraphicsContext> context, RenderGraphContext& graphCtx, 
 
 		context->EndRenderPass();
 	}
-
-	context->GlobalBarrier();
 }
 
 void
@@ -206,7 +204,7 @@ ShadowPass::CalculateCascadeSplits() {
 
 		lambda = blend factor (0 = uniform, 1 = logarithmic)
 	*/
-	constexpr float lambda = 0.7f;
+	constexpr float lambda = 0.8f;
 
 	float splits[CSM_CASCADE_COUNT + 1];
 	splits[0] = this->m_nearPlane;
@@ -247,65 +245,55 @@ ShadowPass::CalculateCascadeViewProj(
 	float nearSplit,
 	float farSplit
 ) {
-	/* Inverse camera viewProj */
-	glm::mat4 invVP = glm::inverse(this->m_cameraProj * this->m_cameraView);
+	/* Calculate local center */
+	float tanHalfFOVY = 1.f / std::abs(this->m_cameraProj[1][1]);
+	float aspect = std::abs(this->m_cameraProj[1][1] / this->m_cameraProj[0][0]);
 
-	/* 8 frustum corners in NDC */
-	glm::vec4 frustumCorners[8] = {
-		/* Near plane */
-		{ -1.f, -1.f, 0.f, 1.f },
-		{ 1.f, -1.f, 0.f, 1.f },
-		{ 1.f, 1.f, 0.f, 1.f },
-		{ -1.f, 1.f, 0.f, 1.f },
+	float hn = nearSplit * tanHalfFOVY;
+	float wn = hn * aspect;
+	float hf = farSplit * tanHalfFOVY;
+	float wf = hf * aspect;
 
-		/* Far plane */
-		{ -1.f, -1.f, 1.f, 1.f },
-		{ 1.f, -1.f, 1.f, 1.f },
-		{ 1.f, 1.f, 1.f, 1.f },
-		{ -1.f, 1.f, 1.f, 1.f }
+	glm::vec3 localCorners[8] = {
+		{ -wn, hn, -nearSplit },
+		{ wn, hn, -nearSplit },
+		{ wn, -hn, -nearSplit },
+		{ -wn, -hn, -nearSplit },
+
+		{ -wf, hf, -farSplit },
+		{ wf, hf, -farSplit },
+		{ wf, -hf, -farSplit },
+		{ -wf, -hf, -farSplit },
+
 	};
 
-	/* Transform to world space */
-	glm::vec3 worldCorners[8];
-	for (uint32_t i = 0; i < 8; i++) {
-		glm::vec4 w = invVP * frustumCorners[i];
-		worldCorners[i] = glm::vec3(w) / w.w;
+	glm::vec3 localCenter(0.f);
+	for(const glm::vec3& corner : localCorners) {
+		localCenter += corner;
 	}
 
-	float nearRatio = (nearSplit - this->m_nearPlane) / (this->m_farPlane - this->m_nearPlane);
-	float farRatio = (farSplit - this->m_nearPlane) / (this->m_farPlane - this->m_nearPlane);
+	localCenter /= 8.f;
 
-	glm::vec3 cascadeCorners[8];
-	for (uint32_t i = 0; i < 4; i++) {
-		glm::vec3 ray = worldCorners[i + 4] - worldCorners[i];
-		cascadeCorners[i] = worldCorners[i] + ray * nearRatio;
-		cascadeCorners[i + 4] = worldCorners[i] + ray * farRatio;
+	float radius = 0.f;
+	for (const glm::vec3& corner : localCorners) {
+		radius = std::max(radius, glm::distance(localCenter, corner));
 	}
 
-	/* Use the center of the bounding sphere for maximum stability */
-	glm::vec3 center(0.f);
-	for (const glm::vec3& corner : cascadeCorners) {
-		center += corner;
-	}
-	center /= 8.f;
-
-	/* Calculate radius of the bounding sphere */
-	float frustumDiagonal = glm::distance(cascadeCorners[0], cascadeCorners[6]);
-	float radius = frustumDiagonal * .5f;
-	radius = std::ceil(radius * 16.f) / 16.f; // Quantize radius
+	glm::mat4 cameraWorld = glm::inverse(this->m_cameraView);
+	glm::vec3 worldCenter = glm::vec3(cameraWorld * glm::vec4(localCenter, 1.f));
 
 	/* Stable light direction and view matrix */
 	glm::vec3 lightDir = glm::normalize(this->m_sunDirection);
 	glm::vec3 up = (std::abs(lightDir.y) > .99f) ? glm::vec3(0.f, 0.f, 1.f) : glm::vec3(0.f, 1.f, 0.f);
 
 	glm::mat4 lightView = glm::lookAt(
-		center + lightDir * radius, 
-		center,
+		worldCenter + lightDir * radius, 
+		worldCenter,
 		up
 	);
 
 	/* Orthographic projection centered on the sphere */
-	glm::mat4 lightOrtho = glm::ortho(-radius, radius, -radius, radius, -radius * 100.f, radius * 100.f);
+	glm::mat4 lightOrtho = glm::ortho(-radius, radius, -radius, radius, -radius * 10.f, radius * 10.f);
 
 	/* Correction Matrix (Flip Y + Map Z 0..1) */
 	glm::mat4 correction = glm::mat4(
@@ -332,6 +320,14 @@ ShadowPass::CalculateCascadeViewProj(
 	lightOrtho[3] += roundOffset;
 
 	this->m_cascades[nCascadeIdx].viewProj = lightOrtho * lightView;
+
+	/* 
+		HOLD ON! If you're here, it's because you're researching about 
+		how Aetherion calculates it's shadow cascades... 
+
+		Take a break and listen to this banger:
+		https://open.spotify.com/track/2b0Aosp8Qa3Gt3AVvp2DJl?si=b9e99bb1c8864d78
+	*/
 }
 
 /**
@@ -416,9 +412,26 @@ ShadowPass::CreateShadowResources() {
 	subpass.colorAttachments = { };
 	subpass.bHasDepthStencil = true;
 
+	SubpassDependency inDependency = { };
+	inDependency.nSrcSubpass = SUBPASS_EXTERNAL;
+	inDependency.nDstSubpass = 0;
+	inDependency.srcStageMask = EPipelineStage::FRAGMENT_SHADER;
+	inDependency.dstStageMask = EPipelineStage::EARLY_FRAGMENT_TESTS;
+	inDependency.srcAccessMask = EAccess::SHADER_READ;
+	inDependency.dstAccessMask = EAccess::DEPTH_STENCIL_WRITE;
+
+	SubpassDependency outDependency = { };
+	outDependency.nSrcSubpass = 0;
+	outDependency.nDstSubpass = SUBPASS_EXTERNAL;
+	outDependency.srcStageMask = EPipelineStage::LATE_FRAGMENT_TESTS;
+	outDependency.dstStageMask = EPipelineStage::FRAGMENT_SHADER;
+	outDependency.srcAccessMask = EAccess::DEPTH_STENCIL_WRITE;
+	outDependency.dstAccessMask = EAccess::SHADER_READ;
+	   
 	RenderPassCreateInfo rpInfo = { };
 	rpInfo.attachments = Vector{ depthAttachment };
 	rpInfo.subpasses = Vector{ subpass };
+	rpInfo.dependencies = Vector{ inDependency, outDependency };
 	
 	this->m_shadowRenderPass = this->m_device->CreateRenderPass(rpInfo);
 
@@ -528,13 +541,14 @@ ShadowPass::CreateCullingResources() {
 
 	for (uint32_t i = 0; i < CSM_CASCADE_COUNT; i++) {
 		/* Define per frame sizes */
-		std::array<uint32_t, 6> frameSizes = {
+		std::array<uint32_t, 7> frameSizes = {
 			this->m_pCullingPass->GetInstanceBuffer()->GetPerFrameSize(), // 0
-			this->m_pCullingPass->GetBatchBuffer()->GetPerFrameSize(), // 1
-			this->m_shadowIndirectBuffers[i]->GetPerFrameSize(), // 2
-			0, // 3 (Is not per frame)
-			this->m_pCullingPass->GetWVPBuffer()->GetPerFrameSize(), // 4
-			this->m_shadowFrustumBuffer->GetPerFrameSize(), // 5
+			this->m_pCullingPass->GetMaterialBuffer()->GetPerFrameSize(), // 1
+			this->m_pCullingPass->GetBatchBuffer()->GetPerFrameSize(), // 2
+			this->m_shadowIndirectBuffers[i]->GetPerFrameSize(), // 3
+			0, // 4 (Is not per frame)
+			this->m_pCullingPass->GetWVPBuffer()->GetPerFrameSize(), // 5
+			this->m_shadowFrustumBuffer->GetPerFrameSize(), // 6
 		};
 
 		/* Create a descriptor set per frame in flight */
@@ -548,29 +562,34 @@ ShadowPass::CreateCullingResources() {
 				this->m_pCullingPass->GetInstanceBuffer()->GetBuffer(), frameSizes[0] * j, frameSizes[0]
 				});
 
-			/* Binding 1: Batch data */
+			/* Binding 1: Material data (Unused) */
 			set->WriteBuffer(1, 0, {
-				this->m_pCullingPass->GetBatchBuffer()->GetBuffer(), frameSizes[1] * j, frameSizes[1]
+				this->m_pCullingPass->GetMaterialBuffer()->GetBuffer(), frameSizes[1] * j, frameSizes[2]
+			});
+
+			/* Binding 1: Batch data */
+			set->WriteBuffer(2, 0, {
+				this->m_pCullingPass->GetBatchBuffer()->GetBuffer(), frameSizes[2] * j, frameSizes[2]
 				});
 
 			/* Binding 2: Output commands */
-			set->WriteBuffer(2, 0, {
-				this->m_shadowIndirectBuffers[i]->GetBuffer(), frameSizes[2] * j, frameSizes[2]
+			set->WriteBuffer(3, 0, {
+				this->m_shadowIndirectBuffers[i]->GetBuffer(), frameSizes[3] * j, frameSizes[3]
 				});
 
 			/* Binding 3: Draw count */
-			set->WriteBuffer(3, 0, {
-				this->m_shadowCountBuffers[i], frameSizes[3] * j, 64 * sizeof(uint32_t)
+			set->WriteBuffer(4, 0, {
+				this->m_shadowCountBuffers[i], frameSizes[4] * j, 64 * sizeof(uint32_t)
 			});
 
 			/* Binding 4: WVP Data */
-			set->WriteBuffer(4, 0, {
-				this->m_pCullingPass->GetWVPBuffer()->GetBuffer(), frameSizes[4] * j, frameSizes[4]
+			set->WriteBuffer(5, 0, {
+				this->m_pCullingPass->GetWVPBuffer()->GetBuffer(), frameSizes[5] * j, frameSizes[5]
 			});
 
 			/* Binding 5: Frustum data */
-			set->WriteBuffer(5, 0, {
-				this->m_shadowFrustumBuffer->GetBuffer(), frameSizes[5] * j, frameSizes[5]
+			set->WriteBuffer(6, 0, {
+				this->m_shadowFrustumBuffer->GetBuffer(), frameSizes[6] * j, frameSizes[6]
 			});
 
 			set->UpdateWrites();
@@ -592,6 +611,10 @@ ShadowPass::DispatchShadowCulling(Ref<GraphicsContext> context, uint32_t nCascad
 	Ref<GPUBuffer> countBuffer = this->m_shadowCountBuffers[nCascadeIdx];
 	context->FillBuffer(countBuffer, 0, sizeof(uint32_t) * 64, 0);
 	context->BufferMemoryBarrier(countBuffer, EAccess::TRANSFER_WRITE, EAccess::SHADER_WRITE);
+
+	if (this->m_pCullingPass->GetTotalBatches() == 0) {
+		return;
+	}
 
 	CascadeData cascade = this->m_cascades[nCascadeIdx];
 
@@ -616,6 +639,7 @@ ShadowPass::DispatchShadowCulling(Ref<GraphicsContext> context, uint32_t nCascad
 	struct {
 		uint32_t nTotalBatches;
 		uint32_t nWvpAlignment;
+		uint32_t nMaterialAlignment;
 		uint32_t nFrustumOffset;
 		uint32_t nFrustumAlignment;
 		uint32_t nMaxDrawsPerBlock;
@@ -624,6 +648,7 @@ ShadowPass::DispatchShadowCulling(Ref<GraphicsContext> context, uint32_t nCascad
 
 	pushData.nTotalBatches = this->m_pCullingPass->GetTotalBatches();
 	pushData.nWvpAlignment = this->m_pCullingPass->GetWVPBuffer()->GetAlignment();
+	pushData.nMaterialAlignment = this->m_pCullingPass->GetMaterialBuffer()->GetAlignment();
 	pushData.nFrustumOffset = nFrustumOffset;
 	pushData.nFrustumAlignment = this->m_shadowFrustumBuffer->GetAlignment();
 	pushData.nMaxDrawsPerBlock = this->m_pCullingPass->GetMaxBatchesPerBlock();
@@ -658,7 +683,7 @@ void
 ShadowPass::CreatePipeline() {
 	/* Compile shaders */
 	Ref<Shader> vertexShader = Shader::CreateShared();
-	vertexShader->LoadFromGLSL("ShadowPass.vert", EShaderStage::VERTEX);
+	vertexShader->LoadFromGLSL("shaders/ShadowPass.vert", EShaderStage::VERTEX);
 
 	/* Create pipeline layout */
 	PushConstantRange pushRange = { };

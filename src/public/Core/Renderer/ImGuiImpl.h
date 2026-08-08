@@ -8,6 +8,7 @@
 #include "Core/Renderer/Swapchain.h"
 
 #include <GLFW/glfw3.h>
+#include <imgui/imgui.h>
 
 struct ImGuiImplCreateInfo {
 	GLFWwindow* pWindow = nullptr;
@@ -28,4 +29,15 @@ public:
 
 	virtual void NewFrame() = 0;
 	virtual void Render(Ref<GraphicsContext> context) = 0;
+
+	virtual Ref<DescriptorSet> AddTexture(
+		Ref<Sampler> sampler,
+		Ref<ImageView> imageView,
+		EImageLayout imageLayout
+	) = 0;
+	
+	virtual void RemoveTexture(Ref<DescriptorSet> set) = 0;
+
+	virtual void Image(Ref<DescriptorSet> descriptorSet, ImVec2 imageSize) = 0;
+	virtual bool ImageButton(Ref<DescriptorSet> descriptorSet, const String& label, ImVec2 size) = 0;
 };

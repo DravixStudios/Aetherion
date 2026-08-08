@@ -54,7 +54,7 @@ RenderGraph::Compile() {
 */
 void
 RenderGraph::CreateRenderPasses() {
-    std::map<TextureHandle, EImageLayout> lastLayouts;
+    Map<TextureHandle, EImageLayout> lastLayouts;
 
     for(GraphNode& node : this->m_nodes) {
         if (node.bIsComputeOnly) {
@@ -136,7 +136,7 @@ RenderGraph::CreateRenderPasses() {
             subpass.colorAttachments.push_back({ i, EImageLayout::COLOR_ATTACHMENT });
         }
 
-        if(node.bHasDepth) {
+        if (node.bHasDepth) {
             subpass.bHasDepthStencil = true;
             subpass.depthStencilAttachment = {
                 static_cast<uint32_t>(node.colorOutputs.size()),
@@ -145,6 +145,7 @@ RenderGraph::CreateRenderPasses() {
         }
 
         rpInfo.subpasses.push_back(subpass);
+        rpInfo.dependencies = GetDefaultSubpassDependencies(node.bHasDepth);
 
         node.renderPass = this->m_device->CreateRenderPass(rpInfo);
 
@@ -200,11 +201,9 @@ RenderGraph::Execute(Ref<GraphicsContext> context) {
     for(GraphNode& node : this->m_nodes) {
         if (node.bIsComputeOnly) {
             node.execute(context, graphCtx);
+            context->GlobalBarrier();
             continue;
         }
-
-        /* Synchronization */
-        context->GlobalBarrier();
 
         /* Prepare the render pass */
         RenderPassBeginInfo beginInfo = { };

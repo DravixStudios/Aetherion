@@ -12,17 +12,31 @@ struct WVP {
 
 struct ObjectInstanceData {
     uint wvpOffset;
-    uint textureIndex;
-    uint ormTextureIndex;
-    uint emissiveTextureIndex;
+    uint materialOffset;
 };
+
+struct MaterialInstanceData {
+    uint albedoIndex;
+    uint ormIndex;
+    uint emissiveIndex;
+    uint normalIndex;
+
+    vec4 albedoColor;
+    vec4 emissiveColor;
+    float ao;
+    float roughness;
+    float metallic; 
+
+    uint materialFlags;
+};
+
 
 /* Set 0: Scene data (same as GBufferPass)*/
 layout(set = 0, binding = 0) readonly buffer InputInstances {
     ObjectInstanceData instances[];
 };
 
-layout(set = 0, binding = 4) readonly buffer WVPBuffer {
+layout(set = 0, binding = 5) readonly buffer WVPBuffer {
     WVP wvpData[];
 };
 

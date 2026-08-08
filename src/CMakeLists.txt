@@ -1,13 +1,23 @@
-file(GLOB_RECURSE SOURCES "private/**/*.cpp" "main.cpp" "private/stb_image_impl.cpp" "private/tinyexr_impl.cpp")
+file(GLOB_RECURSE SOURCES "private/**/*.cpp" "main.cpp" "private/stb_image_impl.cpp" "private/tinyexr_impl.cpp" "private/nanosvg_impl.cpp")
 file(GLOB_RECURSE HEADERS "public/**/*.h")
+
 add_executable("Aetherion" ${SOURCES} ${HEADERS})
 
 if (CMAKE_VERSION VERSION_GREATER 3.12)
   set_property(TARGET Aetherion PROPERTY CXX_STANDARD 20)
 endif()
 
+execute_process(
+    COMMAND git rev-parse --short HEAD
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_VARIABLE GIT_COMMIT
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_QUIET
+)
+
 target_compile_definitions(Aetherion PRIVATE $<$<BOOL:${LOGGING_USE_SPDLOG}>:LOGGING_USE_SPDLOG>)
 target_compile_definitions(Aetherion PRIVATE $<$<BOOL:${RENDERER_USE_VULKAN}>:RENDERER_USE_VULKAN>)
+target_compile_definitions(Aetherion PRIVATE "$<1:GIT_COMMIT=\"${GIT_COMMIT}\">")
 
 
 set("PRIVATE_INCLUDES" "${CMAKE_CURRENT_SOURCE_DIR}/public")
@@ -32,6 +42,7 @@ find_package(spdlog CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
 find_package(assimp CONFIG REQUIRED)
 find_package(xxHash CONFIG REQUIRED)
+find_package(nfd CONFIG REQUIRED)
 
 # Build imgui
 set(IMGUI_GLOB_PATTERNS
@@ -65,7 +76,9 @@ add_library("imgui" STATIC ${IMGUI_SRC})
 target_include_directories(imgui PUBLIC "${PUBLIC_INCLUDES}")
 target_link_libraries(imgui PRIVATE glfw)
 
-target_link_libraries(Aetherion PRIVATE spirv-cross-c spirv-cross-glsl spirv-cross-hlsl spirv-cross-msl xxHash::xxhash)
+target_link_libraries(Aetherion PRIVATE spirv-cross-c spirv-cross-glsl spirv-cross-hlsl spirv-cross-msl)
+target_link_libraries(Aetherion PRIVATE xxHash::xxhash)
+target_link_libraries(Aetherion PRIVATE nfd::nfd)
 target_link_libraries(Aetherion PRIVATE imgui)
 
 if(WIN32)

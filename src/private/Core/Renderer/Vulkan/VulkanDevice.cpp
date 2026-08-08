@@ -54,42 +54,74 @@ VulkanDevice::Create(const DeviceCreateInfo& createInfo) {
 		queueCreateInfos.push_back(queueInfo);
 	}
 
+	/* Query physical device supported features */
+	VkPhysicalDeviceVulkan13Features supportedVulkan13Feats = { };
+	supportedVulkan13Feats.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
+
+	VkPhysicalDeviceVulkan12Features supportedVulkan12Feats = { };
+	supportedVulkan12Feats.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
+	supportedVulkan12Feats.pNext = &supportedVulkan13Feats;
+
+	VkPhysicalDeviceVulkan11Features supportedVulkan11Feats = { };
+	supportedVulkan11Feats.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES;
+	supportedVulkan11Feats.pNext = &supportedVulkan12Feats;
+
+	VkPhysicalDeviceFeatures2 supportedFeatures2 = { };
+	supportedFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+	supportedFeatures2.pNext = &supportedVulkan11Feats;
+
+	vkGetPhysicalDeviceFeatures2(this->m_physicalDevice, &supportedFeatures2);
+
 	/* Physical device features */
 	VkPhysicalDeviceFeatures deviceFeatures = { };
-	deviceFeatures.samplerAnisotropy = createInfo.bEnableSamplerAnisotroply ? VK_TRUE : VK_FALSE;
-	deviceFeatures.multiDrawIndirect = createInfo.bEnableMultiDrawIndirect ? VK_TRUE : VK_FALSE;
-	deviceFeatures.geometryShader = createInfo.bEnableGeometryShader ? VK_TRUE : VK_FALSE;
-	deviceFeatures.tessellationShader = createInfo.bEnableTessellationShader ? VK_TRUE : VK_FALSE;
-	deviceFeatures.depthClamp = createInfo.bEnableDepthClamp ? VK_TRUE : VK_FALSE;
-	deviceFeatures.sampleRateShading = VK_TRUE;
+	deviceFeatures.samplerAnisotropy = (createInfo.bEnableSamplerAnisotropy 
+		&& supportedFeatures2.features.samplerAnisotropy) ? VK_TRUE : VK_FALSE;
+	deviceFeatures.multiDrawIndirect = (createInfo.bEnableMultiDrawIndirect 
+		&& supportedFeatures2.features.multiDrawIndirect) ? VK_TRUE : VK_FALSE;
+	deviceFeatures.geometryShader = (createInfo.bEnableGeometryShader 
+		&& supportedFeatures2.features.geometryShader) ? VK_TRUE : VK_FALSE;
+	deviceFeatures.tessellationShader = (createInfo.bEnableTessellationShader 
+		&& supportedFeatures2.features.tessellationShader) ? VK_TRUE : VK_FALSE;
+	deviceFeatures.depthClamp = (createInfo.bEnableDepthClamp 
+		&& supportedFeatures2.features.depthClamp) ? VK_TRUE : VK_FALSE;
+	deviceFeatures.sampleRateShading = supportedFeatures2.features.sampleRateShading;
 
 	/* Vulkan 1.3 Features */
 	VkPhysicalDeviceVulkan13Features vulkan13Feats = { };
 	vulkan13Feats.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
-	vulkan13Feats.dynamicRendering = VK_TRUE;
+	vulkan13Feats.dynamicRendering = supportedVulkan13Feats.dynamicRendering;
 	vulkan13Feats.pNext = nullptr;
 
 	/* Vulkan 1.2 Features */
 	VkPhysicalDeviceVulkan12Features vulkan12Feats = { };
 	vulkan12Feats.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
 	vulkan12Feats.pNext = &vulkan13Feats;
-	vulkan12Feats.descriptorIndexing = VK_TRUE;
-	vulkan12Feats.descriptorBindingPartiallyBound = VK_TRUE;
-	vulkan12Feats.descriptorBindingUpdateUnusedWhilePending = VK_TRUE;
-	vulkan12Feats.descriptorBindingVariableDescriptorCount = VK_TRUE;
-	vulkan12Feats.runtimeDescriptorArray = VK_TRUE;
-	vulkan12Feats.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
-	vulkan12Feats.descriptorBindingSampledImageUpdateAfterBind = VK_TRUE;
-	vulkan12Feats.descriptorBindingStorageImageUpdateAfterBind = VK_TRUE;
-	vulkan12Feats.descriptorBindingStorageBufferUpdateAfterBind = VK_TRUE;
-	vulkan12Feats.descriptorBindingUniformBufferUpdateAfterBind = VK_TRUE;
+	vulkan12Feats.descriptorIndexing = 
+		supportedVulkan12Feats.descriptorIndexing;
+	vulkan12Feats.descriptorBindingPartiallyBound = 
+		supportedVulkan12Feats.descriptorBindingPartiallyBound;
+	vulkan12Feats.descriptorBindingUpdateUnusedWhilePending = 
+		supportedVulkan12Feats.descriptorBindingUpdateUnusedWhilePending;
+	vulkan12Feats.descriptorBindingVariableDescriptorCount =
+		supportedVulkan12Feats.descriptorBindingVariableDescriptorCount;
+	vulkan12Feats.runtimeDescriptorArray = supportedVulkan12Feats.runtimeDescriptorArray;
+	vulkan12Feats.shaderSampledImageArrayNonUniformIndexing = 
+		supportedVulkan12Feats.shaderSampledImageArrayNonUniformIndexing;
+	vulkan12Feats.descriptorBindingSampledImageUpdateAfterBind =
+		supportedVulkan12Feats.descriptorBindingSampledImageUpdateAfterBind;
+	vulkan12Feats.descriptorBindingStorageImageUpdateAfterBind = 
+		supportedVulkan12Feats.descriptorBindingStorageImageUpdateAfterBind;
+	vulkan12Feats.descriptorBindingStorageBufferUpdateAfterBind =
+		supportedVulkan12Feats.descriptorBindingStorageBufferUpdateAfterBind;
+	vulkan12Feats.descriptorBindingUniformBufferUpdateAfterBind =
+		supportedVulkan12Feats.descriptorBindingUniformBufferUpdateAfterBind;
 
 	bool bIndirectCountSupported = this->IsExtensionSupported("VK_KHR_draw_indirect_count");
 	Logger::Debug(
 		"VulkanDevice::Create: VK_KHR_draw_indirect_count support: {}", 
 		bIndirectCountSupported ? "TRUE" : "FALSE"
 	);
-	vulkan12Feats.drawIndirectCount = bIndirectCountSupported ? VK_TRUE : VK_FALSE;
+	vulkan12Feats.drawIndirectCount = (bIndirectCountSupported && supportedVulkan12Feats.drawIndirectCount) ? VK_TRUE : VK_FALSE;
 
 	/* Vulkan 1.1 Features */
 	VkPhysicalDeviceVulkan11Features vulkan11Feats = { };
@@ -265,38 +297,27 @@ VulkanDevice::BeginSingleTimeCommandBuffer() {
 */
 void
 VulkanDevice::EndSingleTimeCommandBuffer(Ref<CommandBuffer> commandBuffer) {
+	/* End command buffer */
 	commandBuffer->End();
 
-	/* TODO: Create a CreateFence method */
-	VkFenceCreateInfo fenceInfo = { };
-	fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-
 	/* Create fence */
-	VkFence fence;
-	VK_CHECK(vkCreateFence(this->m_device, &fenceInfo, nullptr, &fence), "Failed creating fence");
-
-	/* Convert the command buffer */
-	Ref<VulkanCommandBuffer> vkCommandBuff = commandBuffer.As<VulkanCommandBuffer>();
-
-	const VkCommandBuffer commandBuffers[] = {
-		vkCommandBuff->GetVkCommandBuffer()
-	};
+	FenceCreateInfo fenceInfo = { };
+	Ref<Fence> fence = this->CreateFence(fenceInfo);
+	fence->Reset();
 
 	/* Submit command buffer */
-	VkSubmitInfo submitInfo = { };
-	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-	submitInfo.commandBufferCount = 1;
-	submitInfo.pCommandBuffers = commandBuffers;
+	Vector<Ref<CommandBuffer>> commandBuffers = { commandBuffer };
 
-	vkQueueSubmit(this->m_graphicsQueue, 1, &submitInfo, fence);
+	SubmitInfo submitInfo = { };
+	submitInfo.commandBuffers = commandBuffers;
+
+	this->Submit(submitInfo, fence);
 
 	/* Wait for fence */
-	vkWaitForFences(this->m_device, 1, &fence, VK_TRUE, UINT64_MAX);
+	this->WaitForFence(fence);
 
 	/* Cleanup */
 	this->m_transferPool->FreeCommandBuffer(commandBuffer);
-	vkDestroyFence(this->m_device, fence, nullptr);
-
 	this->m_transferMutex.unlock();
 }
 
@@ -683,6 +704,23 @@ VulkanDevice::CreateDescriptorSet(Ref<DescriptorPool> pool, Ref<DescriptorSetLay
 }
 
 /**
+* Creates a descriptor set from a VkDescriptorSet
+* 
+* NOTE: This is an overload for specific use cases
+* 
+* @param set Vulkan descriptor set
+* 
+* @returns Created descriptor set
+*/
+Ref<DescriptorSet> 
+VulkanDevice::CreateDescriptorSet(VkDescriptorSet set) {
+	Ref<VulkanDescriptorSet> descriptorSet = VulkanDescriptorSet::CreateShared(this->m_device);
+	descriptorSet->CreateFromExisting(set);
+
+	return descriptorSet.As<DescriptorSet>();
+}
+
+/**
 * Creates a Vulkan semaphore
 *
 * @returns Created Vulkan semaphore
@@ -806,6 +844,7 @@ VulkanDevice::Submit(const SubmitInfo& submitInfo, Ref<Fence> fence) {
 
 	VkFence vkFence = fence ? fence.As<VulkanFence>()->GetVkFence() : VK_NULL_HANDLE;
 
+	std::lock_guard<std::mutex> queueLock(this->m_queueMutex);
 	VK_CHECK(
 		vkQueueSubmit(this->m_graphicsQueue, 1, &vkSubmit, vkFence),
 		"Failed to submit to graphics queue"

@@ -17,7 +17,7 @@
 #include <stdint.h>
 #include <allegro5/allegro.h>
 #include <allegro5/allegro_primitives.h>
-#include "imgui.h"
+#include <imgui/imgui.h>
 #include "imgui_impl_allegro5.h"
 
 int main(int, char**)
@@ -40,6 +40,7 @@ int main(int, char**)
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO(); (void)io;
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;  // Enable Keyboard Controls
+    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;      // Enable Docking
 
     // Setup Dear ImGui style
     ImGui::StyleColorsDark();

@@ -15,14 +15,17 @@ public:
 	bool SceneExists(String name);
 
 	Scene* GetCurrentScene();
+	void SetCurrentScene(const String& name);
 
 	void Start();
 	void Update();
 
+	void SetDimensions(uint32_t nWidth, uint32_t nHeight);
+
 	static SceneManager* GetInstance();
 private:
 	Scene* m_currentScene;
-	std::map<String, Scene*> m_scenes;
+	Map<String, Scene*> m_scenes;
 
 	static SceneManager* m_instance;
 };

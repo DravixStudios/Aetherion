@@ -1,6 +1,6 @@
 #pragma once
 #include <iostream>
-#include <time.h>
+#include <chrono>
 
 class Time {
 public:
@@ -15,8 +15,9 @@ public:
 
 	static Time* GetInstance();
 private:
-	float m_currentTime;
-	float m_lastTime;
+	std::chrono::time_point<std::chrono::high_resolution_clock> m_startTime;
+	std::chrono::time_point<std::chrono::high_resolution_clock> m_currentTime;
+	std::chrono::time_point<std::chrono::high_resolution_clock> m_lastTime;
 
 	static Time* m_instance;
 };

@@ -1,6 +1,7 @@
 #pragma once
 #include <optional>
 #include <set>
+#include <mutex>
 
 #include "Utils.h"
 #include "Core/Logger.h"
@@ -94,6 +95,7 @@ public:
 	Ref<DescriptorSetLayout> CreateDescriptorSetLayout(const DescriptorSetLayoutCreateInfo& createInfo) override;
 
 	Ref<DescriptorSet> CreateDescriptorSet(Ref<DescriptorPool> pool, Ref<DescriptorSetLayout> layout) override;
+	Ref<DescriptorSet> CreateDescriptorSet(VkDescriptorSet set);
 
 	Ref<Semaphore> CreateSemaphore() override;
 	Ref<Fence> CreateFence(const FenceCreateInfo& createInfo) override;
@@ -140,6 +142,7 @@ private:
 
 	Ref<CommandPool> m_transferPool;
 	std::mutex m_transferMutex;
+	std::mutex m_queueMutex;
 
 	Ref<TextureUploader> m_textureUploader;
 	

@@ -4,6 +4,7 @@
 #include "Core/Time.h"
 
 #include "Core/Containers.h" 
+#include "Utils.h"
 
 class Camera {
 public:
@@ -12,6 +13,8 @@ public:
 
 	virtual void Start();
 	virtual void Update();
+
+	void Resize(uint32_t nWidth, uint32_t nHeight);
 
 	glm::mat4 GetView() const { return this->m_view; }
 	glm::mat4 GetProjection() const { return this->m_projection; }
@@ -25,4 +28,8 @@ protected:
 
 	glm::mat4 m_view = glm::mat4(1.f);
 	glm::mat4 m_projection = glm::mat4(1.f);
+
+
+	uint32_t m_nWidth = 1;
+	uint32_t m_nHeight = 1;
 };

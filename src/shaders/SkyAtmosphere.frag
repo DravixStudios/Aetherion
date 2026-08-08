@@ -21,21 +21,10 @@ const float MIE_G = 0.76; // Henyey-Greenstein anisotropy
 const int VIEW_STEPS = 32;
 const int SUN_STEPS = 12;
 
-/* 
-    From: Hash without sine
-    Ref: https://compute.toys/view/15
-*/
-float Hash(vec2 p) {
-    vec3 p3 = fract(vec3(p.xyx) * 0.1031);
-    p3 += dot(p3, p3.yzx + 33.33);
-    return fract((p3.x + p3.y) * p3.z);
+float Hash3D(vec3 p) {
+    return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453123);
 }
 
-/**
-* @param ro Ray origin
-* @param rd Ray direction
-* @param r Radius
-*/
 vec2 RaySphere(vec3 ro, vec3 rd, float r) {
     float b = dot(ro, rd);
     float c = dot(ro, ro) - r * r;
@@ -76,8 +65,11 @@ float PhaseMie(float c) {
 }
 
 vec3 SunTransmittance(vec3 p) {
+    vec2 hitEarth = RaySphere(p, sunData.sunDir, R_EARTH);
+    if(hitEarth.y > 0.0) return vec3(0.0);
+
     vec2 hit = RaySphere(p, sunData.sunDir, R_ATMOS);
-    if(hit.y < 0.0) return vec3(0.0);
+    if(hit.y < 0.0) return vec3(1.0);
 
     float seg = hit.y / float(SUN_STEPS);
     float t = 0.0;
@@ -124,7 +116,7 @@ vec3 Atmosphere(vec3 rd) {
 
         float seg = t1 - t0;
 
-        float j = Hash(gl_FragCoord.xy + float(i)) - 0.5;
+        float j = Hash3D(rd * (float(i) + 1.0)) - 0.5;
         float tm = mix(t0, t1, 0.5 + j / float(VIEW_STEPS));
 
         vec3 s = ro + rd * tm;
@@ -151,14 +143,12 @@ vec3 SafeAtmosphere(vec3 dir) {
 
     if(dir.y >= 0.0) return Atmosphere(dir);
 
-    float below = -dir.y;
-    float blend = smoothstep(0.0, 0.25, below);
-
     vec3 hDir = normalize(vec3(dir.x, abs(dir.y), dir.z));
     vec3 horizon = Atmosphere(hDir);
     
     vec3 ground = horizon * vec3(0.35, 0.30, 0.25) * 0.35;
-    return mix(horizon, ground, blend);
+    float fog = clamp(pow(1.0 + dir.y, 5.0), 0.0, 1.0);
+    return mix(ground, horizon, fog);
 }
 
 void main() {

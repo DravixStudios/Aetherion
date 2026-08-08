@@ -29,7 +29,7 @@
 class DeferredRenderer {
 public:
     void Init(Ref<Device> device, Ref<Swapchain> swapchain, uint32_t nFramesInFlight, GLFWwindow* pWindow);
-    void Resize(uint32_t nWidth, uint32_t nHeight);
+    void Resize(uint32_t nWidth, uint32_t nHeight, bool bImGuiCall = false);
     void Invalidate();
 
     void Render(
@@ -44,11 +44,22 @@ public:
     LightingPass& GetLightingPass() { return this->m_lightingPass; }
     SkyboxPass& GetSkyboxPass() { return this->m_skyboxPass; }
 
-    const std::map<String, UploadedMesh>& GetUploadedMeshes() const { return this->m_uploadedMeshes; }
+    const Map<String, UploadedMesh>& GetUploadedMeshes() const { return this->m_uploadedMeshes; }
 
     void UploadMesh(const MeshData& meshData);
+    void UnloadMesh(const String& name);
     void FinalizeMeshUploads() { this->m_meshUploader.FinalizeUploads(); }
     MegaBuffer& GetMegaBuffer() { return this->m_megaBuffer; }
+
+    void 
+    SetOnSceneSaveCallback(ImGuiPass::OnSceneSaveCallback callback) {
+        this->m_imguiPass.SetOnSceneSaveCallback(callback);
+    }
+
+    void
+    SetOnDropToViewportCallback(ImGuiPass::OnDropToViewport callback) {
+        this->m_imguiPass.SetOnDropToViewport(callback);
+    }
 
 private:
     Ref<Device> m_device;
@@ -81,7 +92,7 @@ private:
 
     MegaBuffer m_megaBuffer;
     MeshUploader m_meshUploader;
-    std::map<String, UploadedMesh> m_uploadedMeshes;
+    Map<String, UploadedMesh> m_uploadedMeshes;
 
     Ref<DescriptorPool> m_scenePool;
     Ref<DescriptorSetLayout> m_sceneSetLayout;
