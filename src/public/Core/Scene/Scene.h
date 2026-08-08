@@ -2,6 +2,7 @@
 #include <iostream>
 #include <map>
 #include <spdlog/spdlog.h>
+#include <functional>
 
 #include "Core/Containers.h"
 
@@ -14,6 +15,8 @@
 struct SceneAsset;
 
 struct Hierarchy {
+	using OnNodeDeleted = std::function<void(GameObject*)>;
+
 	struct HierarchyNode {
 		uint32_t id = -1;
 
@@ -44,8 +47,14 @@ struct Hierarchy {
 	Ref<HierarchyNode> root;
 	Map<uint32_t, Ref<HierarchyNode>> nodeIndices; /* ID -> Node */
 	Map<Name, Vector<uint32_t>> nameIndices; /* Name -> Node IDs */
+	OnNodeDeleted nodeDeletedCb = nullptr;
 
 	uint32_t nCurrentId = 0;
+
+	void
+	SetOnNodeDeleted(OnNodeDeleted callback) { 
+		this->nodeDeletedCb = callback;
+	}
 
 	/**
 	* Generates a unique ID
@@ -145,6 +154,11 @@ struct Hierarchy {
 		}
 
 		children.clear();
+
+		if (node->pObj != nullptr && this->nodeDeletedCb) {
+			this->nodeDeletedCb(node->pObj);
+			node->pObj = nullptr;
+		}
 
 		Ref<HierarchyNode> parent = weakParent.lock();
 
