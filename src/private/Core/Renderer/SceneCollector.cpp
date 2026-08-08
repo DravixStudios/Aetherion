@@ -23,7 +23,11 @@ SceneCollector::Collect(Scene* scene) {
 	result.proj = proj;
 	result.cameraPosition = glm::vec3(cam->transform.location.x, cam->transform.location.y, cam->transform.location.z);
 
-	for (auto& [name, gameObject] : scene->GetObjects()) {
+	Map<String, GameObject*> gameObjects;
+	Ref<Hierarchy::HierarchyNode> rootNode = scene->GetHierarchy().root;
+	this->CollectGameObjects(rootNode, gameObjects);
+
+	for (auto& [name, gameObject] : gameObjects) {
 		/* Find a mesh component on the current GameObject */
 		Map<String, Component*> components = gameObject->GetComponents();
 		Map<String, Component*>::iterator it = components.find("MeshComponent");
@@ -89,4 +93,16 @@ SceneCollector::Collect(Scene* scene) {
 	result.nTotalBatches = static_cast<uint32_t>(result.batches.size());
 
 	return result;
+}
+
+void 
+SceneCollector::CollectGameObjects(Ref<Hierarchy::HierarchyNode> node, Map<String, GameObject*>& outObjects) {
+	if (node->pObj != nullptr)
+		outObjects[String(node->name)] = node->pObj;
+
+	if (!node->HasChildren())
+		return;
+
+	for(Ref<Hierarchy::HierarchyNode> children : node->children)
+		this->CollectGameObjects(children, outObjects);
 }

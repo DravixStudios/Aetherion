@@ -14,4 +14,6 @@ public:
 	CollectedDrawData Collect(Scene* scene);
 private:
 	const Map<String, UploadedMesh>* m_uploadedMeshes = nullptr;
+
+	void CollectGameObjects(Ref<Hierarchy::HierarchyNode> node, Map<String, GameObject*>& outObjects);
 };
