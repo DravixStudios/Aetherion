@@ -135,3 +135,21 @@ Scene::SerializeScene() {
 
 	return sceneAsset;
 }
+
+/**
+* Setup the scene from a serialized scene asset
+* 
+* @param sceneAsset Scene asset
+*/
+void 
+Scene::SetupFromAsset(const SceneAsset& sceneAsset) {
+	uint32_t nObjectCount = sceneAsset.header.nObjectCount;
+	
+	for (uint32_t i = 0; i < nObjectCount; i++) {
+		const GameObjectAsset& objAsset = sceneAsset.objects[i];
+		
+		GameObject* pObj = new GameObject(String(objAsset.header.displayName));
+		pObj->SetupFromAsset(objAsset);
+		this->AddObject(pObj);
+	}
+}

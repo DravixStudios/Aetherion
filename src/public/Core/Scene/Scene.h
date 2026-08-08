@@ -187,6 +187,7 @@ public:
 	}
 
 	const SceneAsset SerializeScene();
+	void SetupFromAsset(const SceneAsset& sceneAsset);
 
 private:
 	String m_name;
