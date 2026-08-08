@@ -346,13 +346,15 @@ DeferredRenderer::Render(
 */
 void 
 DeferredRenderer::UploadSceneData(const CollectedDrawData& data, uint32_t nFrameIdx) {
-    if (data.batches.empty()) return;
-
     /* Reset ring buffers */
     this->m_cullingPass.GetInstanceBuffer()->Reset(nFrameIdx);
     this->m_cullingPass.GetMaterialBuffer()->Reset(nFrameIdx);
     this->m_cullingPass.GetBatchBuffer()->Reset(nFrameIdx);
     this->m_cullingPass.GetWVPBuffer()->Reset(nFrameIdx);
+
+    this->m_cullingPass.SetTotalBatches(data.nTotalBatches);
+
+    if (data.batches.empty()) return;
 
     /* Copy data to ring buffers */
     uint32_t nOffset = 0;
