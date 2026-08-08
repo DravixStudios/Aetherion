@@ -1,9 +1,14 @@
 #pragma once
+#include "Core/Containers.h"
+
 #include "Core/Renderer/Rendering/Passes/BasePass.h"
 #include "Core/Renderer/Rendering/RenderGraphBuilder.h"
 #include "Core/Renderer/Rendering/GraphNode.h"
 #include "Core/Renderer/ImGuiImpl.h"
 #include "Core/Project/ProjectManager.h"
+
+#include "Core/Scene/Scene.h"
+#include "Core/Scene/SceneManager.h"
 
 #include <imgui/imgui.h>
 #include <glm/glm.hpp>
@@ -47,6 +52,7 @@ public:
 
 private:
 	void ShowAssetBrowser();
+	void DrawHierarchyNode(Hierarchy& hierarchy, const Ref<Hierarchy::HierarchyNode>& node);
 
 	void CreateResources();
 	void SetupTheme();

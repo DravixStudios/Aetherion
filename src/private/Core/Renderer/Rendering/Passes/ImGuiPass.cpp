@@ -171,7 +171,28 @@ ImGuiPass::Execute(Ref<GraphicsContext> context, RenderGraphContext& graphCtx, u
     }
     ImGui::End();
 
+    /* Hierarchy window */
     ImGui::Begin("Hierarchy");
+
+    if (ProjectManager::GetInstance()->ProjectLoaded()) {
+        SceneManager* sceneMgr = SceneManager::GetInstance();
+        Scene* pCurrentScene = sceneMgr->GetCurrentScene();
+
+        if (pCurrentScene != nullptr) {
+            ImGuiTreeNodeFlags treeFlags = ImGuiTreeNodeFlags_DefaultOpen;
+
+            Hierarchy& hierarchy = pCurrentScene->GetHierarchy();
+            Ref<Hierarchy::HierarchyNode> rootNode = hierarchy.root;
+
+            if (rootNode) {
+                this->DrawHierarchyNode(hierarchy, rootNode);
+            }
+        }
+    }
+    else {
+        ImGui::Text("No project open");
+    }
+
     ImGui::End();
 
     this->ShowAssetBrowser();
@@ -443,6 +464,44 @@ ImGuiPass::ShowAssetBrowser() {
     ImGui::Columns(1);
 
     ImGui::End();
+}
+
+/**
+* Draw a hierarchy node
+* 
+* @param node Hierarchy node to draw
+*/
+void 
+ImGuiPass::DrawHierarchyNode(Hierarchy& hierarchy, const Ref<Hierarchy::HierarchyNode>& node) {
+    ImGuiTreeNodeFlags flags = 0;
+
+    const char* nodeID = node->name.data;
+
+    if (!node->HasChildren()) {
+        flags |= ImGuiTreeNodeFlags_Leaf;
+    }
+
+    bool bOpen = ImGui::TreeNodeEx(
+        static_cast<void*>(node.Get().get()),
+        flags,
+        "%s",
+        nodeID
+    );
+
+    if (ImGui::BeginPopupContextItem()) {
+        if (ImGui::MenuItem("Delete")) {
+            hierarchy.DeleteNode(node);
+        }
+        ImGui::EndPopup();
+    }
+
+    if (bOpen) {
+        for (const Ref<Hierarchy::HierarchyNode>& child : node->children) {
+            DrawHierarchyNode(hierarchy, child);
+        }
+
+        ImGui::TreePop();
+    }
 }
 
 void
