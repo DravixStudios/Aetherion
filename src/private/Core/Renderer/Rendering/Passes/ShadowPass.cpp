@@ -612,6 +612,10 @@ ShadowPass::DispatchShadowCulling(Ref<GraphicsContext> context, uint32_t nCascad
 	context->FillBuffer(countBuffer, 0, sizeof(uint32_t) * 64, 0);
 	context->BufferMemoryBarrier(countBuffer, EAccess::TRANSFER_WRITE, EAccess::SHADER_WRITE);
 
+	if (this->m_pCullingPass->GetTotalBatches() == 0) {
+		return;
+	}
+
 	CascadeData cascade = this->m_cascades[nCascadeIdx];
 
 	/* Calculate frustum planes for this cascade */
