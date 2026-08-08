@@ -40,7 +40,7 @@ struct GameObjectAsset {
 
 		If the object does not have
 		any of the components enabled
-		at 'componentes' member, that
+		at 'components' member, that
 		component will be skipped
 	*/
 	AssetHandle meshHandle;

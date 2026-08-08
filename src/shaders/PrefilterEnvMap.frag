@@ -15,7 +15,7 @@ layout(push_constant) uniform PushConstants {
 /* 
     Van Der Corput sequence
     Ref: https://holger.dammertz.org/stuff/notes_HammersleyOnHemisphere.html
- */
+*/
 float RadicalInverse_VdC(uint bits) {
     bits = (bits << 16u) | (bits >> 16u);
     bits = ((bits & 0x55555555u) << 1u) | ((bits & 0xAAAAAAAAu) >> 1u);

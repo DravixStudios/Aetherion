@@ -251,9 +251,6 @@ void main() {
     }
 
 
-
-
-
     /* ==== COMBINE ==== */
     color += ambient;
 

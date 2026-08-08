@@ -12,7 +12,7 @@ struct MaterialInstanceData {
     vec4 emissiveColor;
     float ao;
     float roughness;
-    float metallic; 
+    float metallic;
 
     uint materialFlags;
 };
