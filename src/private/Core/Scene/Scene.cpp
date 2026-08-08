@@ -13,13 +13,13 @@ void
 Scene::AddObject(GameObject* object) {
 	String objName = object->GetName();
 
-	if (this->m_gameObjects.count(this->m_name) > 0) {
+	if (this->m_gameObjects.count(objName) > 0) {
 		spdlog::error("Scene::AddGameObject: GameObject with name {0} already exists", objName);
 		return;
 	}
 
 	this->m_gameObjects[objName] = object;
-	this->m_hierarchy.CreateNode(object->GetName(), this->m_hierarchy.root, object);
+	this->m_hierarchy.CreateNode(objName, this->m_hierarchy.root, object);
 }
 
 Map<String, GameObject*> 
