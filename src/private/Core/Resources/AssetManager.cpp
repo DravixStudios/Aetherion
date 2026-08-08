@@ -610,6 +610,9 @@ AssetManager::GetAsset(const AssetHandle& handle) {
 			case EAssetType::MATERIAL:
 				this->ReadAsset<MaterialAsset, MaterialAssetHeader>(path, handle.type);
 				break;
+			case EAssetType::SCENE:
+				this->ReadAsset<SceneAsset, SceneAssetHeader>(path, handle.type);
+				break;
 			default:
 				Logger::Error("AssetManager::GetAsset: Unsupported type");
 				break;
