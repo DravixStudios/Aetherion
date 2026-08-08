@@ -390,7 +390,8 @@ public:
 
 	Vector<AssetHandle> GetNodeAssets(Ref<ProjectTree::TreeNode> node);
 
-	Directory GetAssetsDir() { return this->m_assetsDir; }
+	Directory GetAssetsDir() const { return this->m_assetsDir; }
+	Directory GetProjectDir() const { return this->m_projectDir; }
 
 	void
 	SetOnProjectOpenedCallback(OnProjectOpenedCallback callback) {
