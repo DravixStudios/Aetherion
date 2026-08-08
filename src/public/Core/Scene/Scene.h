@@ -197,4 +197,7 @@ private:
 	Map<String, Camera*> m_cameras;
 
 	Hierarchy m_hierarchy;
+
+	void StartHierarchy(Ref<Hierarchy::HierarchyNode> node);
+	void UpdateHierarchy(Ref<Hierarchy::HierarchyNode> node);
 };

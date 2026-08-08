@@ -40,19 +40,48 @@ Scene::DeleteObject(GameObject* pObj) {
 	delete pObj;
 }
 
+void
 Scene::Start() {
-	for (std::pair<String, GameObject*> obj : this->m_gameObjects) {
-		obj.second->Start();
-	}
+	Ref<Hierarchy::HierarchyNode> rootNode = this->m_hierarchy.root;
+	this->StartHierarchy(rootNode);
+
 	this->m_currentCamera->Start();
+}
+
+void 
+Scene::StartHierarchy(Ref<Hierarchy::HierarchyNode> node) {
+	if (node->pObj != nullptr) {
+		node->pObj->Start();
+	}
+
+	if (!node->HasChildren())
+		return;
+
+	for (Ref<Hierarchy::HierarchyNode> children : node->children) {
+		this->StartHierarchy(children);
+	}
 }
 
 void
 Scene::Update() {
-	for (std::pair<String, GameObject*> obj : this->m_gameObjects) {
-		obj.second->Update();
-	}
+	Ref<Hierarchy::HierarchyNode> rootNode = this->m_hierarchy.root;
+	this->UpdateHierarchy(rootNode);
+
 	this->m_currentCamera->Update();
+}
+
+void 
+Scene::UpdateHierarchy(Ref<Hierarchy::HierarchyNode> node) {
+	if (node->pObj != nullptr) {
+		node->pObj->Update();
+	}
+
+	if (!node->HasChildren())
+		return;
+
+	for (Ref<Hierarchy::HierarchyNode> children : node->children) {
+		this->UpdateHierarchy(children);
+	}
 }
 
 /**
