@@ -150,10 +150,10 @@ SkyboxPass::CreatePipeline() {
 
 	/* Compile shaders */
 	Ref<Shader> vertexShader = Shader::CreateShared();
-	vertexShader->LoadFromGLSL("SkyboxPass.vert", EShaderStage::VERTEX);
+	vertexShader->LoadFromGLSL("shaders/SkyboxPass.vert", EShaderStage::VERTEX);
 
 	Ref<Shader> pixelShader = Shader::CreateShared();
-	pixelShader->LoadFromGLSL("SkyboxPass.frag", EShaderStage::FRAGMENT);
+	pixelShader->LoadFromGLSL("shaders/SkyboxPass.frag", EShaderStage::FRAGMENT);
 
 	/* Create graphics pipeline */
 	GraphicsPipelineCreateInfo pipelineInfo = { };
@@ -190,6 +190,7 @@ SkyboxPass::CreatePipeline() {
 
 	/* Create a compatible render pass */
 	RenderPassCreateInfo rpInfo = { };
+	rpInfo.dependencies = GetDefaultSubpassDependencies(false);
 
 	AttachmentDescription colorAttachment = { };
 	colorAttachment.format = GPUFormat::RGBA16_FLOAT;

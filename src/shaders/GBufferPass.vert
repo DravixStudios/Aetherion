@@ -13,9 +13,22 @@ struct WVP {
 
 struct ObjectInstanceData {
     uint wvpOffset; // WVP Ring buffer dynamic offset
-    uint textureIndex;
-    uint ormTextureIndex;
-    uint emissiveTextureIndex;
+    uint materialOffset;
+};
+
+struct MaterialInstanceData {
+    uint albedoIndex;
+    uint ormIndex;
+    uint emissiveIndex;
+    uint normalIndex;
+
+    vec4 albedoColor;
+    vec4 emissiveColor;
+    float ao;
+    float roughness;
+    float metallic; 
+
+    uint materialFlags;
 };
  
 /* Bind set 0 (culling) */
@@ -23,21 +36,24 @@ layout(set = 0, binding = 0) readonly buffer InputInstances {
     ObjectInstanceData instances[];
 };
 
-layout(set = 0, binding = 4) readonly buffer WVPBuffer {
+layout(set = 0, binding = 1) readonly buffer MaterialInstances {
+    MaterialInstanceData materials[];
+};
+
+layout(set = 0, binding = 5) readonly buffer WVPBuffer {
     WVP wvpData[];
 };
 
 layout(push_constant) uniform PushConstants {
     uint wvpAlignment;
+    uint materialAlignment;
 } pc;
 
 /* Output locations */
 layout(location = 0) out vec3 outNormals;
 layout(location = 1) out vec2 outUVs;
 layout(location = 2) out vec3 fragPos;
-layout(location = 3) out flat uint outTextureIndex;
-layout(location = 4) out flat uint outOrmTextureIndex;
-layout(location = 5) out flat uint outEmissiveTextureIndex;
+layout(location = 3) out flat uint outMaterialIndex;
 
 void main() {
     /* Use gl_InstanceIndex that comes from the indirect draw */ 
@@ -45,6 +61,8 @@ void main() {
 
     uint wvpIndex = instance.wvpOffset / pc.wvpAlignment;
     WVP wvp = wvpData[wvpIndex];
+
+    uint materialIndex = instance.materialOffset / pc.materialAlignment;
 
     /* Multiply our vertex position by our wold matrix */ 
     vec4 worldPos = wvp.World * vec4(inPosition, 1.0);
@@ -62,7 +80,8 @@ void main() {
     outUVs = inUVs;
 
     /* Send the indices to the fragment shader  for bindless textures */
-    outTextureIndex = instance.textureIndex;
-    outOrmTextureIndex = instance.ormTextureIndex;
-    outEmissiveTextureIndex = instance.emissiveTextureIndex;
+    // outTextureIndex = instance.textureIndex;
+    // outOrmTextureIndex = instance.ormTextureIndex;
+    // outEmissiveTextureIndex = instance.emissiveTextureIndex;
+    outMaterialIndex = materialIndex;
 }

@@ -34,7 +34,6 @@ SunExtraction::Init(Ref<Device> device, Ref<GPUTexture> skybox, Ref<ImageView> s
 */
 void 
 SunExtraction::Extract(Ref<GraphicsContext> context) {
-	context->GlobalBarrier();
 	context->BindPipeline(this->m_pipeline);
 
 	context->BindDescriptorSets(0, { this->m_descriptorSet });
@@ -129,7 +128,7 @@ SunExtraction::CreateDescriptors() {
 void 
 SunExtraction::CreatePipeline() {
 	Ref<Shader> shader = Shader::CreateShared();
-	shader->LoadFromGLSL("SunExtraction.comp", EShaderStage::COMPUTE);
+	shader->LoadFromGLSL("shaders/SunExtraction.comp", EShaderStage::COMPUTE);
 
 	ComputePipelineCreateInfo pipelineInfo = { };
 	pipelineInfo.shader = shader;

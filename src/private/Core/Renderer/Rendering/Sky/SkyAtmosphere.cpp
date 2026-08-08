@@ -95,7 +95,6 @@ SkyAtmosphere::Update(Ref<GraphicsContext> context, uint32_t nFrameIdx) {
         context->EndRenderPass();
     }
     context->ImageBarrier(this->m_skybox, EImageLayout::COLOR_ATTACHMENT, EImageLayout::SHADER_READ_ONLY, 6, 0, 0);
-    context->GlobalBarrier();
 }
 
 /**
@@ -306,8 +305,8 @@ SkyAtmosphere::CreatePipeline() {
     Ref<Shader> vertexShader = Shader::CreateShared();
     Ref<Shader> pixelShader = Shader::CreateShared();
 
-    vertexShader->LoadFromGLSL("SkyAtmosphere.vert", EShaderStage::VERTEX);
-    pixelShader->LoadFromGLSL("SkyAtmosphere.frag", EShaderStage::FRAGMENT);
+    vertexShader->LoadFromGLSL("shaders/SkyAtmosphere.vert", EShaderStage::VERTEX);
+    pixelShader->LoadFromGLSL("shaders/SkyAtmosphere.frag", EShaderStage::FRAGMENT);
 
     /* Create render pass */
     AttachmentDescription colorAttachment = { };
@@ -327,10 +326,11 @@ SkyAtmosphere::CreatePipeline() {
     SubpassDescription subpass = { };
     subpass.colorAttachments = Vector{ colorAttachmentRef };
     subpass.bHasDepthStencil = false;
-    
+
     RenderPassCreateInfo rpInfo = { };
     rpInfo.subpasses = Vector{ subpass };
     rpInfo.attachments = Vector{ colorAttachment };
+    rpInfo.dependencies = GetDefaultSubpassDependencies();
 
     this->m_renderPass = this->m_device->CreateRenderPass(rpInfo);
 

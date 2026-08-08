@@ -575,7 +575,7 @@ Finally, you may call `ImGui::ShowMetricsWindow()` to explore/visualize/understa
 
 ### Q: How can I use maths operators with ImVec2?
 
-We do not export maths operators by default in imgui.h in order to not conflict with the use of your own maths types and maths operators. As a convenience, you may use `#define IMGUI_DEFINE_MATH_OPERATORS` + `#include "imgui.h"` to access our basic maths operators.
+We do not export maths operators by default in imgui.h in order to not conflict with the use of your own maths types and maths operators. As a convenience, you may use `#define IMGUI_DEFINE_MATH_OPERATORS` + `#include <imgui/imgui.h>` to access our basic maths operators.
 
 ##### [Return to Index](#index)
 
@@ -640,7 +640,7 @@ ImGui::End();
 
 - Refer to "Demo > Examples > Custom Rendering" in the demo window and read the code of `ShowExampleAppCustomRendering()` in `imgui_demo.cpp` from more examples.
 - To generate colors: you can use the macro `IM_COL32(255,255,255,255)` to generate them at compile time, or use `ImGui::GetColorU32(IM_COL32(255,255,255,255))` or `ImGui::GetColorU32(ImVec4(1.0f,1.0f,1.0f,1.0f))` to generate a color that is multiplied by the current value of `style.Alpha`.
-- Math operators: if you have setup `IM_VEC2_CLASS_EXTRA` in `imconfig.h` to bind your own math types, you can use your own math types and their natural operators instead of ImVec2. ImVec2 by default doesn't export any math operators in the public API. You may use `#define IMGUI_DEFINE_MATH_OPERATORS` `#include "imgui.h"` to use our math operators, but instead prefer using your own math library and set it up in `imconfig.h`.
+- Math operators: if you have setup `IM_VEC2_CLASS_EXTRA` in `imconfig.h` to bind your own math types, you can use your own math types and their natural operators instead of ImVec2. ImVec2 by default doesn't export any math operators in the public API. You may use `#define IMGUI_DEFINE_MATH_OPERATORS` `#include <imgui/imgui.h>` to use our math operators, but instead prefer using your own math library and set it up in `imconfig.h`.
 - You can use `ImGui::GetBackgroundDrawList()` or `ImGui::GetForegroundDrawList()` to access draw lists which will be displayed behind and over every other Dear ImGui window (one bg/fg drawlist per viewport). This is very convenient if you need to quickly display something on the screen that is not associated with a Dear ImGui window.
 - You can also create your own empty window and draw inside it. Call Begin() with the NoBackground | NoDecoration | NoSavedSettings | NoInputs flags (The `ImGuiWindowFlags_NoDecoration` flag itself is a shortcut for NoTitleBar | NoResize | NoScrollbar | NoCollapse). Then you can retrieve the ImDrawList* via `GetWindowDrawList()` and draw to it in any way you like.
 - You can create your own ImDrawList instance. You'll need to initialize them with `ImGui::GetDrawListSharedData()`, or create your own instancing `ImDrawListSharedData`, and then call your renderer function with your own ImDrawList or ImDrawData data.

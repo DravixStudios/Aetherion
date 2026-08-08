@@ -36,8 +36,6 @@ VulkanDescriptorPool::Create(const DescriptorPoolCreateInfo& createInfo) {
 	}
 
 	VK_CHECK(vkCreateDescriptorPool(this->m_device, &poolInfo, nullptr, &this->m_pool), "Failed creating descriptor pool");
-
-	Logger::Debug("VulkanDescriptorPool::Create: Descriptor pool created. Max sets: {}", createInfo.nMaxSets);
 }
 
 void 

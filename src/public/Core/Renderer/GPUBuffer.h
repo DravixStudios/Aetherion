@@ -115,7 +115,7 @@ public:
 	* 
 	* @param createInfo Buffer create info
 	*/
-	virtual void Create(const BufferCreateInfo& createInfo) = 0;
+	virtual void Create(const BufferCreateInfo& createInfo, const String& debugName = "GPUBuffer") = 0;
 
 	/**
 	* Maps the buffer to CPU

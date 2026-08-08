@@ -14,7 +14,7 @@ VulkanTexture::~VulkanTexture() {
 * @param createInfo Texture create info
 */
 void 
-VulkanTexture::Create(const TextureCreateInfo& createInfo) {
+VulkanTexture::Create(const TextureCreateInfo& createInfo, const String& debugName) {
 	VkDevice vkDevice = this->m_device->GetVkDevice();
 
 	/* Create image */
@@ -61,7 +61,13 @@ VulkanTexture::Create(const TextureCreateInfo& createInfo) {
 
 	/* Copy buffer to image */
 	if (createInfo.buffer) {
-		Ref<CommandBuffer> commandBuff = this->m_device->BeginSingleTimeCommandBuffer();
+		bool bHasContext = (createInfo.uploadContext && createInfo.uploadContext->commandBuffer);
+
+
+		Ref<CommandBuffer> commandBuff = bHasContext 
+			? createInfo.uploadContext->commandBuffer 
+			: this->m_device->BeginSingleTimeCommandBuffer();
+
 		Ref<VulkanCommandBuffer> vkCommandBuff = commandBuff.As<VulkanCommandBuffer>();
 
 		VkImageMemoryBarrier barrier = {};
@@ -123,7 +129,16 @@ VulkanTexture::Create(const TextureCreateInfo& createInfo) {
 			0, 0, nullptr, 0, nullptr, 1, &barrier
 		);
 
-		this->m_device->EndSingleTimeCommandBuffer(commandBuff);
+		if (!bHasContext) {
+			this->m_device->EndSingleTimeCommandBuffer(commandBuff);
+		}
+
+		VK_SET_NAME(
+			vkDevice,
+			VK_OBJECT_TYPE_IMAGE,
+			reinterpret_cast<uint64_t>(this->m_image),
+			debugName
+		);
 	}
 }
 

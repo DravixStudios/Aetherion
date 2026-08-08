@@ -12,9 +12,22 @@ struct DrawIndexedIndirectCommand {
 
 struct ObjectInstanceData {
     uint wvpOffset; // WVP Ring buffer dynamic offset
-    uint textureIndex;
-    uint ormTextureIndex;
-    uint emissiveTextureIndex;
+    uint materialOffset;
+};
+
+struct MaterialInstanceData {
+    uint albedoIndex;
+    uint ormIndex;
+    uint emissiveIndex;
+    uint normalIndex;
+
+    vec4 albedoColor;
+    vec4 emissiveColor;
+    float ao;
+    float roughness;
+    float metallic; 
+
+    uint materialFlags;
 };
 
 struct DrawBatch {
@@ -42,30 +55,35 @@ layout(set = 0, binding = 0) buffer InputInstances {
     ObjectInstanceData instances[];
 };
 
-layout(set = 0, binding = 1) buffer InputBatches {
+layout(set = 0, binding = 1) buffer MaterialInstances {
+    MaterialInstanceData materials[];
+};
+
+layout(set = 0, binding = 2) buffer InputBatches {
     DrawBatch batches[];
 };
 
-layout(set = 0, binding = 2) buffer OutputCommands {
+layout(set = 0, binding = 3) buffer OutputCommands {
     DrawIndexedIndirectCommand commands[];
 };
 
-layout(set = 0, binding = 3) buffer DrawCount {
+layout(set = 0, binding = 4) buffer DrawCount {
     uint counts[];
 };
 
 /* WVP Ring buffer (Read only) */
-layout(set = 0, binding = 4) readonly buffer WVPBuffer {
+layout(set = 0, binding = 5) readonly buffer WVPBuffer {
     WVP wvpData[];
 };
 
-layout(set = 0, binding = 5) buffer FrustumDataBuffer {
+layout(set = 0, binding = 6) buffer FrustumDataBuffer {
     FrustumData frustumData[];
 };
 
 layout(push_constant) uniform PushConstants {
     uint totalBatches;
     uint wvpAlignment; // Ring buffer alignment
+    uint materialAlignment;
     uint frustumOffset;
     uint frustumAlignment;
     uint maxDrawsPerBlock;

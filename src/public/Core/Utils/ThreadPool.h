@@ -30,7 +30,7 @@ public:
 	* 
 	* @returns Thread count
 	*/
-	uint32_t GetThreadCount() const { return this->m_workers.size(); }
+	uint32_t GetThreadCount() const { return static_cast<uint32_t>(this->m_workers.size()); }
 
 	static Ptr
 	CreateShared(uint32_t nNumThreads = std::thread::hardware_concurrency()) {

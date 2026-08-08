@@ -1,10 +1,16 @@
 #include "Core/Renderer/Rendering/DeferredRenderer.h"
+#include "Core/Scene/SceneManager.h"
 
 #include <glm/gtc/quaternion.hpp>
 #include <imgui/imgui.h>
 
 /**
 * Deferred renderer initialization
+* 
+* @param device Logical device
+* @param swapchain Swap chain
+* @param nFramesInFlight Frames in flight count
+* @param pWindow Output window
 */
 void
 DeferredRenderer::Init(Ref<Device> device, Ref<Swapchain> swapchain, uint32_t nFramesInFlight, GLFWwindow* pWindow) {
@@ -27,7 +33,7 @@ DeferredRenderer::Init(Ref<Device> device, Ref<Swapchain> swapchain, uint32_t nF
     this->CreateScreenquadBuffer();
     this->LoadSkybox();
 
-    this->m_sunExtraction.Init(device, this->m_skybox, this->m_skyboxView, this->m_cubeSampler);
+    //this->m_sunExtraction.Init(device, this->m_skybox, this->m_skyboxView, this->m_cubeSampler);
 
     /* Initialize passes */
     this->m_cullingPass.Init(device, this->m_nFramesInFlight);
@@ -86,19 +92,20 @@ DeferredRenderer::Init(Ref<Device> device, Ref<Swapchain> swapchain, uint32_t nF
 * @param nHeight Height
 */
 void
-DeferredRenderer::Resize(uint32_t nWidth, uint32_t nHeight) {
+DeferredRenderer::Resize(uint32_t nWidth, uint32_t nHeight, bool bImGuiCall) {
     if (nWidth == 0 || nHeight == 0) {
         return;
     }
 
     this->m_device->WaitIdle();
+    this->m_graph.Invalidate();
 
     this->m_gbuffPass.Resize(nWidth, nHeight);
     this->m_lightingPass.SetDimensions(nWidth, nHeight);
     this->m_skyboxPass.SetDimensions(nWidth, nHeight);
     this->m_tonemapPass.SetDimensions(nWidth, nHeight);
     this->m_bentNormalPass.SetDimensions(nWidth, nHeight);
-    this->m_imguiPass.Resize(nWidth, nHeight);
+    if (!bImGuiCall) this->m_imguiPass.Resize(nWidth, nHeight);
 
     this->m_lightingPass.SetGBufferDescriptorSet(this->m_gbuffPass.GetReadDescriptorSet());
     this->UpdateSkyboxDescriptor();
@@ -127,6 +134,15 @@ DeferredRenderer::Render(
 	const CollectedDrawData& drawData,
 	uint32_t nImgIdx
 ) {
+    if (this->m_imguiPass.HasPendingResize()) {
+        ImVec2 sz = this->m_imguiPass.GetPendingSize();
+        uint32_t nNewWidth = static_cast<uint32_t>(sz.x);
+        uint32_t nNewHeight = static_cast<uint32_t>(sz.y);
+        this->Resize(nNewWidth, nNewHeight, true);
+        SceneManager::GetInstance()->SetDimensions(nNewWidth, nNewHeight);
+        this->m_imguiPass.ClearPendingResize();
+    }
+
     this->m_graph.Reset(nImgIdx);
 
     TextureHandle backBuffer = this->m_graph.ImportBackbuffer(
@@ -200,7 +216,9 @@ DeferredRenderer::Render(
         this->m_cullingPass.GetIndirectBuffer(),
         this->m_cullingPass.GetIndirectBuffer()->GetPerFrameSize() * nImgIdx,
         drawData.nTotalBatches,
-        nMaxBatchesPerBlock
+        nMaxBatchesPerBlock,
+        this->m_cullingPass.GetWVPBuffer()->GetAlignment(),
+        this->m_cullingPass.GetMaterialBuffer()->GetAlignment()
     );
 
     /* 1. G-Buffer pass (Indirect) */
@@ -232,7 +250,7 @@ DeferredRenderer::Render(
     this->m_shadowPass.SetCameraData(
         drawData.view,
         drawData.proj,
-        1.f,
+        3.f,
         200.f
     );
 
@@ -298,7 +316,6 @@ DeferredRenderer::Render(
 
     /* 5. Tonemap pass */
     this->m_tonemapPass.SetInput(this->m_lightingPass.GetOutput().hdrOutput);
-    this->m_tonemapPass.SetOutput(backBuffer);
     
     this->m_graph.AddNode("Tonemap",
         [&](RenderGraphBuilder& builder) { this->m_tonemapPass.SetupNode(builder); },
@@ -308,6 +325,7 @@ DeferredRenderer::Render(
     );
 
     /* 6. ImGui Pass */
+    this->m_imguiPass.SetInput(this->m_tonemapPass.GetOutput(), this->m_graph.GetPool(), nImgIdx);
     this->m_imguiPass.SetOutput(backBuffer);
     this->m_graph.AddNode("ImGui",
         [&](RenderGraphBuilder& builder) { this->m_imguiPass.SetupNode(builder); },
@@ -328,12 +346,15 @@ DeferredRenderer::Render(
 */
 void 
 DeferredRenderer::UploadSceneData(const CollectedDrawData& data, uint32_t nFrameIdx) {
-    if (data.batches.empty()) return;
-
     /* Reset ring buffers */
     this->m_cullingPass.GetInstanceBuffer()->Reset(nFrameIdx);
+    this->m_cullingPass.GetMaterialBuffer()->Reset(nFrameIdx);
     this->m_cullingPass.GetBatchBuffer()->Reset(nFrameIdx);
     this->m_cullingPass.GetWVPBuffer()->Reset(nFrameIdx);
+
+    this->m_cullingPass.SetTotalBatches(data.nTotalBatches);
+
+    if (data.batches.empty()) return;
 
     /* Copy data to ring buffers */
     uint32_t nOffset = 0;
@@ -345,6 +366,14 @@ DeferredRenderer::UploadSceneData(const CollectedDrawData& data, uint32_t nFrame
     );
 
     memcpy(ptr, data.instances.data(), data.instances.size() * sizeof(ObjectInstanceData));
+
+    /* Material instance data */
+    ptr = this->m_cullingPass.GetMaterialBuffer()->Allocate(
+        static_cast<uint32_t>(data.materials.size() * sizeof(MaterialInstanceData)),
+        nOffset
+    );
+
+    memcpy(ptr, data.materials.data(), data.materials.size() * sizeof(MaterialInstanceData));
 
     /* Draw batches */
     ptr = this->m_cullingPass.GetBatchBuffer()->Allocate(
@@ -465,6 +494,24 @@ DeferredRenderer::UploadMesh(const MeshData& meshData) {
 }
 
 /**
+* Unloads a mesh allocation from the mega-buffer
+* 
+* @param name Mesh name
+*/
+void 
+DeferredRenderer::UnloadMesh(const String& name) {
+    if (this->m_uploadedMeshes.count(name) > 0) {
+        const UploadedMesh& uploadedMesh = this->m_uploadedMeshes.at(name);
+
+        for (auto& [idx, subMesh] : uploadedMesh.subMeshes) {
+            this->m_megaBuffer.Free(subMesh.geometry);
+        }
+
+        this->m_uploadedMeshes.erase(name);
+    }
+}
+
+/**
 * Initializes scene-wide descriptor sets and layouts (transformations, instances)
 */
 void
@@ -472,11 +519,13 @@ DeferredRenderer::CreateSceneDescriptors() {
     /*
         Scene Descriptor layout (Set 0)
         Binding 0: Instance Data (Storage Buffer)
-        Binding 4: WVP Data (Storage buffer)
+        Binding 1: Material Data (Storage Buffer)
+        Binding 5: WVP Data (Storage buffer)
     */
     Vector<DescriptorSetLayoutBinding> bindings = {
         { 0, EDescriptorType::STORAGE_BUFFER, 1, EShaderStage::VERTEX | EShaderStage::FRAGMENT, false },
-        { 4, EDescriptorType::STORAGE_BUFFER, 1, EShaderStage::VERTEX, false }
+        { 1, EDescriptorType::STORAGE_BUFFER, 1, EShaderStage::VERTEX | EShaderStage::FRAGMENT, false },
+        { 5, EDescriptorType::STORAGE_BUFFER, 1, EShaderStage::VERTEX, false }
     };
 
     /* Create descriptor set layout */
@@ -489,7 +538,7 @@ DeferredRenderer::CreateSceneDescriptors() {
     DescriptorPoolCreateInfo poolInfo = { };
     poolInfo.nMaxSets = this->m_nFramesInFlight;
     poolInfo.poolSizes = {
-        { EDescriptorType::STORAGE_BUFFER, 2 * this->m_nFramesInFlight }
+        { EDescriptorType::STORAGE_BUFFER, 3 * this->m_nFramesInFlight }
     };
 
     this->m_scenePool = this->m_device->CreateDescriptorPool(poolInfo);
@@ -516,14 +565,21 @@ DeferredRenderer::UpdateSceneDescriptors(uint32_t nImgIdx) {
     instanceInfo.nOffset = this->m_cullingPass.GetInstanceBuffer()->GetPerFrameSize() * nImgIdx;
     instanceInfo.nRange = this->m_cullingPass.GetInstanceBuffer()->GetPerFrameSize();
 
-    /* Binding 4: WVP Data (from CullingPass) */
+    /* Binding 1: Material data (from CullingPass) */
+    DescriptorBufferInfo materialInfo = { };
+    materialInfo.buffer = this->m_cullingPass.GetMaterialBuffer()->GetBuffer();
+    materialInfo.nOffset = this->m_cullingPass.GetMaterialBuffer()->GetPerFrameSize() * nImgIdx;
+    materialInfo.nRange = this->m_cullingPass.GetMaterialBuffer()->GetPerFrameSize();
+
+    /* Binding 5: WVP Data (from CullingPass) */
     DescriptorBufferInfo wvpInfo = { };
     wvpInfo.buffer = this->m_cullingPass.GetWVPBuffer()->GetBuffer();
     wvpInfo.nOffset = this->m_cullingPass.GetWVPBuffer()->GetPerFrameSize() * nImgIdx;
     wvpInfo.nRange = this->m_cullingPass.GetWVPBuffer()->GetPerFrameSize();
     
     currentSceneSet->WriteBuffer(0, 0, instanceInfo);
-    currentSceneSet->WriteBuffer(4, 0, wvpInfo);
+    currentSceneSet->WriteBuffer(1, 0, materialInfo);
+    currentSceneSet->WriteBuffer(5, 0, wvpInfo);
     currentSceneSet->UpdateWrites();
 }
 
@@ -532,54 +588,54 @@ DeferredRenderer::UpdateSceneDescriptors(uint32_t nImgIdx) {
 */
 void
 DeferredRenderer::LoadSkybox() {
-    void* pData = nullptr;
-    uint32_t nSize = 0;
-    uint32_t nFaceSize = 0;
-    bool bSkyboxLoaded = LoadCubemap("zwartkops_curve_afternoon_4k.exr", &pData, nSize, nFaceSize);
-    if (!bSkyboxLoaded) {
-        Logger::Error("DeferredRenderer::Init: Failed loading skybox");
-        throw std::runtime_error("DeferredRenderer::Init Failed loading skybox");
-    }
+    //void* pData = nullptr;
+    //uint32_t nSize = 0;
+    //uint32_t nFaceSize = 0;
+    //bool bSkyboxLoaded = LoadCubemap("zwartkops_curve_afternoon_4k.exr", &pData, nSize, nFaceSize);
+    //if (!bSkyboxLoaded) {
+    //    Logger::Error("DeferredRenderer::Init: Failed loading skybox");
+    //    throw std::runtime_error("DeferredRenderer::Init Failed loading skybox");
+    //}
 
-    /* Create staging buffer */
-    BufferCreateInfo stagingInfo = { };
-    stagingInfo.nSize = nSize;
-    stagingInfo.pcData = pData;
-    stagingInfo.sharingMode = ESharingMode::EXCLUSIVE;
-    stagingInfo.type = EBufferType::STAGING_BUFFER;
-    stagingInfo.usage = EBufferUsage::TRANSFER_SRC;
-    
-    Ref<GPUBuffer> stagingBuff = this->m_device->CreateBuffer(stagingInfo);
+    ///* Create staging buffer */
+    //BufferCreateInfo stagingInfo = { };
+    //stagingInfo.nSize = nSize;
+    //stagingInfo.pcData = pData;
+    //stagingInfo.sharingMode = ESharingMode::EXCLUSIVE;
+    //stagingInfo.type = EBufferType::STAGING_BUFFER;
+    //stagingInfo.usage = EBufferUsage::TRANSFER_SRC;
+    //
+    //Ref<GPUBuffer> stagingBuff = this->m_device->CreateBuffer(stagingInfo);
 
-    /* Create texture */
-    TextureCreateInfo textureInfo = { };
-    textureInfo.buffer = stagingBuff;
-    textureInfo.extent = { nFaceSize, nFaceSize, 1 };
-    textureInfo.format = GPUFormat::RGBA32_FLOAT;
-    textureInfo.nMipLevels = 1;
-    textureInfo.nArrayLayers = 6;
-    textureInfo.samples = ESampleCount::SAMPLE_1;
-    textureInfo.usage = ETextureUsage::TRANSFER_DST | ETextureUsage::SAMPLED;
-    textureInfo.sharingMode = ESharingMode::EXCLUSIVE;
-    textureInfo.tiling = ETextureTiling::OPTIMAL;
-    textureInfo.imageType = ETextureDimensions::TYPE_2D;
-    textureInfo.initialLayout = ETextureLayout::UNDEFINED;
-    textureInfo.flags = ETextureFlags::CUBE_COMPATIBLE;
+    ///* Create texture */
+    //TextureCreateInfo textureInfo = { };
+    //textureInfo.buffer = stagingBuff;
+    //textureInfo.extent = { nFaceSize, nFaceSize, 1 };
+    //textureInfo.format = GPUFormat::RGBA32_FLOAT;
+    //textureInfo.nMipLevels = 1;
+    //textureInfo.nArrayLayers = 6;
+    //textureInfo.samples = ESampleCount::SAMPLE_1;
+    //textureInfo.usage = ETextureUsage::TRANSFER_DST | ETextureUsage::SAMPLED;
+    //textureInfo.sharingMode = ESharingMode::EXCLUSIVE;
+    //textureInfo.tiling = ETextureTiling::OPTIMAL;
+    //textureInfo.imageType = ETextureDimensions::TYPE_2D;
+    //textureInfo.initialLayout = ETextureLayout::UNDEFINED;
+    //textureInfo.flags = ETextureFlags::CUBE_COMPATIBLE;
 
-    this->m_skybox = this->m_device->CreateTexture(textureInfo);
+    //this->m_skybox = this->m_device->CreateTexture(textureInfo);
 
-    /* Create skybox image view */
-    ImageViewCreateInfo viewInfo = { };
-    viewInfo.viewType = EImageViewType::TYPE_CUBE;
-    viewInfo.image = this->m_skybox;
-    viewInfo.format = GPUFormat::RGBA32_FLOAT;
-    viewInfo.subresourceRange.aspectMask = EImageAspect::COLOR;
-    viewInfo.subresourceRange.nBaseArrayLayer = 0;
-    viewInfo.subresourceRange.nLayerCount = 6;
-    viewInfo.subresourceRange.nBaseMipLevel = 0;
-    viewInfo.subresourceRange.nLevelCount = 1;
+    ///* Create skybox image view */
+    //ImageViewCreateInfo viewInfo = { };
+    //viewInfo.viewType = EImageViewType::TYPE_CUBE;
+    //viewInfo.image = this->m_skybox;
+    //viewInfo.format = GPUFormat::RGBA32_FLOAT;
+    //viewInfo.subresourceRange.aspectMask = EImageAspect::COLOR;
+    //viewInfo.subresourceRange.nBaseArrayLayer = 0;
+    //viewInfo.subresourceRange.nLayerCount = 6;
+    //viewInfo.subresourceRange.nBaseMipLevel = 0;
+    //viewInfo.subresourceRange.nLevelCount = 1;
 
-    this->m_skyboxView = this->m_device->CreateImageView(viewInfo);
+    //this->m_skyboxView = this->m_device->CreateImageView(viewInfo);
 
     /* Create cube sampler */
     SamplerCreateInfo samplerInfo = { };

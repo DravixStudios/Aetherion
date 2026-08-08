@@ -15,5 +15,5 @@ public:
 private:
 	static ResourceManager* m_instance;
 
-	std::map<String, uint32_t> m_textureIndices;
+	Map<String, uint32_t> m_textureIndices;
 };

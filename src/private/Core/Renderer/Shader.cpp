@@ -4,13 +4,7 @@
 #include <shaderc/shaderc.hpp>
 #include <spirv_cross/spirv_glsl.hpp>
 
-Shader::Shader() : m_stage(EShaderStage::ALL) {
-
-}
-
-Shader::~Shader() {
-
-}
+Shader::Shader() : m_stage(EShaderStage::ALL) { }
 
 /**
  * Loads a GLSL shader from a file 
@@ -68,6 +62,17 @@ Shader::LoadFromGLSLSource(const String& source, const String& name, EShaderStag
     );
 }
 
+/**
+* Adds a macro definition to our shader
+* 
+* @param name Macro name
+* @param value Macro value
+*/
+void 
+Shader::AddMacroDefinition(const char* name, const char* value) {
+    this->m_macros[name] = value;
+}
+
 /** 
  * Compiles GLSL into SPIR-V with shaderc
  * 
@@ -88,6 +93,10 @@ Shader::CompileGLSLToSPIRV(const String& source, const String& name, EShaderStag
     options.SetTargetSpirv(shaderc_spirv_version_1_5);
     options.SetOptimizationLevel(shaderc_optimization_level_performance);
     options.SetForcedVersionProfile(450, shaderc_profile_none);
+    
+    for (auto& [name, value] : this->m_macros) {
+        options.AddMacroDefinition(name, value);
+    }
 
     shaderc_shader_kind kind;
     switch(stage) {
@@ -126,6 +135,44 @@ Shader::CompileGLSLToSPIRV(const String& source, const String& name, EShaderStag
     }
 
     return Vector<uint32_t>(result.cbegin(), result.cend());
+}
+
+/**
+* Load a shader from Shader reference
+* 
+* TODO: Handle other shader languages
+* 
+* @param ref Shader reference
+* @param name Shader name
+* @param shaderStage Shader stage
+*/
+void 
+Shader::LoadFromReference(const ShaderReference& ref, const String& name, EShaderStage shaderStage) {
+    /* Check if shader reference is valid */
+    if (!ref) {
+        Logger::Error("Shader::LoadFromReference: Invalid shader reference");
+        return;
+    }
+
+    Path shaderPath = ref.shaderPath;
+    
+    /* Convert path to absolute path if is not absolute */
+    std::filesystem::path absPath = shaderPath.string();
+    if (!absPath.is_absolute()) {
+        String executableDir = GetExecutableDir();
+        absPath = std::filesystem::path(executableDir) / shaderPath.string();
+    }
+
+    std::ifstream file(absPath);
+    if (!file.is_open()) {
+        Logger::Error("Shader::LoadFromGLSL: Cannot open file: {}", shaderPath.string());
+        throw std::runtime_error("Shader::LoadFromGLSL: Cannot open file");
+    }
+
+    std::stringstream buffer;
+    buffer << file.rdbuf();
+
+    this->LoadFromGLSLSource(buffer.str(), shaderPath.string(), shaderStage);
 }
 
 /**

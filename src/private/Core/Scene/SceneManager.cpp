@@ -2,12 +2,16 @@
 
 SceneManager* SceneManager::m_instance;
 
-/* Constructor */
+/** 
+* Constructor 
+*/
 SceneManager::SceneManager() {
-	this->m_currentScene = new Scene("SampleScene");
+	this->m_currentScene = new Scene("DefaultScene");
 }
 
-/* Add a scene to our scene map */
+/** 
+* Add a scene to our scene map 
+*/
 void 
 SceneManager::AddScene(Scene* scene) {
 	if (this->SceneExists(scene->m_name)) {
@@ -18,7 +22,13 @@ SceneManager::AddScene(Scene* scene) {
 	this->m_scenes[scene->m_name] = scene;
 }
 
-/* Get scene by name */
+/** 
+* Get scene by name
+* 
+* @param name Scene name
+* 
+* @returns Specified scene
+*/
 Scene* 
 SceneManager::GetScene(String name) {
 	if (!this->SceneExists(name)) {
@@ -29,29 +39,55 @@ SceneManager::GetScene(String name) {
 	return this->m_scenes[name];
 }
 
-/* Check if the scene actually exists */
+/** 
+* Check if the specified scene exists 
+* 
+* @param name Scene name
+* 
+* @returns True if scene exists
+*/
 bool 
 SceneManager::SceneExists(String name) {
 	return this->m_scenes.count(name) > 0;
 }
 
+/**
+* Get the current scene
+* 
+* @returns The current scene
+*/
 Scene* 
 SceneManager::GetCurrentScene() {
 	return this->m_currentScene;
 }
 
+/**
+* Set the current scene
+* 
+* @param name Scene name
+*/
+void 
+SceneManager::SetCurrentScene(const String& name) {
+	if (this->m_scenes.count(name) <= 0) {
+		Logger::Error("SceneManager::SetCurrentScene: Scene {} not found", name);
+		return;
+	}
+	
+	Logger::Info("SceneManager::SetCurrentScene: Current scene is {}", name);
+	this->m_currentScene = this->m_scenes.at(name);
+}
+
+/**
+* Scene manager Start method
+*/
 void 
 SceneManager::Start() {
-	GameObject* sampleObj = new GameObject("Sample object");
-
-	Mesh* mesh = new Mesh("MeshComponent");
-	mesh->LoadModel("DamagedHelmet.glb");
-	sampleObj->AddComponent("Mesh", mesh);
-
-	this->m_currentScene->AddObject(sampleObj);
 	this->m_currentScene->Start();
 }
 
+/**
+* Scene manager Update method
+*/
 void 
 SceneManager::Update() {
 	this->m_currentScene->Update();
@@ -62,4 +98,18 @@ SceneManager::GetInstance() {
 	if (SceneManager::m_instance == nullptr)
 		SceneManager::m_instance = new SceneManager();
 	return SceneManager::m_instance;
+}
+
+/**
+* Sets the scene dimensions
+* 
+* Note: This only changes the 
+* current camera dimensions
+* 
+* @param nWidth Width
+* @param nHeight Height
+*/
+void 
+SceneManager::SetDimensions(uint32_t nWidth, uint32_t nHeight) {
+	this->m_currentScene->m_currentCamera->Resize(nWidth, nHeight);
 }

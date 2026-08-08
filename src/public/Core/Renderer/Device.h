@@ -33,7 +33,7 @@ struct DeviceCreateInfo {
 	Vector<const char*> requiredExtensions;
 	bool bEnableGeometryShader = false;
 	bool bEnableTessellationShader = false;
-	bool bEnableSamplerAnisotroply = false;
+	bool bEnableSamplerAnisotropy = false;
 	bool bEnableMultiDrawIndirect = false;
 	bool bEnableDepthClamp = false;
 	Vector<const char*> validationLayers; // DEBUG ONLY

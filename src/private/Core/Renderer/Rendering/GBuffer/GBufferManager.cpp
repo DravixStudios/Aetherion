@@ -93,8 +93,6 @@ GBufferManager::CreateTextures() {
 	this->m_positionView = createView(this->m_position, GBufferLayout::POSITION, false);
 	this->m_bentNormalView = createView(this->m_bentNormal, GBufferLayout::BENT_NORMAL, false);
 	this->m_depthView = createView(this->m_depth, GBufferLayout::DEPTH, true);
-
-	Logger::Debug("GBufferManager::CreateTextures: G-Buffer Resources created");
 }
 
 /**

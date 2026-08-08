@@ -1,14 +1,38 @@
 #include "Core/Core.h"
 #include "Core/Scene/SceneManager.h"
 #include "Core/Renderer/ResourceManager.h"
+#include "Core/Project/ProjectManager.h"
+
+#include <nfd.h>
+
+#ifndef GIT_COMMIT
+#define GIT_COMMIT "Unknown commit"
+#endif
 
 Core* Core::m_instance;
+
+/* Drop callback for GLFW */
+void
+DropCallback(GLFWwindow* window, int nCount, const char** paths) {
+    for (uint32_t i = 0; i < nCount; i++) {
+        const char* path = paths[i];
+
+        ProjectManager* projMgr = ProjectManager::GetInstance();
+
+        if (!projMgr->ProjectLoaded()) {
+            return;
+        }
+
+        Directory assetsDir = projMgr->GetAssetsDir();
+        AssetManager::GetInstance()->ImportAsset(path, assetsDir.name);
+    }
+}
 
 /* Core constructor */
 Core::Core()
     : m_renderBackend(ERenderBackend::VULKAN), 
     m_resMgr(ResourceManager::GetInstance()), m_input(Input::GetInstance()),
-    m_sampleCount(ESampleCount::SAMPLE_8), m_nImageCount(3) {}
+    m_sampleCount(ESampleCount::SAMPLE_8), m_nImageCount(3), m_sceneMgr(SceneManager::GetInstance()) {}
 
 /* Core init method */
 void 
@@ -80,6 +104,7 @@ Core::Init() {
 
     this->m_input->SetWindow(this->m_pWindow);
     glfwSetKeyCallback(this->m_pWindow, Input::KeyCallback);
+    glfwSetDropCallback(this->m_pWindow, DropCallback);
     glfwSetMouseButtonCallback(this->m_pWindow, Input::MouseButtonCallback);
 
     this->m_deferredRenderer.Init(this->m_device, this->m_swapchain, this->m_nImageCount, this->m_pWindow);
@@ -88,6 +113,13 @@ Core::Init() {
 
     this->m_sceneMgr = SceneManager::GetInstance();
     this->m_sceneMgr->Start();
+    this->m_sceneMgr->SetDimensions(WIDTH, HEIGHT);
+
+    /* Set window title with build commit */
+    String buildCommit(GIT_COMMIT);
+    glfwSetWindowTitle(this->m_pWindow, String("No active project - Aetherion [" + buildCommit + "]").c_str());
+
+    this->SetupCallbacks();
 }
 
 /* Our core update method */
@@ -116,6 +148,8 @@ Core::Update() {
             this->m_swapchain->Rebuild(static_cast<uint32_t>(nWidth), static_cast<uint32_t>(nHeight));
             this->m_deferredRenderer.Resize(nWidth, nHeight);
 
+            SceneManager::GetInstance()->SetDimensions(nWidth, nHeight);
+
             this->m_bWindowResized = false;
         }
 
@@ -137,7 +171,7 @@ Core::Update() {
 
         for (auto& [name, gameObject] : currentScene->GetObjects()) {
             auto components = gameObject->GetComponents();
-            auto it = components.find("Mesh");
+            auto it = components.find("MeshComponent");
             if (it != components.end()) {
                 Mesh* mesh = dynamic_cast<Mesh*>(it->second);
                 if (mesh && mesh->IsLoaded()) {
@@ -150,7 +184,7 @@ Core::Update() {
 
         this->m_deferredRenderer.FinalizeMeshUploads();
 
-        const std::map<String, UploadedMesh> meshCache = this->m_deferredRenderer.GetUploadedMeshes();
+        const auto& meshCache = this->m_deferredRenderer.GetUploadedMeshes();
         this->m_sceneCollector.SetUploadedMeshes(&meshCache);
         CollectedDrawData drawData = this->m_sceneCollector.Collect(currentScene);
 
@@ -225,4 +259,189 @@ Core::CreateSyncObjects() {
     }
 
 
+}
+
+void
+Core::SetupCallbacks() {
+    /* On project opened callback */
+    ProjectManager* pProjManager = ProjectManager::GetInstance();
+    pProjManager->SetOnProjectOpenedCallback(
+        [this, pProjManager](const Project::Asset& projectAsset) {
+            String title = projectAsset.name + " - Aetherion Engine";
+            glfwSetWindowTitle(this->m_pWindow, title.c_str());
+
+            String editorScene = projectAsset.editorScene;
+            String runtimeScene = projectAsset.runtimeScene;
+
+            Directory projectDir = pProjManager->GetProjectDir();
+
+            String fullScenePath = (fs::path(projectDir.name) / fs::path(editorScene)).string();
+
+            /* Normalize scene path */
+            std::replace(
+                fullScenePath.begin(),
+                fullScenePath.end(),
+                '/',
+                '\\'
+            );
+
+            /* TODO: Switch between editor and runtime scenes */
+            AssetHandle sceneHandle = AssetHandle::FromPath(fullScenePath, EAssetType::SCENE);
+
+            AssetVariant sceneAssetVariant = AssetManager::GetInstance()->GetAsset(sceneHandle);
+
+            /* Check if asset variant holds SceneAsset */
+            if (SceneAsset* pSceneAsset = std::get_if<SceneAsset>(&sceneAssetVariant)) {
+                const SceneAsset sceneAsset = *pSceneAsset;
+
+                /* Create scene from asset */
+                String sceneName(sceneAsset.header.displayName);
+                Scene* pScene = new Scene(sceneName);
+                pScene->SetupFromAsset(sceneAsset);
+                
+                /* Add scene to the scene manager and set it as current */
+                this->m_sceneMgr->AddScene(pScene);
+                this->m_sceneMgr->SetCurrentScene(sceneName);
+
+                this->SetupSceneCallbacks();
+            }
+            else {
+                Logger::Error("Core::SetupCallbacks:[OnProjectOpenedCallback]: Not a SceneAsset");
+                return;
+            }
+        }
+    );
+
+    /* On scene save callback */
+    this->m_deferredRenderer.SetOnSceneSaveCallback([this]() {
+        /* Get project manager */
+        ProjectManager* projectMgr = ProjectManager::GetInstance();
+
+        /* Check if we have any project loaded */
+        if (!projectMgr->ProjectLoaded()) {
+            Logger::Error("Core::SetupCallbacks:[OnSceneSaveCallback]: No project open");
+            return;
+        }
+
+        /* Get current scene and project tree */
+        Scene* scene = this->m_sceneMgr->GetCurrentScene();
+        ProjectTree projectTree = projectMgr->GetProjectTree();
+        Directory projectDir = projectTree.root->dir;
+
+        /*
+            Open a NFD Dialog
+
+            TODO: Move this part to a separate class
+            or system
+        */
+        nfdu8char_t* outPath;
+        nfdu8filteritem_t filters[1] = { { "Aetherion Scene", "aeth" } };
+
+        fs::path projectPath = projectDir.name;
+        String sceneName = scene->GetName();
+        String sceneFile = sceneName + ".aeth";
+
+        nfdresult_t result = NFD_SaveDialogU8(
+            &outPath,
+            filters,
+            1,
+            reinterpret_cast<const nfdu8char_t*>(projectPath.u8string().c_str()),
+            reinterpret_cast<const nfdu8char_t*>(sceneFile.c_str())
+        );
+
+        /* Check NFD result */
+        switch (result) {
+        case NFD_OKAY:
+            Logger::Debug("Core::SetupCallbacks:[OnSceneSaveCallback]: Saving scene. {}", outPath);
+            break;
+        case NFD_CANCEL:
+            Logger::Debug("Core::SetupCallbacks:[OnSceneSaveCallback]: User cancelled dialog");
+            return;
+        case NFD_ERROR:
+        {
+            const char* error = NFD_GetError();
+            Logger::Error("Core::SetupCallbacks:[OnSceneSaveCallback]: {}", error);
+            return;
+        }
+        }
+
+        String scenePath(outPath);
+
+        /*
+            Serialize scene and save it
+
+            TODO: Check that file is correctly saved
+        */
+        SceneAsset sceneAsset = scene->SerializeScene();
+
+        AssetManager* assetMgr = AssetManager::GetInstance();
+
+        if (!assetMgr->SaveScene(scenePath, sceneAsset)) {
+            Logger::Error("Core::SetupCallbacks:[OnSceneSaveCallback]: Failed saving scene {}", scenePath);
+            return;
+        }
+
+        Logger::Info("Core::SetupCallbacks:[OnSceneSaveCallback]: Scene {} saved at {}", sceneName, scenePath);
+    });
+
+    /* On drop to viewport callback */
+    this->m_deferredRenderer.SetOnDropToViewportCallback([](const AssetHandle& handle) {
+        /* Get required managers */
+        AssetManager* assetMgr = AssetManager::GetInstance();
+        SceneManager* sceneMgr = SceneManager::GetInstance();
+
+        Logger::Debug("Core::SetupCallbacks:[OnDropToViewportCallback]: Dropped asset: {} to viewport", handle.uuid);
+
+        EAssetType assetType = handle.type;
+
+        switch (assetType) {
+        case EAssetType::MESH:
+        {
+            /*
+            * If mesh asset dropped to viewport,
+            * create a new gameobject with a MeshComponent
+            */
+            const Name& assetName = ProjectManagerHelpers::GetAssetName(handle);
+            GameObject* pObj = new GameObject(String(assetName));
+            Mesh* pMesh = new Mesh("MeshComponent");
+            pMesh->LoadAsset(handle);
+
+            pObj->AddComponent("MeshComponent", pMesh);
+
+            Scene* currentScene = sceneMgr->GetCurrentScene();
+
+            pObj->transform.scale = Vector3(.05f, .05f, .05f);
+            //pObj->transform.Rotate(90.f, 0.f, 0.f);
+            currentScene->AddObject(pObj);
+
+            break;
+        }
+        default:
+            break;
+        }
+    });
+
+    this->SetupSceneCallbacks();
+}
+
+void
+Core::SetupSceneCallbacks() {
+    Scene* pCurrentScene = this->m_sceneMgr->GetCurrentScene();
+
+    if (pCurrentScene == nullptr) return;
+
+    pCurrentScene->GetHierarchy().SetOnNodeDeleted([this, pCurrentScene](GameObject* pObj) {
+        if (pObj == nullptr) return;
+
+        Map<String, Component*> components = pObj->GetComponents();
+        if (components.count("MeshComponent") > 0) {
+            Mesh* pMeshComponent = dynamic_cast<Mesh*>(components.at("MeshComponent"));
+            if (pMeshComponent && pMeshComponent->IsLoaded()) {
+                String meshName = pMeshComponent->GetMeshData().name;
+
+                this->m_deferredRenderer.UnloadMesh(meshName);
+            }
+        }
+        pCurrentScene->DeleteObject(pObj);
+    });
 }

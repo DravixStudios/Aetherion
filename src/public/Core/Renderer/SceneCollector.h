@@ -7,11 +7,13 @@
 class SceneCollector {
 public:
 	void 
-	SetUploadedMeshes(const std::map<String, UploadedMesh>* cache) {
+	SetUploadedMeshes(const Map<String, UploadedMesh>* cache) {
 		this->m_uploadedMeshes = cache;
 	}
 
 	CollectedDrawData Collect(Scene* scene);
 private:
-	const std::map<String, UploadedMesh>* m_uploadedMeshes = nullptr;
+	const Map<String, UploadedMesh>* m_uploadedMeshes = nullptr;
+
+	void CollectGameObjects(Ref<Hierarchy::HierarchyNode> node, Map<String, GameObject*>& outObjects);
 };

@@ -87,7 +87,7 @@ VulkanRingBuffer::Create(const RingBufferCreateInfo& createInfo) {
 		case EBufferUsage::STORAGE_BUFFER: bufferTypeName = "STORAGE"; break;
 	}
 
-	Logger::Debug("VulkanUniformRingBuffeer::Init: {0} Ring buffer initialized", bufferTypeName);
+	Logger::Debug("VulkanRingBuffeer::Init: {0} Ring buffer initialized", bufferTypeName);
 	Logger::Debug("  - Total size: {0} KB", nFixedSize / 1024);
 	Logger::Debug("  - Per-frame size: {0} KB", this->m_nPerFrameSize / 1024);
 	Logger::Debug("  - Alignment: {0} bytes", this->m_nAlignment);

@@ -4,16 +4,33 @@
 #include "Core/Renderer/MegaBuffer.h"
 #include "Core/Renderer/ResourceManager.h"
 
+#include "Core/Containers.h"
+
+#define INVALID_TEXTURE 0xFFFFFFFF
+
+struct UploadedSubMeshMaterial {
+	uint32_t nAlbedoIndex = INVALID_TEXTURE;
+	uint32_t nORMIndex = INVALID_TEXTURE;
+	uint32_t nEmissiveIndex = INVALID_TEXTURE;
+	uint32_t nNormalIndex = INVALID_TEXTURE;
+
+	glm::vec4 albedoColor;
+	glm::vec4 emissiveColor;
+	float ao;
+	float roughness;
+	float metallic;
+
+	uint32_t materialFlags = 0;
+};
+
 struct UploadedSubMesh {
 	MegaBufferAllocation geometry;
-	uint32_t nAlbedoIndex = UINT32_MAX;
-	uint32_t nORMIndex = UINT32_MAX;
-	uint32_t nEmissiveIndex = UINT32_MAX;
+	UploadedSubMeshMaterial material;
 	uint32_t nBlockIdx = 0;
 };
 
 struct UploadedMesh {
-	std::map<uint32_t, UploadedSubMesh> subMeshes;
+	Map<uint32_t, UploadedSubMesh> subMeshes;
 };
 
 struct PendingTextureUpload {
