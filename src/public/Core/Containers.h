@@ -88,7 +88,7 @@ struct FixedString {
 	FixedString(const char* pcData) {
 		size_t len = std::min(std::strlen(pcData), N - 1);
 		this->writtenBytes = len;
-		std::strncpy(data, pcData, len);
+		std::snprintf(data, N, "%s", pcData);
 		this->data[N - 1] = '\0';
 	}
 
@@ -97,7 +97,7 @@ struct FixedString {
 	}
 
 	FixedString& operator=(const char* pcData) {
-		std::strncpy(data, pcData, N - 1);
+		std::snprintf(data, N, "%s", pcData);
 		this->data[N - 1] = '\0';
 		return *this;
 	}
