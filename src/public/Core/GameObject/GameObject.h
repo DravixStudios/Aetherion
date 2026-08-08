@@ -7,6 +7,8 @@
 #include "Core/GameObject/Components/Mesh.h"
 #include "Math/Transform.h"
 
+#include "Core/Resources/GameObjectAsset.h"
+
 class GameObject {
 public:
 	GameObject(String name);
@@ -17,6 +19,8 @@ public:
 	virtual void Update();
 	Map<String, Component*> GetComponents();
 	void AddComponent(String name, Component* component);
+
+	void SetupFromAsset(const GameObjectAsset& asset);
 
 	Transform transform;
 private:

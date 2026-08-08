@@ -1,4 +1,5 @@
 #include "Core/GameObject/GameObject.h"
+#include "Core/Resources/AssetManager.h"
 
 GameObject::GameObject(String name) {
 	this->m_name = name;
@@ -9,26 +10,44 @@ GameObject::GameObject(String name) {
 	this->transform.scale = { 1.f, 1.f, 1.f };
 }
 
-String GameObject::GetName() {
+String 
+GameObject::GetName() {
 	return this->m_name;
 }
 
-void GameObject::Start() {
+void 
+GameObject::Start() {
 	for (std::pair<String, Component*> component : this->m_components) {
 		component.second->Start();
 	}
 }
 
-void GameObject::Update() {
+void 
+GameObject::Update() {
 	for (std::pair<String, Component*> component : this->m_components) {
 		component.second->Update();
 	}
 }
 
-Map<String, Component*> GameObject::GetComponents() {
+Map<String, Component*> 
+GameObject::GetComponents() {
 	return this->m_components;
 }
 
-void GameObject::AddComponent(String name, Component* component) {
+void 
+GameObject::AddComponent(String name, Component* component) {
 	this->m_components[name] = component;
+}
+
+void 
+GameObject::SetupFromAsset(const GameObjectAsset& asset) {
+	AssetManager* assetManager = AssetManager::GetInstance();
+
+	/* Handle mesh component */
+	if (asset.HasComponent(EAssetComponent::MESH)) {
+		Mesh* pMeshComponent = new Mesh("MeshComponent");
+		pMeshComponent->LoadAsset(asset.meshHandle);
+
+		this->AddComponent("MeshComponent", pMeshComponent);
+	}
 }
