@@ -35,7 +35,7 @@ enum class ERenderBackend {
 
     /* TODO */
     D3D12,
-    D2D11,
+    D3D11,
     OPENGL,
     METAL
 };

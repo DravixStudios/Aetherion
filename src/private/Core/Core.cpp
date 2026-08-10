@@ -77,6 +77,12 @@ Core::Init() {
 #else
             Logger::Error("Core::Init: Vulkan not available in this build");
 #endif
+        case ERenderBackend::D3D11:
+        case ERenderBackend::D3D12:
+        case ERenderBackend::METAL:
+        case ERenderBackend::OPENGL:
+            Logger::Error("Core::Init: Using non-implemented graphics APIs");
+            return;
     }
     
     /* Create renderer */
