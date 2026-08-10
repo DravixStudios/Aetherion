@@ -239,7 +239,7 @@ struct ProjectTree {
 	MoveAsset(Ref<TreeNode> from, Ref<TreeNode> to, const Name& name) {
 		if (!from || !to) return false;
 
-		for (Vector<AssetHandle>::iterator it = from->assets.begin(); it != from->assets.end(); it) {
+		for (Vector<AssetHandle>::iterator it = from->assets.begin(); it != from->assets.end(); it++) {
 			if (ProjectManagerHelpers::GetAssetName(*it) == name) {
 				AssetHandle handle = *it;
 
