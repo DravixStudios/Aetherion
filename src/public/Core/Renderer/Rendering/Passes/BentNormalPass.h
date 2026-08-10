@@ -7,8 +7,8 @@ class BentNormalPass : public BasePass {
 public:
 	void Init(Ref<Device> device) override;
 	void Init(Ref<Device> device, uint32_t nFramesInFlight);
-	void SetupNode(RenderGraphBuilder& builder);
-	void Execute(Ref<GraphicsContext> context, RenderGraphContext& graphCtx, uint32_t nImgIdx);
+	void SetupNode(RenderGraphBuilder& builder) override;
+	void Execute(Ref<GraphicsContext> context, RenderGraphContext& graphCtx, uint32_t nImgIdx) override;
 	void SetInput(TextureHandle normal, TextureHandle depth);
 	void SetOutput(TextureHandle bentNormal);
 
