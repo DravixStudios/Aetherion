@@ -2,7 +2,7 @@
 #include "Core/Renderer/ImGuiImpl.h"
 
 #include "Core/Renderer/Vulkan/VulkanGraphicsContext.h"
-#include "Core/Renderer/Vulkan/VulkanDevice.h";
+#include "Core/Renderer/Vulkan/VulkanDevice.h"
 
 #include <imgui/imgui.h>
 #include <imgui/backends/imgui_impl_vulkan.h>

@@ -27,7 +27,7 @@ add_subdirectory(${GLFW_DIR} binary_dir EXCLUDE_FROM_ALL)
 include_directories(${GLFW_DIR}/include)
 
 # Dear ImGui
-set(IMGUI_DIR ../../)
+set(IMGUI_DIR ../..)
 include_directories(${IMGUI_DIR} ${IMGUI_DIR}/backends ..)
 
 # Libraries

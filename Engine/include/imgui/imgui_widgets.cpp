@@ -4210,7 +4210,7 @@ static int STB_TEXTEDIT_INSERTCHARS(ImGuiInputTextState* obj, int pos, const cha
 #define IMSTB_TEXTEDIT_memmove memmove
 #include "imstb_textedit.h"
 
-// stb_textedit internally allows for a single undo record to do addition and deletion, but somehow, calling
+    // stb_textedit internally allows for a single undo record to do addition and deletion, but somehow, calling
 // the stb_textedit_paste() function creates two separate records, so we perform it manually. (FIXME: Report to nothings/stb?)
 static void stb_textedit_replace(ImGuiInputTextState* str, STB_TexteditState* state, const IMSTB_TEXTEDIT_CHARTYPE* text, int text_len)
 {
