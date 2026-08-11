@@ -71,6 +71,43 @@ jobs:
           echo "VCPKG_ROOT=$RUNNER_TEMP/vcpkg" >> "$GITHUB_ENV"
           echo "$RUNNER_TEMP/vcpkg" >> "$GITHUB_PATH"
 
+      - name: Detect vcpkg manifest path (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          if (Test-Path "$env:GITHUB_WORKSPACE/vcpkg.json") {
+            echo "VCPKG_MANIFEST_DIR=$env:GITHUB_WORKSPACE" >> $env:GITHUB_ENV
+          } elseif (Test-Path "$env:GITHUB_WORKSPACE/Engine/vcpkg.json") {
+            echo "VCPKG_MANIFEST_DIR=$env:GITHUB_WORKSPACE/Engine" >> $env:GITHUB_ENV
+          } else {
+            throw "Could not find vcpkg.json in repository root or Engine/"
+          }
+
+      - name: Detect vcpkg manifest path (Linux/macOS)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          if [ -f "$GITHUB_WORKSPACE/vcpkg.json" ]; then
+            echo "VCPKG_MANIFEST_DIR=$GITHUB_WORKSPACE" >> "$GITHUB_ENV"
+          elif [ -f "$GITHUB_WORKSPACE/Engine/vcpkg.json" ]; then
+            echo "VCPKG_MANIFEST_DIR=$GITHUB_WORKSPACE/Engine" >> "$GITHUB_ENV"
+          else
+            echo "Could not find vcpkg.json in repository root or Engine/" >&2
+            exit 1
+          fi
+
+      - name: Install vcpkg manifest deps (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          & "$env:VCPKG_ROOT/vcpkg.exe" install --x-manifest-root="$env:VCPKG_MANIFEST_DIR"
+
+      - name: Install vcpkg manifest deps (Linux/macOS)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          "$VCPKG_ROOT/vcpkg" install --x-manifest-root="$VCPKG_MANIFEST_DIR"
+
       - name: Install Vulkan SDK (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
@@ -100,6 +137,8 @@ jobs:
             ninja \
             molten-vk \
             glfw
+          echo "VULKAN_SDK=$(brew --prefix molten-vk)" >> "$GITHUB_ENV"
+          echo "$(brew --prefix molten-vk)/bin" >> "$GITHUB_PATH"
 
       # ── Build ──────────────────────────────────────────────────────────────
       - name: Configure CMake
