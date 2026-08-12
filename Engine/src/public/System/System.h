@@ -4,4 +4,5 @@
 
 namespace System {
     int GetSelfPID();
+    void InstallExceptionHandler();
 }
