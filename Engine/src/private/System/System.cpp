@@ -1,10 +1,15 @@
 #include "System/System.h"
+#include <cstdint>
 #if defined(__APPLE__) || defined(__linux__)
 #include <unistd.h>
 #include <csignal>
 #include <execinfo.h>
 #include <unistd.h>
+#include <arpa/inet.h>
+#include <sys/socket.h>
 #endif
+
+static constexpr uint16_t HANDLER_PORT = 25785;
 
 int
 System::GetSelfPID() {
@@ -51,4 +56,29 @@ System::InstallExceptionHandler() {
     sigaction(SIGILL, &action, nullptr);
     sigaction(SIGBUS, &action, nullptr);
 #endif
+}
+
+void
+System::InitializeHeartbeatSocket() {
+    // TODO: Windows use-case
+    System::heartbeatSocket = socket(PF_INET, SOCK_STREAM, 0);
+
+    if (System::heartbeatSocket < 0) {
+        Logger::Error("System::InitializeHeartbeatSocket: Failed initializing heartbeat socket");
+        return;
+    }
+
+    struct sockaddr_in addr = { };
+    addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+    addr.sin_port = htons(HANDLER_PORT);
+    addr.sin_family = AF_INET;
+
+    int nRes = connect(System::heartbeatSocket, reinterpret_cast<sockaddr*>(&addr), sizeof(addr));
+
+    if (nRes != 0) {
+        Logger::Error("System::InitializeHeartbeatSocket: Failed connecting to the Exception handler process");
+        return;
+    }
+
+
 }
