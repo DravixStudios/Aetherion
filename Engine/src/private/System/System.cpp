@@ -1,15 +1,32 @@
 #include "System/System.h"
-#include <cstdint>
+#include <thread>
+#include <chrono>
 #if defined(__APPLE__) || defined(__linux__)
 #include <unistd.h>
 #include <csignal>
 #include <execinfo.h>
-#include <unistd.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #endif
 
 static constexpr uint16_t HANDLER_PORT = 25785;
+static constexpr uint8_t TICKS_PER_SECOND = 1;
+
+bool g_bQuitThread = false;
+uint32_t g_nCurrentTick = 0;
+
+std::thread heartbeatThread{};
+
+struct HelloPacket {
+    int nPID = -1;
+    uint8_t nTPS = -1;
+};
+
+struct HeartbeatPacket {
+    uint32_t nTick = -1;
+};
+
+void HeartbeatThread(int socket);
 
 int
 System::GetSelfPID() {
@@ -27,16 +44,15 @@ System::GetSelfPID() {
 static void
 ExceptionHandler(int nSignal, siginfo_t* pInfo, void* pvContext) {
     // TODO: Develop this
-    write(STDERR_FILENO, "Crashed\nCallstack:\n", 11);
-
     void* stack[128];
     int nFrames = backtrace(stack, 64);
 
-    backtrace_symbols_fd(
+    char** ppBacktrace = backtrace_symbols(
         stack,
-        nFrames,
-        STDERR_FILENO
+        nFrames
     );
+
+
 
     _exit(128 + nSignal);
 }
@@ -80,5 +96,23 @@ System::InitializeHeartbeatSocket() {
         return;
     }
 
+    const HelloPacket helloPacket = { .nPID = GetSelfPID(), .nTPS = TICKS_PER_SECOND };
 
+    send(System::heartbeatSocket, &helloPacket, sizeof(HelloPacket), 0);
+
+    heartbeatThread = std::thread(HeartbeatThread, System::heartbeatSocket);
+    heartbeatThread.detach();
+}
+
+void
+HeartbeatThread(int socket) {
+    const uint16_t msPerTick = 1000 / TICKS_PER_SECOND;
+    while (!g_bQuitThread) {
+        std::chrono::nanoseconds tickInterval =
+            std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::milliseconds(msPerTick));
+        std::this_thread::sleep_for(tickInterval);
+
+        const HeartbeatPacket heartbeat = { .nTick = g_nCurrentTick++ };
+        send(socket, &heartbeat, sizeof(HeartbeatPacket), 0);
+    }
 }
