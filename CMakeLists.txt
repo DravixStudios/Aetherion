@@ -8,3 +8,4 @@ endif()
 project ("Aetherion")
 
 add_subdirectory ("Engine")
+add_subdirectory ("Tools")

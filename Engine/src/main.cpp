@@ -2,6 +2,7 @@
 #include "Core/Core.h"
 #include "Utils.h"
 #include "Core/Logger.h"
+#include "System/System.h"
 
 #if defined(LOGGING_USE_SPDLOG)
 	#include <spdlog/spdlog.h>
@@ -21,6 +22,8 @@ Core* g_core = nullptr;
 #endif
 #endif
 
+void SetupExceptionHandler();
+
 int main() {
 	g_core = Core::GetInstance();
 
@@ -33,6 +36,8 @@ int main() {
 	Logger::Info("Version: {0}.{1}.{2}", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH);
 	Logger::Info("Dravix Studios. All rights reserved");
 
+	SetupExceptionHandler();
+
 	if (g_core == nullptr) {
 		spdlog::error("Failed to get the Core instance");
 		return 1;
@@ -42,4 +47,10 @@ int main() {
 	g_core->Update();
 
 	return 0;
+}
+
+void
+SetupExceptionHandler() {
+	System::InstallExceptionHandler();
+	System::InitializeHeartbeatSocket();
 }
