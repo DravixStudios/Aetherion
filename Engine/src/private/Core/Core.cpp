@@ -284,13 +284,15 @@ Core::SetupCallbacks() {
 
             String fullScenePath = (fs::path(projectDir.name) / fs::path(editorScene)).string();
 
-            /* Normalize scene path */
+            /* Normalize scene path (Windows only) */
+#ifdef _WIN32
             std::replace(
                 fullScenePath.begin(),
                 fullScenePath.end(),
                 '/',
                 '\\'
             );
+#endif
 
             /* TODO: Switch between editor and runtime scenes */
             AssetHandle sceneHandle = AssetHandle::FromPath(fullScenePath, EAssetType::SCENE);

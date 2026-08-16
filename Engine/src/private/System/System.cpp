@@ -9,6 +9,7 @@
 #include <sys/socket.h>
 #endif
 
+// TODO: Promote this to a config file
 static constexpr uint16_t HANDLER_PORT = 25785;
 static constexpr uint8_t TICKS_PER_SECOND = 1;
 
