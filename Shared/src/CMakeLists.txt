@@ -1,0 +1,1 @@
+set("SHARED_INCLUDES" "${CMAKE_CURRENT_SOURCE_DIR}/public" CACHE INTERNAL "Shared include directories")

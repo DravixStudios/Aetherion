@@ -7,25 +7,22 @@
 #include <execinfo.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
+#include <spawn.h>
+#include <sys/wait.h>
+
+#include <Heartbeat/HeartbeatMessages.h>
+
+extern char** environ;
 #endif
 
 // TODO: Promote this to a config file
 static constexpr uint16_t HANDLER_PORT = 25785;
-static constexpr uint8_t TICKS_PER_SECOND = 1;
+static constexpr uint8_t TICKS_PER_SECOND = 8;
 
 bool g_bQuitThread = false;
 uint32_t g_nCurrentTick = 0;
 
 std::thread heartbeatThread{};
-
-struct HelloPacket {
-    int nPID = -1;
-    uint8_t nTPS = -1;
-};
-
-struct HeartbeatPacket {
-    uint32_t nTick = -1;
-};
 
 void HeartbeatThread(int socket);
 
@@ -117,3 +114,34 @@ HeartbeatThread(int socket) {
         send(socket, &heartbeat, sizeof(HeartbeatPacket), 0);
     }
 }
+
+// TODO: Windows use-case
+#if defined(__APPLE__) || defined(__linux__)
+int
+System::SpawnProcess(const String& executable) {
+    pid_t pid = 0;
+
+    char* const args[] = {
+        const_cast<char*>(executable.c_str()),
+        nullptr
+    };
+
+    int nResult = posix_spawn(
+        &pid,
+        executable.c_str(),
+        nullptr,
+        nullptr,
+        args,
+        environ
+    );
+
+    if (nResult != 0) {
+        Logger::Error("System::SpawnProcess: Failed spawning posix process");
+        return nResult;
+    }
+
+    Logger::Debug("System::SpawnProcess: Spawned process with PID: {}", pid);
+
+    return nResult;
+}
+#endif

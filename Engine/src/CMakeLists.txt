@@ -2,6 +2,9 @@ file(GLOB_RECURSE SOURCES "private/**/*.cpp" "main.cpp" "private/stb_image_impl.
 file(GLOB_RECURSE HEADERS "public/**/*.h")
 
 add_executable("Aetherion" ${SOURCES} ${HEADERS})
+add_dependencies(Aetherion AethExceptionHandler)
+
+target_compile_definitions(Aetherion PRIVATE EXCEPTION_HANDLER_PATH="$<TARGET_FILE:AethExceptionHandler>")
 
 if (CMAKE_VERSION VERSION_GREATER 3.12)
   set_property(TARGET Aetherion PROPERTY CXX_STANDARD 20)
@@ -104,5 +107,6 @@ file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/shaders
      DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
 target_include_directories(Aetherion PRIVATE "${PRIVATE_INCLUDES}")
+target_include_directories(Aetherion PRIVATE "${SHARED_INCLUDES}")
 target_include_directories(Aetherion PUBLIC "${PUBLIC_INCLUDES}")
 include_directories("$ENV{VULKAN_SDK}/Include")

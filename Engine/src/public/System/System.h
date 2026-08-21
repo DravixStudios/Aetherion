@@ -7,6 +7,7 @@ namespace System {
     void InstallExceptionHandler();
 
     void InitializeHeartbeatSocket();
+    int SpawnProcess(const String& executable);
 
     static int heartbeatSocket = 0;
 }

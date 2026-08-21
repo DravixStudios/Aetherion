@@ -7,5 +7,6 @@ endif()
 
 project ("Aetherion")
 
-add_subdirectory ("Engine")
+add_subdirectory ("Shared")
 add_subdirectory ("Tools")
+add_subdirectory ("Engine")

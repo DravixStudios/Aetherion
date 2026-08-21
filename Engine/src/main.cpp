@@ -51,6 +51,7 @@ int main() {
 
 void
 SetupExceptionHandler() {
+	System::SpawnProcess(EXCEPTION_HANDLER_PATH);
 	System::InstallExceptionHandler();
 	System::InitializeHeartbeatSocket();
 }
