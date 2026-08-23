@@ -1,11 +1,16 @@
 #include <iostream>
+#include <chrono>
 #include <GLFW/glfw3.h>
+#include <thread>
 #if defined(__APPLE__) || defined(__linux__)
 #include <unistd.h>
 #include <csignal>
 #include <execinfo.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
+#endif
+#if defined(__APPLE__)
+#include "macOSUtil.h"
 #endif
 
 #include <Heartbeat/HeartbeatMessages.h>
@@ -65,6 +70,8 @@ int main() {
         WIDTH, HEIGHT,
         "Aetherion Exception Handler",
         nullptr, nullptr);
+
+    SetBackgroundMode();
 
     // TODO: Debug purposes only, hide it and only show it when exception
     glfwShowWindow(pWindow);
