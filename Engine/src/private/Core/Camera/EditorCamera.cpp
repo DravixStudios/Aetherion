@@ -53,23 +53,24 @@ void EditorCamera::Update() {
 		float deltaX = this->m_input->GetDeltaX();
 		float deltaY = this->m_input->GetDeltaY();;
 
-		float newPitch = m_pitch + deltaY * -0.01f;
+		// TODO: Implement Pitch rotation lock
+		/*float newPitch = m_pitch + deltaY * -0.01f;
 		newPitch = glm::clamp(newPitch, -89.f, 89.f);
 		float deltaPitchClamped = newPitch - this->m_pitch;
-		this->m_pitch = newPitch;
+		this->m_pitch = newPitch;*/
 
 		//this->m_pitch = glm::clamp(this->m_pitch, glm::radians(-89.0f), glm::radians(89.0f));
 
 		this->transform.Rotate(deltaY * -this->m_sensY, deltaX * -this->m_sensX, 0.f);
 
-		glm::vec3 pos(this->transform.location.x, this->transform.location.y, this->transform.location.z);
+		/*glm::vec3 pos(this->transform.location.x, this->transform.location.y, this->transform.location.z);
 		glm::vec3 forward = glm::normalize(
 			glm::vec3(
 				this->transform.Forward().x, 
 				this->transform.Forward().y,
 				this->transform.Forward().z
 			)
-		);
+		);*/
 
 		this->m_view = glm::mat4(1.f);
 		this->m_view = glm::rotate(this->m_view, glm::radians(this->transform.rotation.x), glm::vec3(1.f, 0.f, 0.f));

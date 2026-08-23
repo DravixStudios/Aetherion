@@ -50,11 +50,11 @@ Mesh::LoadAsset(const AssetHandle& handle) {
 
 		uint32_t nVertexCount = subMesh.header.nVertexCount;
 		uint32_t nVertexStride = subMesh.header.nVertexStride;
-		uint32_t nVertexOffset = subMesh.header.nVertexOffset;
+		[[maybe_unused]] uint32_t nVertexOffset = subMesh.header.nVertexOffset;
 
 		uint32_t nIndexCount = subMesh.header.nIndexCount;
 		uint32_t nIndexStride = subMesh.header.nIndexStride;
-		uint32_t nIndexOffset = subMesh.header.nIndexOffset;
+		[[maybe_unused]] uint32_t nIndexOffset = subMesh.header.nIndexOffset;
 
 		uint32_t nTotalByteSize = subMesh.header.nTotalByteSize;
 

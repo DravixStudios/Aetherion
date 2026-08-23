@@ -135,7 +135,7 @@ ShadowPass::Execute(Ref<GraphicsContext> context, RenderGraphContext& graphCtx, 
 
 		uint32_t nBaseOffset = indirectBuff->GetPerFrameSize()* nFrameIdx;
 		uint32_t nCurrentOffset = nBaseOffset;
-		uint32_t nTotalBatches = this->m_pCullingPass->GetTotalBatches();
+		[[maybe_unused]] uint32_t nTotalBatches = this->m_pCullingPass->GetTotalBatches();
 
 		for (uint32_t j = 0; j < this->m_nBlockCount; j++) {
 			Ref<GPUBuffer> VBO = this->m_blocks[j].vertexBuffer;

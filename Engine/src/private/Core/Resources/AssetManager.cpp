@@ -869,7 +869,7 @@ AssetManager::ImportAsset(const String& path, const String& projectAssets) {
 			meshPath /= filename + ".aeth";
 
 			this->SaveMesh(meshPath.string(), meshAsset);
-			AssetHandle meshHandle = this->RegisterAsset(meshPath.string(), EAssetType::MESH);
+			[[maybe_unused]] AssetHandle meshHandle = this->RegisterAsset(meshPath.string(), EAssetType::MESH);
 
 			break;
 		}

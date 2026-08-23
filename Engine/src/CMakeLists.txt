@@ -79,6 +79,12 @@ add_library("imgui" STATIC ${IMGUI_SRC})
 target_include_directories(imgui PUBLIC "${PUBLIC_INCLUDES}")
 target_link_libraries(imgui PRIVATE glfw)
 
+target_compile_options(Aetherion PRIVATE
+        -Wall
+        -Wextra
+        -Werror=unused-variable
+)
+
 target_link_libraries(Aetherion PRIVATE spirv-cross-c spirv-cross-glsl spirv-cross-hlsl spirv-cross-msl)
 target_link_libraries(Aetherion PRIVATE xxHash::xxhash)
 target_link_libraries(Aetherion PRIVATE nfd::nfd)

@@ -28,8 +28,8 @@ LoadCubemap(const String filePath, void** ppData, uint32_t& nOutSize, uint32_t& 
 		return false;
 	}
 
-	int nFaceWidth = nWidth / 4;
-	int nFaceHeight = nHeight / 3;
+	/*int nFaceWidth = nWidth / 4;
+	int nFaceHeight = nHeight / 3;*/
 
 	int nFaceSize = nHeight / 2;
 	int nCrossWidth = nFaceSize * 4;
@@ -149,7 +149,7 @@ LoadCubemap(const String filePath, void** ppData, uint32_t& nOutSize, uint32_t& 
 		}
 	}
 
-	uint32_t nFaceByteSize = nFacePixels * sizeof(float);
+	// uint32_t nFaceByteSize = nFacePixels * sizeof(float);
 	uint32_t nTotalByteSize = nTotalPixels * sizeof(float);
 	
 	void* pOut = malloc(nTotalByteSize);

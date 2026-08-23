@@ -67,7 +67,7 @@ TextureUploader::UploadTextureTask(
 	Vector<uint8_t> pixelData,
 	const String& debugName
 ) {
-	auto startTime = std::chrono::high_resolution_clock::now();
+	[[maybe_unused]] auto startTime = std::chrono::high_resolution_clock::now();
 
 	struct ThreadLocalContext {
 		Ref<CommandPool> commandPool;

@@ -106,7 +106,7 @@ ImGuiPass::Execute(Ref<GraphicsContext> context, RenderGraphContext& graphCtx, u
 	this->m_imgui->NewFrame();
 
     float hierarchyPadding = 50.f;
-    float hierarchyHeight = static_cast<float>(this->m_nHeight) - (hierarchyPadding * 2);
+    [[maybe_unused]] float hierarchyHeight = static_cast<float>(this->m_nHeight) - (hierarchyPadding * 2);
 
     ImGuiViewport* pViewport = ImGui::GetMainViewport();
     ImGui::SetNextWindowPos(pViewport->WorkPos);
@@ -146,7 +146,7 @@ ImGuiPass::Execute(Ref<GraphicsContext> context, RenderGraphContext& graphCtx, u
             
             DragPayload* pDragPayload = static_cast<DragPayload*>(pData);
 
-            AssetManager* assetMgr = AssetManager::GetInstance();
+            [[maybe_unused]] AssetManager* assetMgr = AssetManager::GetInstance();
 
             EDragType dragType = pDragPayload->type;
 
@@ -179,7 +179,7 @@ ImGuiPass::Execute(Ref<GraphicsContext> context, RenderGraphContext& graphCtx, u
         Scene* pCurrentScene = sceneMgr->GetCurrentScene();
 
         if (pCurrentScene != nullptr) {
-            ImGuiTreeNodeFlags treeFlags = ImGuiTreeNodeFlags_DefaultOpen;
+            [[maybe_unused]] ImGuiTreeNodeFlags treeFlags = ImGuiTreeNodeFlags_DefaultOpen;
 
             Hierarchy& hierarchy = pCurrentScene->GetHierarchy();
             Ref<Hierarchy::HierarchyNode> rootNode = hierarchy.root;
@@ -335,8 +335,8 @@ ImGuiPass::ShowAssetBrowser() {
         String name = fs::path(child->dir.name).filename().string();
 
         float iconSize = cellSize - 20.f;
-        float textWidth = ImGui::CalcTextSize(name.c_str()).x;
-        float offsetX = (cellSize - iconSize) * .5f;
+        [[maybe_unused]] float textWidth = ImGui::CalcTextSize(name.c_str()).x;
+        [[maybe_unused]] float offsetX = (cellSize - iconSize) * .5f;
 
         if (this->m_imgui->ImageButton(s_icons.folderSet, name, ImVec2{ cellSize - 20, cellSize - 20 })) {
             s_browserState.history.push_back(node);

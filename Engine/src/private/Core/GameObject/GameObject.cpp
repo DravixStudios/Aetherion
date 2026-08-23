@@ -41,7 +41,7 @@ GameObject::AddComponent(String name, Component* component) {
 
 void 
 GameObject::SetupFromAsset(const GameObjectAsset& asset) {
-	AssetManager* assetManager = AssetManager::GetInstance();
+	// AssetManager* assetManager = AssetManager::GetInstance();
 
 	/* Handle mesh component */
 	if (asset.HasComponent(EAssetComponent::MESH)) {

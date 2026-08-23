@@ -148,9 +148,6 @@ VulkanBuffer::Create(const BufferCreateInfo& createInfo, const String& debugName
 	VkMemoryRequirements memReqs = { };
 	vkGetBufferMemoryRequirements(vkDevice, this->m_buffer, &memReqs);
 
-	/* Allocate memory */
-	VkDeviceMemory vkMemory = { };
-
 	/*
 		Select memory properties
 		depending on the buffer type
