@@ -22,7 +22,7 @@ static constexpr uint8_t TICKS_PER_SECOND = 8;
 bool g_bQuitThread = false;
 uint32_t g_nCurrentTick = 0;
 
-std::thread heartbeatThread{};
+static std::thread heartbeatThread{};
 
 void HeartbeatThread(int socket);
 
@@ -45,7 +45,7 @@ ExceptionHandler(int nSignal, siginfo_t* pInfo, void* pvContext) {
     void* stack[128];
     int nFrames = backtrace(stack, 64);
 
-    char** ppBacktrace = backtrace_symbols(
+    [[maybe_unused]] char** ppBacktrace = backtrace_symbols(
         stack,
         nFrames
     );
