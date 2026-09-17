@@ -15,7 +15,7 @@ Core* g_core = nullptr;
 #define VERSION_PATCH 1
 
 #ifdef _WIN32
-#ifdef NDEBUG
+#if IS_DEBUG_BUILD
 #pragma comment(linker, "/SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup")
 #else
 #pragma comment(linker, "/SUBSYSTEM:console")
@@ -29,8 +29,8 @@ int main() {
 
 #if defined(LOGGING_USE_SPDLOG)
 	spdlog::set_level(spdlog::level::debug);
-#ifndef NDEBUG
-#endif // NDEBUG
+#if IS_DEBUG_BUILD
+#endif // IS_DEBUG_BUILD
 #endif // LOGGING_USE_SPDLOG
 	Logger::Info("Aetherion debug console");
 	Logger::Info("Version: {0}.{1}.{2}", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH);

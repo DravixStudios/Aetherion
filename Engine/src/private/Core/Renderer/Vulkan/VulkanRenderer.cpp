@@ -8,7 +8,7 @@ Vector<const char*> validationLayers = {
 Vector<const char*> deviceExtensions = {
 	VK_KHR_SWAPCHAIN_EXTENSION_NAME,
 	VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME,
-#ifdef __APPLE__
+#if CURRENT_PLATFORM(PLATFORM_APPLE)
 	"VK_KHR_portability_subset"
 #endif // __APPLE__
 };
@@ -25,9 +25,9 @@ VulkanRenderer::~VulkanRenderer() {
 }
 
 void VulkanRenderer::Create(GLFWwindow* pWindow) {
-#ifndef NDEBUG
+#if IS_DEBUG_BUILD
 	this->m_bEnableValidationLayers = true;
-#endif // NDEBUG
+#endif // IS_DEBUG_BUILD
 	this->m_pWindow = pWindow;
 
 	if (this->m_bEnableValidationLayers && !this->CheckValidationLayersSupport()) {
@@ -45,13 +45,13 @@ void VulkanRenderer::Create(GLFWwindow* pWindow) {
 
 	Vector<const char*> extensions = this->GetRequiredExtensions();
 
-#ifdef __APPLE__
+#if CURRENT_PLATFORM(PLATFORM_APPLE)
 	extensions.push_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
 #endif // __APPLE__
 
-#ifndef NDEBUG
+#if IS_DEBUG_BUILD
 	extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-#endif // NDEBUG
+#endif // IS_DEBUG_BUILD
 
 	size_t nExtensionCount = extensions.size();
 
@@ -63,7 +63,7 @@ void VulkanRenderer::Create(GLFWwindow* pWindow) {
 	instanceInfo.enabledExtensionCount = nExtensionCount;
 	instanceInfo.ppEnabledExtensionNames = extensions.data();
 
-#ifdef __APPLE__
+#if CURRENT_PLATFORM(PLATFORM_APPLE)
 	instanceInfo.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
 #endif // __APPLE__
 
@@ -86,9 +86,9 @@ void VulkanRenderer::Create(GLFWwindow* pWindow) {
 	VK_CHECK(vkCreateInstance(&instanceInfo, nullptr, &this->m_instance), "Failed creating Vulkan instance");
 
 	/* Initialize debug utils */
-#ifndef NDEBUG
+#if IS_DEBUG_BUILD
 	impl::init_debug_utils(this->m_instance);
-#endif // NDEBUG
+#endif // IS_DEBUG_BUILD
 
 	/* Setup debug messenger */
 	if (this->m_bEnableValidationLayers) {

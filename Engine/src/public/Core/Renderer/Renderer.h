@@ -1,5 +1,6 @@
 #pragma once
 #include <iostream>
+#include <Shared.Common.h>
 
 #include "Utils.h"
 #include "Core/Containers.h"

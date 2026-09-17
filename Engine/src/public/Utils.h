@@ -41,7 +41,7 @@
     need to access them like impl::foo_impl(x);
 */
 namespace impl {
-#ifndef NDEBUG
+#if IS_DEBUG_BUILD
     inline PFN_vkSetDebugUtilsObjectNameEXT pfnSetDebugUtilsObjectName = nullptr;
 
     /**
@@ -60,7 +60,7 @@ namespace impl {
             );
         }
     }
-#endif // NDEBUG
+#endif // IS_DEBUG_BUILD
 
     inline void 
     vk_check_impl(
@@ -82,7 +82,7 @@ namespace impl {
         uint64_t handle,
         const char* name
     ) {
-#ifndef NDEBUG
+#if IS_DEBUG_BUILD
         if (!pfnSetDebugUtilsObjectName) return;
 
         VkDebugUtilsObjectNameInfoEXT nameInfo = { };
@@ -93,7 +93,7 @@ namespace impl {
         nameInfo.pNext = nullptr;
 
         pfnSetDebugUtilsObjectName(device, &nameInfo);
-#endif // NDEBUG
+#endif // IS_DEBUG_BUILD
     }
 }
 

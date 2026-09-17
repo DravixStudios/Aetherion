@@ -22,6 +22,8 @@ target_compile_definitions(Aetherion PRIVATE $<$<BOOL:${LOGGING_USE_SPDLOG}>:LOG
 target_compile_definitions(Aetherion PRIVATE $<$<BOOL:${RENDERER_USE_VULKAN}>:RENDERER_USE_VULKAN>)
 target_compile_definitions(Aetherion PRIVATE "$<1:GIT_COMMIT=\"${GIT_COMMIT}\">")
 
+target_compile_definitions(Aetherion PRIVATE USING_CMAKE=1)
+
 
 set("PRIVATE_INCLUDES" "${CMAKE_CURRENT_SOURCE_DIR}/public")
 set("PUBLIC_INCLUDES" "${CMAKE_CURRENT_SOURCE_DIR}/../include" )

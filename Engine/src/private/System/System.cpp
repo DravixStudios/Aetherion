@@ -1,7 +1,9 @@
 #include "System/System.h"
 #include <thread>
 #include <chrono>
-#if defined(__APPLE__) || defined(__linux__)
+#include <Shared.Common.h>
+
+#if CURRENT_PLATFORM(PLATFORM_APPLE) || defined(__linux__)
 #include <unistd.h>
 #include <csignal>
 #include <execinfo.h>
@@ -30,7 +32,7 @@ int
 System::GetSelfPID() {
     // TODO: Windows use-case
     int nPID = -1;
-#if defined(__APPLE__) || defined(__linux__)
+#if CURRENT_PLATFORM(PLATFORM_APPLE) || defined(__linux__)
     const pid_t pid = getpid();
     nPID = static_cast<int>(pid);
 #endif
@@ -38,7 +40,7 @@ System::GetSelfPID() {
 }
 
 // TODO: Windows use-case
-#if defined(__APPLE__) || defined(__linux__)
+#if CURRENT_PLATFORM(PLATFORM_APPLE) || defined(__linux__)
 static void
 ExceptionHandler(int nSignal, siginfo_t* pInfo, void* pvContext) {
     // TODO: Develop this
@@ -59,7 +61,7 @@ ExceptionHandler(int nSignal, siginfo_t* pInfo, void* pvContext) {
 void
 System::InstallExceptionHandler() {
     // TODO: Windows use-case
-#if defined(__APPLE__) || defined(__linux__)
+#if CURRENT_PLATFORM(PLATFORM_APPLE) || defined(__linux__)
     struct sigaction action = { .sa_sigaction = ExceptionHandler };
     sigemptyset(&action.sa_mask);
     action.sa_flags = SA_SIGINFO | SA_RESETHAND;
@@ -116,7 +118,7 @@ HeartbeatThread(int socket) {
 }
 
 // TODO: Windows use-case
-#if defined(__APPLE__) || defined(__linux__)
+#if CURRENT_PLATFORM(PLATFORM_APPLE) || defined(__linux__)
 int
 System::SpawnProcess(const String& executable) {
     pid_t pid = 0;

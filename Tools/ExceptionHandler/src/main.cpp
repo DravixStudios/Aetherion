@@ -2,7 +2,8 @@
 #include <chrono>
 #include <GLFW/glfw3.h>
 #include <thread>
-#if defined(__APPLE__) || defined(__linux__)
+#include <Shared.Common.h>
+#if CURRENT_PLATFORM(PLATFORM_APPLE) || defined(__linux__)
 #include <unistd.h>
 #include <cerrno>
 #include <csignal>
@@ -10,9 +11,11 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #endif
-#if defined(__APPLE__)
+#if CURRENT_PLATFORM(PLATFORM_APPLE)
 #include "macOSUtil.h"
 #endif
+
+#include <Shared.Common.h>
 
 #include <Heartbeat/HeartbeatMessages.h>
 
@@ -138,6 +141,7 @@ int main() {
         const size_t bufferSize = recv(client.handle, buffer.data(), BUFFER_MAX_SIZE, 0);
 
         // Buffer size: (0, BUFFER_MAX_SIZE]
+        ASSERT_DESC(bufferSize <= 0, "Buffer size has an invalid size");
         if (bufferSize <= 0 || bufferSize > BUFFER_MAX_SIZE) {
             client.bShouldClose = true;
             break;

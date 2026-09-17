@@ -3,7 +3,39 @@
 // TODO: Contemplate no-spdlog use case
 #include <spdlog/spdlog.h>
 
-#ifndef NDEBUG
+#if defined(_MSC_VER)
+#define PLATFORM_WINDOWS 1
+#else
+#define PLATFORM_WINDOWS 0
+#endif
+
+#if defined(__APPLE__)
+#define PLATFORM_APPLE 1
+#else
+#define PLATFORM_APPLE 0
+#endif
+
+#if defined(__linux__)
+#define PLAFTORM_LINUX 1
+#else
+#define PLATFORM_LINUX 0
+#endif
+
+#define CURRENT_PLATFORM(platform) ((platform) != 0)
+
+#if defined(USING_CMAKE)
+#if !defined(NDEBUG)
+#define IS_DEBUG_BUILD 1
+#endif
+#elif defined(_MSC_VER)
+#if defined(_DEBUG)
+#define IS_DEBUG_BUILD 1
+#endif
+#else
+#define IS_DEBUG_BUILD 0
+#endif
+
+#if IS_DEBUG_BUILD
     #if defined(_MSC_VER)
     #define DEBUG_BREAK() __debugbreak()
     #elif defined(__APPLE__)
@@ -11,7 +43,7 @@
     #elif defined(__linux__)
     #include <signal.g>
     #define DEBUG_BREAK() raise(SIGTRAP)
-    #endif
+#endif
 
 namespace DebugAssert {
 

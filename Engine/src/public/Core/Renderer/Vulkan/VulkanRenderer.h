@@ -3,7 +3,7 @@
 #include <set>
 
 #define GLFW_INCLUDE_VULKAN
-#ifdef __APPLE__
+#if CURRENT_PLATFORM(PLATFORM_APPLE)
 #define VK_USE_PLATFORM_MACOS_MVK
 #endif // __APPLE__
 #include <GLFW/glfw3.h>
