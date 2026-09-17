@@ -81,7 +81,7 @@ DeferredRenderer::Init(Ref<Device> device, Ref<Swapchain> swapchain, uint32_t nF
     this->UpdateSkyboxDescriptor();
 
     /* MegaBuffer and MeshUploader initialization */
-    this->m_megaBuffer.Init(device, 1024 * 1024, 4 * 1024 * 1024);
+    this->m_megaBuffer.Init(device, 1024 * 1024, 3 * 1024 * 1024);
     this->m_meshUploader.Init(device, &this->m_megaBuffer, this->m_bindlessSet, this->m_defaultSampler);
 }
 
