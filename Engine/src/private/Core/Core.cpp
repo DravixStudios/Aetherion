@@ -2,6 +2,7 @@
 #include "Core/Scene/SceneManager.h"
 #include "Core/Renderer/ResourceManager.h"
 #include "Core/Project/ProjectManager.h"
+#include "Shared.Common.h"
 
 #include <nfd.h>
 
