@@ -18,7 +18,7 @@ Input::ShowCursor(bool bShow) {
 
 		/* Get window size */
 		int nWidth = 0; 
-		int nHeight = 0;;
+		int nHeight = 0;
 		glfwGetWindowSize(this->m_pWindow, &nWidth, &nHeight);
 
 		/* Calculate center position */

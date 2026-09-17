@@ -14,7 +14,7 @@ MegaBuffer::Init(Ref<Device> device, uint32_t nMaxVertices, uint32_t nMaxIndices
 	this->m_nInitialMaxVertices = nMaxVertices;
 	this->m_nInitialMaxIndices = nMaxIndices;
 
-	Block block = this->CreateBlock(nMaxVertices, nMaxIndices);
+	const Block block = this->CreateBlock(nMaxVertices, nMaxIndices);
 	this->m_blocks.push_back(block);
 }
 
@@ -28,8 +28,8 @@ MegaBuffer::Init(Ref<Device> device, uint32_t nMaxVertices, uint32_t nMaxIndices
 */
 MegaBufferAllocation
 MegaBuffer::Upload(const Vector<Vertex>& vertices, const Vector<uint32_t>& indices) {
-	uint32_t nVertexCount = static_cast<uint32_t>(vertices.size());
-	uint32_t nIndexCount = static_cast<uint32_t>(indices.size());
+	const uint32_t nVertexCount = static_cast<uint32_t>(vertices.size());
+	const uint32_t nIndexCount = static_cast<uint32_t>(indices.size());
 	
 	/* Check if fits inside of a free memory allocation */
 	Vector<Block>& blocks = this->m_blocks;
@@ -67,8 +67,8 @@ MegaBuffer::Upload(const Vector<Vertex>& vertices, const Vector<uint32_t>& indic
 		const uint32_t nVertexSegmentIdx = vertexIter - block.freeVertices.begin();
 		const uint32_t nIndexSegmentIdx = indexIter - block.freeIndices.begin();
 
-		FreeSegment vertexSegment = block.freeVertices[nVertexSegmentIdx];
-		FreeSegment indexSegment = block.freeIndices[nIndexSegmentIdx];
+		const FreeSegment vertexSegment = block.freeVertices[nVertexSegmentIdx];
+		const FreeSegment indexSegment = block.freeIndices[nIndexSegmentIdx];
 	
 		/* Create staging vertex and index buffers */
 		BufferCreateInfo bufferInfo = { };
@@ -111,7 +111,7 @@ MegaBuffer::Upload(const Vector<Vertex>& vertices, const Vector<uint32_t>& indic
 	}
 
 	/* Get the last block */
-	Block& currentBlock = this->m_blocks.back();
+	const Block& currentBlock = this->m_blocks.back();
 
 	const bool bVertexFits = (currentBlock.nCurrentVertexOffset + nVertexCount) <= currentBlock.nMaxVertices;
 	const bool bIndexFits = (currentBlock.nCurrentIndexOffset + nIndexCount) <= currentBlock.nMaxIndices;

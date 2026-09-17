@@ -124,7 +124,7 @@ Core::Init() {
     this->m_sceneMgr->SetDimensions(WIDTH, HEIGHT);
 
     /* Set window title with build commit */
-    String buildCommit(GIT_COMMIT);
+    const String buildCommit(GIT_COMMIT);
     glfwSetWindowTitle(this->m_pWindow, String("No active project - Aetherion [" + buildCommit + "]").c_str());
 
     this->SetupCallbacks();
@@ -275,18 +275,18 @@ Core::SetupCallbacks() {
     ProjectManager* pProjManager = ProjectManager::GetInstance();
     pProjManager->SetOnProjectOpenedCallback(
         [this, pProjManager](const Project::Asset& projectAsset) {
-            String title = projectAsset.name + " - Aetherion Engine";
+            const String title = projectAsset.name + " - Aetherion Engine";
             glfwSetWindowTitle(this->m_pWindow, title.c_str());
 
-            String editorScene = projectAsset.editorScene;
-            String runtimeScene = projectAsset.runtimeScene;
+            const String editorScene = projectAsset.editorScene;
+            const String runtimeScene = projectAsset.runtimeScene;
 
-            Directory projectDir = pProjManager->GetProjectDir();
+            const Directory projectDir = pProjManager->GetProjectDir();
 
-            String fullScenePath = (fs::path(projectDir.name) / fs::path(editorScene)).string();
+            const String fullScenePath = (fs::path(projectDir.name) / fs::path(editorScene)).string();
 
             /* Normalize scene path (Windows only) */
-#ifdef _WIN32
+#if CURRENT_PLATFORM(PLATFORM_WINDOWS)
             std::replace(
                 fullScenePath.begin(),
                 fullScenePath.end(),
@@ -296,16 +296,16 @@ Core::SetupCallbacks() {
 #endif
 
             /* TODO: Switch between editor and runtime scenes */
-            AssetHandle sceneHandle = AssetHandle::FromPath(fullScenePath, EAssetType::SCENE);
+            const AssetHandle sceneHandle = AssetHandle::FromPath(fullScenePath, EAssetType::SCENE);
 
-            AssetVariant sceneAssetVariant = AssetManager::GetInstance()->GetAsset(sceneHandle);
+            const AssetVariant sceneAssetVariant = AssetManager::GetInstance()->GetAsset(sceneHandle);
 
             /* Check if asset variant holds SceneAsset */
-            if (SceneAsset* pSceneAsset = std::get_if<SceneAsset>(&sceneAssetVariant)) {
+            if (const SceneAsset* pSceneAsset = std::get_if<SceneAsset>(&sceneAssetVariant)) {
                 const SceneAsset sceneAsset = *pSceneAsset;
 
                 /* Create scene from asset */
-                String sceneName(sceneAsset.header.displayName);
+                const String sceneName(sceneAsset.header.displayName);
                 Scene* pScene = new Scene(sceneName);
                 pScene->SetupFromAsset(sceneAsset);
                 

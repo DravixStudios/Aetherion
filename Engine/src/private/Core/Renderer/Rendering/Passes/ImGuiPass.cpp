@@ -105,15 +105,12 @@ void
 ImGuiPass::Execute(Ref<GraphicsContext> context, RenderGraphContext& graphCtx, uint32_t nImgIdx) {
 	this->m_imgui->NewFrame();
 
-    float hierarchyPadding = 50.f;
-    [[maybe_unused]] float hierarchyHeight = static_cast<float>(this->m_nHeight) - (hierarchyPadding * 2);
-
-    ImGuiViewport* pViewport = ImGui::GetMainViewport();
+    const ImGuiViewport* pViewport = ImGui::GetMainViewport();
     ImGui::SetNextWindowPos(pViewport->WorkPos);
     ImGui::SetNextWindowSize(pViewport->WorkSize);
     ImGui::SetNextWindowViewport(pViewport->ID);
 
-    ImGuiWindowFlags windowFlags =
+    const ImGuiWindowFlags windowFlags =
         ImGuiWindowFlags_NoDocking |
         ImGuiWindowFlags_NoTitleBar |
         ImGuiWindowFlags_NoCollapse |
@@ -124,12 +121,12 @@ ImGuiPass::Execute(Ref<GraphicsContext> context, RenderGraphContext& graphCtx, u
         ImGuiWindowFlags_NoBackground;
 
     ImGui::Begin("DockSpaceWindow", nullptr, windowFlags);
-    ImGuiID dockspaceId = ImGui::GetID("EditorDockSpace");
+    const ImGuiID dockspaceId = ImGui::GetID("EditorDockSpace");
     ImGui::DockSpace(dockspaceId, ImVec2(0.f, 0.f), ImGuiDockNodeFlags_None);
     ImGui::End();
 
     ImGui::Begin("Viewport");
-    ImVec2 actualSize = ImGui::GetContentRegionAvail();
+    const ImVec2 actualSize = ImGui::GetContentRegionAvail();
     if (actualSize.x != this->m_viewportSize.x || actualSize.y != this->m_viewportSize.y) {
         this->m_viewportSize = actualSize;
         this->m_bPendingResize = true;
@@ -144,11 +141,9 @@ ImGuiPass::Execute(Ref<GraphicsContext> context, RenderGraphContext& graphCtx, u
         if (pPayload) {
             void* pData = pPayload->Data;
             
-            DragPayload* pDragPayload = static_cast<DragPayload*>(pData);
+            const DragPayload* pDragPayload = static_cast<DragPayload*>(pData);
 
-            [[maybe_unused]] AssetManager* assetMgr = AssetManager::GetInstance();
-
-            EDragType dragType = pDragPayload->type;
+            const EDragType dragType = pDragPayload->type;
 
             if (this->m_dropCallback) {
                 this->m_dropCallback(pDragPayload->handle);
@@ -179,8 +174,6 @@ ImGuiPass::Execute(Ref<GraphicsContext> context, RenderGraphContext& graphCtx, u
         Scene* pCurrentScene = sceneMgr->GetCurrentScene();
 
         if (pCurrentScene != nullptr) {
-            [[maybe_unused]] ImGuiTreeNodeFlags treeFlags = ImGuiTreeNodeFlags_DefaultOpen;
-
             Hierarchy& hierarchy = pCurrentScene->GetHierarchy();
             Ref<Hierarchy::HierarchyNode> rootNode = hierarchy.root;
 
@@ -215,12 +208,12 @@ ImGuiPass::Execute(Ref<GraphicsContext> context, RenderGraphContext& graphCtx, u
             if (ImGui::MenuItem("Open project...")) {
                 /* Open a dialog for selecting the project */
                 nfdu8char_t* pOutPath;
-                nfdu8filteritem_t filters[1] = { { "Aetherion Project", "aethproj" } };
+                const nfdu8filteritem_t filters[1] = { { "Aetherion Project", "aethproj" } };
                 nfdopendialogu8args_t args = {  };
                 args.filterList = filters;
                 args.filterCount = 1;
 
-                nfdresult_t result = NFD_OpenDialogU8_With(&pOutPath, &args);
+                const nfdresult_t result = NFD_OpenDialogU8_With(&pOutPath, &args);
                 
                 /* Get project manager instance */
                 ProjectManager* projMgr = ProjectManager::GetInstance();
@@ -301,7 +294,7 @@ ImGuiPass::ShowAssetBrowser() {
             ImGui::SameLine();
         }
 
-        String name = fs::path(breadcrumb[i]->dir.name).filename().string();
+        const String name = fs::path(breadcrumb[i]->dir.name).filename().string();
 
         if (i == breadcrumb.size() - 1) {
             ImGui::Text("%s", name.c_str());
@@ -322,9 +315,9 @@ ImGuiPass::ShowAssetBrowser() {
     ImGui::Separator();
 
     /* Asset browser elements */
-    float cellSize = 128.f;
-    float panelWidth = ImGui::GetContentRegionAvail().x;
-    int nColumnCount = static_cast<int>(panelWidth / cellSize);
+    const float kCellSize = 128.f;
+    const float panelWidth = ImGui::GetContentRegionAvail().x;
+    int nColumnCount = static_cast<int>(panelWidth / kCellSize);
 
     if (nColumnCount < 1) nColumnCount = 1;
 
@@ -332,13 +325,9 @@ ImGuiPass::ShowAssetBrowser() {
 
     for (auto& [id, child] : node->subNodes) {
         ImGui::PushID(id);
-        String name = fs::path(child->dir.name).filename().string();
+        const String name = fs::path(child->dir.name).filename().string();
 
-        float iconSize = cellSize - 20.f;
-        [[maybe_unused]] float textWidth = ImGui::CalcTextSize(name.c_str()).x;
-        [[maybe_unused]] float offsetX = (cellSize - iconSize) * .5f;
-
-        if (this->m_imgui->ImageButton(s_icons.folderSet, name, ImVec2{ cellSize - 20, cellSize - 20 })) {
+        if (this->m_imgui->ImageButton(s_icons.folderSet, name, ImVec2{ kCellSize - 20, kCellSize - 20 })) {
             s_browserState.history.push_back(node);
             s_browserState.currentNode = child;
         }
@@ -350,20 +339,20 @@ ImGuiPass::ShowAssetBrowser() {
     ImGui::PushID("asset_scope");
     for (uint32_t i = 0; i < node->assets.size(); ++i) {
         const AssetHandle& asset = node->assets[i];
-        EAssetType assetType = asset.type;
+        const EAssetType assetType = asset.type;
 
         AssetManager* assetMgr = AssetManager::GetInstance();
-        String assetPath = assetMgr->GetAssetPath(asset);
+        const String assetPath = assetMgr->GetAssetPath(asset);
 
         switch (assetType) {
             case EAssetType::MESH:
             {
-                Name name = ProjectManagerHelpers::GetAssetName(asset);
-                String label = String(name);
+                const Name name = ProjectManagerHelpers::GetAssetName(asset);
+                const String label = String(name);
 
                 ImGui::PushID(i);
 
-                if (this->m_imgui->ImageButton(s_icons.meshSet, label, ImVec2{ cellSize - 20, cellSize - 20 })) {
+                if (this->m_imgui->ImageButton(s_icons.meshSet, label, ImVec2{ kCellSize - 20, kCellSize - 20 })) {
                     Logger::Debug("Clicked asset: {}", label);
                 }
 
@@ -390,12 +379,12 @@ ImGuiPass::ShowAssetBrowser() {
             }
             case EAssetType::TEXTURE:
             {
-                Name name = ProjectManagerHelpers::GetAssetName(asset);
-                String label = String(name);
+                const Name name = ProjectManagerHelpers::GetAssetName(asset);
+                const String label = String(name);
 
                 ImGui::PushID(i);
 
-                if (this->m_imgui->ImageButton(s_icons.textureSet, label, ImVec2{cellSize - 20, cellSize - 20})) {
+                if (this->m_imgui->ImageButton(s_icons.textureSet, label, ImVec2{kCellSize - 20, kCellSize - 20})) {
                     Logger::Debug("Clicked asset: {}", label);
                 }
 
@@ -422,12 +411,12 @@ ImGuiPass::ShowAssetBrowser() {
             }
             case EAssetType::MATERIAL:
             {
-                Name name = ProjectManagerHelpers::GetAssetName(asset);
-                String label = String(name);
+                const Name name = ProjectManagerHelpers::GetAssetName(asset);
+                const String label = String(name);
 
                 ImGui::PushID(i);
 
-                if (this->m_imgui->ImageButton(s_icons.materialSet, label, ImVec2{cellSize - 20, cellSize - 20})) {
+                if (this->m_imgui->ImageButton(s_icons.materialSet, label, ImVec2{kCellSize - 20, kCellSize - 20})) {
                     Logger::Debug("Clicked asset: {}", label);
                 }
 
@@ -481,7 +470,7 @@ ImGuiPass::DrawHierarchyNode(Hierarchy& hierarchy, const Ref<Hierarchy::Hierarch
         flags |= ImGuiTreeNodeFlags_Leaf;
     }
 
-    bool bOpen = ImGui::TreeNodeEx(
+    const bool bOpen = ImGui::TreeNodeEx(
         static_cast<void*>(node.Get().get()),
         flags,
         "%s",

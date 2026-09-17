@@ -18,8 +18,8 @@ VulkanDescriptorSet::Allocate(Ref<DescriptorPool> pool, Ref<DescriptorSetLayout>
 	Ref<VulkanDescriptorSetLayout> vkLayout = layout.As<VulkanDescriptorSetLayout>();
 
 	this->m_poolRef = pool;
-	VkDescriptorPool vkPool = vkDescriptorPool->GetVkPool();
-	VkDescriptorSetLayout vkLayoutHandle = vkLayout->GetVkLayout();
+	const VkDescriptorPool vkPool = vkDescriptorPool->GetVkPool();
+	const VkDescriptorSetLayout vkLayoutHandle = vkLayout->GetVkLayout();
 
 	/* Descriptor set allocation */
 	VkDescriptorSetAllocateInfo allocInfo = { };

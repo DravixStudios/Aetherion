@@ -18,7 +18,7 @@ void EditorCamera::Update() {
 
 	/* Always recalculate projection with current aspect ratio */
 	this->m_projection = glm::perspectiveFovRH(
-		glm::radians(70.f), 
+		glm::radians(70.f),
 		static_cast<float>(this->m_nWidth), static_cast<float>(this->m_nHeight), 
 		.01f, 1000.f
 	);
@@ -50,8 +50,8 @@ void EditorCamera::Update() {
 			this->transform.Translate(0.f, this->m_time->deltaTime * -5.f, 0.f);
 		}
 
-		float deltaX = this->m_input->GetDeltaX();
-		float deltaY = this->m_input->GetDeltaY();;
+		const float deltaX = this->m_input->GetDeltaX();
+		const float deltaY = this->m_input->GetDeltaY();;
 
 		// TODO: Implement Pitch rotation lock
 		/*float newPitch = m_pitch + deltaY * -0.01f;

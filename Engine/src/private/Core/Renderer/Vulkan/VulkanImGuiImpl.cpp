@@ -130,17 +130,17 @@ VulkanImGuiImpl::Image(Ref<DescriptorSet> descriptorSet, ImVec2 imageSize) {
 */
 bool
 VulkanImGuiImpl::ImageButton(Ref<DescriptorSet> descriptorSet, const String& label, ImVec2 size) {
-	ImVec2 pos = ImGui::GetCursorScreenPos();
+	const ImVec2 pos = ImGui::GetCursorScreenPos();
 
 	/* Create an invisible button */
 	ImGui::InvisibleButton("##imgbtn", size);
 
-	bool bClicked = ImGui::IsItemClicked();
-	bool bDoubleClick = bClicked && ImGui::IsMouseDoubleClicked(0);
+	const bool bClicked = ImGui::IsItemClicked();
+	const bool bDoubleClick = bClicked && ImGui::IsMouseDoubleClicked(0);
 
-	bool bHovered = ImGui::IsItemHovered();
+	const bool bHovered = ImGui::IsItemHovered();
 
-	ImU32 hoverColor = ImGui::GetColorU32(ImGuiCol_ButtonHovered);
+	const ImU32 hoverColor = ImGui::GetColorU32(ImGuiCol_ButtonHovered);
 
 	/* Get window draw list */
 	ImDrawList* draw = ImGui::GetWindowDrawList();
@@ -166,7 +166,7 @@ VulkanImGuiImpl::ImageButton(Ref<DescriptorSet> descriptorSet, const String& lab
 	}
 
 	/* Add label */
-	float textWidth = ImGui::CalcTextSize(label.c_str()).x;
+	const float textWidth = ImGui::CalcTextSize(label.c_str()).x;
 	draw->AddText(
 		ImVec2(pos.x + (size.x - textWidth) * 0.5f, pos.y + size.y + 2),
 		ImGui::GetColorU32(ImGuiCol_Text),

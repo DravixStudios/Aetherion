@@ -11,7 +11,7 @@ ResourceManager* ResourceManager::m_instance;
 */
 bool 
 ResourceManager::IsTextureRegistered(const String& name) const {
-	return this->m_textureIndices.count(name) > 0;
+	return this->m_textureIndices.contains(name);
 }
 
 /**
@@ -35,7 +35,7 @@ ResourceManager::RegisterTexture(const String& name, uint32_t nBindlessIndex) {
 */
 uint32_t
 ResourceManager::GetTextureIndex(const String& name) const {
-	Map<String, uint32_t>::const_iterator it = this->m_textureIndices.find(name);
+	const Map<String, uint32_t>::const_iterator it = this->m_textureIndices.find(name);
 	return (it != this->m_textureIndices.end()) ? it->second : UINT32_MAX;
 }
 

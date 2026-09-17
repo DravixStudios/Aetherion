@@ -10,7 +10,7 @@ VulkanSwapchain::VulkanSwapchain(Ref<VulkanDevice> device, VkSurfaceKHR surface)
 	: m_device(device), m_surface(surface), m_swapchain(VK_NULL_HANDLE) {}
 
 VulkanSwapchain::~VulkanSwapchain() {
-	VkDevice vkDevice = this->m_device->GetVkDevice();
+	const VkDevice vkDevice = this->m_device->GetVkDevice();
 
 	if (this->m_swapchain != VK_NULL_HANDLE) {
 		vkDestroySwapchainKHR(vkDevice, this->m_swapchain, nullptr);
@@ -27,13 +27,13 @@ VulkanSwapchain::Create(const SwapchainCreateInfo& createInfo) {
 	this->m_nImageCount = createInfo.nImageCount;
 	this->m_pWindow = createInfo.pWindow;
 
-	VkPhysicalDevice physicalDevice = this->m_device->GetVkPhysicalDevice();
+	const VkPhysicalDevice physicalDevice = this->m_device->GetVkPhysicalDevice();
 
-	SwapchainSupportDetails details = this->QuerySwapchainSupport(physicalDevice);
+	const SwapchainSupportDetails details = this->QuerySwapchainSupport(physicalDevice);
 
-	VkSurfaceFormatKHR format = this->ChooseSurfaceFormat(details.formats);
-	VkPresentModeKHR presentMode = this->ChooseSwapPresentMode(details.presentModes);
-	VkExtent2D extent = this->ChooseSwapExtent(details.capabilities);
+	const VkSurfaceFormatKHR format = this->ChooseSurfaceFormat(details.formats);
+	const VkPresentModeKHR presentMode = this->ChooseSwapPresentMode(details.presentModes);
+	const VkExtent2D extent = this->ChooseSwapExtent(details.capabilities);
 	this->m_extent = extent;
 
 	VkSwapchainCreateInfoKHR scInfo = { };
@@ -50,8 +50,8 @@ VulkanSwapchain::Create(const SwapchainCreateInfo& createInfo) {
 	scInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
 	scInfo.preTransform = details.capabilities.currentTransform;
 
-	QueueFamilyIndices indices = this->m_device->FindQueueFamilies();
-	uint32_t queueIndices[] = { indices.graphicsFamily.value(), indices.presentFamily.value() };
+	const QueueFamilyIndices indices = this->m_device->FindQueueFamilies();
+	const uint32_t queueIndices[] = { indices.graphicsFamily.value(), indices.presentFamily.value() };
 
 	if (indices.graphicsFamily != indices.presentFamily) {
 		scInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
@@ -180,7 +180,7 @@ VulkanSwapchain::Present(
 		semaphores[i] = pWaitSemaphores[i].As<VulkanSemaphore>()->GetVkSemaphore();
 	}
 
-	VkQueue queue = this->m_device->GetPresentQueue();
+	const VkQueue queue = this->m_device->GetPresentQueue();
 
 	VkPresentInfoKHR presentInfo = { };
 	presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -190,7 +190,7 @@ VulkanSwapchain::Present(
 	presentInfo.pSwapchains = &this->m_swapchain;
 	presentInfo.swapchainCount = 1;
 
-	VkResult result = vkQueuePresentKHR(queue, &presentInfo);
+	const VkResult result = vkQueuePresentKHR(queue, &presentInfo);
 	return result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR;
 }
 
@@ -204,7 +204,7 @@ void
 VulkanSwapchain::Rebuild(uint32_t nNewWidth, uint32_t nNewHeight) {
 	this->m_device->WaitIdle();
 
-	VkSwapchainKHR oldSwapchain = this->m_swapchain;
+	const VkSwapchainKHR oldSwapchain = this->m_swapchain;
 
 	/* Clear old resources */
 	this->m_imageViews.clear();
@@ -219,12 +219,12 @@ VulkanSwapchain::Rebuild(uint32_t nNewWidth, uint32_t nNewHeight) {
 	this->m_createInfo.pOldSwapchain = oldSwapchain;
 
 	/* Query updated capabilities */
-	VkPhysicalDevice physicalDevice = this->m_device->GetVkPhysicalDevice();
-	SwapchainSupportDetails details = this->QuerySwapchainSupport(physicalDevice);
+	const VkPhysicalDevice physicalDevice = this->m_device->GetVkPhysicalDevice();
+	const SwapchainSupportDetails details = this->QuerySwapchainSupport(physicalDevice);
 
-	VkSurfaceFormatKHR format = this->ChooseSurfaceFormat(details.formats);
-	VkPresentModeKHR presentMode = this->ChooseSwapPresentMode(details.presentModes);
-	VkExtent2D extent = this->ChooseSwapExtent(details.capabilities);
+	const VkSurfaceFormatKHR format = this->ChooseSurfaceFormat(details.formats);
+	const VkPresentModeKHR presentMode = this->ChooseSwapPresentMode(details.presentModes);
+	const VkExtent2D extent = this->ChooseSwapExtent(details.capabilities);
 
 	/* Determine image count */
 	if (details.capabilities.maxImageCount > 0 && this->m_nImageCount > details.capabilities.maxImageCount) {
@@ -250,8 +250,8 @@ VulkanSwapchain::Rebuild(uint32_t nNewWidth, uint32_t nNewHeight) {
 	scInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
 	scInfo.preTransform = details.capabilities.currentTransform;
 
-	QueueFamilyIndices indices = this->m_device->FindQueueFamilies();
-	uint32_t queueIndices[] = { indices.graphicsFamily.value(), indices.presentFamily.value() };
+	const QueueFamilyIndices indices = this->m_device->FindQueueFamilies();
+	const uint32_t queueIndices[] = { indices.graphicsFamily.value(), indices.presentFamily.value() };
 
 	if (indices.graphicsFamily != indices.presentFamily) {
 		scInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
@@ -461,7 +461,7 @@ VulkanSwapchain::ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities) 
 */
 void 
 VulkanSwapchain::CreateDepthResources() {
-	VkFormat depthFormat = this->FindDepthFormat();
+	const VkFormat depthFormat = this->FindDepthFormat();
 
 	Extent3D extent = { };
 	extent.width = this->m_extent.width;

@@ -154,7 +154,7 @@ Shader::LoadFromReference(const ShaderReference& ref, const String& name, EShade
         return;
     }
 
-    Path shaderPath = ref.shaderPath;
+    const Path shaderPath = ref.shaderPath;
     
     /* Convert path to absolute path if is not absolute */
     std::filesystem::path absPath = shaderPath.string();

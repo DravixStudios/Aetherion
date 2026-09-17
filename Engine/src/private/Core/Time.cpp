@@ -17,7 +17,7 @@ Time::Start() {
 void
 Time::PreUpdate() {
 	this->m_currentTime = std::chrono::high_resolution_clock::now();
-	std::chrono::duration<float> duration = this->m_currentTime - this->m_lastTime;
+	const std::chrono::duration<float> duration = this->m_currentTime - this->m_lastTime;
 	this->deltaTime = duration.count();
 }
 

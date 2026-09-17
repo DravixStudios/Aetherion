@@ -151,11 +151,11 @@ DeferredRenderer::Render(
     );
 
     if (this->m_imguiPass.SunChanged()) {
-        glm::vec3 forward = glm::vec3(0.f, 0.f, 1.f);
-        glm::vec3 sunRotation = this->m_imguiPass.GetSunRotation();
+        const glm::vec3 forward = glm::vec3(0.f, 0.f, 1.f);
+        const glm::vec3 sunRotation = this->m_imguiPass.GetSunRotation();
 
-        glm::quat q = glm::quat(glm::radians(glm::vec3(-sunRotation.x, sunRotation.y, sunRotation.z)));
-        glm::vec3 sunDir = glm::normalize(q * forward);
+        const glm::quat q = glm::quat(glm::radians(glm::vec3(-sunRotation.x, sunRotation.y, sunRotation.z)));
+        const glm::vec3 sunDir = glm::normalize(q * forward);
 
         this->m_skyAtmosphere.SetSunDirection(sunDir);
         this->m_skyAtmosphere.SetViewProjection(drawData.view, drawData.proj);
@@ -180,7 +180,7 @@ DeferredRenderer::Render(
     this->m_gbuffPass.ImportResources(this->m_graph);
    
     const Vector<MegaBuffer::Block>& blocks = this->m_megaBuffer.GetBlocks();
-    uint32_t nBlockCount = this->m_megaBuffer.GetBlockCount();
+    const uint32_t nBlockCount = this->m_megaBuffer.GetBlockCount();
 
     Vector<uint32_t> batchesPerBlock(nBlockCount, 0);
     for (const DrawBatch& batch : drawData.batches) {

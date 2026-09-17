@@ -15,7 +15,7 @@ TextureUploader::Init(uint32_t nMaxConcurrentUploads) {
 	this->m_nMaxConcurrentUploads = nMaxConcurrentUploads;
 
 	/* Use hardware concurrency or specified limit */
-	uint32_t nNumThreads = std::min(
+	const uint32_t nNumThreads = std::min(
 		static_cast<uint32_t>(std::thread::hardware_concurrency()),
 		this->m_nMaxConcurrentUploads
 	);
@@ -67,8 +67,6 @@ TextureUploader::UploadTextureTask(
 	Vector<uint8_t> pixelData,
 	const String& debugName
 ) {
-	[[maybe_unused]] auto startTime = std::chrono::high_resolution_clock::now();
-
 	struct ThreadLocalContext {
 		Ref<CommandPool> commandPool;
 		Ref<UploadContext> uploadContext;
@@ -87,7 +85,7 @@ TextureUploader::UploadTextureTask(
 
 	try {
 		/* Create staging buffer */
-		uint32_t nBufferSize = pixelData.size();
+		const uint32_t nBufferSize = pixelData.size();
 
 		BufferCreateInfo bufferInfo = { };
 		bufferInfo.pcData = pixelData.data();
@@ -111,7 +109,7 @@ TextureUploader::UploadTextureTask(
 		textureInfo.buffer = stagingBuffer;
 		textureInfo.uploadContext = threadContext.uploadContext;
 
-		GPUTexture::Ptr texture = this->m_device->CreateTexture(textureInfo);
+		const GPUTexture::Ptr texture = this->m_device->CreateTexture(textureInfo);
 
 		threadContext.uploadContext->commandBuffer->End();
 

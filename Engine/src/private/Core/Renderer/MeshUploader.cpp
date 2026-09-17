@@ -79,8 +79,8 @@ MeshUploader::QueueTextureUpload(const TextureData& textureData) {
 		return UINT32_MAX;
 	}
 
-	uint64_t hash = XXH64(textureData.data.data(), textureData.data.size(), 0);
-	String hashString = HashToString(hash);
+	const uint64_t hash = XXH64(textureData.data.data(), textureData.data.size(), 0);
+	const String hashString = HashToString(hash);
 
 	if (this->m_resourceMgr->IsTextureRegistered(hashString)) {
 		return this->m_resourceMgr->GetTextureIndex(hashString);
@@ -128,7 +128,7 @@ MeshUploader::QueueTextureUpload(const TextureData& textureData) {
 	textureInfo.nArrayLayers = 1;
 	textureInfo.nMipLevels = 1;
 
-	size_t nPixelsSize = static_cast<size_t>(nWidth) * nHeight * 4;
+	const size_t nPixelsSize = static_cast<size_t>(nWidth) * nHeight * 4;
 	Vector<unsigned char> pixelData(pixels, pixels + nPixelsSize);
 
 	if (bNeedsFree) {
@@ -138,7 +138,7 @@ MeshUploader::QueueTextureUpload(const TextureData& textureData) {
 
 	auto future = textureUploader->QueueUpload(textureInfo, std::move(pixelData), hashString);
 
-	uint32_t nTextureIndex = this->m_nNextTextureIndex++;
+	const uint32_t nTextureIndex = this->m_nNextTextureIndex++;
 
 	PendingTextureUpload pendingUpload = { };
 	pendingUpload.future = std::move(future);

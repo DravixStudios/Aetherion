@@ -53,7 +53,7 @@ SunExtraction::ReadSunResult() {
 		this->m_bBufferRead = true;
 	}
 	void* pMap = this->m_sunResultBuff->Map();
-	glm::vec4 sunResult = *static_cast<glm::vec4*>(pMap);
+	const glm::vec4 sunResult = *static_cast<glm::vec4*>(pMap);
 	this->m_sunResultBuff->Unmap();
 
 	if (glm::length(glm::vec3(sunResult)) > 0.001f) {

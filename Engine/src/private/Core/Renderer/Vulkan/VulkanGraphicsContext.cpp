@@ -33,7 +33,7 @@ VulkanGraphicsContext::BindDescriptorSets(
 	const Vector<Ref<DescriptorSet>>& sets, 
 	const Vector<uint32_t>& dynamicOffsets
 ) {
-	uint32_t nSetCount = sets.size();
+	const uint32_t nSetCount = static_cast<uint32_t>(sets.size());
 
 	Vector<VkDescriptorSet> vkDescriptorSets;
 	vkDescriptorSets.resize(nSetCount);
@@ -65,7 +65,7 @@ VulkanGraphicsContext::BindVertexBuffers(
 	const Vector<Ref<GPUBuffer>>& buffers, 
 	const Vector<size_t>& offsets
 ) {
-	uint32_t nBufferCount = buffers.size();
+	const uint32_t nBufferCount = static_cast<uint32_t>(buffers.size());
 
 	Vector<VkBuffer> vkBuffers;
 	vkBuffers.resize(nBufferCount);
@@ -104,9 +104,9 @@ VulkanGraphicsContext::BindVertexBuffers(
 */
 void 
 VulkanGraphicsContext::BindIndexBuffer(Ref<GPUBuffer> buffer, EIndexType indexType) {
-	VkIndexType vkIndexType = VulkanHelpers::ConvertIndexType(indexType);
+	const VkIndexType vkIndexType = VulkanHelpers::ConvertIndexType(indexType);
 
-	VkBuffer vkBuffer = buffer.As<VulkanBuffer>()->GetVkBuffer();
+	const VkBuffer vkBuffer = buffer.As<VulkanBuffer>()->GetVkBuffer();
 	vkCmdBindIndexBuffer(this->m_commandBuffer->GetVkCommandBuffer(), vkBuffer, 0, vkIndexType);
 }
 
@@ -182,7 +182,7 @@ VulkanGraphicsContext::DrawIndexedIndirect(
 	uint32_t nStride
 ) {
 	Ref<VulkanDevice> device = this->m_commandBuffer->GetDevice();
-	VkBuffer vkBuffer = buffer.As<VulkanBuffer>()->GetVkBuffer();
+	const VkBuffer vkBuffer = buffer.As<VulkanBuffer>()->GetVkBuffer();
 
 	/* 
 		If draw indirect count is supported, use  
@@ -192,7 +192,7 @@ VulkanGraphicsContext::DrawIndexedIndirect(
 	*/
 	if (device->IsExtensionSupported("VK_KHR_draw_indirect_count")) {
 	
-		VkBuffer vkCountBuffer = countBuffer.As<VulkanBuffer>()->GetVkBuffer();
+		const VkBuffer vkCountBuffer = countBuffer.As<VulkanBuffer>()->GetVkBuffer();
 
 		vkCmdDrawIndexedIndirectCount(
 			this->m_commandBuffer->GetVkCommandBuffer(),
@@ -242,7 +242,7 @@ VulkanGraphicsContext::PushConstants(
 	uint32_t nSize,
 	const void* pcData
 ) {
-	VkPipelineLayout vkLayout = layout.As<VulkanPipelineLayout>()->GetVkLayout();
+	const VkPipelineLayout vkLayout = layout.As<VulkanPipelineLayout>()->GetVkLayout();
 
 	vkCmdPushConstants(
 		this->m_commandBuffer->GetVkCommandBuffer(),
@@ -297,8 +297,8 @@ void VulkanGraphicsContext::SetScissor(const Rect2D& scissor) {
 */
 void 
 VulkanGraphicsContext::BeginRenderPass(const RenderPassBeginInfo& beginInfo) {
-	VkRenderPass rp = beginInfo.renderPass.As<VulkanRenderPass>()->GetVkRenderPass();
-	VkFramebuffer fb = beginInfo.framebuffer.As<VulkanFramebuffer>()->GetVkFramebuffer();
+	const VkRenderPass rp = beginInfo.renderPass.As<VulkanRenderPass>()->GetVkRenderPass();
+	const VkFramebuffer fb = beginInfo.framebuffer.As<VulkanFramebuffer>()->GetVkFramebuffer();
 
 	VkRenderPassBeginInfo rpInfo = { };
 	rpInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -359,7 +359,7 @@ VulkanGraphicsContext::NextSubpass() {
 */
 void 
 VulkanGraphicsContext::FillBuffer(Ref<GPUBuffer> buffer, uint32_t nOffset, uint32_t nSize, uint32_t nData) {
-	VkBuffer vkBuffer = buffer.As<VulkanBuffer>()->GetVkBuffer();
+	const VkBuffer vkBuffer = buffer.As<VulkanBuffer>()->GetVkBuffer();
 
 	vkCmdFillBuffer(this->m_commandBuffer->GetVkCommandBuffer(), vkBuffer, nOffset, nSize, nData);
 }
@@ -385,7 +385,7 @@ VulkanGraphicsContext::Dispatch(uint32_t x, uint32_t y, uint32_t z) {
 */
 void 
 VulkanGraphicsContext::BufferMemoryBarrier(Ref<GPUBuffer> buffer, EAccess srcAccess, EAccess dstAccess) {
-	VkBuffer vkBuffer = buffer.As<VulkanBuffer>()->GetVkBuffer();
+	const VkBuffer vkBuffer = buffer.As<VulkanBuffer>()->GetVkBuffer();
 
 	VkBufferMemoryBarrier barrier = { };
 	barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
@@ -433,7 +433,7 @@ VulkanGraphicsContext::ImageBarrier(
 	uint32_t nBaseMipLevel,
 	uint32_t nBaseArrayLayer
 ) {
-	VkImage vkImage = image.As<VulkanTexture>()->GetVkImage();
+	const VkImage vkImage = image.As<VulkanTexture>()->GetVkImage();
 
 	VkImageMemoryBarrier barrier = {};
 	barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;

@@ -4,7 +4,7 @@ VulkanSampler::VulkanSampler(Ref<VulkanDevice> device)
 	: m_device(device), m_sampler(VK_NULL_HANDLE) { }
 
 VulkanSampler::~VulkanSampler() {
-	VkDevice vkDevice = this->m_device->GetVkDevice();
+	const VkDevice vkDevice = this->m_device->GetVkDevice();
 
 	if (this->m_sampler != VK_NULL_HANDLE) {
 		vkDestroySampler(vkDevice, this->m_sampler, nullptr);

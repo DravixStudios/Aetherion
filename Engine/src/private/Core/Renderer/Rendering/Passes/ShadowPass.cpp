@@ -97,7 +97,7 @@ ShadowPass::Execute(Ref<GraphicsContext> context, RenderGraphContext& graphCtx, 
 		0.f, 1.f
 	};
 
-	Rect2D scissor = { { 0, 0 }, { CSM_SHADOW_MAP_SIZE , CSM_SHADOW_MAP_SIZE } };
+	const Rect2D scissor = { { 0, 0 }, { CSM_SHADOW_MAP_SIZE , CSM_SHADOW_MAP_SIZE } };
 
 	for (uint32_t i = 0; i < CSM_CASCADE_COUNT; i++) {
 		this->DispatchShadowCulling(context, i, nFrameIdx);
@@ -133,7 +133,7 @@ ShadowPass::Execute(Ref<GraphicsContext> context, RenderGraphContext& graphCtx, 
 		indirectBuff->Reset(nFrameIdx);
 		context->BindDescriptorSets(0, { this->m_sceneSet });
 
-		uint32_t nBaseOffset = indirectBuff->GetPerFrameSize()* nFrameIdx;
+		const uint32_t nBaseOffset = indirectBuff->GetPerFrameSize()* nFrameIdx;
 		uint32_t nCurrentOffset = nBaseOffset;
 		[[maybe_unused]] uint32_t nTotalBatches = this->m_pCullingPass->GetTotalBatches();
 
@@ -204,19 +204,19 @@ ShadowPass::CalculateCascadeSplits() {
 
 		lambda = blend factor (0 = uniform, 1 = logarithmic)
 	*/
-	constexpr float lambda = 0.8f;
+	static constexpr float kLambda = 0.8f;
 
 	float splits[CSM_CASCADE_COUNT + 1];
 	splits[0] = this->m_nearPlane;
 
 	for (uint32_t i = 1; i <= CSM_CASCADE_COUNT; i++) {
-		float p = static_cast<float>(i) / static_cast<float>(CSM_CASCADE_COUNT);
+		const float p = static_cast<float>(i) / static_cast<float>(CSM_CASCADE_COUNT);
 
-		float logSplit = this->m_nearPlane * std::pow(this->m_farPlane / this->m_nearPlane, p);
+		const float logSplit = this->m_nearPlane * std::pow(this->m_farPlane / this->m_nearPlane, p);
 
-		float uniformSplit = this->m_nearPlane + (this->m_farPlane - this->m_nearPlane) * p;
+		const float uniformSplit = this->m_nearPlane + (this->m_farPlane - this->m_nearPlane) * p;
 
-		splits[i] = lambda * logSplit + (1.f - lambda) * uniformSplit;
+		splits[i] = kLambda * logSplit + (1.f - kLambda) * uniformSplit;
 	}
 
 	for (uint32_t i = 0; i < CSM_CASCADE_COUNT; i++) {
@@ -246,15 +246,15 @@ ShadowPass::CalculateCascadeViewProj(
 	float farSplit
 ) {
 	/* Calculate local center */
-	float tanHalfFOVY = 1.f / std::abs(this->m_cameraProj[1][1]);
-	float aspect = std::abs(this->m_cameraProj[1][1] / this->m_cameraProj[0][0]);
+	const float tanHalfFOVY = 1.f / std::abs(this->m_cameraProj[1][1]);
+	const float aspect = std::abs(this->m_cameraProj[1][1] / this->m_cameraProj[0][0]);
 
-	float hn = nearSplit * tanHalfFOVY;
-	float wn = hn * aspect;
-	float hf = farSplit * tanHalfFOVY;
-	float wf = hf * aspect;
+	const float hn = nearSplit * tanHalfFOVY;
+	const float wn = hn * aspect;
+	const float hf = farSplit * tanHalfFOVY;
+	const float wf = hf * aspect;
 
-	glm::vec3 localCorners[8] = {
+	const glm::vec3 localCorners[8] = {
 		{ -wn, hn, -nearSplit },
 		{ wn, hn, -nearSplit },
 		{ wn, -hn, -nearSplit },
@@ -279,14 +279,14 @@ ShadowPass::CalculateCascadeViewProj(
 		radius = std::max(radius, glm::distance(localCenter, corner));
 	}
 
-	glm::mat4 cameraWorld = glm::inverse(this->m_cameraView);
-	glm::vec3 worldCenter = glm::vec3(cameraWorld * glm::vec4(localCenter, 1.f));
+	const glm::mat4 cameraWorld = glm::inverse(this->m_cameraView);
+	const glm::vec3 worldCenter = glm::vec3(cameraWorld * glm::vec4(localCenter, 1.f));
 
 	/* Stable light direction and view matrix */
-	glm::vec3 lightDir = glm::normalize(this->m_sunDirection);
-	glm::vec3 up = (std::abs(lightDir.y) > .99f) ? glm::vec3(0.f, 0.f, 1.f) : glm::vec3(0.f, 1.f, 0.f);
+	const glm::vec3 lightDir = glm::normalize(this->m_sunDirection);
+	const glm::vec3 up = (std::abs(lightDir.y) > .99f) ? glm::vec3(0.f, 0.f, 1.f) : glm::vec3(0.f, 1.f, 0.f);
 
-	glm::mat4 lightView = glm::lookAt(
+	const glm::mat4 lightView = glm::lookAt(
 		worldCenter + lightDir * radius, 
 		worldCenter,
 		up
@@ -296,7 +296,7 @@ ShadowPass::CalculateCascadeViewProj(
 	glm::mat4 lightOrtho = glm::ortho(-radius, radius, -radius, radius, -radius * 10.f, radius * 10.f);
 
 	/* Correction Matrix (Flip Y + Map Z 0..1) */
-	glm::mat4 correction = glm::mat4(
+	const glm::mat4 correction = glm::mat4(
 		1.0f, 0.0f, 0.0f, 0.0f,
 		0.0f, -1.0f, 0.0f, 0.0f,
 		0.0f, 0.0f, 0.5f, 0.0f,
@@ -305,13 +305,13 @@ ShadowPass::CalculateCascadeViewProj(
 	lightOrtho = correction * lightOrtho;
 
 	/*  Eliminate shimmering by snapping the light-space origin to texel increments */
-	glm::mat4 shadowMatrix = lightOrtho * lightView;
+	const glm::mat4 shadowMatrix = lightOrtho * lightView;
 	glm::vec4 shadowOrigin = shadowMatrix * glm::vec4(0.f, 0.f, 0.f, 1.f);
 	
-	float shadowMapSize = static_cast<float>(CSM_SHADOW_MAP_SIZE);
+	const float shadowMapSize = static_cast<float>(CSM_SHADOW_MAP_SIZE);
 	shadowOrigin *= shadowMapSize / 2.f;
 
-	glm::vec4 roundedOrigin = glm::round(shadowOrigin);
+	const glm::vec4 roundedOrigin = glm::round(shadowOrigin);
 	glm::vec4 roundOffset = roundedOrigin - shadowOrigin;
 	roundOffset = roundOffset * (2.f / shadowMapSize);
 	roundOffset.z = 0.f;
@@ -456,8 +456,8 @@ ShadowPass::CreateShadowResources() {
 			vec4 cascadeSplits;
 		}
 	*/
-	uint32_t nUBOSize = sizeof(glm::mat4) * CSM_CASCADE_COUNT + sizeof(glm::vec4);
-	uint32_t nAlignedSize = NextPowerOf2(nUBOSize);
+	const uint32_t nUBOSize = sizeof(glm::mat4) * CSM_CASCADE_COUNT + sizeof(glm::vec4);
+	const uint32_t nAlignedSize = NextPowerOf2(nUBOSize);
 
 	RingBufferCreateInfo uboInfo = { };
 	uboInfo.nAlignment = nAlignedSize;
@@ -472,7 +472,7 @@ ShadowPass::CreateShadowResources() {
 
 void
 ShadowPass::CreateCullingResources() {
-	constexpr uint32_t MAX_DRAWS = 131072;
+	static constexpr uint32_t MAX_DRAWS = 131072;
 
 	/* One indirect buffer and count buffer per cascade */
 	for (uint32_t i = 0; i < CSM_CASCADE_COUNT; i++) {
@@ -496,8 +496,8 @@ ShadowPass::CreateCullingResources() {
 	}
 
 	/* Frustum ring buffer */
-	uint32_t nFrustumSize = sizeof(FrustumData);
-	uint32_t nAligned = NextPowerOf2(nFrustumSize);
+	const uint32_t nFrustumSize = sizeof(FrustumData);
+	const uint32_t nAligned = NextPowerOf2(nFrustumSize);
 
 	RingBufferCreateInfo frustumInfo = { };
 	frustumInfo.nAlignment = nAligned;
@@ -541,7 +541,7 @@ ShadowPass::CreateCullingResources() {
 
 	for (uint32_t i = 0; i < CSM_CASCADE_COUNT; i++) {
 		/* Define per frame sizes */
-		std::array<uint32_t, 7> frameSizes = {
+		const std::array<uint32_t, 7> frameSizes = {
 			this->m_pCullingPass->GetInstanceBuffer()->GetPerFrameSize(), // 0
 			this->m_pCullingPass->GetMaterialBuffer()->GetPerFrameSize(), // 1
 			this->m_pCullingPass->GetBatchBuffer()->GetPerFrameSize(), // 2
@@ -616,7 +616,7 @@ ShadowPass::DispatchShadowCulling(Ref<GraphicsContext> context, uint32_t nCascad
 		return;
 	}
 
-	CascadeData cascade = this->m_cascades[nCascadeIdx];
+	const CascadeData cascade = this->m_cascades[nCascadeIdx];
 
 	/* Calculate frustum planes for this cascade */
 	glm::vec4 frustumPlanes[6];
@@ -660,7 +660,7 @@ ShadowPass::DispatchShadowCulling(Ref<GraphicsContext> context, uint32_t nCascad
 		sizeof(pushData), &pushData
 	);
 
-	uint32_t nGroups = (pushData.nTotalBatches + 255) / 256;
+	const uint32_t nGroups = (pushData.nTotalBatches + 255) / 256;
 	context->Dispatch(nGroups, 1, 1);
 
 	context->BufferMemoryBarrier(
@@ -780,7 +780,7 @@ ShadowPass::ExtractFrustumPlanes(const glm::mat4& viewProj, glm::vec4 planes[6])
 
 	/* Normalize planes */
 	for (uint32_t i = 0; i < 6; i++) {
-		float length = glm::length(glm::vec3(planes[i]));
+		const float length = glm::length(glm::vec3(planes[i]));
 		planes[i] /= length;
 	}
 }

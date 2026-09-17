@@ -64,7 +64,7 @@ TonemapPass::Execute(Ref<GraphicsContext> context, RenderGraphContext& graphCtx,
 
 	context->BindPipeline(this->m_pipeline);
 
-	Viewport vp { 0.f, 0.f, static_cast<float>(this->m_nWidth), static_cast<float>(this->m_nHeight), 0.f, 1.f };
+	const Viewport vp { 0.f, 0.f, static_cast<float>(this->m_nWidth), static_cast<float>(this->m_nHeight), 0.f, 1.f };
 	context->SetViewport(vp);
 	context->SetScissor({ { 0, 0 }, { this->m_nWidth, this->m_nHeight } });
 

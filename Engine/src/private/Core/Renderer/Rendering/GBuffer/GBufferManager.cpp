@@ -75,8 +75,8 @@ GBufferManager::CreateTextures() {
 			return this->m_device->CreateImageView(info);
 		};
 
-	ETextureUsage colorUsage = ETextureUsage::COLOR_ATTACHMENT | ETextureUsage::SAMPLED;
-	ETextureUsage depthUsage = ETextureUsage::DEPTH_STENCIL_ATTACHMENT | ETextureUsage::SAMPLED;
+	const ETextureUsage colorUsage = ETextureUsage::COLOR_ATTACHMENT | ETextureUsage::SAMPLED;
+	const ETextureUsage depthUsage = ETextureUsage::DEPTH_STENCIL_ATTACHMENT | ETextureUsage::SAMPLED;
 
 	this->m_albedo = createTexture(GBufferLayout::ALBEDO, colorUsage);
 	this->m_normal = createTexture(GBufferLayout::NORMAL, colorUsage);

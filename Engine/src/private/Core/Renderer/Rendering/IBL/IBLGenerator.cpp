@@ -50,8 +50,8 @@ IBLGenerator::Generate(Ref<GraphicsContext> context, uint32_t nFrameIdx) {
     this->m_viewProjBuffer->Reset(nFrameIdx);
 
     /* Projection matrices for each cubemap face */
-    glm::mat4 captureProjection = glm::perspective(glm::radians(90.f), 1.f, .1f, 10.f);
-    glm::mat4 captureViews[] = {
+    const glm::mat4 captureProjection = glm::perspective(glm::radians(90.f), 1.f, .1f, 10.f);
+    const glm::mat4 captureViews[] = {
         glm::lookAt(glm::vec3(0.f), glm::vec3(-1.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f)), // +X
         glm::lookAt(glm::vec3(0.f), glm::vec3(1.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f)), // -X
         glm::lookAt(glm::vec3(0.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.f, 0.f, -1.f)), // +Y
@@ -60,7 +60,7 @@ IBLGenerator::Generate(Ref<GraphicsContext> context, uint32_t nFrameIdx) {
         glm::lookAt(glm::vec3(0.f), glm::vec3(0.f, 0.f, -1.f), glm::vec3(0.f, 1.f, 0.f)) // -Z
     };
 
-    ClearValue clearValue{ { 0.f, 0.f, 0.f, 1.f } };
+    const ClearValue clearValue{ { 0.f, 0.f, 0.f, 1.f } };
 
     context->ImageBarrier(this->m_irradiance, EImageLayout::UNDEFINED, EImageLayout::COLOR_ATTACHMENT, 6, 0);
 
@@ -118,8 +118,8 @@ IBLGenerator::Generate(Ref<GraphicsContext> context, uint32_t nFrameIdx) {
     );
 
     for (uint32_t nMip = 0; nMip < MIP_LEVELS; nMip++) {
-        uint32_t nMipSize = PREFILTER_SIZE >> nMip;
-        float roughness = static_cast<float>(nMip) / static_cast<float>(MIP_LEVELS - 1);
+        const uint32_t nMipSize = PREFILTER_SIZE >> nMip;
+        const float roughness = static_cast<float>(nMip) / static_cast<float>(MIP_LEVELS - 1);
 
         context->ImageBarrier(this->m_prefilter, EImageLayout::UNDEFINED, EImageLayout::COLOR_ATTACHMENT, 6, nMip);
 
@@ -541,7 +541,7 @@ IBLGenerator::CreatePipelines() {
 
 void
 IBLGenerator::CreateResources() {
-    Vector<glm::vec3> vertices = {
+    const Vector<glm::vec3> vertices = {
         // Back face
         { -1.f, -1.f, -1.f }, { 1.f, -1.f, -1.f }, { 1.f, 1.f, -1.f }, { -1.f, 1.f, -1.f },
         // Front face
@@ -556,7 +556,7 @@ IBLGenerator::CreateResources() {
         { -1.f, 1.f, -1.f }, { 1.f, 1.f, -1.f }, { 1.f, 1.f, 1.f }, { -1.f, 1.f, 1.f }
     };
 
-    Vector<uint16_t> indices = {
+    const Vector<uint16_t> indices = {
         0, 1, 2, 2, 3, 0, // Back
         4, 5, 6, 6, 7, 4, // Front
         8, 9, 10, 10, 11, 8, // Left
@@ -585,7 +585,7 @@ IBLGenerator::CreateResources() {
     this->m_nIndexCount = indices.size();
 
     /* Create view projection ring buffer */
-    uint32_t nViewProjectionSize = sizeof(ViewProjection);
+    const uint32_t nViewProjectionSize = sizeof(ViewProjection);
 
     RingBufferCreateInfo viewProjInfo = { };
     viewProjInfo.nAlignment = nViewProjectionSize;
@@ -659,7 +659,7 @@ IBLGenerator::CreateResources() {
     this->m_prefilterFBs.resize(MIP_LEVELS);
     this->m_prefilterFaceViews.resize(MIP_LEVELS);
     for (uint32_t nMip = 0; nMip < MIP_LEVELS; nMip++) {
-        uint32_t nMipSize = PREFILTER_SIZE >> nMip;
+        const uint32_t nMipSize = PREFILTER_SIZE >> nMip;
 
         this->m_prefilterFBs[nMip].resize(6);
         this->m_prefilterFaceViews[nMip].resize(6);

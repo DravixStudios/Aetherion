@@ -15,7 +15,7 @@ VulkanTexture::~VulkanTexture() {
 */
 void 
 VulkanTexture::Create(const TextureCreateInfo& createInfo, const String& debugName) {
-	VkDevice vkDevice = this->m_device->GetVkDevice();
+	const VkDevice vkDevice = this->m_device->GetVkDevice();
 
 	/* Create image */
 	VkExtent3D extent = { };
@@ -93,7 +93,7 @@ VulkanTexture::Create(const TextureCreateInfo& createInfo, const String& debugNa
 		);
 
 		/* One copy region per array layer */
-		uint32_t nLayerBytes = createInfo.extent.width * createInfo.extent.height * VulkanHelpers::GetFormatSize(createInfo.format);
+		const uint32_t nLayerBytes = createInfo.extent.width * createInfo.extent.height * VulkanHelpers::GetFormatSize(createInfo.format);
 		Vector<VkBufferImageCopy> regions(createInfo.nArrayLayers);
 
 		for (uint32_t i = 0; i < createInfo.nArrayLayers; i++) {
@@ -163,7 +163,7 @@ VulkanTexture::Reset() {
 		return;
 	}
 
-	VkDevice vkDevice = this->m_device->GetVkDevice();
+	const VkDevice vkDevice = this->m_device->GetVkDevice();
 
 	if (this->m_memory != VK_NULL_HANDLE) {
 		vkFreeMemory(vkDevice, this->m_memory, nullptr);

@@ -110,7 +110,7 @@ VulkanBuffer::VulkanBuffer(Ref<VulkanDevice> device)
 	: m_device(device), m_buffer(VK_NULL_HANDLE), m_memory(VK_NULL_HANDLE) {}
 
 VulkanBuffer::~VulkanBuffer() {
-	VkDevice vkDevice = this->m_device->GetVkDevice();
+	const VkDevice vkDevice = this->m_device->GetVkDevice();
 
 	if (this->m_memory) {
 		vkFreeMemory(vkDevice, this->m_memory, nullptr);
@@ -128,7 +128,7 @@ VulkanBuffer::~VulkanBuffer() {
 */
 void 
 VulkanBuffer::Create(const BufferCreateInfo& createInfo, const String& debugName) {
-	VkDevice vkDevice = this->m_device->GetVkDevice();
+	const VkDevice vkDevice = this->m_device->GetVkDevice();
 	this->m_bufferType = createInfo.type;
 	this->m_bufferUsage = createInfo.usage;
 
@@ -309,7 +309,7 @@ VulkanBuffer::Map() {
 */
 void
 VulkanBuffer::CopyBuffer(Ref<GPUBuffer> srcBuff, uint32_t nSize, uint32_t nOffset) {
-	VkBuffer vkBuff = srcBuff.As<VulkanBuffer>()->GetVkBuffer();
+	const VkBuffer vkBuff = srcBuff.As<VulkanBuffer>()->GetVkBuffer();
 
 	Ref<CommandBuffer> cmdBuff = this->m_device->BeginSingleTimeCommandBuffer();
 

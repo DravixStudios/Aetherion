@@ -39,7 +39,7 @@ VulkanRingBuffer::Create(const RingBufferCreateInfo& createInfo) {
 	this->m_usage = createInfo.usage;
 	this->m_nFramesInFlight = createInfo.nFramesInFlight;
 
-	VkPhysicalDeviceProperties devProps = this->m_device->GetPhysicalDeviceProperties();
+	const VkPhysicalDeviceProperties devProps = this->m_device->GetPhysicalDeviceProperties();
 	uint32_t nMinAlignment = createInfo.nAlignment;
 
 	/* Different alignment depending on the buffer type */
@@ -65,7 +65,7 @@ VulkanRingBuffer::Create(const RingBufferCreateInfo& createInfo) {
 
 	this->m_nBufferSize = this->m_nPerFrameSize * this->m_nFramesInFlight;
 
-	uint32_t nFixedSize = this->m_nBufferSize;
+	const uint32_t nFixedSize = this->m_nBufferSize;
 
 	/* Buffer creation */
 	BufferCreateInfo bufferInfo = { };
@@ -98,11 +98,11 @@ VulkanRingBuffer::Create(const RingBufferCreateInfo& createInfo) {
 void* 
 VulkanRingBuffer::Allocate(uint32_t nDataSize, uint32_t& outOffset) {
 	/* Convert our data size to a size aligned with VulkanRingBuffer::m_nAlignment */
-	uint32_t nAlignedSize = this->Align(nDataSize, this->m_nAlignment);
+	const uint32_t nAlignedSize = this->Align(nDataSize, this->m_nAlignment);
 
 	/* Calculate actual block limit */
-	uint32_t nFrameBaseOffset = (this->m_nOffset / this->m_nPerFrameSize) * this->m_nPerFrameSize;
-	uint32_t nFrameEnd = nFrameBaseOffset + this->m_nPerFrameSize;
+	const uint32_t nFrameBaseOffset = (this->m_nOffset / this->m_nPerFrameSize) * this->m_nPerFrameSize;
+	const uint32_t nFrameEnd = nFrameBaseOffset + this->m_nPerFrameSize;
 
 	if (this->m_nOffset + nAlignedSize > nFrameEnd) {
 		spdlog::warn("VulkanRingBuffer::Allocate: Overflow inside frame region, wrapping to frame base");

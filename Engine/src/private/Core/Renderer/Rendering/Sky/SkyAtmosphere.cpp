@@ -47,11 +47,11 @@ SkyAtmosphere::Update(Ref<GraphicsContext> context, uint32_t nFrameIdx) {
     scissor.extent = { SKYBOX_FACE_SIZE, SKYBOX_FACE_SIZE };
     scissor.offset = { 0, 0 };
 
-    ClearValue clearValue{ { 0.f, 0.f, 0.f, 1.f } };
+    const ClearValue clearValue{ { 0.f, 0.f, 0.f, 1.f } };
 
     /* Cubemap capture matrices (same as IBLGenerator) */
-    glm::mat4 captureProjection = glm::perspective(glm::radians(90.f), 1.f, .1f, 10.f);
-    glm::mat4 captureViews[] = {
+    const glm::mat4 captureProjection = glm::perspective(glm::radians(90.f), 1.f, .1f, 10.f);
+    const glm::mat4 captureViews[] = {
         glm::lookAt(glm::vec3(0.f), glm::vec3(-1.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f)), // +X
         glm::lookAt(glm::vec3(0.f), glm::vec3(1.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f)), // -X
         glm::lookAt(glm::vec3(0.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.f, 0.f, -1.f)), // +Y
@@ -103,7 +103,7 @@ SkyAtmosphere::Update(Ref<GraphicsContext> context, uint32_t nFrameIdx) {
 void 
 SkyAtmosphere::CreateResources() {
     /* Create cube VBO and IBO (same vertices and indices as in IBL generator) */
-    Vector<glm::vec3> vertices = {
+    const Vector<glm::vec3> vertices = {
         // Back face
         { -1.f, -1.f, -1.f }, { 1.f, -1.f, -1.f }, { 1.f, 1.f, -1.f }, { -1.f, 1.f, -1.f },
         // Front face
@@ -118,7 +118,7 @@ SkyAtmosphere::CreateResources() {
         { -1.f, 1.f, -1.f }, { 1.f, 1.f, -1.f }, { 1.f, 1.f, 1.f }, { -1.f, 1.f, 1.f }
     };
 
-    Vector<uint16_t> indices = {
+    const Vector<uint16_t> indices = {
        0, 1, 2, 2, 3, 0, // Back
        4, 5, 6, 6, 7, 4, // Front
        8, 9, 10, 10, 11, 8, // Left
@@ -147,8 +147,8 @@ SkyAtmosphere::CreateResources() {
     this->m_cubeIBO = this->m_device->CreateBuffer(iboInfo);
 
     /* Create ring buffers */
-    uint32_t nSunDataSize = sizeof(SunData);
-    uint32_t nCamDataSize = sizeof(CameraData);
+    const uint32_t nSunDataSize = sizeof(SunData);
+    const uint32_t nCamDataSize = sizeof(CameraData);
 
     RingBufferCreateInfo sunDataInfo = { };
     sunDataInfo.nAlignment = nSunDataSize;

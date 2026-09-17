@@ -34,7 +34,7 @@ BentNormalPass::Init(Ref<Device> device, uint32_t nFramesInFlight) {
 	this->m_sampler = this->m_device->CreateSampler(samplerInfo);
 
 	/* Create camera ring buffer */
-	uint32_t nCameraAlignment = NextPowerOf2(sizeof(CameraData));
+	const uint32_t nCameraAlignment = NextPowerOf2(sizeof(CameraData));
 
 	RingBufferCreateInfo cameraInfo = { };
 	cameraInfo.nAlignment = nCameraAlignment;
@@ -121,7 +121,7 @@ BentNormalPass::Execute(Ref<GraphicsContext> context, RenderGraphContext& graphC
 	memcpy(pCamData, &cameraData, sizeof(cameraData));
 
 	/* Render */
-	Viewport vp{ 0.f, 0.f, static_cast<float>(this->m_nWidth), static_cast<float>(this->m_nHeight), 0.f, 1.f };
+	const Viewport vp{ 0.f, 0.f, static_cast<float>(this->m_nWidth), static_cast<float>(this->m_nHeight), 0.f, 1.f };
 	context->SetViewport(vp);
 	context->SetScissor({ { 0, 0 }, { this->m_nWidth, this->m_nHeight } });
 	context->BindPipeline(this->m_pipeline);
@@ -246,7 +246,7 @@ BentNormalPass::SetCameraData(glm::mat4 view, glm::mat4 projection) {
 */
 void
 BentNormalPass::CreateDescriptors() {
-	Vector<DescriptorSetLayoutBinding> bindings = {
+	const Vector<DescriptorSetLayoutBinding> bindings = {
 		{ 0, EDescriptorType::COMBINED_IMAGE_SAMPLER, 1, EShaderStage::FRAGMENT },
 		{ 1, EDescriptorType::COMBINED_IMAGE_SAMPLER, 1, EShaderStage::FRAGMENT }
 	};
@@ -276,7 +276,7 @@ BentNormalPass::CreateDescriptors() {
 	}
 
 	/* Create camera descriptor */
-	Vector<DescriptorSetLayoutBinding> cameraBindings = {
+	const Vector<DescriptorSetLayoutBinding> cameraBindings = {
 		{ 0, EDescriptorType::UNIFORM_BUFFER_DYNAMIC, 1, EShaderStage::FRAGMENT }
 	};
 

@@ -112,13 +112,13 @@ VulkanCommandPool::FreeCommandBuffer(Ref<CommandBuffer> commandBuffer) {
 
 void 
 VulkanCommandPool::FreeCommandBuffers(const Vector<Ref<CommandBuffer>>& commandBuffers) {
-	uint32_t nCommandBuffCount = commandBuffers.size();
+	const uint32_t nCommandBuffCount = static_cast<uint32_t>(commandBuffers.size());
 
 	Vector<VkCommandBuffer> vkCommandBuffers;
 	vkCommandBuffers.resize(nCommandBuffCount);
 
 	for (uint32_t i = 0; i < nCommandBuffCount; i++) {
-		VkCommandBuffer vkCommandBuffer = commandBuffers[i].As<VulkanCommandBuffer>()->GetVkCommandBuffer();
+		const VkCommandBuffer vkCommandBuffer = commandBuffers[i].As<VulkanCommandBuffer>()->GetVkCommandBuffer();
 		vkCommandBuffers[i] = vkCommandBuffer;
 	}
 

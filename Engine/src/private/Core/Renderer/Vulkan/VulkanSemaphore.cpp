@@ -4,7 +4,7 @@ VulkanSemaphore::VulkanSemaphore(Ref<VulkanDevice> device)
 	: m_device(device), m_semaphore(VK_NULL_HANDLE) { }
 
 VulkanSemaphore::~VulkanSemaphore() {
-	VkDevice vkDevice = this->m_device.As<VulkanDevice>()->GetVkDevice();
+	const VkDevice vkDevice = this->m_device.As<VulkanDevice>()->GetVkDevice();
 
 	if (this->m_semaphore != VK_NULL_HANDLE) {
 		vkDestroySemaphore(vkDevice, this->m_semaphore, nullptr);
@@ -16,7 +16,7 @@ VulkanSemaphore::~VulkanSemaphore() {
 */
 void
 VulkanSemaphore::Create() {
-	VkDevice vkDevice = this->m_device.As<VulkanDevice>()->GetVkDevice();
+	const VkDevice vkDevice = this->m_device.As<VulkanDevice>()->GetVkDevice();
 	
 	VkSemaphoreCreateInfo semaphoreInfo = { };
 	semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;

@@ -14,7 +14,7 @@ SceneCollector::Collect(Scene* scene) {
 	if (!scene || !this->m_uploadedMeshes) return result;
 
 	/* Get the current camera's View and Projection */
-	Camera* cam = scene->GetCurrentCamera();
+	const Camera* cam = scene->GetCurrentCamera();
 	glm::mat4 view = cam->GetView();
 	glm::mat4 proj = cam->GetProjection();
 
@@ -46,8 +46,8 @@ SceneCollector::Collect(Scene* scene) {
 		glm::mat4 world = gameObject->transform.GetWorldMatrix();
 
 		for (auto& [idx, subMesh] : uploadedMesh.subMeshes) {
-			uint32_t nWvpIdx = static_cast<uint32_t>(result.wvps.size());
-			uint32_t nMaterialIdx = static_cast<uint32_t>(result.materials.size());
+			const uint32_t nWvpIdx = static_cast<uint32_t>(result.wvps.size());
+			const uint32_t nMaterialIdx = static_cast<uint32_t>(result.materials.size());
 
 			WVP wvp = { };
 			wvp.World = world;

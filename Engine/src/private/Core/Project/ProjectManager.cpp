@@ -14,7 +14,7 @@ SplitPath(const String& path, const String& delim) {
 		parts.push_back(part.string());
 	}
 
-	Vector<String>::iterator it = std::find(parts.begin(), parts.end(), delim);
+	const Vector<String>::iterator it = std::find(parts.begin(), parts.end(), delim);
 	
 	/* Erase everything before the delimitator */
 	if (it != parts.end()) {
@@ -55,7 +55,7 @@ ProjectManager::OpenProject(const String& projectPath) {
 	String projectFile;
 
 	{
-		fs::path p(projectPath);
+		const fs::path p(projectPath);
 
 		if (fs::exists(p)
 			&& fs::is_regular_file(p)
@@ -65,7 +65,7 @@ ProjectManager::OpenProject(const String& projectPath) {
 		) {
 			projectFile = p.filename().string();
 
-			String dir = p.parent_path().string();
+			const String dir = p.parent_path().string();
 			projectDir.name = dir;
 		}
 		else {
@@ -126,7 +126,7 @@ ProjectManager::OpenProject(const String& projectPath) {
 
 	/* Check if assets directory exists */
 	Directory assetsDir = { };
-	fs::path assetsPath = fs::path(projectDir.name) / "Assets";
+	const fs::path assetsPath = fs::path(projectDir.name) / "Assets";
 	assetsDir.name = assetsPath.string();
 
 	if (!assetsDir.Exists()) {
@@ -162,7 +162,7 @@ ProjectManager::OpenProject(const String& projectPath) {
 			project tree
 		*/
 		if (entry.is_directory()) {
-			fs::path relPath = fs::relative(entry.path(), assetsPath);
+			const fs::path relPath = fs::relative(entry.path(), assetsPath);
 
 			Ref<ProjectTree::TreeNode> parentNode = this->m_tree.root;
 			fs::path buildPath = assetsPath;
@@ -223,17 +223,17 @@ ProjectManager::OpenProject(const String& projectPath) {
 			continue;
 		}
 
-		EAssetType type = static_cast<EAssetType>(nRawType);
+		const EAssetType type = static_cast<EAssetType>(nRawType);
 		file.close();
 
 		/* Get the current asset path */
-		String assetPath = SplitPath(entry.path().string(), "Assets");
-		String fullPath = entry.path().string();
+		const String assetPath = SplitPath(entry.path().string(), "Assets");
+		const String fullPath = entry.path().string();
 
 		this->m_assetMgr->RegisterAsset(fullPath, type);
 
 		/* Find asset node */
-		fs::path relPath = fs::relative(entry.path().parent_path(), assetsPath);
+		const fs::path relPath = fs::relative(entry.path().parent_path(), assetsPath);
 
 		Ref<ProjectTree::TreeNode> node = this->m_tree.root;
 		fs::path buildPath = assetsPath;
@@ -249,13 +249,13 @@ ProjectManager::OpenProject(const String& projectPath) {
 		}
 
 		/* Register asset and add it to the node */
-		AssetHandle asset = this->m_assetMgr->RegisterAsset(fullPath, type);
+		const AssetHandle asset = this->m_assetMgr->RegisterAsset(fullPath, type);
 		this->m_tree.AddAsset(node, asset);
 	}
 
 	/* Call OnProjectOpenedCallback */
 	if (this->m_onProjectOpened) {
-		String projectName = fs::path(projectPath).filename().string();
+		const String projectName = fs::path(projectPath).filename().string();
 		this->m_onProjectOpened(projectAsset);
 	}
 
@@ -285,7 +285,7 @@ ProjectManager::GetNodeAssets(Ref<ProjectTree::TreeNode> node) {
 		return Vector<AssetHandle>();
 	}
 
-	Vector<AssetHandle> assets = node->assets;
+	const Vector<AssetHandle> assets = node->assets;
 
 	return assets;
 }

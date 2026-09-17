@@ -77,7 +77,7 @@ RenderGraph::CreateRenderPasses() {
         
         /* Color attachments */
         for(uint32_t i = 0; i < node.colorOutputs.size(); ++i) {
-            TextureHandle& color = node.colorOutputs[i];
+            const TextureHandle& color = node.colorOutputs[i];
             Ref<ImageView> view = this->m_pool.GetImageView(color);
 
             EImageLayout initialLayout = EImageLayout::UNDEFINED;

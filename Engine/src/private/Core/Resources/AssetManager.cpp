@@ -57,9 +57,9 @@ AssetManager::SaveMesh(const String& filename, const MeshAsset& asset) {
 		Get the executable path 
 		TODO: Use project directory
 	*/
-	String exePath = GetExecutableDir();
+	const String exePath = GetExecutableDir();
 
-	std::filesystem::path filePath = std::filesystem::path(exePath) / filename;
+	const std::filesystem::path filePath = std::filesystem::path(exePath) / filename;
 
 	/* Open file */
 	std::ofstream file(filePath, std::ios::binary);
@@ -100,13 +100,13 @@ AssetManager::SaveMesh(const String& filename, const MeshAsset& asset) {
 	for (const SubMeshAsset& subMesh : asset.subMeshes) {
 		file.write(reinterpret_cast<const char*>(&subMesh.header), sizeof(SubMeshAssetHeader));
 
-		uint32_t nBufferSize = subMesh.buffer.size() * sizeof(Byte);
+		const uint32_t nBufferSize = subMesh.buffer.size() * sizeof(Byte);
 		
 		std::streampos beforeBuffer = file.tellp();
 		file.write(reinterpret_cast<const char*>(subMesh.buffer.data()), nBufferSize);
 		std::streampos afterBuffer = file.tellp();
 
-		uint32_t nWrittenBytes = static_cast<uint32_t>(afterBuffer - beforeBuffer);
+		const uint32_t nWrittenBytes = static_cast<uint32_t>(afterBuffer - beforeBuffer);
 
 		if (nWrittenBytes != nBufferSize) {
 			Logger::Error("AssetManager::SaveMesh: SubMesh buffer size mismatch. Expected {} got {}",
@@ -143,9 +143,9 @@ AssetManager::SaveScene(const String& filename, const SceneAsset& asset) {
 		Get the executable path
 		TODO: Use project directory
 	*/
-	String exePath = GetExecutableDir();
+	const String exePath = GetExecutableDir();
 
-	std::filesystem::path filePath = std::filesystem::path(exePath) / filename;
+	const std::filesystem::path filePath = std::filesystem::path(exePath) / filename;
 
 	/* Open file */
 	std::ofstream file(filePath, std::ios::binary);
@@ -158,7 +158,7 @@ AssetManager::SaveScene(const String& filename, const SceneAsset& asset) {
 	EAssetType type = EAssetType::SCENE;
 
 	/* Write SceneAssetHeader */
-	uint64_t nRawVersion = SCENE_VERSION.Serialize();
+	const uint64_t nRawVersion = SCENE_VERSION.Serialize();
 
 	file.write(reinterpret_cast<const char*>(&MAGIC_NUMBER), sizeof(MAGIC_NUMBER));
 	file.write(reinterpret_cast<const char*>(&nRawVersion), sizeof(uint64_t));
@@ -206,9 +206,9 @@ AssetManager::SaveMaterial(const String& filename, const MaterialAsset& asset) {
 		Get the executable path
 		TODO: Use project directory
 	*/
-	String exePath = GetExecutableDir();
+	const String exePath = GetExecutableDir();
 
-	std::filesystem::path filePath = std::filesystem::path(exePath) / filename;
+	const std::filesystem::path filePath = std::filesystem::path(exePath) / filename;
 
 	/* Open file */
 	std::ofstream file(filePath, std::ios::binary);
@@ -221,7 +221,7 @@ AssetManager::SaveMaterial(const String& filename, const MaterialAsset& asset) {
 	EAssetType type = EAssetType::MATERIAL;
 
 	/* Write MaterialAssetHeader */
-	uint64_t nRawVersion = MATERIAL_VERSION.Serialize();
+	const uint64_t nRawVersion = MATERIAL_VERSION.Serialize();
 
 	file.write(reinterpret_cast<const char*>(&MAGIC_NUMBER), sizeof(MAGIC_NUMBER));
 	file.write(reinterpret_cast<const char*>(&nRawVersion), sizeof(uint64_t));
@@ -283,9 +283,9 @@ AssetManager::SaveTexture(const String& filename, const TextureAsset& asset) {
 		Get the executable path
 		TODO: Use project directory
 	*/
-	String exePath = GetExecutableDir();
+	const String exePath = GetExecutableDir();
 
-	std::filesystem::path filePath = std::filesystem::path(exePath) / filename;
+	const std::filesystem::path filePath = std::filesystem::path(exePath) / filename;
 
 	/* Open file */
 	std::ofstream file(filePath, std::ios::binary);
@@ -298,7 +298,7 @@ AssetManager::SaveTexture(const String& filename, const TextureAsset& asset) {
 	EAssetType type = EAssetType::TEXTURE;
 
 	/* Write TextureAssetHeader */
-	uint64_t nRawVersion = TEXTURE_VERSION.Serialize();
+	const uint64_t nRawVersion = TEXTURE_VERSION.Serialize();
 
 	file.write(reinterpret_cast<const char*>(&MAGIC_NUMBER), sizeof(MAGIC_NUMBER));
 	file.write(reinterpret_cast<const char*>(&nRawVersion), sizeof(uint64_t));
@@ -358,7 +358,7 @@ AssetManager::ReadAsset(const String& filename, EAssetType expectedType) {
 	}
 
 	/* Check asset type */
-	EAssetType type = static_cast<EAssetType>(nRawType);
+	const EAssetType type = static_cast<EAssetType>(nRawType); // NOLINT(*-use-auto)
 
 	if (type != expectedType) {
 		Logger::Error("AssetManager::ReadAsset: Unexpected asset type {}", filename);
@@ -367,10 +367,10 @@ AssetManager::ReadAsset(const String& filename, EAssetType expectedType) {
 
 
 	/* Check asset version */
-	AssetVersion version = AssetVersion::Deserialize(nRawVersion);
+	const AssetVersion version = AssetVersion::Deserialize(nRawVersion);
 
 	if (s_assetVersions.contains(expectedType)) {
-		AssetVersion expectedVersion = s_assetVersions.at(expectedType);
+		const AssetVersion expectedVersion = s_assetVersions.at(expectedType);
 
 		if (version != expectedVersion) {
 			if (version < expectedVersion) {
@@ -396,7 +396,7 @@ AssetManager::ReadAssetData<MeshAsset, MeshAssetHeader>(
 	std::ifstream& file,
 	const MeshAssetHeader& header
 ) {
-	static AssetHandle emptyAsset = AssetHandle{};
+	static constexpr AssetHandle kEmptyAsset = AssetHandle{};
 	AssetHandle handle = { };
 
 	/* Check mesh total byte size */
@@ -407,7 +407,7 @@ AssetManager::ReadAssetData<MeshAsset, MeshAssetHeader>(
 		);
 
 		file.close();
-		return emptyAsset;
+		return kEmptyAsset;
 	}
 
 	/* Read SubMeshes */
@@ -422,7 +422,7 @@ AssetManager::ReadAssetData<MeshAsset, MeshAssetHeader>(
 		file.read(reinterpret_cast<char*>(subMesh.buffer.data()), subMesh.header.nTotalByteSize);
 		std::streamsize afterBuffer = file.tellg();
 
-		uint32_t nReadSize = static_cast<uint32_t>(afterBuffer - beforeBuffer);
+		const uint32_t nReadSize = static_cast<uint32_t>(afterBuffer - beforeBuffer);
 
 		if (nReadSize != subMesh.header.nTotalByteSize) {
 			Logger::Error("AssetManager::ReadAssetData[MeshAsset]: Asset file mismatch. Expected {} got {}",
@@ -432,7 +432,7 @@ AssetManager::ReadAssetData<MeshAsset, MeshAssetHeader>(
 
 		if (!file.good() || !file) {
 			Logger::Error("AssetManager::ReadAssetData[MeshAsset]: File error!");
-			return emptyAsset;
+			return kEmptyAsset;
 		}
 
 		subMeshes[i] = std::move(subMesh);
@@ -446,7 +446,7 @@ AssetManager::ReadAssetData<MeshAsset, MeshAssetHeader>(
 
 		subMeshes.clear();
 
-		return emptyAsset;
+		return kEmptyAsset;
 	}
 
 	file.close();
@@ -641,7 +641,7 @@ AssetManager::GetAsset(const AssetHandle& handle) {
 */
 bool 
 AssetManager::ImportAsset(const String& path, const String& projectAssets) {
-	fs::path assetPath = path;
+	const fs::path assetPath = path;
 
 	if (!fs::exists(assetPath) || !fs::is_regular_file(assetPath)) {
 		Logger::Error("AssetManager::ImportAsset: Can't import folders {}", path);
@@ -649,7 +649,7 @@ AssetManager::ImportAsset(const String& path, const String& projectAssets) {
 	}
 
 	/* Check if extension is supported */
-	String extension = assetPath.extension().string();
+	const String extension = assetPath.extension().string();
 	Logger::Debug("AssetManager::ImportAsset: Importing asset with extension {}", extension);
 
 	if (!s_extensionTypes.contains(extension)) {
@@ -657,7 +657,7 @@ AssetManager::ImportAsset(const String& path, const String& projectAssets) {
 		return false;
 	}
 
-	EImportedAssetType assetType = s_extensionTypes.at(extension);
+	const EImportedAssetType assetType = s_extensionTypes.at(extension);
 	String filename = assetPath.filename().stem().string();
 
 	switch (assetType) {
@@ -677,9 +677,9 @@ AssetManager::ImportAsset(const String& path, const String& projectAssets) {
 				return false;
 			}
 
-			uint32_t nNumMeshes = scene->mNumMeshes;
+			const uint32_t nNumMeshes = scene->mNumMeshes;
 
-			uint32_t nVertexStride = sizeof(Vertex);
+			const uint32_t nVertexStride = sizeof(Vertex);
 
 			/* Limit filename to 48 characters */
 			if (filename.length() >= 48) {
@@ -696,7 +696,7 @@ AssetManager::ImportAsset(const String& path, const String& projectAssets) {
 				const aiMesh* pcMesh = scene->mMeshes[i];
 
 				/* Vertices */
-				uint32_t nNumVertices = pcMesh->mNumVertices;
+				const uint32_t nNumVertices = pcMesh->mNumVertices;
 				Vector<Vertex> vertices(nNumVertices);
 				for (uint32_t v = 0; v < nNumVertices; v++) {
 					aiVector3D pos = pcMesh->mVertices[v];
@@ -733,10 +733,10 @@ AssetManager::ImportAsset(const String& path, const String& projectAssets) {
 				static_assert(std::is_trivially_copyable_v<Vertex>);
 				static_assert(std::is_trivially_copyable_v<uint32_t>);
 
-				size_t vertexSize = vertices.size() * sizeof(Vertex);
-				size_t indexSize = indices.size() * sizeof(uint32_t);
+				const size_t vertexSize = vertices.size() * sizeof(Vertex);
+				const size_t indexSize = indices.size() * sizeof(uint32_t);
 
-				size_t totalByteSize = vertexSize + indexSize;
+				const size_t totalByteSize = vertexSize + indexSize;
 				std::vector<Byte> combined;
 				combined.resize(totalByteSize);
 
@@ -802,23 +802,23 @@ AssetManager::ImportAsset(const String& path, const String& projectAssets) {
 
 							this->SaveTexture(texPath.string(), asset);
 
-							AssetHandle handle = this->RegisterAsset(texPath.string(), EAssetType::TEXTURE);
+							const AssetHandle handle = this->RegisterAsset(texPath.string(), EAssetType::TEXTURE);
 							return handle;
 						}
 						return AssetHandle{};
 					};
 
 				/* Load textures */
-				bool bHasAlbedo = loadEmbedded(aiTextureType_DIFFUSE, albedoAsset);
-				bool bHasORM = loadEmbedded(aiTextureType_METALNESS, ormAsset);
-				bool bHasEmissive = loadEmbedded(aiTextureType_EMISSIVE, emissiveAsset);
-				bool bHasNormal = loadEmbedded(aiTextureType_NORMALS, normalAsset);
+				const bool bHasAlbedo = loadEmbedded(aiTextureType_DIFFUSE, albedoAsset);
+				const bool bHasORM = loadEmbedded(aiTextureType_METALNESS, ormAsset);
+				const bool bHasEmissive = loadEmbedded(aiTextureType_EMISSIVE, emissiveAsset);
+				const bool bHasNormal = loadEmbedded(aiTextureType_NORMALS, normalAsset);
 
 				/* Save textures */
-				AssetHandle albedoHandle = saveTextureIf(albedoAsset, bHasAlbedo);
-				AssetHandle ormHandle = saveTextureIf(ormAsset, bHasORM);
-				AssetHandle emissiveHandle = saveTextureIf(emissiveAsset, bHasEmissive);
-				AssetHandle normalHandle = saveTextureIf(normalAsset, bHasNormal);
+				const AssetHandle albedoHandle = saveTextureIf(albedoAsset, bHasAlbedo);
+				const AssetHandle ormHandle = saveTextureIf(ormAsset, bHasORM);
+				const AssetHandle emissiveHandle = saveTextureIf(emissiveAsset, bHasEmissive);
+				const AssetHandle normalHandle = saveTextureIf(normalAsset, bHasNormal);
 
 				std::function<EMaterialFlags(bool, EMaterialFlags)> setFlagIf =
 					[](bool bCondition, EMaterialFlags flag) -> EMaterialFlags {
@@ -831,7 +831,7 @@ AssetManager::ImportAsset(const String& path, const String& projectAssets) {
 						| setFlagIf(bHasEmissive, EMaterialFlags::HAS_EMISSIVE_TEXTURE)
 						| setFlagIf(bHasNormal, EMaterialFlags::HAS_NORMAL_MAP);
 
-				Name subMeshName = filename + "_" + std::to_string(i);
+				const Name subMeshName = filename + "_" + std::to_string(i);
 
 				/* Create material asset */
 				MaterialAsset materialAsset = { };
@@ -847,7 +847,7 @@ AssetManager::ImportAsset(const String& path, const String& projectAssets) {
 				materialPath /= String(materialAsset.header.displayName) + ".aeth";
 
 				this->SaveMaterial(materialPath.string(), materialAsset);
-				AssetHandle materialHandle = this->RegisterAsset(materialPath.string(), EAssetType::MATERIAL);
+				const AssetHandle materialHandle = this->RegisterAsset(materialPath.string(), EAssetType::MATERIAL);
 
 				/* Create sub mesh */
 				SubMeshAsset subMesh = { };

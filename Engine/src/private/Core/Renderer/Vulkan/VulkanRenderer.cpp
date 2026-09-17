@@ -53,7 +53,7 @@ void VulkanRenderer::Create(GLFWwindow* pWindow) {
 	extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 #endif // IS_DEBUG_BUILD
 
-	size_t nExtensionCount = extensions.size();
+	const size_t nExtensionCount = extensions.size();
 
 	Logger::Debug("VulkanRenderer::Create: Required extension count {}", nExtensionCount);
 
@@ -173,8 +173,8 @@ VulkanRenderer::PickPhysicalDevice() {
 	vkGetPhysicalDeviceProperties(this->m_physicalDevice, &deviceProperties);
 
 	/* Check if physical device supports Vulkan 1.2 */
-	uint32_t nApiMajor = VK_VERSION_MAJOR(deviceProperties.apiVersion);
-	uint32_t nApiMinor = VK_VERSION_MINOR(deviceProperties.apiVersion);
+	const uint32_t nApiMajor = VK_VERSION_MAJOR(deviceProperties.apiVersion);
+	const uint32_t nApiMinor = VK_VERSION_MINOR(deviceProperties.apiVersion);
 
 	if (nApiMajor < 1 || (nApiMajor == 1 && nApiMinor < 3)) {
 		Logger::Error(
@@ -196,7 +196,7 @@ bool
 VulkanRenderer::IsDeviceSuitable(const VkPhysicalDevice& physicalDevice) {
 	QueueFamilyIndices indices = this->FindQueueFamilies(physicalDevice);
 
-	bool bExtensionsSupported = this->CheckDeviceExtensionSupport(physicalDevice);
+	const bool bExtensionsSupported = this->CheckDeviceExtensionSupport(physicalDevice);
 
 	bool bSwapChainAdequate = false;
 	if (bExtensionsSupported) {
@@ -445,7 +445,7 @@ VulkanRenderer::CreateDebugUtilsMessengerEXT(
 	VkAllocationCallbacks* pAllocator,
 	VkDebugUtilsMessengerEXT* pDebugMessenger
 ) {
-	PFN_vkCreateDebugUtilsMessengerEXT fn = 
+	const PFN_vkCreateDebugUtilsMessengerEXT fn =
 		(PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
 	if (fn != nullptr) {
 		return fn(instance, pCreateInfo, pAllocator, pDebugMessenger);

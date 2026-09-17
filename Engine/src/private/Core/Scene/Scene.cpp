@@ -11,9 +11,9 @@ Scene::Scene(const String& name) : m_name(name) {
 
 void 
 Scene::AddObject(GameObject* object) {
-	String objName = object->GetName();
+	const String objName = object->GetName();
 
-	if (this->m_gameObjects.count(objName) > 0) {
+	if (this->m_gameObjects.contains(objName)) {
 		spdlog::error("Scene::AddGameObject: GameObject with name {0} already exists", objName);
 		return;
 	}
@@ -31,9 +31,9 @@ void
 Scene::DeleteObject(GameObject* pObj) {
 	if (pObj == nullptr) return;
 
-	String objName = pObj->GetName();
+	const String objName = pObj->GetName();
 
-	if (this->m_gameObjects.count(objName) > 0) {
+	if (this->m_gameObjects.contains(objName)) {
 		this->m_gameObjects.erase(objName);
 	}
 
@@ -92,13 +92,13 @@ Scene::UpdateHierarchy(Ref<Hierarchy::HierarchyNode> node) {
 const SceneAsset 
 Scene::SerializeScene() {
 	/* Get GameObject count */
-	uint32_t nObjectCount = this->m_gameObjects.size();
+	const uint32_t nObjectCount = this->m_gameObjects.size();
 	std::vector<GameObjectAsset> assets(nObjectCount);
 
 	SceneAsset sceneAsset = { };
 
 	/* Serialize GameObjects */
-	uint32_t i = 0;
+	uint32_t objectIt = 0;
 	for (auto& [name, pObj] : this->m_gameObjects) {
 
 		/* Create a GameObjectAsset */
@@ -120,12 +120,11 @@ Scene::SerializeScene() {
 			}	
 		}
 		
-		assets[i] = std::move(objAsset);
-		i++;
+		assets[objectIt++] = std::move(objAsset);
 	}
 
-	if (i != nObjectCount) {
-		Logger::Error("Scene::SerializeScene: Object count mismatch. Got {} of {}", i, nObjectCount);
+	if (objectIt != nObjectCount) {
+		Logger::Error("Scene::SerializeScene: Object count mismatch. Got {} of {}", objectIt, nObjectCount);
 		return SceneAsset{};
 	}
 
@@ -143,7 +142,7 @@ Scene::SerializeScene() {
 */
 void 
 Scene::SetupFromAsset(const SceneAsset& sceneAsset) {
-	uint32_t nObjectCount = sceneAsset.header.nObjectCount;
+	const uint32_t nObjectCount = sceneAsset.header.nObjectCount;
 	
 	for (uint32_t i = 0; i < nObjectCount; i++) {
 		const GameObjectAsset& objAsset = sceneAsset.objects[i];

@@ -20,8 +20,8 @@ SkyboxPass::Init(Ref<Device> device, uint32_t nFramesInFlight) {
 	this->m_nFramesInFlight = nFramesInFlight;
 
 	/* Create a ring buffer for our camera data */
-	uint32_t nCamDataSize = sizeof(SkyboxCamera);
-	uint32_t nAligned = NextPowerOf2(nCamDataSize);
+	const uint32_t nCamDataSize = sizeof(SkyboxCamera);
+	const uint32_t nAligned = NextPowerOf2(nCamDataSize);
 	
 	RingBufferCreateInfo buffInfo = { };
 	buffInfo.nAlignment = nAligned;
@@ -60,7 +60,7 @@ SkyboxPass::Execute(Ref<GraphicsContext> context, RenderGraphContext& graphCtx, 
 	void* pCamData = this->m_camBuff->Allocate(sizeof(SkyboxCamera), nCamDataSize);
 	memcpy(pCamData, &camData, sizeof(SkyboxCamera));
 
-	Viewport vp { 0.f, 0.f, static_cast<float>(this->m_nWidth), static_cast<float>(this->m_nHeight), 0.f, 1.f };
+	const Viewport vp { 0.f, 0.f, static_cast<float>(this->m_nWidth), static_cast<float>(this->m_nHeight), 0.f, 1.f };
 
 	context->SetViewport(vp);
 	context->SetScissor({ { 0, 0 }, { this->m_nWidth, this->m_nHeight } });

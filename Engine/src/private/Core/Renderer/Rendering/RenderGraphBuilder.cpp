@@ -14,7 +14,7 @@ RenderGraphBuilder::CreateColorOutput(
     EImageLayout finalLayout, 
     EAttachmentLoadOp loadOp
 ) {
-    TextureHandle handle = this->m_pool->AcquireTexture(desc);
+    const TextureHandle handle = this->m_pool->AcquireTexture(desc);
     this->m_node->colorOutputs.push_back(handle);
     this->m_node->colorFinalLayouts.push_back(finalLayout);
     this->m_node->colorLoadOps.push_back(loadOp);
@@ -37,7 +37,7 @@ RenderGraphBuilder::CreateDepthOutput(
     EImageLayout finalLayout, 
     EAttachmentLoadOp loadOp
 ) {
-    TextureHandle handle = this->m_pool->AcquireTexture(desc);
+    const TextureHandle handle = this->m_pool->AcquireTexture(desc);
     this->m_node->depthOutput = handle;
     this->m_node->depthFinalLayout = finalLayout;
     this->m_node->depthLoadOp = loadOp;

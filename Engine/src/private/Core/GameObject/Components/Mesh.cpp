@@ -44,22 +44,22 @@ Mesh::LoadAsset(const AssetHandle& handle) {
 
 	const MeshAsset& meshAsset = std::get<MeshAsset>(assetVariant);
 
-	uint32_t nSubMeshes = meshAsset.header.nSubMeshCount;
+	const uint32_t nSubMeshes = meshAsset.header.nSubMeshCount;
 	for (uint32_t i = 0; i < nSubMeshes; i++) {
 		const SubMeshAsset& subMesh = meshAsset.subMeshes[i];
 
-		uint32_t nVertexCount = subMesh.header.nVertexCount;
-		uint32_t nVertexStride = subMesh.header.nVertexStride;
+		const uint32_t nVertexCount = subMesh.header.nVertexCount;
+		const uint32_t nVertexStride = subMesh.header.nVertexStride;
 		[[maybe_unused]] uint32_t nVertexOffset = subMesh.header.nVertexOffset;
 
-		uint32_t nIndexCount = subMesh.header.nIndexCount;
-		uint32_t nIndexStride = subMesh.header.nIndexStride;
+		const uint32_t nIndexCount = subMesh.header.nIndexCount;
+		const uint32_t nIndexStride = subMesh.header.nIndexStride;
 		[[maybe_unused]] uint32_t nIndexOffset = subMesh.header.nIndexOffset;
 
-		uint32_t nTotalByteSize = subMesh.header.nTotalByteSize;
+		const uint32_t nTotalByteSize = subMesh.header.nTotalByteSize;
 
-		uint32_t nVertexSize = nVertexCount * nVertexStride;
-		uint32_t nIndexSize = nIndexCount * nIndexStride;
+		const uint32_t nVertexSize = nVertexCount * nVertexStride;
+		const uint32_t nIndexSize = nIndexCount * nIndexStride;
 
 		/* Check if there's any mismatch with the size */
 		if ((nVertexSize + nIndexSize) != nTotalByteSize) {
@@ -89,7 +89,7 @@ Mesh::LoadAsset(const AssetHandle& handle) {
 		pVerticesBegin = nullptr;
 		pIndicesBegin = nullptr;
 
-		AssetHandle materialHandle = subMesh.header.materialHandle;
+		const AssetHandle materialHandle = subMesh.header.materialHandle;
 		Material material;
 		if (materialHandle.IsValid()) {
 			const AssetVariant& materialVariant = assetMgr->GetAsset(materialHandle);
@@ -115,7 +115,7 @@ Mesh::LoadAsset(const AssetHandle& handle) {
 
 			const TextureAsset& asset = std::get<TextureAsset>(variant);
 			
-			Vector<Byte> texBuffer = asset.buffer;
+			const Vector<Byte> texBuffer = asset.buffer;
 
 			TextureData texData = { };
 			texData.nWidth = asset.header.nWidth;
@@ -127,15 +127,15 @@ Mesh::LoadAsset(const AssetHandle& handle) {
 			return texData;
 		};
 		
-		AssetHandle albedoHandle = material.m_albedoHandle;
-		AssetHandle ormHandle = material.m_ormHandle;
-		AssetHandle emissiveHandle = material.m_emissiveHandle;
-		AssetHandle normalHandle = material.m_normalHandle;
+		const AssetHandle albedoHandle = material.m_albedoHandle;
+		const AssetHandle ormHandle = material.m_ormHandle;
+		const AssetHandle emissiveHandle = material.m_emissiveHandle;
+		const AssetHandle normalHandle = material.m_normalHandle;
 
-		TextureData albedoData = loadTexture(albedoHandle);
-		TextureData ormData = loadTexture(ormHandle);
-		TextureData emissiveData = loadTexture(emissiveHandle);
-		TextureData normalData = loadTexture(normalHandle);
+		const TextureData albedoData = loadTexture(albedoHandle);
+		const TextureData ormData = loadTexture(ormHandle);
+		const TextureData emissiveData = loadTexture(emissiveHandle);
+		const TextureData normalData = loadTexture(normalHandle);
 		
 		
 		/* Prepare SubMesh data */

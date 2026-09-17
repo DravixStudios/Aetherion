@@ -116,7 +116,7 @@ VulkanDevice::Create(const DeviceCreateInfo& createInfo) {
 	vulkan12Feats.descriptorBindingUniformBufferUpdateAfterBind =
 		supportedVulkan12Feats.descriptorBindingUniformBufferUpdateAfterBind;
 
-	bool bIndirectCountSupported = this->IsExtensionSupported("VK_KHR_draw_indirect_count");
+	const bool bIndirectCountSupported = this->IsExtensionSupported("VK_KHR_draw_indirect_count");
 	Logger::Debug(
 		"VulkanDevice::Create: VK_KHR_draw_indirect_count support: {}", 
 		bIndirectCountSupported ? "TRUE" : "FALSE"
@@ -182,7 +182,7 @@ VulkanDevice::WaitIdle() {
 */
 void 
 VulkanDevice::WaitForFence(Ref<Fence> fence) {
-	VkFence vkFence = fence.As<VulkanFence>()->GetVkFence();
+	const VkFence vkFence = fence.As<VulkanFence>()->GetVkFence();
 	vkWaitForFences(this->m_device, 1, &vkFence, VK_TRUE, UINT64_MAX);
 }
 
@@ -364,7 +364,7 @@ VulkanDevice::GetLimits(
 	uint32_t& nMaxPushConstantSize,
 	uint32_t& nMaxBoundDescriptorSets
 ) const {
-	VkPhysicalDeviceLimits limits = this->m_devProperties.limits;
+	const VkPhysicalDeviceLimits limits = this->m_devProperties.limits;
 	
 	nMaxUniformBufferRange = limits.maxUniformBufferRange;
 	nMaxStorageBufferRange = limits.maxStorageBufferRange;
@@ -417,7 +417,7 @@ VulkanDevice::TransitionLayout(
 	uint32_t nBaseArrayLayer
 ) {
 	Ref<VulkanCommandBuffer> commandBuffer = this->BeginSingleTimeCommandBuffer().As<VulkanCommandBuffer>();
-	VkImage vkImage = image.As<VulkanTexture>()->GetVkImage();
+	const VkImage vkImage = image.As<VulkanTexture>()->GetVkImage();
 
 	/* Create a barrier */
 	VkImageMemoryBarrier barrier = { };
@@ -842,7 +842,7 @@ VulkanDevice::Submit(const SubmitInfo& submitInfo, Ref<Fence> fence) {
 	vkSubmit.waitSemaphoreCount = waitSemaphores.size();
 	vkSubmit.pWaitDstStageMask = waitStages.data();
 
-	VkFence vkFence = fence ? fence.As<VulkanFence>()->GetVkFence() : VK_NULL_HANDLE;
+	const VkFence vkFence = fence ? fence.As<VulkanFence>()->GetVkFence() : VK_NULL_HANDLE;
 
 	std::lock_guard<std::mutex> queueLock(this->m_queueMutex);
 	VK_CHECK(

@@ -55,7 +55,7 @@ TransientResourcePool::AcquireTexture(const TextureDesc& desc) {
     viewInfo.viewType = EImageViewType::TYPE_2D;
     viewInfo.format = desc.format;
 
-    bool bDepth = (desc.format == GPUFormat::D32_FLOAT ||
+    const bool bDepth = (desc.format == GPUFormat::D32_FLOAT ||
                    desc.format == GPUFormat::D24_UNORM_S8_UINT ||
                    desc.format == GPUFormat::D32_FLOAT_S8_UINT);
     
@@ -74,7 +74,7 @@ TransientResourcePool::AcquireTexture(const TextureDesc& desc) {
     entry.bImported = false;
     entry.nLastFrame = this->m_nFrame;
 
-    uint32_t idx = static_cast<uint32_t>(this->m_entries.size());
+    const uint32_t idx = static_cast<uint32_t>(this->m_entries.size());
     this->m_entries.push_back(std::move(entry));
     return { idx, 0 };
 }
@@ -95,7 +95,7 @@ TransientResourcePool::ImportTexture(Ref<GPUTexture> texture, Ref<ImageView> vie
     entry.bImported = true;
     entry.nLastFrame = this->m_nFrame;
 
-    uint32_t idx = static_cast<uint32_t>(this->m_entries.size());
+    const uint32_t idx = static_cast<uint32_t>(this->m_entries.size());
     this->m_entries.push_back(std::move(entry));
     return { idx, 0 };
 }

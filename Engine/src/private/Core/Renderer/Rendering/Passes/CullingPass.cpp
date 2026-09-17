@@ -66,9 +66,9 @@ CullingPass::Execute(
 	context->BindPipeline(this->m_computePipeline);
 	context->BindDescriptorSets(0, { this->m_cullingSets[nFrameIndex]});
 	
-	uint32_t nGroups = (this->m_nTotalBatches + 255) / 256;
+	const uint32_t nGroups = (this->m_nTotalBatches + 255) / 256;
 
-	glm::mat4 viewProj = this->m_viewProj;
+	const glm::mat4 viewProj = this->m_viewProj;
 	glm::vec4 frustumPlanes[6];
 	this->ExtractFrustumPlanes(viewProj, frustumPlanes);
 
@@ -137,10 +137,10 @@ CullingPass::CreatePipeline() {
 */
 void 
 CullingPass::CreateResources() {
-	constexpr uint32_t MAX_OBJECT = 131072; // Max objects (2^17)
-	constexpr uint32_t MAX_MATERIALS = 131072; // Max objects (2^17)
-	constexpr uint32_t MAX_BATCHES = 131072; // Max objects (2^17)
-	constexpr uint32_t MAX_DRAWS = 131072; // Max objects (2^17)
+	static constexpr uint32_t MAX_OBJECT = 131072; // Max objects (2^17)
+	static constexpr uint32_t MAX_MATERIALS = 131072; // Max objects (2^17)
+	static constexpr uint32_t MAX_BATCHES = 131072; // Max objects (2^17)
+	static constexpr uint32_t MAX_DRAWS = 131072; // Max objects (2^17)
 
 	/* 
 		ObjectInstanceData ring buffer 
@@ -201,8 +201,8 @@ CullingPass::CreateResources() {
 	this->m_countBuffer = this->m_device->CreateBuffer(countInfo);
 
 	/* Frustum data ring buffer */
-	uint32_t nFrustumDataSize = sizeof(FrustumData);
-	uint32_t nAlignedFrustumSize = NextPowerOf2(nFrustumDataSize);
+	const uint32_t nFrustumDataSize = sizeof(FrustumData);
+	const uint32_t nAlignedFrustumSize = NextPowerOf2(nFrustumDataSize);
 
 	RingBufferCreateInfo frustumInfo = { };
 	frustumInfo.nAlignment = nAlignedFrustumSize;
@@ -400,7 +400,7 @@ CullingPass::ExtractFrustumPlanes(const glm::mat4& viewProj, glm::vec4 planes[6]
 
 	/* Normalize planes */
 	for (uint32_t i = 0; i < 6; i++) {
-		float length = glm::length(glm::vec3(planes[i]));
+		const float length = glm::length(glm::vec3(planes[i]));
 		planes[i] /= length;
 	}
 }		   

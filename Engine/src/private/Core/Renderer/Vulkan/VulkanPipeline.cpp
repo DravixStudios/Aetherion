@@ -157,7 +157,7 @@ VulkanPipeline::CreateGraphics(const GraphicsPipelineCreateInfo& createInfo) {
 	memcpy(colorBlending.blendConstants, blendState.blendConstants, sizeof(float) * 4);
 
 	/* Dynamic States */
-	VkDynamicState dynamicStates[] = {
+	const VkDynamicState dynamicStates[] = {
 		VK_DYNAMIC_STATE_VIEWPORT,
 		VK_DYNAMIC_STATE_SCISSOR
 	};
