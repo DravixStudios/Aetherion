@@ -125,7 +125,7 @@ private:
 	template<typename TAsset, typename THeader>
 	AssetHandle
 	ReadAssetData(const String& filename, std::ifstream& file, const THeader& header) {
-		Logger::Error("AssetManager::ReadAssetData: Tried to read a non implemented asset type");
+		Logger::Error("AssetManager::ReadAssetData: Tried to read a non implemented asset type {}", filename);
 		static_assert(sizeof(TAsset) == 0, "AssetManager::ReadAssetData: Tried to read a non implemented asset type");
 		return AssetHandle{};
 	}

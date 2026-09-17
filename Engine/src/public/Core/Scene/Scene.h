@@ -18,7 +18,7 @@ struct Hierarchy {
 	using OnNodeDeleted = std::function<void(GameObject*)>;
 
 	struct HierarchyNode {
-		uint32_t id = -1;
+		uint32_t id = UINT32_MAX;
 
 		Name name;
 		WeakRef<HierarchyNode> parent;
@@ -32,7 +32,7 @@ struct Hierarchy {
 		*/
 		bool
 		IsValid() const {
-			return this->id != -1;
+			return this->id != UINT32_MAX;
 		}
 
 		/**

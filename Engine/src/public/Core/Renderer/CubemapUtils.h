@@ -59,8 +59,8 @@ LoadCubemap(const String filePath, void** ppData, uint32_t& nOutSize, uint32_t& 
 		int nBaseY = faces[f].nOffsetY;
 		int nFace = faces[f].nFaceIndex;
 
-		for (uint32_t y = 0; y < nFaceSize; y++) {
-			for (uint32_t x = 0; x < nFaceSize; x++) {
+		for (uint32_t y = 0; y < static_cast<uint32_t>(nFaceSize); y++) {
+			for (uint32_t x = 0; x < static_cast<uint32_t>(nFaceSize); x++) {
 				/* UV in [-1, 1] */
 				float u = (2.f * (x + .5f) / nFaceSize) - 1.f;
 				float v = (2.f * (y + .5f) / nFaceSize) - 1.f;
@@ -135,8 +135,8 @@ LoadCubemap(const String filePath, void** ppData, uint32_t& nOutSize, uint32_t& 
 	for (int nFace = 0; nFace < 6; nFace++) {
 		float* pDstFace = pDstData + (nFace * nFaceSize * nFaceSize * 4);
 
-		for (uint32_t y = 0; y < nFaceSize; y++) {
-			for (uint32_t x = 0; x < nFaceSize; x++) {
+		for (uint32_t y = 0; y < static_cast<uint32_t>(nFaceSize); y++) {
+			for (uint32_t x = 0; x < static_cast<uint32_t>(nFaceSize); x++) {
 				int nSrcX = offsets[nFace].x + x;
 				int nSrcY = offsets[nFace].y + y;
 				int nSrcIdx = (nSrcY * nCrossWidth + nSrcX) * 4;

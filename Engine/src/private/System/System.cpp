@@ -40,7 +40,7 @@ System::GetSelfPID() {
 }
 
 // TODO: Windows use-case
-#if CURRENT_PLATFORM(PLATFORM_APPLE) || defined(__linux__)
+#if CURRENT_PLATFORM(PLATFORM_APPLE) || CURRENT_PLATFORM(PLATFORM_LINUX)
 static void
 ExceptionHandler(int nSignal, siginfo_t* pInfo, void* pvContext) {
     // TODO: Develop this
@@ -106,7 +106,7 @@ System::InitializeHeartbeatSocket() {
 
 void
 HeartbeatThread(int socket) {
-    const uint16_t msPerTick = 1000 / TICKS_PER_SECOND;
+    static constexpr uint16_t msPerTick = 1000 / TICKS_PER_SECOND;
     while (!g_bQuitThread) {
         std::chrono::nanoseconds tickInterval =
             std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::milliseconds(msPerTick));

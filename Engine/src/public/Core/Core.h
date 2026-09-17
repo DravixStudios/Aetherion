@@ -86,7 +86,7 @@ private:
     bool m_bWindowResized = false;
 
     static void 
-    FramebufferSizeCallback(GLFWwindow* pWindow, int nWidth, int nHeight) {
+    FramebufferSizeCallback(GLFWwindow* pWindow, [[maybe_unused]] int nWidth, [[maybe_unused]]int nHeight) {
         Core* core = reinterpret_cast<Core*>(glfwGetWindowUserPointer(pWindow));
         if (core) {
             core->m_bWindowResized = true;
