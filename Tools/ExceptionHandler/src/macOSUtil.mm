@@ -5,3 +5,9 @@ SetBackgroundMode()
 {
     [NSApp setActivationPolicy:NSApplicationActivationPolicyProhibited];
 }
+
+void
+SetForegroundMode()
+{
+   [NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];
+}

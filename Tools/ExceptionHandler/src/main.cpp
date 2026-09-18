@@ -28,13 +28,6 @@ if ((nResult) < 0) { \
     return 1; \
 }
 
-#define AETH_CLIENT_ASSERT(condition, msg) \
-do { \
-    if (!(condition)) { \
-        std::cerr << "ASSERT FAILED: " << msg << '\n'; \
-    } \
-} while (false)
-
 // TODO: Promote this to a config file
 static constexpr uint16_t HANDLER_PORT = 25785;
 static constexpr size_t BUFFER_MAX_SIZE = 32; // Size in bytes
@@ -42,6 +35,8 @@ static constexpr uint8_t MAX_CONNECTIONS = 1;
 static constexpr uint16_t HANG_TIMEOUT_SECONDS = 5;
 
 static constexpr uint16_t TPS_THRESHOLD = 50;
+
+static bool g_bWindowShouldBeVisible = false;
 
 int g_sockHandler = -1;
 
@@ -106,7 +101,8 @@ int main() {
     struct sockaddr_in addr = { };
     addr.sin_family = AF_INET;
     addr.sin_port = htons(HANDLER_PORT);
-    addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+    inet_pton(AF_INET, "127.0.0.1", &addr.sin_addr);
+    addr.sin_len = sizeof(addr);
 
     AETH_SOCK_CHECK(bind(g_sockHandler, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)));
     AETH_SOCK_CHECK(listen(g_sockHandler, MAX_CONNECTIONS));
@@ -138,12 +134,23 @@ int main() {
 
     while (!client.bShouldClose) {
         std::vector<char> buffer(BUFFER_MAX_SIZE);
-        const size_t bufferSize = recv(client.handle, buffer.data(), BUFFER_MAX_SIZE, 0);
+        const ssize_t bufferSize = recv(client.handle, buffer.data(), BUFFER_MAX_SIZE, 0);
 
         // Buffer size: (0, BUFFER_MAX_SIZE]
-        ASSERT_DESC(bufferSize <= 0, "Buffer size has an invalid size");
-        if (bufferSize <= 0 || bufferSize > BUFFER_MAX_SIZE) {
+        ASSERT_DESC(bufferSize != 0, "Buffer size was zero");
+        if (bufferSize == 0 || bufferSize > BUFFER_MAX_SIZE) {
             client.bShouldClose = true;
+            break;
+        }
+
+        if (bufferSize < 0) {
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                client.state = EClientState::HANG;
+                continue;
+            }
+
+            client.bShouldClose = true;
+            client.state = EClientState::EXIT;
             break;
         }
 
@@ -163,8 +170,8 @@ int main() {
         if (client.state == EClientState::HELLO) {
             const HelloPacket hello = *(static_cast<HelloPacket*>(pPacket));
 
-            AETH_CLIENT_ASSERT(hello.nPID <= 0, "PID is less or equal to 0");
-            AETH_CLIENT_ASSERT(hello.nTPS <= 0, "TPS is less or equal to 0");
+            ASSERT_DESC(hello.nPID > 0, "PID is less or equal to 0");
+            ASSERT_DESC(hello.nTPS > 0, "TPS is less or equal to 0");
 
             client.nPID = hello.nPID;
             client.nTPS = hello.nTPS;
@@ -187,8 +194,14 @@ int main() {
         std::this_thread::sleep_for(tickInterval);
     }
 
-    // Cleanup
+    // Cleanup socket
     close(client.handle);
+
+    SetForegroundMode();
+    glfwWindowHint(GLFW_VISIBLE, GLFW_TRUE);
+    while (g_bWindowShouldBeVisible) {
+
+    }
 
     return 0;
 }
@@ -206,6 +219,6 @@ ProcessPacket(ClientSocket& client, void* pPacket) {
             } else {
                 exit(1);
             }
-            return;
+            break;
     }
 }

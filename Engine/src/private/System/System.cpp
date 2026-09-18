@@ -20,6 +20,7 @@ extern char** environ;
 // TODO: Promote this to a config file
 static constexpr uint16_t HANDLER_PORT = 25785;
 static constexpr uint8_t TICKS_PER_SECOND = 8;
+static constexpr uint16_t GRACE_PERIOD_SECONDS = 2;
 
 static bool g_bQuitThread = false;
 static uint32_t g_nCurrentTick = 0;
@@ -89,11 +90,19 @@ System::InitializeHeartbeatSocket() {
     addr.sin_port = htons(HANDLER_PORT);
     addr.sin_family = AF_INET;
 
-    int nRes = connect(System::heartbeatSocket, reinterpret_cast<sockaddr*>(&addr), sizeof(addr));
+    const auto deadline =
+        std::chrono::steady_clock::now() + std::chrono::seconds(GRACE_PERIOD_SECONDS);
 
-    if (nRes != 0) {
-        Logger::Error("System::InitializeHeartbeatSocket: Failed connecting to the Exception handler process");
-        return;
+    for (auto now = std::chrono::steady_clock::now();
+        now < deadline;
+        now = std::chrono::steady_clock::now()) {
+
+        const int nRes = connect(System::heartbeatSocket, reinterpret_cast<sockaddr*>(&addr), sizeof(addr));
+
+        if (nRes == 0) {
+            Logger::Error("System::InitializeHeartbeatSocket: Failed connecting to the Exception handler process");
+            return;
+        }
     }
 
     const HelloPacket helloPacket = { .nPID = GetSelfPID(), .nTPS = TICKS_PER_SECOND };
