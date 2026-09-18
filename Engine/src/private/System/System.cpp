@@ -3,7 +3,7 @@
 #include <chrono>
 #include <Shared.Common.h>
 
-#if CURRENT_PLATFORM(PLATFORM_APPLE) || defined(__linux__)
+#if CURRENT_PLATFORM(PLATFORM_APPLE) || CURRENT_PLATFORM(PLATFORM_LINUX)
 #include <unistd.h>
 #include <csignal>
 #include <execinfo.h>
@@ -21,12 +21,12 @@ extern char** environ;
 static constexpr uint16_t HANDLER_PORT = 25785;
 static constexpr uint8_t TICKS_PER_SECOND = 8;
 
-bool g_bQuitThread = false;
-uint32_t g_nCurrentTick = 0;
+static bool g_bQuitThread = false;
+static uint32_t g_nCurrentTick = 0;
 
 static std::thread heartbeatThread{};
 
-void HeartbeatThread(int socket);
+static void HeartbeatThread(int socket);
 
 int
 System::GetSelfPID() {
@@ -47,7 +47,7 @@ ExceptionHandler(int nSignal, siginfo_t* pInfo, void* pvContext) {
     void* stack[128];
     int nFrames = backtrace(stack, 64);
 
-    [[maybe_unused]] char** ppBacktrace = backtrace_symbols(
+    MAYBE_UNUSED char** ppBacktrace = backtrace_symbols(
         stack,
         nFrames
     );
@@ -61,7 +61,7 @@ ExceptionHandler(int nSignal, siginfo_t* pInfo, void* pvContext) {
 void
 System::InstallExceptionHandler() {
     // TODO: Windows use-case
-#if CURRENT_PLATFORM(PLATFORM_APPLE) || defined(__linux__)
+#if CURRENT_PLATFORM(PLATFORM_APPLE) || CURRENT_PLATFORM(PLATFORM_LINUX)
     struct sigaction action = { .sa_sigaction = ExceptionHandler };
     sigemptyset(&action.sa_mask);
     action.sa_flags = SA_SIGINFO | SA_RESETHAND;

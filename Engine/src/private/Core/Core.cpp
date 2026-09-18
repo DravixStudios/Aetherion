@@ -397,7 +397,7 @@ Core::SetupCallbacks() {
     /* On drop to viewport callback */
     this->m_deferredRenderer.SetOnDropToViewportCallback([](const AssetHandle& handle) {
         /* Get required managers */
-        [[maybe_unused]] AssetManager* assetMgr = AssetManager::GetInstance();
+        MAYBE_UNUSED AssetManager* assetMgr = AssetManager::GetInstance();
         SceneManager* sceneMgr = SceneManager::GetInstance();
 
         Logger::Debug("Core::SetupCallbacks:[OnDropToViewportCallback]: Dropped asset: {} to viewport", handle.uuid);

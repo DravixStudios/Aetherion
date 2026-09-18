@@ -7,6 +7,8 @@
 #include <cmath>
 #include <ranges>
 
+#include "Shared.Common.h"
+
 /**
 * Shadow pass initialization
 * 
@@ -135,7 +137,7 @@ ShadowPass::Execute(Ref<GraphicsContext> context, RenderGraphContext& graphCtx, 
 
 		const uint32_t nBaseOffset = indirectBuff->GetPerFrameSize()* nFrameIdx;
 		uint32_t nCurrentOffset = nBaseOffset;
-		[[maybe_unused]] uint32_t nTotalBatches = this->m_pCullingPass->GetTotalBatches();
+		MAYBE_UNUSED uint32_t nTotalBatches = this->m_pCullingPass->GetTotalBatches();
 
 		for (uint32_t j = 0; j < this->m_nBlockCount; j++) {
 			Ref<GPUBuffer> VBO = this->m_blocks[j].vertexBuffer;

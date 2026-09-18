@@ -421,7 +421,7 @@ VulkanRenderer::DebugCallback(
 	const VkDebugUtilsMessengerCallbackDataEXT* pcData,
 	void* pvUserData
 ) {
-	[[maybe_unused]] VulkanRenderer* renderer = static_cast<VulkanRenderer*>(pvUserData);
+	MAYBE_UNUSED VulkanRenderer* renderer = static_cast<VulkanRenderer*>(pvUserData);
 
 	switch (severity) {
 		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:

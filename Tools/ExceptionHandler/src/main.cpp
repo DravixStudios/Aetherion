@@ -76,7 +76,7 @@ struct ClientSocket {
     bool bShouldClose = false;
 };
 
-void ProcessPacket(ClientSocket& client, void* pPacket);
+static void ProcessPacket(ClientSocket& client, void* pPacket);
 
 int main() {
     /* Setup GLFW Window */

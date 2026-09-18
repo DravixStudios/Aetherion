@@ -23,6 +23,8 @@
 
 #define CURRENT_PLATFORM(platform) ((platform) != 0)
 
+#define MAYBE_UNUSED [[maybe_unused]]
+
 #if defined(USING_CMAKE)
 #if !defined(NDEBUG)
 #define IS_DEBUG_BUILD 1

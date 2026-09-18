@@ -9,6 +9,7 @@
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
 
+#include "Shared.Common.h"
 #include "Core/Renderer/GPUTexture.h"
 
 namespace fs = std::filesystem;
@@ -869,7 +870,7 @@ AssetManager::ImportAsset(const String& path, const String& projectAssets) {
 			meshPath /= filename + ".aeth";
 
 			this->SaveMesh(meshPath.string(), meshAsset);
-			[[maybe_unused]] AssetHandle meshHandle = this->RegisterAsset(meshPath.string(), EAssetType::MESH);
+			MAYBE_UNUSED AssetHandle meshHandle = this->RegisterAsset(meshPath.string(), EAssetType::MESH);
 
 			break;
 		}
