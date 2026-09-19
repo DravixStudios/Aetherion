@@ -17,7 +17,6 @@ public:
 	Ref<GPUTexture> GetNormal() const { return this->m_normal; }
 	Ref<GPUTexture> GetORM() const { return this->m_orm; }
 	Ref<GPUTexture> GetEmissive() const { return this->m_emissive; }
-	Ref<GPUTexture> GetPosition() const { return this->m_position; }
 	Ref<GPUTexture> GetBentNormal() const { return this->m_bentNormal; }
 	Ref<GPUTexture> GetDepth() const { return this->m_depth; }
 
@@ -25,7 +24,6 @@ public:
 	Ref<ImageView> GetNormalView() const { return this->m_normalView; }
 	Ref<ImageView> GetORMView() const { return this->m_ormView; }
 	Ref<ImageView> GetEmissiveView() const { return this->m_emissiveView; }
-	Ref<ImageView> GetPositionView() const { return this->m_positionView; }
 	Ref<ImageView> GetBentNormalView() const { return this->m_bentNormalView; }
 	Ref<ImageView> GetDepthView() const { return this->m_depthView; }
 
@@ -48,7 +46,6 @@ private:
 	Ref<GPUTexture> m_normal;
 	Ref<GPUTexture> m_orm;
 	Ref<GPUTexture> m_emissive;
-	Ref<GPUTexture> m_position;
 	Ref<GPUTexture> m_bentNormal;
 	Ref<GPUTexture> m_depth;
 
@@ -56,7 +53,6 @@ private:
 	Ref<ImageView> m_normalView;
 	Ref<ImageView> m_ormView;
 	Ref<ImageView> m_emissiveView;
-	Ref<ImageView> m_positionView;
 	Ref<ImageView> m_bentNormalView;
 	Ref<ImageView> m_depthView;
 

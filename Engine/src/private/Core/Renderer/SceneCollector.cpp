@@ -17,10 +17,12 @@ SceneCollector::Collect(Scene* scene) {
 	const Camera* cam = scene->GetCurrentCamera();
 	glm::mat4 view = cam->GetView();
 	glm::mat4 proj = cam->GetProjection();
+	glm::mat4 invViewProj = cam->GetInvViewProjection();
 
 	result.viewProj = view * proj;
 	result.view = view;
 	result.proj = proj;
+	result.invViewProj = invViewProj;
 	result.cameraPosition = glm::vec3(cam->transform.location.x, cam->transform.location.y, cam->transform.location.z);
 
 	Map<String, GameObject*> gameObjects;

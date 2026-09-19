@@ -9,7 +9,7 @@ public:
 		TextureHandle normal;
 		TextureHandle orm;
 		TextureHandle emissive;
-		TextureHandle position;
+		TextureHandle depth;
 	};
 
 	struct Output {
@@ -17,6 +17,7 @@ public:
 	};
 
 	struct LightingPushConstants {
+		glm::mat4 invViewProjection;
 		glm::vec4 cameraPosition;
 		glm::vec3 sunDirection;
 		float sunIntensity;
@@ -40,7 +41,7 @@ public:
 		uint32_t nIndexCount
 	);
 	
-	void SetCameraPosition(const glm::vec3& position);
+	void SetCameraData(const glm::vec3& position, const glm::mat4& invViewProjection);
 
 	void SetShadowData(
 		Ref<GPUTexture> shadowArray,
@@ -74,6 +75,7 @@ private:
 
 	uint32_t m_nFramesInFlight = 0;
 	glm::vec3 m_cameraPosition;
+	glm::mat4 m_invViewProjection;
 
 	Ref<GPUTexture> m_shadowArray;
 	Ref<ImageView> m_shadowArrayView;

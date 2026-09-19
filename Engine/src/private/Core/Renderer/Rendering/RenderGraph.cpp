@@ -1,4 +1,5 @@
 #include "Core/Renderer/Rendering/RenderGraph.h"
+#include "Shared.Common.h"
 
 /**
 * Setups the render graph
@@ -79,6 +80,8 @@ RenderGraph::CreateRenderPasses() {
         for(uint32_t i = 0; i < node.colorOutputs.size(); ++i) {
             const TextureHandle& color = node.colorOutputs[i];
             Ref<ImageView> view = this->m_pool.GetImageView(color);
+            ASSERT_DESC(color.IsValid(), "Invalid texture handle");
+            ASSERT_DESC(view != nullptr, "Image view was null");
 
             EImageLayout initialLayout = EImageLayout::UNDEFINED;
             if (node.colorLoadOps[i] == EAttachmentLoadOp::LOAD) {

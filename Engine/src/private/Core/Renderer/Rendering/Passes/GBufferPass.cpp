@@ -36,7 +36,6 @@ GBufferPass::ImportResources(RenderGraph& graph) {
 	this->m_output.normal = graph.ImportTexture(this->m_gbuffer.GetNormal(), this->m_gbuffer.GetNormalView());
 	this->m_output.orm = graph.ImportTexture(this->m_gbuffer.GetORM(), this->m_gbuffer.GetORMView());
 	this->m_output.emissive = graph.ImportTexture(this->m_gbuffer.GetEmissive(), this->m_gbuffer.GetEmissiveView());
-	this->m_output.position = graph.ImportTexture(this->m_gbuffer.GetPosition(), this->m_gbuffer.GetPositionView());
 	this->m_output.bentNormal = graph.ImportTexture(
 		this->m_gbuffer.GetBentNormal(), 
 		this->m_gbuffer.GetBentNormalView()
@@ -56,7 +55,6 @@ GBufferPass::SetupNode(RenderGraphBuilder& builder) {
 	builder.UseColorOutput(this->m_output.normal, EImageLayout::SHADER_READ_ONLY);
 	builder.UseColorOutput(this->m_output.orm, EImageLayout::SHADER_READ_ONLY);
 	builder.UseColorOutput(this->m_output.emissive, EImageLayout::SHADER_READ_ONLY);
-	builder.UseColorOutput(this->m_output.position, EImageLayout::SHADER_READ_ONLY);
 	builder.UseDepthOutput(this->m_output.depth, EImageLayout::SHADER_READ_ONLY);
 
 	builder.SetDimensions(this->m_nWidth, this->m_nHeight);
@@ -208,7 +206,7 @@ GBufferPass::CreatePipeline() {
 	colorBlend.bWriteR = colorBlend.bWriteG = colorBlend.bWriteB = colorBlend.bWriteA = true;
 
 	Vector<ColorBlendAttachment> colorBlendAttachments = {
-		colorBlend, colorBlend, colorBlend, colorBlend, colorBlend
+		colorBlend, colorBlend, colorBlend, colorBlend
 	};
 	
 	ColorBlendState colorBlendState = { };
@@ -265,18 +263,7 @@ GBufferPass::CreatePipeline() {
 	emissiveAttachment.stencilLoadOp = EAttachmentLoadOp::DONT_CARE;
 	emissiveAttachment.stencilStoreOp = EAttachmentStoreOp::DONT_CARE;
 
-	/* Attachment 4: Position - RGBA16_FLOAT */
-	AttachmentDescription positionAttachment = { };
-	positionAttachment.format = GBufferLayout::POSITION;
-	positionAttachment.sampleCount = ESampleCount::SAMPLE_1;
-	positionAttachment.initialLayout = EImageLayout::UNDEFINED;
-	positionAttachment.finalLayout = EImageLayout::SHADER_READ_ONLY;
-	positionAttachment.loadOp = EAttachmentLoadOp::CLEAR;
-	positionAttachment.storeOp = EAttachmentStoreOp::STORE;
-	positionAttachment.stencilLoadOp = EAttachmentLoadOp::DONT_CARE;
-	positionAttachment.stencilStoreOp = EAttachmentStoreOp::DONT_CARE;
-
-	/* Attachment 5: Depth */
+	/* Attachment 4: Depth */
 	AttachmentDescription depthAttachment = { };
 	depthAttachment.format = GBufferLayout::DEPTH;
 	depthAttachment.sampleCount = ESampleCount::SAMPLE_1;
@@ -290,7 +277,7 @@ GBufferPass::CreatePipeline() {
 	Vector<AttachmentDescription> attachments = {
 		colorAttachment, normalAttachment,
 		ormAttachment, emissiveAttachment,
-		positionAttachment, depthAttachment
+		depthAttachment
 	};
 
 	rpInfo.attachments = attachments;
@@ -301,10 +288,9 @@ GBufferPass::CreatePipeline() {
 		{ 1, EImageLayout::COLOR_ATTACHMENT },
 		{ 2, EImageLayout::COLOR_ATTACHMENT },
 		{ 3, EImageLayout::COLOR_ATTACHMENT },
-		{ 4, EImageLayout::COLOR_ATTACHMENT }
 	};
 	subpass.bHasDepthStencil = true;
-	subpass.depthStencilAttachment = { 5, EImageLayout::DEPTH_STENCIL_ATTACHMENT };
+	subpass.depthStencilAttachment = { 4, EImageLayout::DEPTH_STENCIL_ATTACHMENT };
 	rpInfo.subpasses = { subpass };
 
 	this->m_compatRenderPass = this->m_device->CreateRenderPass(rpInfo);
@@ -314,8 +300,7 @@ GBufferPass::CreatePipeline() {
 		GBufferLayout::ALBEDO,
 		GBufferLayout::NORMAL,
 		GBufferLayout::ORM,
-		GBufferLayout::EMISSIVE,
-		GBufferLayout::POSITION
+		GBufferLayout::EMISSIVE
 	};
 
 	pipelineInfo.depthFormat = GBufferLayout::DEPTH;

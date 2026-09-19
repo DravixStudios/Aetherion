@@ -20,6 +20,8 @@ public:
 	glm::mat4 GetProjection() const { return this->m_projection; }
 	glm::mat4 GetViewProjection() const { return this->m_view * this->m_projection; }
 
+	glm::mat4 GetInvViewProjection() const { return glm::affineInverse(this->m_view) * glm::inverse(this->m_projection);}
+
 private:
 	String m_name;
 

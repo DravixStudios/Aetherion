@@ -263,7 +263,7 @@ DeferredRenderer::Render(
 
     /* 3. Lighting pass (HDR) */
     this->m_lightingPass.SetInput(this->m_gbuffPass.GetOutput());
-    this->m_lightingPass.SetCameraPosition(drawData.cameraPosition);
+    this->m_lightingPass.SetCameraData(drawData.cameraPosition, drawData.invViewProj);
     this->m_lightingPass.SetSunData(this->m_sunDirection, 5.f);
     this->m_lightingPass.SetShadowData(
         this->m_shadowPass.GetShadowTexture(),

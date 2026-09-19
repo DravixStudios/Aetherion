@@ -82,7 +82,6 @@ GBufferManager::CreateTextures() {
 	this->m_normal = createTexture(GBufferLayout::NORMAL, colorUsage);
 	this->m_orm = createTexture(GBufferLayout::ORM, colorUsage);
 	this->m_emissive = createTexture(GBufferLayout::EMISSIVE, colorUsage);
-	this->m_position = createTexture(GBufferLayout::POSITION, colorUsage);
 	this->m_bentNormal = createTexture(GBufferLayout::BENT_NORMAL, colorUsage);
 	this->m_depth = createTexture(GBufferLayout::DEPTH, depthUsage);
 
@@ -90,7 +89,6 @@ GBufferManager::CreateTextures() {
 	this->m_normalView = createView(this->m_normal, GBufferLayout::NORMAL, false);
 	this->m_ormView = createView(this->m_orm, GBufferLayout::ORM, false);
 	this->m_emissiveView = createView(this->m_emissive, GBufferLayout::EMISSIVE, false);
-	this->m_positionView = createView(this->m_position, GBufferLayout::POSITION, false);
 	this->m_bentNormalView = createView(this->m_bentNormal, GBufferLayout::BENT_NORMAL, false);
 	this->m_depthView = createView(this->m_depth, GBufferLayout::DEPTH, true);
 }
@@ -144,7 +142,7 @@ GBufferManager::CreateDescriptors() {
 		{ this->m_normal, this->m_normalView, this->m_sampler },
 		{ this->m_orm, this->m_ormView, this->m_sampler },
 		{ this->m_emissive, this->m_emissiveView, this->m_sampler },
-		{ this->m_position, this->m_positionView, this->m_sampler },
+		{ this->m_depth, this->m_depthView, this->m_sampler },
 		{ this->m_bentNormal, this->m_bentNormalView, this->m_sampler }
 	};
 

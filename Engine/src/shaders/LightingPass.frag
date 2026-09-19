@@ -20,6 +20,7 @@ layout(set = 2, binding = 1) uniform CascadeData {
 } cascades;
 
 layout(push_constant) uniform PushConstants {
+    mat4 invViewProjection;
     vec4 cameraPosition;
     vec3 sunDirection;
     float sunIntensity;
@@ -174,7 +175,13 @@ void main() {
     vec3 N = normalize(texture(g_gbuffers[1], vec2(inUVs.x, 1.0 - inUVs.y)).rgb * 2.0 - 1.0);
     vec3 orm = texture(g_gbuffers[2], vec2(inUVs.x, 1.0 - inUVs.y)).rgb;
     vec3 emissive = texture(g_gbuffers[3], vec2(inUVs.x, 1.0 - inUVs.y)).rgb;
-    vec3 position = texture(g_gbuffers[4], vec2(inUVs.x, 1.0 - inUVs.y)).rgb;
+    float depth = texture(g_gbuffers[4], vec2(inUVs.x, 1.0 - inUVs.y)).r;
+
+    vec4 clipPos = vec4(inUVs.x * 2.0, (1.0 - inUVs.y) * 2.0 - 1.0, depth, 1.0);
+    vec4 viewPos = pc.invViewProjection * clipPos;
+    viewPos /= viewPos.w;
+
+    vec3 position = (pc.invViewProjection * viewPos).xyz;
 
     vec4 bentNormalData = texture(g_gbuffers[5], vec2(inUVs.x, 1.0 - inUVs.y));
     vec3 bentN = normalize(bentNormalData.xyz * 2.0 - 1.0);

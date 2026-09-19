@@ -23,7 +23,7 @@ LightingPass::SetupNode(RenderGraphBuilder& builder) {
 	builder.ReadTexture(this->m_input.normal);
 	builder.ReadTexture(this->m_input.orm);
 	builder.ReadTexture(this->m_input.emissive);
-	builder.ReadTexture(this->m_input.position);
+	builder.ReadTexture(this->m_input.depth);
 
 	builder.SetDimensions(this->m_nWidth, this->m_nHeight);
 
@@ -52,6 +52,7 @@ LightingPass::Execute(Ref<GraphicsContext> context, RenderGraphContext& graphCtx
 
 	/* Push constants */
 	LightingPushConstants pushData = { };
+	pushData.invViewProjection = m_invViewProjection;
 	pushData.cameraPosition = glm::vec4(this->m_cameraPosition, 1.f);
 	pushData.sunDirection = this->m_sunDirection;
 	pushData.sunIntensity = this->m_sunIntensity;
@@ -90,7 +91,7 @@ LightingPass::SetInput(const GBufferPass::Output& gbOutput) {
 	this->m_input.normal = gbOutput.normal;
 	this->m_input.orm = gbOutput.orm;
 	this->m_input.emissive = gbOutput.emissive;
-	this->m_input.position = gbOutput.position;
+	this->m_input.depth = gbOutput.depth;
 }
 
 /**
@@ -134,8 +135,9 @@ LightingPass::SetGBufferDescriptorSet(Ref<DescriptorSet> set) {
 }
 
 void
-LightingPass::SetCameraPosition(const glm::vec3& position) {
+LightingPass::SetCameraData(const glm::vec3& position, const glm::mat4& invViewProjection) {
 	this->m_cameraPosition = position;
+	this->m_invViewProjection = invViewProjection;
 }
 
 /**
@@ -177,7 +179,7 @@ LightingPass::SetSunData(const glm::vec3& sunDirection, float sunIntensity) {
 void 
 LightingPass::CreateDescriptorSet() {
 	/* Create descriptor set layout */
-	Vector<DescriptorSetLayoutBinding> bindings = {
+	const Vector<DescriptorSetLayoutBinding> bindings = {
 		{ 0, EDescriptorType::COMBINED_IMAGE_SAMPLER, 2, EShaderStage::FRAGMENT },
 		{ 1, EDescriptorType::COMBINED_IMAGE_SAMPLER, 1, EShaderStage::FRAGMENT },
 	};
@@ -313,7 +315,7 @@ LightingPass::CreatePipeline() {
 	GraphicsPipelineCreateInfo pipelineInfo = { };
 	pipelineInfo.shaders = { vertexShader, pixelShader };
 
-	/* Vertex bindings (Screenquad) */
+	/* Vertex bindings (ScreenQuad) */
 	pipelineInfo.vertexBindings = {
 		{ 0, sizeof(ScreenQuadVertex), false} // Per vertex
 	};
