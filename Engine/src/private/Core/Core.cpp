@@ -419,9 +419,6 @@ Core::SetupCallbacks() {
             pObj->AddComponent("MeshComponent", pMesh);
 
             Scene* currentScene = sceneMgr->GetCurrentScene();
-
-            pObj->transform.scale = Vector3(.05f, .05f, .05f);
-            //pObj->transform.Rotate(90.f, 0.f, 0.f);
             currentScene->AddObject(pObj);
 
             break;

@@ -177,7 +177,7 @@ void main() {
     vec3 emissive = texture(g_gbuffers[3], vec2(inUVs.x, 1.0 - inUVs.y)).rgb;
     float depth = texture(g_gbuffers[4], vec2(inUVs.x, 1.0 - inUVs.y)).r;
 
-    vec4 clipPos = vec4(inUVs.x * 2.0, (1.0 - inUVs.y) * 2.0 - 1.0, depth, 1.0);
+    vec4 clipPos = vec4(inUVs.x * 2.0 - 1.0, (1.0 - inUVs.y) * 2.0 - 1.0, depth, 1.0);
     vec4 viewPos = pc.invViewProjection * clipPos;
     viewPos /= viewPos.w;
 

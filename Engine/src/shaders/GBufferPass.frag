@@ -38,7 +38,6 @@ layout(location = 0) out vec4 outAlbedoColor;
 layout(location = 1) out vec4 outNormals;
 layout(location = 2) out vec4 outORM;
 layout(location = 3) out vec4 outEmissive;
-layout(location = 4) out vec4 outPosition;
 
 bool HasFlag(uint flags, uint flag) {
     if((flags & flag) != 0u) {
@@ -104,6 +103,4 @@ void main() {
     }
 
     outEmissive = emissiveColor;
-
-    outPosition = vec4(fragPos.xyz, 1.0);
 }
