@@ -12,4 +12,11 @@ if(APPLE)
     )
 endif()
 
+if(MSVC)
+    target_compile_options(AethExceptionHandler PRIVATE "/utf-8")
+endif()
+
+find_package(spdlog CONFIG REQUIRED)
+target_link_libraries(AethExceptionHandler PRIVATE spdlog::spdlog)
+
 target_include_directories(AethExceptionHandler PRIVATE "${SHARED_INCLUDES}")

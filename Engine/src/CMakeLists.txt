@@ -82,9 +82,8 @@ target_include_directories(imgui PUBLIC "${PUBLIC_INCLUDES}")
 target_link_libraries(imgui PRIVATE glfw)
 
 target_compile_options(Aetherion PRIVATE
-        -Wall
-        -Wextra
-        -Werror=unused-variable
+    $<$<CXX_COMPILER_ID:MSVC>:/W4 /wd4100>
+    $<$<CXX_COMPILER_ID:GNU,Clang>:-Wall -Wextra -Werror=unused-variable>
 )
 
 target_link_libraries(Aetherion PRIVATE spirv-cross-c spirv-cross-glsl spirv-cross-hlsl spirv-cross-msl)

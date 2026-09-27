@@ -142,18 +142,18 @@ Input::Callback(EInputType nEventType, int nKeyOrButton, int nAction, float posX
 	case EInputType::MOUSE_BUTTON:
 		if (nKeyOrButton == GLFW_MOUSE_BUTTON_LEFT) {
 			if (nAction == GLFW_PRESS) 
-				this->SetButtonDown(EMouseButton::LEFT);
+				SetButtonDown(EMouseButton::LEFT);
 
 			if (nAction == GLFW_RELEASE) 
-				this->SetButtonUp(EMouseButton::LEFT);
+				SetButtonUp(EMouseButton::LEFT);
 		}
 
 		if (nKeyOrButton == GLFW_MOUSE_BUTTON_RIGHT) {
 			if (nAction == GLFW_PRESS)
-				this->SetButtonDown(EMouseButton::RIGHT);
+				SetButtonDown(EMouseButton::RIGHT);
 
 			if (nAction == GLFW_RELEASE)
-				this->SetButtonUp(EMouseButton::RIGHT);
+				SetButtonUp(EMouseButton::RIGHT);
 		}
 		break;
 	}
