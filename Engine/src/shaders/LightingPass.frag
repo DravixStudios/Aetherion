@@ -181,7 +181,7 @@ void main() {
     vec4 viewPos = pc.invViewProjection * clipPos;
     viewPos /= viewPos.w;
 
-    vec3 position = (pc.invViewProjection * viewPos).xyz;
+    vec3 position = viewPos.xyz;
 
     vec4 bentNormalData = texture(g_gbuffers[5], vec2(inUVs.x, 1.0 - inUVs.y));
     vec3 bentN = normalize(bentNormalData.xyz * 2.0 - 1.0);
