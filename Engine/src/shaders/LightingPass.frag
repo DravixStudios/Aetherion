@@ -24,8 +24,33 @@ layout(push_constant) uniform PushConstants {
     vec4 cameraPosition;
     vec3 sunDirection;
     float sunIntensity;
+    uint debugView;
 } pc;
 
+
+const uint DEFAULT_VIEW = 0xFFFF;
+
+// Debug view types
+const uint DEBUG_VIEW_TYPE_GBUFFER = 1;
+const uint DEBUG_VIEW_TYPE_LIGHTING = 1 << 1;
+
+// G-Buffer debug views
+const uint DEBUG_VIEW_ALBEDO = 1;
+const uint DEBUG_VIEW_NORMAL = 1 << 1;
+const uint DEBUG_VIEW_ORM = 1 << 2;
+const uint DEBUG_VIEW_EMISSIVE = 1 << 3;
+const uint DEBUG_VIEW_BENT_NORMAL = 1 << 4;
+const uint DEBUG_VIEW_BENT_NORMAL_AO = 1 << 5;
+const uint DEBUG_VIEW_DEPTH = 1 << 6;
+
+// Lighting debug views
+const uint DEBUG_VIEW_DIRECT_SPECULAR = 1;
+const uint DEBUG_VIEW_INDIRECT_SPECULAR = 1 << 1;
+const uint DEBUG_VIEW_DIRECT_DIFFUSE = 1 << 2;
+const uint DEBUG_VIEW_INDIRECT_DIFFUSE = 1 << 3;
+
+// Light info 
+// TODO: Promote this to a light component and per-light calculations
 const vec3 lightPos = vec3(0.0, 3.0, 3.0);
 const vec3 lightColor = vec3(1.0, 1.0, 1.0);
 
@@ -171,30 +196,39 @@ float DiffuseDisney(float NdotL, float NdotV, float roughness) {
 }
 
 void main() {
-    vec3 albedo = texture(g_gbuffers[0], vec2(inUVs.x, 1.0 - inUVs.y)).rgb;
-    vec3 N = normalize(texture(g_gbuffers[1], vec2(inUVs.x, 1.0 - inUVs.y)).rgb * 2.0 - 1.0);
-    vec3 orm = texture(g_gbuffers[2], vec2(inUVs.x, 1.0 - inUVs.y)).rgb;
-    vec3 emissive = texture(g_gbuffers[3], vec2(inUVs.x, 1.0 - inUVs.y)).rgb;
-    float depth = texture(g_gbuffers[4], vec2(inUVs.x, 1.0 - inUVs.y)).r;
+    const vec3 albedo = texture(g_gbuffers[0], vec2(inUVs.x, 1.0 - inUVs.y)).rgb;
+    const vec3 N = normalize(texture(g_gbuffers[1], vec2(inUVs.x, 1.0 - inUVs.y)).rgb * 2.0 - 1.0);
+    const vec3 orm = texture(g_gbuffers[2], vec2(inUVs.x, 1.0 - inUVs.y)).rgb;
+    const vec3 emissive = texture(g_gbuffers[3], vec2(inUVs.x, 1.0 - inUVs.y)).rgb;
+    const float depth = texture(g_gbuffers[4], vec2(inUVs.x, 1.0 - inUVs.y)).r;
 
-    vec4 clipPos = vec4(inUVs.x * 2.0 - 1.0, (1.0 - inUVs.y) * 2.0 - 1.0, depth, 1.0);
+    const vec4 clipPos = vec4(inUVs.x * 2.0 - 1.0, (1.0 - inUVs.y) * 2.0 - 1.0, depth, 1.0);
     vec4 viewPos = pc.invViewProjection * clipPos;
     viewPos /= viewPos.w;
 
-    vec3 position = viewPos.xyz;
+    const vec3 position = viewPos.xyz;
 
-    vec4 bentNormalData = texture(g_gbuffers[5], vec2(inUVs.x, 1.0 - inUVs.y));
-    vec3 bentN = normalize(bentNormalData.xyz * 2.0 - 1.0);
-    float bentAO = bentNormalData.a;
+    const vec4 bentNormalData = texture(g_gbuffers[5], vec2(inUVs.x, 1.0 - inUVs.y));
+    const vec3 bentN = normalize(bentNormalData.xyz * 2.0 - 1.0);
+    const float bentAO = bentNormalData.a;
 
-    float ao = orm.r;
-    float roughness = clamp(orm.g, 0.05, 1.0);
-    float metalness = orm.b;
+    const float ao = orm.r;
+    const float roughness = clamp(orm.g, 0.05, 1.0);
+    const float metalness = orm.b;
 
-    vec3 correctedCameraPos = vec3(pc.cameraPosition.x, pc.cameraPosition.y, -pc.cameraPosition.z);
+    const vec3 correctedCameraPos = vec3(pc.cameraPosition.x, pc.cameraPosition.y, -pc.cameraPosition.z);
     
-    vec3 V = normalize(correctedCameraPos - position);
-    vec3 R = reflect(-V, N);
+    const vec3 V = normalize(correctedCameraPos - position);
+    const vec3 R = reflect(-V, N);
+
+    const uint debugViewType = (pc.debugView >> 16) & 0xFFFFu;
+    const uint debugView = (pc.debugView & 0xFFFFu);
+
+    vec3 directDiffuse = vec3(0.f);
+    vec3 indirectDiffuse = vec3(0.f);
+
+    vec3 directSpecular = vec3(0.f);
+    vec3 indirectSpecular = vec3(0.f);
 
     vec3 F0 = vec3(0.04);
     F0 = mix(F0, albedo, metalness);
@@ -205,33 +239,35 @@ void main() {
 
     /* SUN LIGHT */
     {
-        vec3 L = normalize(pc.sunDirection);
-        vec3 H = normalize(V + L);
+        const vec3 L = normalize(pc.sunDirection);
+        const vec3 H = normalize(V + L);
 
-        float HdotV = clamp(dot(H, V), 0.0, 1.0);
-        float NdotL = max(dot(N, L), 0.0);
-        float NdotV = max(dot(N, V), 0.0);
+        const float HdotV = clamp(dot(H, V), 0.0, 1.0);
+        const float NdotL = max(dot(N, L), 0.0);
+        const float NdotV = max(dot(N, V), 0.0);
 
-        float NDF = DistributionGGX(N, H, roughness);
-        float G = GeometrySmith(N, V, L, roughness);
-        vec3 F = FresnelSchlick(HdotV, F0);
+        const float NDF = DistributionGGX(N, H, roughness);
+        const float G = GeometrySmith(N, V, L, roughness);
+        const vec3 F = FresnelSchlick(HdotV, F0);
         
-        vec3 numerator = NDF * G * F;
-        float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.0001;
+        const vec3 numerator = NDF * G * F;
+        const float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.0001;
 
-        vec3 kS = F;
-        vec3 kD = (1.0 - kS) * (1.0 - metalness);
+        const vec3 kS = F;
+        const vec3 kD = (1.0 - kS) * (1.0 - metalness);
 
-        vec3 specular = numerator / denominator;
-        vec3 diffuse = albedo * DiffuseDisney(NdotL, NdotV, roughness);
+        const vec3 specular = numerator / denominator;
+        const vec3 diffuse = albedo * DiffuseDisney(NdotL, NdotV, roughness);
 
         /* Calculate view-space depth for selecting the cascade */
-        float viewDepth = length(correctedCameraPos - position);
-        float shadow = CalculateShadow(position, N, viewDepth);
+        const float viewDepth = length(correctedCameraPos - position);
+        const float shadow = CalculateShadow(position, N, viewDepth);
 
         /* Sun radiance (color * intensity * shadow) */
-        vec3 sunRadiance = vec3(1.0) * pc.sunIntensity;
+        const vec3 sunRadiance = vec3(1.0) * pc.sunIntensity;
         Lo += (kD * diffuse + specular) * sunRadiance * NdotL * shadow;
+        directSpecular += (specular * sunRadiance * NdotL * shadow);
+        directDiffuse += (kD * diffuse * sunRadiance * NdotL * shadow);
     }
 
     color += Lo;
@@ -240,21 +276,23 @@ void main() {
     vec3 ambient = vec3(0.0);
     {
         const float MAX_REFLECTION_LOD = 4.0;
-        vec3 irradiance = texture(g_iblMaps[0], vec3(-bentN.x, bentN.y, bentN.z)).rgb;
-        vec3 prefilteredColor = textureLod(g_iblMaps[1], vec3(R.x, R.y, R.z), roughness * MAX_REFLECTION_LOD).rgb;
-        vec2 brdf = texture(g_brdfLUT, vec2(max(dot(N, V), 0.0), roughness)).rg;
+        const vec3 irradiance = texture(g_iblMaps[0], vec3(-bentN.x, bentN.y, bentN.z)).rgb;
+        const vec3 prefilteredColor = textureLod(g_iblMaps[1], vec3(R.x, R.y, R.z), roughness * MAX_REFLECTION_LOD).rgb;
+        const vec2 brdf = texture(g_brdfLUT, vec2(max(dot(N, V), 0.0), roughness)).rg;
 
-        vec3 F = FresnelSchlickRoughness(max(dot(N, V), 0.0), F0, roughness);
+        const vec3 F = FresnelSchlickRoughness(max(dot(N, V), 0.0), F0, roughness);
 
-        vec3 kS = F;
-        vec3 kD = (1.0 - kS) * (1.0 - metalness);
+        const vec3 kS = F;
+        const vec3 kD = (1.0 - kS) * (1.0 - metalness);
 
         /* Diffuse IBL */
-        vec3 diffuse = irradiance * albedo;
+        const vec3 diffuse = irradiance * albedo;
     
         /* Specular IBL */
-        vec3 specular = prefilteredColor * (F0 * brdf.x + brdf.y);
+        const vec3 specular = prefilteredColor * (F0 * brdf.x + brdf.y);
         ambient += (kD * diffuse + specular) * bentAO;
+        indirectSpecular += specular * bentAO;
+        indirectDiffuse += (kD * diffuse * bentAO);
     }
 
 
@@ -263,8 +301,34 @@ void main() {
 
     color += emissive;
 
-    // color = color / (color + 1.0);
-    // color = pow(color, vec3(1.0/2.2));
+    if (debugViewType == DEBUG_VIEW_TYPE_LIGHTING && debugView != DEFAULT_VIEW) {
+        vec3 debugColor = vec3(0.f);
+        switch (debugView) {
+            case DEBUG_VIEW_DIRECT_SPECULAR:
+                debugColor = directSpecular;
+                break;
+
+            case DEBUG_VIEW_INDIRECT_SPECULAR:
+                debugColor = indirectSpecular;
+                break;
+
+            case DEBUG_VIEW_DIRECT_DIFFUSE:
+                debugColor = directDiffuse;
+                break;
+
+            case DEBUG_VIEW_INDIRECT_DIFFUSE:
+                debugColor = indirectDiffuse;
+                break;
+
+            default:
+                debugColor = vec3(0.0);
+                break;
+        }
+
+        finalImage = vec4(vec3(debugColor), 1.0);
+        return;
+    }
 
     finalImage = vec4(vec3(color), 1.0);
+    // finalImage = vec4(bentAO, bentAO, bentAO, 1.0);
 }

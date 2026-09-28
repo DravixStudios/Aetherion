@@ -1,6 +1,7 @@
 #pragma once
 #include "Core/Renderer/Rendering/Passes/BasePass.h"
 #include "Core/Renderer/Rendering/Passes/GBufferPass.h"
+#include "Core/Renderer/Rendering/DebugViewDefs.h"
 
 class LightingPass : public BasePass {
 public:
@@ -21,6 +22,7 @@ public:
 		glm::vec4 cameraPosition;
 		glm::vec3 sunDirection;
 		float sunIntensity;
+		uint32_t debugView;
 	};
 
 	void Init(Ref<Device> device) override;
@@ -51,6 +53,8 @@ public:
 	);
 
 	void SetSunData(const glm::vec3& sunDirection, float sunIntensity);
+
+	void SetDebugView(EDebugViewType type, DebugView view) { this->m_debugViewType = type; this->m_debugView = view; }
 
 	Output GetOutput() const { return this->m_output; }
 private:
@@ -89,6 +93,9 @@ private:
 	
 	glm::vec3 m_sunDirection = glm::vec3(1.f);
 	float m_sunIntensity = 0.f;
+
+	EDebugViewType m_debugViewType = EDebugViewType::DEFAULT;
+	DebugView m_debugView = DEFAULT_VIEW;
 
 	void CreateDescriptorSet();
 	void CreateShadowDescriptors();
