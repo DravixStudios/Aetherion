@@ -1,5 +1,6 @@
 #include "Core/Renderer/Rendering/DeferredRenderer.h"
 #include "Core/Scene/SceneManager.h"
+#include <Shared.Common.h>
 
 #include <glm/gtc/quaternion.hpp>
 #include <imgui/imgui.h>
@@ -166,6 +167,7 @@ DeferredRenderer::Render(
         this->m_bIBLGenerated = true;
 
         this->m_sunDirection = sunDir;
+        this->m_bSunBelowHorizon = sunDir.y < 0.f;
         
         this->m_imguiPass.NotifySunUpdated();
     }
@@ -262,9 +264,22 @@ DeferredRenderer::Render(
     );
 
     /* 3. Lighting pass (HDR) */
+    /* Sun intensity degradation below horizon */
+    float sunIntensityMultiplier = 1.f;
+    if (this->m_bSunBelowHorizon) {
+        const float sunDirY = this->m_sunDirection.y + .000001f; // Avoid division by zero (shouldn't happen)
+        ASSERT_DESC(this->m_sunDirection.y != 0.f, "m_sunDirection.y was 0. Automatically corrected the value");
+
+        const float kSunFadeEnd = std::sin(glm::radians(10.f));
+        sunIntensityMultiplier = std::clamp(1.f + (sunDirY / kSunFadeEnd), 0.f, 1.f);
+    }
+
+    const float kSunIntensity = 5.f * sunIntensityMultiplier; // TODO: Move this to a sun component
+
+
     this->m_lightingPass.SetInput(this->m_gbuffPass.GetOutput());
     this->m_lightingPass.SetCameraData(drawData.cameraPosition, drawData.invViewProj);
-    this->m_lightingPass.SetSunData(this->m_sunDirection, 5.f);
+    this->m_lightingPass.SetSunData(this->m_sunDirection, kSunIntensity);
     this->m_lightingPass.SetShadowData(
         this->m_shadowPass.GetShadowTexture(),
         this->m_shadowPass.GetShadowArrayView(),

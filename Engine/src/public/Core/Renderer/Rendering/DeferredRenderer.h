@@ -114,6 +114,7 @@ private:
     GLFWwindow* m_pWindow = nullptr;
 
     bool m_bIBLGenerated = false;
+    bool m_bSunBelowHorizon = false;
 
     void UploadSceneData(const CollectedDrawData& data, uint32_t nFrameIdx);
     void CreateBindlessResources();
