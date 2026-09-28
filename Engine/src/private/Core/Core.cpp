@@ -283,7 +283,7 @@ Core::SetupCallbacks() {
 
             const Directory projectDir = pProjManager->GetProjectDir();
 
-            const String fullScenePath = (fs::path(projectDir.name) / fs::path(editorScene)).string();
+            String fullScenePath = (fs::path(projectDir.name) / fs::path(editorScene)).string();
 
             /* Normalize scene path (Windows only) */
 #if CURRENT_PLATFORM(PLATFORM_WINDOWS)
