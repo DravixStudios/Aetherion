@@ -24,7 +24,36 @@
 
 #include "Core/Renderer/GPUBuffer.h"
 
+#include <cstdint>
 #include <glm/glm.hpp>
+
+using DebugView = uint16_t;
+static constexpr DebugView DEFAULT_VIEW = 0xFFFF;
+
+enum class EDebugViewType {
+    DEBUG_GBUFFER,
+    DEBUG_LIGHTING,
+    DEFAULT
+};
+
+enum class EGBufferDebugView : DebugView {
+    ALBEDO,
+    NORMAL,
+    ORM,
+    EMISSIVE,
+    BENT_NORMAL,
+    BENT_NORMAL_AO,
+    DEPTH,
+    DEFAULT = DEFAULT_VIEW
+};
+
+enum class ELightingDebugView : DebugView {
+    DIRECT_SPECULAR,
+    INDIRECT_SPECULAR,
+    DIRECT_DIFFUSE,
+    INDIRECT_DIFFUSE,
+    DEFAULT = DEFAULT_VIEW
+};
 
 class DeferredRenderer {
 public:
@@ -112,6 +141,9 @@ private:
     glm::vec3 m_sunDirection = glm::vec3(1.f);
 
     GLFWwindow* m_pWindow = nullptr;
+
+    DebugView m_debugView = DEFAULT_VIEW;
+    EDebugViewType m_debugViewType = EDebugViewType::DEFAULT;
 
     bool m_bIBLGenerated = false;
     bool m_bSunBelowHorizon = false;
