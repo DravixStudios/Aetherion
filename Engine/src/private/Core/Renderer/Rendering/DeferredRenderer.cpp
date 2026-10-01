@@ -334,7 +334,9 @@ DeferredRenderer::Render(
     }
 
     /* 5. Tonemap pass */
-    this->m_tonemapPass.SetInput(this->m_lightingPass.GetOutput().hdrOutput);
+    this->m_tonemapPass.SetInput(
+        this->m_lightingPass.GetOutput().hdrOutput,
+        this->m_lightingPass.GetOutput().bloomThreshold);
     
     this->m_graph.AddNode("Tonemap",
         [&](RenderGraphBuilder& builder) { this->m_tonemapPass.SetupNode(builder); },

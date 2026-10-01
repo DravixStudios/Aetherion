@@ -38,7 +38,8 @@ TonemapPass::Init(Ref<Device> device, Ref<Swapchain> swapchain, uint32_t nFrames
 */
 void 
 TonemapPass::SetupNode(RenderGraphBuilder& builder) {
-	builder.ReadTexture(this->m_input);
+	builder.ReadTexture(this->m_input.hdrInput);
+	builder.ReadTexture(this->m_input.emissiveInput);
 
 	TextureDesc sceneDesc = { };
 	sceneDesc.format = GPUFormat::BGRA8_UNORM;
@@ -56,11 +57,12 @@ TonemapPass::SetupNode(RenderGraphBuilder& builder) {
 */
 void 
 TonemapPass::Execute(Ref<GraphicsContext> context, RenderGraphContext& graphCtx, uint32_t nFrameIndex) {
-	/* Get the actual view for the input texture */
-	Ref<ImageView> inputView = graphCtx.GetImageView(this->m_input);
-	
+	/* Get the actual view for the input textures */
+	Ref<ImageView> hdrView = graphCtx.GetImageView(this->m_input.hdrInput);
+	Ref<ImageView> emissiveView = graphCtx.GetImageView(this->m_input.emissiveInput);
+
 	/* Update descriptor set with the current view */
-	this->UpdateDescriptorSet(nFrameIndex, inputView);
+	this->UpdateDescriptorSet(nFrameIndex, hdrView, emissiveView);
 
 	context->BindPipeline(this->m_pipeline);
 
@@ -76,8 +78,9 @@ TonemapPass::Execute(Ref<GraphicsContext> context, RenderGraphContext& graphCtx,
 }
 
 void 
-TonemapPass::SetInput(TextureHandle input) {
-	this->m_input = input;
+TonemapPass::SetInput(TextureHandle hdrInput, TextureHandle emissiveInput) {
+	this->m_input.hdrInput = hdrInput;
+	this->m_input.emissiveInput = emissiveInput;
 }
 
 void 
@@ -90,17 +93,18 @@ TonemapPass::SetScreenQuad(Ref<GPUBuffer> vertexBuffer, Ref<GPUBuffer> indexBuff
 void 
 TonemapPass::CreateDescriptorSets() {
 	/* Layout: Binding 0 = Combined Image Sampler */
-	DescriptorSetLayoutBinding binding = { 0, EDescriptorType::COMBINED_IMAGE_SAMPLER, 1, EShaderStage::FRAGMENT };
-	
+	DescriptorSetLayoutBinding hdrBinding = { 0, EDescriptorType::COMBINED_IMAGE_SAMPLER, 1, EShaderStage::FRAGMENT };
+	DescriptorSetLayoutBinding emissiveBinding = { 1, EDescriptorType::COMBINED_IMAGE_SAMPLER, 1, EShaderStage::FRAGMENT };
+
 	DescriptorSetLayoutCreateInfo layoutInfo = { };
-	layoutInfo.bindings = { binding };
+	layoutInfo.bindings = { hdrBinding, emissiveBinding };
 	
 	this->m_setLayout = this->m_device->CreateDescriptorSetLayout(layoutInfo);
 
 	/* Pool */
 	DescriptorPoolCreateInfo poolInfo = { };
 	poolInfo.nMaxSets = this->m_nFramesInFlight;
-	poolInfo.poolSizes = { { EDescriptorType::COMBINED_IMAGE_SAMPLER, this->m_nFramesInFlight } };
+	poolInfo.poolSizes = { { EDescriptorType::COMBINED_IMAGE_SAMPLER, 2 * this->m_nFramesInFlight } };
 	
 	this->m_pool = this->m_device->CreateDescriptorPool(poolInfo);
 
@@ -112,13 +116,20 @@ TonemapPass::CreateDescriptorSets() {
 }
 
 void 
-TonemapPass::UpdateDescriptorSet(uint32_t nFrameIndex, Ref<ImageView> inputView) {
-	DescriptorImageInfo imageInfo = { };
-	imageInfo.imageView = inputView;
-	imageInfo.sampler = this->m_sampler;
-	imageInfo.texture = inputView->GetImage(); 
+TonemapPass::UpdateDescriptorSet(uint32_t nFrameIndex, Ref<ImageView> hdrView, Ref<ImageView> emissiveView) {
+	// TODO: Bulk texture write
+	DescriptorImageInfo hdrInfo = { };
+	hdrInfo.imageView = hdrView;
+	hdrInfo.sampler = this->m_sampler;
+	hdrInfo.texture = hdrView->GetImage();
 
-	this->m_sets[nFrameIndex]->WriteTexture(0, 0, imageInfo);
+	DescriptorImageInfo emissiveInfo = { };
+	emissiveInfo.imageView = emissiveView;
+	emissiveInfo.sampler = this->m_sampler;
+	emissiveInfo.texture = emissiveView->GetImage();
+
+	this->m_sets[nFrameIndex]->WriteTexture(0, 0, hdrInfo);
+	this->m_sets[nFrameIndex]->WriteTexture(1, 0, emissiveInfo);
 	this->m_sets[nFrameIndex]->UpdateWrites();
 }
 

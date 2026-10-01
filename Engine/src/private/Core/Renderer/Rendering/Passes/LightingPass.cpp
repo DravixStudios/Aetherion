@@ -34,6 +34,7 @@ LightingPass::SetupNode(RenderGraphBuilder& builder) {
 	texDesc.usage = ETextureUsage::COLOR_ATTACHMENT | ETextureUsage::SAMPLED;
 
 	this->m_output.hdrOutput = builder.CreateColorOutput(texDesc, EImageLayout::SHADER_READ_ONLY);
+	this->m_output.bloomThreshold = builder.CreateColorOutput(texDesc, EImageLayout::SHADER_READ_ONLY);
 }
 
 /**
@@ -340,7 +341,7 @@ LightingPass::CreatePipeline() {
 	colorBlend.bWriteR = colorBlend.bWriteG = colorBlend.bWriteB = colorBlend.bWriteA = true;
 
 	ColorBlendState colorBlendState = { };
-	colorBlendState.attachments = { colorBlend };
+	colorBlendState.attachments = { colorBlend, colorBlend };
 
 	pipelineInfo.colorBlendState = colorBlendState;
 
@@ -360,10 +361,24 @@ LightingPass::CreatePipeline() {
 	colorAttachment.stencilLoadOp = EAttachmentLoadOp::DONT_CARE;
 	colorAttachment.stencilStoreOp = EAttachmentStoreOp::DONT_CARE;
 
-	rpInfo.attachments = { colorAttachment };
+	/* Attachment 0: Bloom threshold image - RGBA16_FLOAT */
+	AttachmentDescription bloomAttachment = { };
+	bloomAttachment.format = GPUFormat::RGBA16_FLOAT;
+	bloomAttachment.sampleCount = ESampleCount::SAMPLE_1;
+	bloomAttachment.initialLayout = EImageLayout::UNDEFINED;
+	bloomAttachment.finalLayout = EImageLayout::SHADER_READ_ONLY;
+	bloomAttachment.loadOp = EAttachmentLoadOp::CLEAR;
+	bloomAttachment.storeOp = EAttachmentStoreOp::STORE;
+	bloomAttachment.stencilLoadOp = EAttachmentLoadOp::DONT_CARE;
+	bloomAttachment.stencilStoreOp = EAttachmentStoreOp::DONT_CARE;
+
+	rpInfo.attachments = { colorAttachment, bloomAttachment };
 
 	SubpassDescription subpass = { };
-	subpass.colorAttachments = { { 0, EImageLayout::COLOR_ATTACHMENT } };
+	subpass.colorAttachments = {
+		{ 0, EImageLayout::COLOR_ATTACHMENT },
+		{ 1, EImageLayout::COLOR_ATTACHMENT }
+	};
 	rpInfo.subpasses = { subpass };
 
 	Ref<RenderPass> renderPass = this->m_device->CreateRenderPass(rpInfo);

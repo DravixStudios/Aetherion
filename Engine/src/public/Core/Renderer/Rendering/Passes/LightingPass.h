@@ -15,6 +15,7 @@ public:
 
 	struct Output {
 		TextureHandle hdrOutput;
+		TextureHandle bloomThreshold;
 	};
 
 	struct LightingPushConstants {

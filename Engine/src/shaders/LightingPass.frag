@@ -4,6 +4,7 @@
 layout(location = 0) in vec2 inUVs;
 
 layout(location = 0) out vec4 finalImage;
+layout(location = 1) out vec4 bloomThreshold;
 
 /* Set 0: G-Buffers */
 layout(set = 0, binding = 0) uniform sampler2D g_gbuffers[6];
@@ -331,4 +332,19 @@ void main() {
 
     finalImage = vec4(vec3(color), 1.0);
     // finalImage = vec4(bentAO, bentAO, bentAO, 1.0);
+    finalImage = vec4(vec3(color), 1.0);
+
+    const float distanceToCamera = length(correctedCameraPos - position);
+    const float kBloomFadeStart = 5.f; // TODO: Promote to a variable
+    const float kBloomFadeEnd = 10.f; // TODO: Promote to a variable
+
+    const float bloomDistanceFactor = 1.f - smoothstep(kBloomFadeStart, kBloomFadeEnd, distanceToCamera);
+
+    const vec3 luma = vec3(0.2126f, 0.7152f, 0.0722f);
+    const float kLuminanceThreshold = 1.f;
+
+    const float luminance = dot(color, luma);
+    if (luminance > kLuminanceThreshold) {
+        bloomThreshold = vec4(color * bloomDistanceFactor, 1.f);
+    }
 }
