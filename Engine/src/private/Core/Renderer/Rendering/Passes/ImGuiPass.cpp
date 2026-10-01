@@ -248,6 +248,45 @@ ImGuiPass::Execute(Ref<GraphicsContext> context, RenderGraphContext& graphCtx, u
 
 	    }
 
+        if (ImGui::BeginMenu("Debug")) {
+            /* TODO: Use radio buttons */
+            if (ImGui::Button("Direct Specular"))
+            {
+                m_debugViewType = EDebugViewType::DEBUG_LIGHTING;
+                m_debugView = static_cast<DebugView>(ELightingDebugView::DIRECT_SPECULAR);
+            }
+
+            if (ImGui::Button("Indirect Specular"))
+            {
+                m_debugViewType = EDebugViewType::DEBUG_LIGHTING;
+                m_debugView = static_cast<DebugView>(ELightingDebugView::INDIRECT_SPECULAR);
+            }
+
+            if (ImGui::Button("Direct Diffuse"))
+            {
+                m_debugViewType = EDebugViewType::DEBUG_LIGHTING;
+                m_debugView = static_cast<DebugView>(ELightingDebugView::DIRECT_DIFFUSE);
+            }
+
+            if (ImGui::Button("Indirect Diffuse"))
+            {
+                m_debugViewType = EDebugViewType::DEBUG_LIGHTING;
+                m_debugView = static_cast<DebugView>(ELightingDebugView::INDIRECT_DIFFUSE);
+            }
+
+            /* TODO: Implement G-Buffer debug views */
+
+            ImGui::Separator();
+
+            if (ImGui::Button("Default"))
+            {
+                m_debugViewType = EDebugViewType::DEFAULT;
+                m_debugView = DEFAULT_VIEW;
+            }
+
+            ImGui::EndMenu();
+        }
+
 	    ImGui::EndMainMenuBar();
     }
 

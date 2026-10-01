@@ -276,6 +276,10 @@ DeferredRenderer::Render(
 
     const float kSunIntensity = 5.f * sunIntensityMultiplier; // TODO: Move this to a sun component
 
+    this->m_lightingPass.SetDebugView(
+        this->m_imguiPass.GetCurrentDebugViewType(), 
+        this->m_imguiPass.GetCurrentDebugView()
+    );
 
     this->m_lightingPass.SetInput(this->m_gbuffPass.GetOutput());
     this->m_lightingPass.SetCameraData(drawData.cameraPosition, drawData.invViewProj);
