@@ -7,6 +7,8 @@
 #include "Core/Renderer/ImGuiImpl.h"
 #include "Core/Project/ProjectManager.h"
 
+#include "Core/Renderer/Rendering/DebugViewDefs.h"
+
 #include "Core/Scene/Scene.h"
 #include "Core/Scene/SceneManager.h"
 
@@ -39,6 +41,9 @@ public:
 	void SetInput(TextureHandle input, TransientResourcePool& transientPool, uint32_t nImgIdx);
 	void SetOutput(TextureHandle output);
 	void SetWindow(GLFWwindow* pWindow);
+
+	const DebugView GetCurrentDebugView() const { return this->m_debugView; }
+	const EDebugViewType GetCurrentDebugViewType() const { return this->m_debugViewType; }
 
 	void 
 	SetOnSceneSaveCallback(OnSceneSaveCallback callback) {
@@ -74,6 +79,9 @@ private:
 	ImVec2 m_viewportSize;
 	bool m_bPendingResize = false;
 	ImVec2 m_pendingSize = { 0, 0 };
+
+	DebugView m_debugView = DEFAULT_VIEW;
+	EDebugViewType m_debugViewType = EDebugViewType::DEBUG_LIGHTING;
 
 	GLFWwindow* m_pWindow = nullptr;
 
