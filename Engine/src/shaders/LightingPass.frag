@@ -266,11 +266,17 @@ void main() {
 
     finalImage = vec4(vec3(color), 1.0);
 
-    vec3 luma = vec3(0.2126f, 0.7152f, 0.0722f);
+    const float distanceToCamera = length(correctedCameraPos - position);
+    const float kBloomFadeStart = 5.f; // TODO: Promote to a variable
+    const float kBloomFadeEnd = 10.f; // TODO: Promote to a variable
+
+    const float bloomDistanceFactor = 1.f - smoothstep(kBloomFadeStart, kBloomFadeEnd, distanceToCamera);
+
+    const vec3 luma = vec3(0.2126f, 0.7152f, 0.0722f);
     const float kLuminanceThreshold = 1.f;
 
     const float luminance = dot(color, luma);
     if (luminance > kLuminanceThreshold) {
-        bloomThreshold = vec4(color, 1.f);
+        bloomThreshold = vec4(color * bloomDistanceFactor, 1.f);
     }
 }
