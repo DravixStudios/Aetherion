@@ -5,11 +5,19 @@
 #include "Core/Renderer/ImageView.h"
 #include "Core/Renderer/Rendering/ResourceHandle.h"
 
+enum class ETextureSamples : uint8_t {
+	ONE_SAMPLE,
+	TWO_SAMPLES,
+	FOUR_SAMPLES,
+	EIGHT_SAMPLES
+};
+
 struct TextureDesc {
 	GPUFormat format;
 	uint32_t nWidth;
 	uint32_t nHeight;
 	ETextureUsage usage;
+	ETextureSamples samples = ETextureSamples::ONE_SAMPLE;
 	const char* debugName = nullptr;
 };
 
