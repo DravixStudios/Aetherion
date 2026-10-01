@@ -57,6 +57,7 @@ LightingPass::Execute(Ref<GraphicsContext> context, RenderGraphContext& graphCtx
 	pushData.cameraPosition = glm::vec4(this->m_cameraPosition, 1.f);
 	pushData.sunDirection = this->m_sunDirection;
 	pushData.sunIntensity = this->m_sunIntensity;
+	pushData.debugView = (static_cast<uint16_t>(this->m_debugViewType) << 16) | (this->m_debugView & 0xFFFF);
 
 	context->PushConstants(
 		this->m_pipelineLayout, 
