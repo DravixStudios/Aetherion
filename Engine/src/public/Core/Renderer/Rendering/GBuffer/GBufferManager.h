@@ -33,7 +33,14 @@ public:
 	uint32_t GetWidth() const { return this->m_nWidth; }
 	uint32_t GetHeight() const { return this->m_nHeight; }
 
+	void SetSamples(ESampleCount samples) { m_samples = samples; }
+	ESampleCount GetSamples() const { return this->m_samples; }
+
+	void CreateResolveTargets();
+
 private:
+	Ref<GPUTexture> CreateTexture(GPUFormat format, ETextureUsage usage);
+	Ref<ImageView> CreateImageView(Ref<GPUTexture> texture, GPUFormat format, bool bIsDepth = false);
 	void CreateTextures();
 	void CreateDescriptors();
 
@@ -60,4 +67,6 @@ private:
 	Ref<DescriptorPool> m_pool;
 	Ref<DescriptorSetLayout> m_readLayout;
 	Ref<DescriptorSet> m_readSet;
+
+	ESampleCount m_samples = ESampleCount::SAMPLE_1;
 };
