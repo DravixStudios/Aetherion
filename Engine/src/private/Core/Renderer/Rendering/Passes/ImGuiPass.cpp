@@ -85,6 +85,7 @@ ImGuiPass::Init(Ref<Device> device, uint32_t nFramesInFlight) {
 */
 void
 ImGuiPass::SetupNode(RenderGraphBuilder& builder) {
+    builder.ReadTexture(this->m_input);
 	builder.UseColorOutput(this->m_output, EImageLayout::PRESENT_SRC);
 	builder.SetDimensions(this->m_nWidth, this->m_nHeight);
 
@@ -247,6 +248,84 @@ ImGuiPass::Execute(Ref<GraphicsContext> context, RenderGraphContext& graphCtx, u
 	    if (ImGui::MenuItem("GameObject")) {
 
 	    }
+
+        if (ImGui::BeginMenu("Debug")) {
+            /* TODO: Use radio buttons */
+
+            if (ImGui::Button("Albedo"))
+            {
+                m_debugViewType = EDebugViewType::DEBUG_GBUFFER;
+                m_debugView = static_cast<DebugView>(EGBufferDebugView::ALBEDO);
+            }
+
+            if (ImGui::Button("Normal"))
+            {
+                m_debugViewType = EDebugViewType::DEBUG_GBUFFER;
+                m_debugView = static_cast<DebugView>(EGBufferDebugView::NORMAL);
+            }
+
+            if (ImGui::Button("Bent Normal"))
+            {
+                m_debugViewType = EDebugViewType::DEBUG_GBUFFER;
+                m_debugView = static_cast<DebugView>(EGBufferDebugView::BENT_NORMAL);
+            }
+
+            if (ImGui::Button("Bent Normal AO"))
+            {
+                m_debugViewType = EDebugViewType::DEBUG_GBUFFER;
+                m_debugView = static_cast<DebugView>(EGBufferDebugView::BENT_NORMAL_AO);
+            }
+
+            if (ImGui::Button("Emissive"))
+            {
+                m_debugViewType = EDebugViewType::DEBUG_GBUFFER;
+                m_debugView = static_cast<DebugView>(EGBufferDebugView::EMISSIVE);
+            }
+
+            if (ImGui::Button("Depth"))
+            {
+                m_debugViewType = EDebugViewType::DEBUG_GBUFFER;
+                m_debugView = static_cast<DebugView>(EGBufferDebugView::DEPTH);
+            }
+
+            ImGui::Separator();
+
+            if (ImGui::Button("Direct Specular"))
+            {
+                m_debugViewType = EDebugViewType::DEBUG_LIGHTING;
+                m_debugView = static_cast<DebugView>(ELightingDebugView::DIRECT_SPECULAR);
+            }
+
+            if (ImGui::Button("Indirect Specular"))
+            {
+                m_debugViewType = EDebugViewType::DEBUG_LIGHTING;
+                m_debugView = static_cast<DebugView>(ELightingDebugView::INDIRECT_SPECULAR);
+            }
+
+            if (ImGui::Button("Direct Diffuse"))
+            {
+                m_debugViewType = EDebugViewType::DEBUG_LIGHTING;
+                m_debugView = static_cast<DebugView>(ELightingDebugView::DIRECT_DIFFUSE);
+            }
+
+            if (ImGui::Button("Indirect Diffuse"))
+            {
+                m_debugViewType = EDebugViewType::DEBUG_LIGHTING;
+                m_debugView = static_cast<DebugView>(ELightingDebugView::INDIRECT_DIFFUSE);
+            }
+
+            /* TODO: Implement G-Buffer debug views */
+
+            ImGui::Separator();
+
+            if (ImGui::Button("Default"))
+            {
+                m_debugViewType = EDebugViewType::DEFAULT;
+                m_debugView = DEFAULT_VIEW;
+            }
+
+            ImGui::EndMenu();
+        }
 
 	    ImGui::EndMainMenuBar();
     }

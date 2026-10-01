@@ -197,6 +197,45 @@ void main() {
     vec3 V = normalize(correctedCameraPos - position);
     vec3 R = reflect(-V, N);
 
+    const uint debugViewType = (pc.debugView >> 16) & 0xFFFFu;
+    const uint debugView = (pc.debugView & 0xFFFFu);
+
+    if (debugViewType == DEBUG_VIEW_TYPE_GBUFFER && debugView != DEFAULT_VIEW) {
+        vec3 debugColor = vec3(0.f);
+        switch (debugView) {
+            case DEBUG_VIEW_ALBEDO:
+                debugColor = albedo;
+                break;
+            case DEBUG_VIEW_NORMAL:
+                debugColor = N;
+                break;
+            case DEBUG_VIEW_BENT_NORMAL:
+                debugColor = bentN;
+                break;
+            case DEBUG_VIEW_BENT_NORMAL_AO:
+                debugColor = vec3(bentAO, bentAO, bentAO);
+                break;
+            case DEBUG_VIEW_EMISSIVE:
+                debugColor = emissive;
+                break;
+            case DEBUG_VIEW_DEPTH:
+                debugColor = vec3(depth, depth, depth);
+                break;
+            default:
+                debugColor = vec3(0.0);
+                break;
+        }
+
+        finalImage = vec4(debugColor, 1.f);
+        return;
+    }
+
+    vec3 directDiffuse = vec3(0.f);
+    vec3 indirectDiffuse = vec3(0.f);
+
+    vec3 directSpecular = vec3(0.f);
+    vec3 indirectSpecular = vec3(0.f);
+
     vec3 F0 = vec3(0.04);
     F0 = mix(F0, albedo, metalness);
 

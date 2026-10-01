@@ -183,7 +183,7 @@ TonemapPass::CreatePipeline(GPUFormat format) {
 	colorAttachment.format = format; 
 	colorAttachment.sampleCount = ESampleCount::SAMPLE_1;
 	colorAttachment.initialLayout = EImageLayout::UNDEFINED;
-	colorAttachment.finalLayout = EImageLayout::COLOR_ATTACHMENT; // Final layout for presentation
+	colorAttachment.finalLayout = EImageLayout::SHADER_READ_ONLY;
 	colorAttachment.loadOp = EAttachmentLoadOp::CLEAR;
 	colorAttachment.storeOp = EAttachmentStoreOp::STORE;
 	
