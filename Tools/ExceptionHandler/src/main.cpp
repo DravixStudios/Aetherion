@@ -34,7 +34,7 @@
 using SockAddrIn = SOCKADDR_IN;
 using SignedSize = SSIZE_T;
 using Socket = SOCKET;
-#elif CURRENT_PLATFORM(PLATFORM_LINUX) || CURRENT_PLATFORM(PLATFORM_LINUX) 
+#elif CURRENT_PLATFORM(PLATFORM_APPLE) || CURRENT_PLATFORM(PLATFORM_LINUX)
 using SockAddrIn = struct sockaddr_in;
 using SignedSize = ssize_t;
 using Socket = int;

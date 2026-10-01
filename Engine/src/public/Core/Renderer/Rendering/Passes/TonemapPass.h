@@ -8,12 +8,17 @@
 */
 class TonemapPass : public BasePass {
 public:
-	virtual void Init(Ref<Device> device) override;
+	struct Input {
+		TextureHandle hdrInput;
+		TextureHandle emissiveInput;
+	};
+
+	void Init(Ref<Device> device) override;
 	void Init(Ref<Device> device, Ref<Swapchain> swapchain, uint32_t nFramesInFlight);
 
-	virtual void SetupNode(RenderGraphBuilder& builder) override;
+	void SetupNode(RenderGraphBuilder& builder) override;
 
-	virtual void Execute(
+	void Execute(
 		Ref<GraphicsContext> context,
 		RenderGraphContext& graphCtx,
 		uint32_t nFrameIndex = 0
@@ -24,7 +29,7 @@ public:
 	* 
 	* @param input Input HDR image
 	*/
-	void SetInput(TextureHandle input);
+	void SetInput(TextureHandle hdrInput, TextureHandle emissiveInput);
 
 	/**
 	* Get tonemap pass output
@@ -45,9 +50,9 @@ public:
 private:
 	void CreatePipeline(GPUFormat format);
 	void CreateDescriptorSets();
-	void UpdateDescriptorSet(uint32_t nFrameIndex, Ref<ImageView> inputView);
+	void UpdateDescriptorSet(uint32_t nFrameIndex, Ref<ImageView> hdrView, Ref<ImageView> emissiveView);
 
-	TextureHandle m_input;
+	Input m_input;
 	TextureHandle m_output;
 
 	Ref<DescriptorSetLayout> m_setLayout;
