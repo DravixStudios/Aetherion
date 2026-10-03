@@ -17,6 +17,7 @@ struct DescriptorImageInfo {
 	Ref<GPUTexture> texture;
 	Ref<ImageView> imageView;
 	Ref<Sampler> sampler;
+	EDescriptorType descriptorType = EDescriptorType::COMBINED_IMAGE_SAMPLER;
 };
 
 class DescriptorSet {
