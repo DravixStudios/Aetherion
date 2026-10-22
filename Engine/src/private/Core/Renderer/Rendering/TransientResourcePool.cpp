@@ -1,5 +1,21 @@
 #include "Core/Renderer/Rendering/TransientResourcePool.h"
 
+static ESampleCount
+ConvertSamples(ETextureSamples samples) {
+    switch (samples) {
+        case ETextureSamples::ONE_SAMPLE:
+            return ESampleCount::SAMPLE_1;
+        case ETextureSamples::TWO_SAMPLES:
+            return ESampleCount::SAMPLE_2;
+        case ETextureSamples::FOUR_SAMPLES:
+            return ESampleCount::SAMPLE_4;
+        case ETextureSamples::EIGHT_SAMPLES:
+            return ESampleCount::SAMPLE_8;
+    }
+
+    return ESampleCount::SAMPLE_1;
+}
+
 /**
 * Initializes the Transient resource pool
 */
@@ -27,7 +43,8 @@ TransientResourcePool::AcquireTexture(const TextureDesc& desc) {
             entry.desc.format == desc.format &&
             entry.desc.nWidth == desc.nWidth &&
             entry.desc.nHeight == desc.nHeight &&
-            static_cast<uint32_t>(entry.desc.usage) == static_cast<uint32_t>(desc.usage)&&
+            entry.desc.samples == desc.samples &&
+            static_cast<uint32_t>(entry.desc.usage) == static_cast<uint32_t>(desc.usage) &&
             entry.nLastFrame != this->m_nFrame
         ) {
             entry.nLastFrame = this->m_nFrame;
@@ -42,7 +59,7 @@ TransientResourcePool::AcquireTexture(const TextureDesc& desc) {
     texInfo.extent = { desc.nWidth, desc.nHeight, 1 };
     texInfo.nMipLevels = 1;
     texInfo.nArrayLayers = 1;
-    texInfo.samples = ESampleCount::SAMPLE_1;
+    texInfo.samples = ConvertSamples(desc.samples);
     texInfo.tiling = ETextureTiling::OPTIMAL;
     texInfo.usage = desc.usage;
     texInfo.initialLayout = ETextureLayout::UNDEFINED;
