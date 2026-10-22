@@ -36,7 +36,7 @@ include(FetchContent)
 FetchContent_Declare(
     spirv-cross
     GIT_REPOSITORY https://github.com/KhronosGroup/SPIRV-Cross.git
-    GIT_TAG vulkan-sdk-1.4.335.0
+    GIT_TAG vulkan-sdk-1.4.363.0
 )
 
 FetchContent_MakeAvailable(spirv-cross)
