@@ -218,8 +218,16 @@ VulkanDescriptorSet::WriteTextures(
 	uint32_t nFirstArrayElement, 
 	const Vector<DescriptorImageInfo>& imageInfos
 ) {
+	if (imageInfos.empty()) {
+		ASSERT_DESC(false, "VulkanDescriptorSet::WriteTextures called with no image infos");
+		return;
+	}
+
 	Vector<VkDescriptorImageInfo> imageVec;
 	imageVec.reserve(imageInfos.size());
+
+	// TODO: Iterate through each descriptor to get the type
+	const EDescriptorType descriptorType = imageInfos[0].descriptorType;
 
 	for (const DescriptorImageInfo& imageInfo : imageInfos) {
 		Ref<VulkanTexture> vkTexture = imageInfo.texture.As<VulkanTexture>();
@@ -227,7 +235,7 @@ VulkanDescriptorSet::WriteTextures(
 		VkDescriptorImageInfo imgInfo = { };
 		imgInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 		imgInfo.imageView = imageInfo.imageView.As<VulkanImageView>()->GetVkImageView();
-		imgInfo.sampler = imageInfo.sampler.As<VulkanSampler>()->GetVkSampler();
+		imgInfo.sampler = imageInfo.sampler != nullptr ? imageInfo.sampler.As<VulkanSampler>()->GetVkSampler() : nullptr;
 
 		imageVec.push_back(imgInfo);
 	}
@@ -238,7 +246,7 @@ VulkanDescriptorSet::WriteTextures(
 	write.dstSet = this->m_descriptorSet;
 	write.dstBinding = nBinding;
 	write.dstArrayElement = nFirstArrayElement;
-	write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	write.descriptorType = VulkanHelpers::ConvertDescriptorType(descriptorType);
 	write.descriptorCount = imageInfos.size();
 	write.pImageInfo = this->m_imageInfos.back().data();
 

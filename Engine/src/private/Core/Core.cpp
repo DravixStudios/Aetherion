@@ -204,7 +204,7 @@ Core::Update() {
         submitInfo.commandBuffers = { commandBuffer };
         submitInfo.signalSemaphores = { this->m_renderFinishedSemaphores[this->m_nImageIndex] };
         submitInfo.waitSemaphores = { this->m_imageAvailableSemaphores[this->m_nImageIndex] };
-        submitInfo.waitStages = { EPipelineStage::COLOR_ATTACHMENT_OUTPUT };
+        submitInfo.waitStages = { EPipelineStage::TOP_OF_PIPE };
 
         this->m_device->Submit(submitInfo, this->m_inFlightFences[this->m_nImageIndex]);
 
@@ -413,6 +413,7 @@ Core::SetupCallbacks() {
             */
             const Name& assetName = ProjectManagerHelpers::GetAssetName(handle);
             GameObject* pObj = new GameObject(String(assetName));
+            pObj->transform.scale = Vector3(.05f, .05f, .05f);
             Mesh* pMesh = new Mesh("MeshComponent");
             pMesh->LoadAsset(handle);
 

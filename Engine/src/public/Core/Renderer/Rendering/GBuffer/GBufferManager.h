@@ -33,15 +33,26 @@ public:
 	uint32_t GetWidth() const { return this->m_nWidth; }
 	uint32_t GetHeight() const { return this->m_nHeight; }
 
+	void SetSamples(ESampleCount samples) { m_samples = samples; }
+	ESampleCount GetSamples() const { return this->m_samples; }
+	bool IsMultiSampled() const { return this->m_isMultiSampled; }
+
+
 private:
+	Ref<GPUTexture> CreateTexture(GPUFormat format, ETextureUsage usage, ESampleCount samples = ESampleCount::SAMPLE_1);
+	Ref<ImageView> CreateImageView(Ref<GPUTexture> texture, GPUFormat format, bool bIsDepth = false);
 	void CreateTextures();
 	void CreateDescriptors();
+
+	void CreateResolveTargets();
+	void CreateResolveDescriptors();
 
 	Ref<Device> m_device;
 
 	uint32_t m_nWidth = 0;
 	uint32_t m_nHeight = 0;
 
+	// G-Buffers
 	Ref<GPUTexture> m_albedo;
 	Ref<GPUTexture> m_normal;
 	Ref<GPUTexture> m_orm;
@@ -60,4 +71,7 @@ private:
 	Ref<DescriptorPool> m_pool;
 	Ref<DescriptorSetLayout> m_readLayout;
 	Ref<DescriptorSet> m_readSet;
+
+	bool m_isMultiSampled = false;
+	ESampleCount m_samples = ESampleCount::SAMPLE_1;
 };

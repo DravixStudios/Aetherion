@@ -17,6 +17,10 @@ public:
 	TextureHandle GetOutput() const { return this->m_output; }
 
 	void SetScreenQuad(Ref<GPUBuffer> sqVBO, Ref<GPUBuffer> sqIBO, uint32_t nIndexCount);
+
+	void SetSampleCount(ESampleCount sampleCount) { this->m_sampleCount = sampleCount; }
+	ESampleCount GetSampleCount() const { return this->m_sampleCount; }
+
 private:
 	struct CameraData {
 		glm::mat4 inverseView;
@@ -62,4 +66,6 @@ private:
 
 	glm::mat4 m_view = glm::mat4(1.f);
 	glm::mat4 m_projection = glm::mat4(1.f);
+
+	ESampleCount m_sampleCount = ESampleCount::SAMPLE_1;
 };

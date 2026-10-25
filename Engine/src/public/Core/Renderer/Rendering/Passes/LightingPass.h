@@ -24,6 +24,7 @@ public:
 		glm::vec3 sunDirection;
 		float sunIntensity;
 		uint32_t debugView;
+		uint32_t sampleCount;
 	};
 
 	void Init(Ref<Device> device) override;
@@ -56,6 +57,9 @@ public:
 	void SetSunData(const glm::vec3& sunDirection, float sunIntensity);
 
 	void SetDebugView(EDebugViewType type, DebugView view) { this->m_debugViewType = type; this->m_debugView = view; }
+
+	void SetSampleCount(ESampleCount sampleCount) { this->m_sampleCount = sampleCount; }
+	bool IsMultiSampled() const { return this->m_sampleCount != ESampleCount::SAMPLE_1; }
 
 	Output GetOutput() const { return this->m_output; }
 private:
@@ -97,6 +101,8 @@ private:
 
 	EDebugViewType m_debugViewType = EDebugViewType::DEFAULT;
 	DebugView m_debugView = DEFAULT_VIEW;
+
+	ESampleCount m_sampleCount = ESampleCount::SAMPLE_1;
 
 	void CreateDescriptorSet();
 	void CreateShadowDescriptors();

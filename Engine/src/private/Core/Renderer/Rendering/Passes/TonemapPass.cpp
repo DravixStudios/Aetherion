@@ -66,6 +66,11 @@ TonemapPass::Execute(Ref<GraphicsContext> context, RenderGraphContext& graphCtx,
 
 	context->BindPipeline(this->m_pipeline);
 
+	TonemapPushConstants pushConstants = { };
+	pushConstants.nSampleCount = 4;
+
+	context->PushConstants(this->m_pipelineLayout, EShaderStage::FRAGMENT, 0, sizeof(pushConstants), &pushConstants);
+
 	const Viewport vp { 0.f, 0.f, static_cast<float>(this->m_nWidth), static_cast<float>(this->m_nHeight), 0.f, 1.f };
 	context->SetViewport(vp);
 	context->SetScissor({ { 0, 0 }, { this->m_nWidth, this->m_nHeight } });
@@ -92,7 +97,6 @@ TonemapPass::SetScreenQuad(Ref<GPUBuffer> vertexBuffer, Ref<GPUBuffer> indexBuff
 
 void 
 TonemapPass::CreateDescriptorSets() {
-	/* Layout: Binding 0 = Combined Image Sampler */
 	DescriptorSetLayoutBinding hdrBinding = { 0, EDescriptorType::COMBINED_IMAGE_SAMPLER, 1, EShaderStage::FRAGMENT };
 	DescriptorSetLayoutBinding emissiveBinding = { 1, EDescriptorType::COMBINED_IMAGE_SAMPLER, 1, EShaderStage::FRAGMENT };
 
@@ -142,6 +146,10 @@ TonemapPass::CreatePipeline(GPUFormat format) {
 	Ref<Shader> frag = Shader::CreateShared();
 	frag->LoadFromGLSL("shaders/TonemapPass.frag", EShaderStage::FRAGMENT);
 
+	PushConstantRange pushRange = { };
+	pushRange.nSize = sizeof(TonemapPushConstants);
+	pushRange.stage = EShaderStage::FRAGMENT;
+
 	GraphicsPipelineCreateInfo pipelineInfo = { };
 	pipelineInfo.shaders = { vert, frag };
 
@@ -171,6 +179,7 @@ TonemapPass::CreatePipeline(GPUFormat format) {
 	/* Layout */
 	PipelineLayoutCreateInfo plInfo = { };
 	plInfo.setLayouts = { this->m_setLayout };
+	plInfo.pushConstantRanges = { pushRange };
 	this->m_pipelineLayout = this->m_device->CreatePipelineLayout(plInfo);
 
 	pipelineInfo.pipelineLayout = this->m_pipelineLayout;

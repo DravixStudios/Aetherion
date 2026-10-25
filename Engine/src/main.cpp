@@ -14,11 +14,11 @@ Core* g_core = nullptr;
 #define VERSION_MINOR 2
 #define VERSION_PATCH 1
 
-#ifdef _WIN32
+#ifdef CURRENT_PLATFORM(PLATFORM_WINDOWS)
 #if IS_DEBUG_BUILD
-#pragma comment(linker, "/SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup")
-#else
 #pragma comment(linker, "/SUBSYSTEM:console")
+#else
+#pragma comment(linker, "/SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup")
 #endif
 #endif
 
@@ -36,7 +36,7 @@ int main() {
 	Logger::Info("Version: {0}.{1}.{2}", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH);
 	Logger::Info("Dravix Studios. All rights reserved");
 
-	SetupExceptionHandler();
+	// SetupExceptionHandler();
 
 	if (g_core == nullptr) {
 		spdlog::error("Failed to get the Core instance");

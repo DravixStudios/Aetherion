@@ -4,8 +4,8 @@
 layout(location = 0) in vec2 inUVs;
 layout(location = 0) out vec4 outBentNormals;
 
-layout(set = 0, binding = 0) uniform sampler2D g_normal;
-layout(set = 0, binding = 1) uniform sampler2D g_depth;
+layout(set = 0, binding = 0) uniform sampler2DMS g_normal;
+layout(set = 0, binding = 1) uniform sampler2DMS g_depth;
 
 layout(set = 1, binding = 0) uniform CameraData {
     mat4 invView;
@@ -14,7 +14,8 @@ layout(set = 1, binding = 0) uniform CameraData {
     float radius;
 } camData;
 
-vec3 GetViewPosition(vec2 uv, float depth) {
+vec3 GetViewPosition(ivec2 p, float depth) {
+    vec2 uv = (vec2(p) + 0.5) / vec2(textureSize(g_depth));
     vec4 clipPos = vec4(uv * 2.0 - 1.0, depth, 1.0);
     vec4 viewPos = camData.invProj * clipPos;
     return viewPos.xyz / viewPos.w;
@@ -56,8 +57,9 @@ float ComputeHorizon(vec3 pos, vec3 normal, vec3 dir, float maxDist, out float o
             continue;
         }
 
-        float sampleDepth = texture(g_depth, sampleUV).r;
-        vec3 occluderPos = GetViewPosition(vec2(sampleUV.x, sampleUV.y), sampleDepth);
+        ivec2 sampleP = ivec2(sampleUV * vec2(textureSize(g_depth)));
+        float sampleDepth = texelFetch(g_depth, sampleP, 0).r;
+        vec3 occluderPos = GetViewPosition(sampleP, sampleDepth);
 
         vec3 horizonDir = occluderPos - pos;
         float horizonDist = length(horizonDir);
@@ -77,16 +79,16 @@ float ComputeHorizon(vec3 pos, vec3 normal, vec3 dir, float maxDist, out float o
 void main() {
     const int SLICE_COUNT = 4;
 
-    vec2 sampleUV = vec2(inUVs.x, 1.0 - inUVs.y);
-    vec3 N = normalize(texture(g_normal, sampleUV).xyz * 2.0 - 1.0);
-    float depth = texture(g_depth, sampleUV).r;
+    ivec2 p = ivec2(gl_FragCoord.xy);
+    vec3 N = normalize(texelFetch(g_normal, p, 0).xyz * 2.0 - 1.0);
+    float depth = texelFetch(g_depth, p, 0).r;
 
     if(depth >= 1.0) {
         outBentNormals = vec4(0.5, 0.5, 1.0, 0.0);
         return;
     }
 
-    vec3 viewPos = GetViewPosition(sampleUV, depth);
+    vec3 viewPos = GetViewPosition(p, depth);
     vec3 normalView = normalize(mat3(transpose(camData.invView)) * N);
 
     /* Random per pixel rotation */

@@ -1,5 +1,29 @@
 #include "Core/Renderer/Rendering/Passes/LightingPass.h"
 
+ETextureSamples ConvertSamples(ESampleCount sampleCount) {
+	ETextureSamples samples = ETextureSamples::ONE_SAMPLE;
+
+	switch (sampleCount) {
+		case ESampleCount::SAMPLE_1:
+			samples = ETextureSamples::ONE_SAMPLE;
+			break;
+		case ESampleCount::SAMPLE_2:
+			samples = ETextureSamples::TWO_SAMPLES;
+			break;
+		case ESampleCount::SAMPLE_4:
+			samples = ETextureSamples::FOUR_SAMPLES;
+			break;
+		case ESampleCount::SAMPLE_8:
+			samples = ETextureSamples::EIGHT_SAMPLES;
+			break;
+		default:
+			samples = ETextureSamples::ONE_SAMPLE;
+			break;
+	}
+
+	return samples;
+}
+
 /**
 * Lighting pass initialization
 */
@@ -32,6 +56,7 @@ LightingPass::SetupNode(RenderGraphBuilder& builder) {
 	texDesc.nWidth = this->m_nWidth;
 	texDesc.nHeight = this->m_nHeight;
 	texDesc.usage = ETextureUsage::COLOR_ATTACHMENT | ETextureUsage::SAMPLED;
+	texDesc.samples = ConvertSamples(this->m_sampleCount);
 
 	this->m_output.hdrOutput = builder.CreateColorOutput(texDesc, EImageLayout::SHADER_READ_ONLY);
 	this->m_output.bloomThreshold = builder.CreateColorOutput(texDesc, EImageLayout::SHADER_READ_ONLY);
@@ -58,6 +83,7 @@ LightingPass::Execute(Ref<GraphicsContext> context, RenderGraphContext& graphCtx
 	pushData.sunDirection = this->m_sunDirection;
 	pushData.sunIntensity = this->m_sunIntensity;
 	pushData.debugView = (static_cast<uint16_t>(this->m_debugViewType) << 16) | (this->m_debugView & 0xFFFF);
+	pushData.sampleCount = static_cast<uint32_t>(this->m_sampleCount);
 
 	context->PushConstants(
 		this->m_pipelineLayout, 
@@ -192,7 +218,7 @@ LightingPass::CreateDescriptorSet() {
 
 	this->m_lightSetLayout = this->m_device->CreateDescriptorSetLayout(layoutCreateInfo);
 
-	/* 
+	/*
 		Create descriptor pool
 
 		3 descriptors (irradiance, prefilter, brdf) per frame
@@ -327,6 +353,9 @@ LightingPass::CreatePipeline() {
 		{ 1, 0, GPUFormat::RG32_FLOAT, offsetof(ScreenQuadVertex, texCoord)}
 	};
 
+	/* Multisampling */
+	pipelineInfo.multisampleState.nSampleCount = static_cast<uint32_t>(this->m_sampleCount);
+
 	/* Rasterization */
 	pipelineInfo.rasterizationState.cullMode = ECullMode::BACK;
 	pipelineInfo.rasterizationState.frontFace = EFrontFace::COUNTER_CLOCKWISE;
@@ -348,12 +377,14 @@ LightingPass::CreatePipeline() {
 	/* Create a compatible render pass */
 	/* TODO: Use dynamic rendering */
 	RenderPassCreateInfo rpInfo = { };
+	SubpassDependency shadowDependency = { };
+	// shadowDependency.
 	rpInfo.dependencies = GetDefaultSubpassDependencies(false);
 
 	/* Attachment 0: HDR Output - RGBA16_FLOAT */
 	AttachmentDescription colorAttachment = { };
 	colorAttachment.format = GPUFormat::RGBA16_FLOAT;
-	colorAttachment.sampleCount = ESampleCount::SAMPLE_1;
+	colorAttachment.sampleCount = this->m_sampleCount;
 	colorAttachment.initialLayout = EImageLayout::UNDEFINED;
 	colorAttachment.finalLayout = EImageLayout::SHADER_READ_ONLY;
 	colorAttachment.loadOp = EAttachmentLoadOp::CLEAR;
@@ -361,10 +392,10 @@ LightingPass::CreatePipeline() {
 	colorAttachment.stencilLoadOp = EAttachmentLoadOp::DONT_CARE;
 	colorAttachment.stencilStoreOp = EAttachmentStoreOp::DONT_CARE;
 
-	/* Attachment 0: Bloom threshold image - RGBA16_FLOAT */
+	/* Attachment 1: Bloom threshold image - RGBA16_FLOAT */
 	AttachmentDescription bloomAttachment = { };
 	bloomAttachment.format = GPUFormat::RGBA16_FLOAT;
-	bloomAttachment.sampleCount = ESampleCount::SAMPLE_1;
+	bloomAttachment.sampleCount = this->m_sampleCount;
 	bloomAttachment.initialLayout = EImageLayout::UNDEFINED;
 	bloomAttachment.finalLayout = EImageLayout::SHADER_READ_ONLY;
 	bloomAttachment.loadOp = EAttachmentLoadOp::CLEAR;

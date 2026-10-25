@@ -81,7 +81,7 @@ private:
 	ImVec2 m_pendingSize = { 0, 0 };
 
 	DebugView m_debugView = DEFAULT_VIEW;
-	EDebugViewType m_debugViewType = EDebugViewType::DEBUG_LIGHTING;
+	EDebugViewType m_debugViewType = EDebugViewType::DEFAULT;
 
 	GLFWwindow* m_pWindow = nullptr;
 

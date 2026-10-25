@@ -37,7 +37,7 @@ operator&(ETextureFlags a, ETextureFlags b) {
 	return static_cast<ETextureFlags>(static_cast<uint32_t>(a) & static_cast<uint32_t>(b));
 }
 
-enum class ESampleCount {
+enum class ESampleCount : uint32_t {
 	SAMPLE_1 = 1,
 	SAMPLE_2 = 2,
 	SAMPLE_4 = 4,
@@ -122,5 +122,10 @@ public:
 
 	virtual void Reset() = 0;
 
+	ESampleCount GetSamples() const { return this->m_samples; }
+
 	ETextureType textureType = ETextureType::UNDEFINED;
+
+protected:
+	ESampleCount m_samples = ESampleCount::SAMPLE_1;
 };

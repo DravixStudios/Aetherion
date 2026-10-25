@@ -1,5 +1,6 @@
 #version 450
-#define PI 3.14159265359
+const float PI = 3.14159265359;
+const float TWO_PI = PI * 2;
 
 layout(location = 0) in vec2 inUVs;
 
@@ -7,14 +8,15 @@ layout(location = 0) out vec4 finalImage;
 layout(location = 1) out vec4 bloomThreshold;
 
 /* Set 0: G-Buffers */
-layout(set = 0, binding = 0) uniform sampler2D g_gbuffers[6];
+layout(set = 0, binding = 0) uniform sampler2DMS g_gbuffers[5];
+layout(set = 0, binding = 5) uniform sampler2DMS g_depth;
 
 /* Set 1: IBL Maps */
 layout(set = 1, binding = 0) uniform samplerCube g_iblMaps[2]; // [0] Irradiance, [1] Prefilter
 layout(set = 1, binding = 1) uniform sampler2D g_brdfLUT;
 
 /* Set 2: Shadow maps */
-layout(set = 2, binding = 0) uniform sampler2DArrayShadow g_shadowMap;
+layout(set = 2, binding = 0) uniform sampler2DArray g_shadowMap;
 layout(set = 2, binding = 1) uniform CascadeData {
     mat4 cascadeViewProj[4];
     vec4 cascadeSplits; // x=split0, y=split1, z=split2, w=split3
@@ -26,6 +28,7 @@ layout(push_constant) uniform PushConstants {
     vec3 sunDirection;
     float sunIntensity;
     uint debugView;
+    uint sampleCount;
 } pc;
 
 
@@ -96,6 +99,37 @@ float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness) {
 }
 
 /*
+    Interleaved Gradient Noise
+
+    Ref: Next generation Post processing in Call Of Duty: Advanced Warfare - Jorge Jimenez
+*/
+float InterleavedGradientNoise(vec2 pos) {
+    return fract(52.9829189 * fract(0.06711056 * pos.x + 0.00583715 * pos.y));
+}
+
+float SampleShadowVogel(vec3 shadowCoord, int cascadeIdx) {
+    const vec2 texelSize = 1.0 / vec2(textureSize(g_shadowMap, 0).xy);
+    const float noise = InterleavedGradientNoise(gl_FragCoord.xy) * TWO_PI;
+    const mat2 rot = mat2(cos(noise), -sin(noise), sin(noise), cos(noise));
+
+    float shadow = 0.0;
+    const int SAMPLES = 8;
+    const float GOLDEN_ANGLE = 2.399632;
+    const float VOGEL_RADIUS = 2.0;
+
+    for(int i = 0; i < SAMPLES; i++) {
+        float r = sqrt(float(i) + 0.5) / sqrt(float(SAMPLES));
+        float theta = float(i) * GOLDEN_ANGLE;
+        vec2 offset = rot * (vec2(cos(theta), sin(theta)) * r) * texelSize * VOGEL_RADIUS;
+
+        float depth = texture(g_shadowMap, vec3(shadowCoord.xy + offset, float(cascadeIdx))).r;
+        shadow += (shadowCoord.z <= depth) ? 1.0 : 0.0;
+    }
+
+    return shadow / float(SAMPLES);
+}
+
+/*
     Select the correct cascade depending
     on the fragment distance to the 
     camera
@@ -108,30 +142,6 @@ int SelectCascade(float viewDepth) {
     }
     
     return 3;
-}
-
-/*
-    PCF (Percentage Closer Filtering)
-    Samples a 3x3 kernel to smooth
-    shadow borders
-*/
-float SampleShadowPCF(vec3 shadowCoord, int cascadeIdx) {
-    float shadow = 0.0;
-    vec2 texelSize = 1.0 / vec2(textureSize(g_shadowMap, 0).xy);
-
-    for(int x = -1; x <= 1; x++) {
-        for(int y = -1; y <= 1; y++) {
-            vec2 offset = vec2(x, y) * texelSize;
-
-            shadow += texture(g_shadowMap, vec4(
-                shadowCoord.xy + offset, // UV
-                float(cascadeIdx), // Array layer
-                shadowCoord.z // Depth for comparison
-            ));
-        }
-    }
-
-    return shadow / 9.0;
 }
 
 vec3 WorldToShadowUV(vec3 worldPos, int cascade) {
@@ -148,7 +158,7 @@ vec3 WorldToShadowUV(vec3 worldPos, int cascade) {
     Returns 1.0 = illuminated, 0.0 = shaded
 */
 float CalculateShadow(vec3 worldPos, vec3 normal, float viewDepth) {
-    int cascade = SelectCascade(viewDepth);
+    int cascade = SelectCascade(abs(viewDepth));
 
     float blendFactor = 0.1;
 
@@ -160,7 +170,7 @@ float CalculateShadow(vec3 worldPos, vec3 normal, float viewDepth) {
     vec3 biasedPos = worldPos + normal * bias;
 
     /* Get the shadow of the cascade */
-    float shadow = SampleShadowPCF(WorldToShadowUV(biasedPos, cascade), cascade);
+    float shadow = SampleShadowVogel(WorldToShadowUV(biasedPos, cascade), cascade);
 
     /* 
         Cascade blending 
@@ -173,7 +183,7 @@ float CalculateShadow(vec3 worldPos, vec3 normal, float viewDepth) {
     float fade = clamp((viewDepth - (nextSplit - fadeRange)) / fadeRange, 0.0, 1.0);
 
     if(fade > 0.0 && cascade < 3) {
-        float nextShadow = SampleShadowPCF(WorldToShadowUV(biasedPos, cascade + 1), cascade + 1);
+        float nextShadow = SampleShadowVogel(WorldToShadowUV(biasedPos, cascade + 1), cascade + 1);
         shadow = mix(shadow, nextShadow, fade);
     }
 
@@ -196,20 +206,27 @@ float DiffuseDisney(float NdotL, float NdotV, float roughness) {
     return fd / PI;
 }
 
-void main() {
-    const vec3 albedo = texture(g_gbuffers[0], vec2(inUVs.x, 1.0 - inUVs.y)).rgb;
-    const vec3 N = normalize(texture(g_gbuffers[1], vec2(inUVs.x, 1.0 - inUVs.y)).rgb * 2.0 - 1.0);
-    const vec3 orm = texture(g_gbuffers[2], vec2(inUVs.x, 1.0 - inUVs.y)).rgb;
-    const vec3 emissive = texture(g_gbuffers[3], vec2(inUVs.x, 1.0 - inUVs.y)).rgb;
-    const float depth = texture(g_gbuffers[4], vec2(inUVs.x, 1.0 - inUVs.y)).r;
+vec3 CalculateSamplePBR(ivec2 p, vec2 sampledUV, int sampleIdx,
+        out vec3 outDirectSpec, out vec3 outIndirectSpec, out vec3 outDirectDiff, out vec3 outIndirectDiff) {
+    outDirectSpec = vec3(0.f);
+    outIndirectSpec = vec3(0.f);
+    outDirectDiff = vec3(0.f);
+    outIndirectDiff = vec3(0.f);
 
-    const vec4 clipPos = vec4(inUVs.x * 2.0 - 1.0, (1.0 - inUVs.y) * 2.0 - 1.0, depth, 1.0);
+    const float subpixelDepth = texelFetch(g_depth, p, sampleIdx).r;
+    if(subpixelDepth >= 1.f) return vec3(0.f);
+
+    const vec3 albedo = texelFetch(g_gbuffers[0], p, sampleIdx).rgb;
+    const vec3 N = normalize(texelFetch(g_gbuffers[1], p, sampleIdx).rgb * 2.0 - 1.0);
+    const vec3 orm = texelFetch(g_gbuffers[2], p, sampleIdx).rgb;
+    const vec3 emissive = texelFetch(g_gbuffers[3], p, sampleIdx).rgb;
+
+    const vec4 clipPos = vec4(inUVs.x * 2.0 - 1.0, (1.0 - inUVs.y) * 2.0 - 1.0, subpixelDepth, 1.0);
     vec4 viewPos = pc.invViewProjection * clipPos;
     viewPos /= viewPos.w;
-
     const vec3 position = viewPos.xyz;
 
-    const vec4 bentNormalData = texture(g_gbuffers[5], vec2(inUVs.x, 1.0 - inUVs.y));
+    const vec4 bentNormalData = texelFetch(g_gbuffers[4], p, sampleIdx);
     const vec3 bentN = normalize(bentNormalData.xyz * 2.0 - 1.0);
     const float bentAO = bentNormalData.a;
 
@@ -218,172 +235,149 @@ void main() {
     const float metalness = orm.b;
 
     const vec3 correctedCameraPos = vec3(pc.cameraPosition.x, pc.cameraPosition.y, -pc.cameraPosition.z);
-    
+
+    vec3 Lo =  vec3(0.f);
+    vec3 color = vec3(0.f);
+    vec3 ambient = vec3(0.f);
+
     const vec3 V = normalize(correctedCameraPos - position);
     const vec3 R = reflect(-V, N);
 
-    const uint debugViewType = (pc.debugView >> 16) & 0xFFFFu;
-    const uint debugView = (pc.debugView & 0xFFFFu);
+    const vec3 L = normalize(pc.sunDirection);
+    const vec3 H = normalize(V + L);
 
-    vec3 directDiffuse = vec3(0.f);
-    vec3 indirectDiffuse = vec3(0.f);
-
-    vec3 directSpecular = vec3(0.f);
-    vec3 indirectSpecular = vec3(0.f);
-
-    const uint debugViewType = (pc.debugView >> 16) & 0xFFFFu;
-    const uint debugView = (pc.debugView & 0xFFFFu);
-
-    if (debugViewType == DEBUG_VIEW_TYPE_GBUFFER && debugView != DEFAULT_VIEW) {
-        vec3 debugColor = vec3(0.f);
-        switch (debugView) {
-            case DEBUG_VIEW_ALBEDO:
-                debugColor = albedo;
-                break;
-            case DEBUG_VIEW_NORMAL:
-                debugColor = N;
-                break;
-            case DEBUG_VIEW_BENT_NORMAL:
-                debugColor = bentN;
-                break;
-            case DEBUG_VIEW_BENT_NORMAL_AO:
-                debugColor = vec3(bentAO, bentAO, bentAO);
-                break;
-            case DEBUG_VIEW_EMISSIVE:
-                debugColor = emissive;
-                break;
-            case DEBUG_VIEW_DEPTH:
-                debugColor = vec3(depth, depth, depth);
-                break;
-            default:
-                debugColor = vec3(0.0);
-                break;
-        }
-
-        finalImage = vec4(debugColor, 1.f);
-        return;
-    }
-
-    vec3 directDiffuse = vec3(0.f);
-    vec3 indirectDiffuse = vec3(0.f);
-
-    vec3 directSpecular = vec3(0.f);
-    vec3 indirectSpecular = vec3(0.f);
+    const float HdotV = clamp(dot(H, V), 0.0, 1.0);
+    const float NdotL = max(dot(N, L), 0.0);
+    const float NdotV = max(dot(N, V), 0.0);
+    const float LdotH = max(dot(L, H), 0.0);
 
     vec3 F0 = vec3(0.04);
     F0 = mix(F0, albedo, metalness);
 
-    /* ==== DIRECTIONAL LIGHT ==== */
-    vec3 color = vec3(0.0);
-    vec3 Lo = vec3(0.0);
-
-    /* SUN LIGHT */
     {
-        const vec3 L = normalize(pc.sunDirection);
-        const vec3 H = normalize(V + L);
-
-        const float HdotV = clamp(dot(H, V), 0.0, 1.0);
-        const float NdotL = max(dot(N, L), 0.0);
-        const float NdotV = max(dot(N, V), 0.0);
+        const float viewDepth = length(correctedCameraPos - position);
+        const float shadow = CalculateShadow(position, N, viewDepth);
 
         const float NDF = DistributionGGX(N, H, roughness);
         const float G = GeometrySmith(N, V, L, roughness);
         const vec3 F = FresnelSchlick(HdotV, F0);
-        
+
         const vec3 numerator = NDF * G * F;
         const float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.0001;
-
-        const vec3 kS = F;
-        const vec3 kD = (1.0 - kS) * (1.0 - metalness);
 
         const vec3 specular = numerator / denominator;
         const vec3 diffuse = albedo * DiffuseDisney(NdotL, NdotV, roughness);
 
-        /* Calculate view-space depth for selecting the cascade */
-        const float viewDepth = length(correctedCameraPos - position);
-        const float shadow = CalculateShadow(position, N, viewDepth);
+        const vec3 kS = F;
+        const vec3 kD = (1.0 - kS) * (1.0 - metalness);
 
-        /* Sun radiance (color * intensity * shadow) */
         const vec3 sunRadiance = vec3(1.0) * pc.sunIntensity;
+
         Lo += (kD * diffuse + specular) * sunRadiance * NdotL * shadow;
-        directSpecular += (specular * sunRadiance * NdotL * shadow);
-        directDiffuse += (kD * diffuse * sunRadiance * NdotL * shadow);
+
+        outDirectDiff += (kD * diffuse * sunRadiance * NdotL * shadow);
+        outDirectSpec += (specular * sunRadiance * NdotL * shadow);
     }
 
-    color += Lo;
-
-    /* ==== IBL (Ambient lighting for environment) ==== */
-    vec3 ambient = vec3(0.0);
     {
         const float MAX_REFLECTION_LOD = 4.0;
         const vec3 irradiance = texture(g_iblMaps[0], vec3(-bentN.x, bentN.y, bentN.z)).rgb;
         const vec3 prefilteredColor = textureLod(g_iblMaps[1], vec3(R.x, R.y, R.z), roughness * MAX_REFLECTION_LOD).rgb;
-        const vec2 brdf = texture(g_brdfLUT, vec2(max(dot(N, V), 0.0), roughness)).rg;
+        const vec2 brdf = texture(g_brdfLUT, vec2(NdotV, roughness)).rg;
 
-        const vec3 F = FresnelSchlickRoughness(max(dot(N, V), 0.0), F0, roughness);
+        const vec3 F = FresnelSchlickRoughness(NdotV, F0, roughness);
 
         const vec3 kS = F;
         const vec3 kD = (1.0 - kS) * (1.0 - metalness);
 
         /* Diffuse IBL */
         const vec3 diffuse = irradiance * albedo;
-    
+
         /* Specular IBL */
         const vec3 specular = prefilteredColor * (F0 * brdf.x + brdf.y);
         ambient += (kD * diffuse + specular) * bentAO;
-        indirectSpecular += specular * bentAO;
-        indirectDiffuse += (kD * diffuse * bentAO);
+
+        outIndirectDiff += kD * irradiance * albedo * ao * bentAO;
+        outIndirectSpec += specular * bentAO;
     }
 
+    return Lo + ambient + emissive;
+}
 
-    /* ==== COMBINE ==== */
-    color += ambient;
+void main() {
+    const ivec2 p = ivec2(gl_FragCoord.xy);
+    const vec2 sampledUV = vec2(inUVs.x, 1.f - inUVs.y);
 
-    color += emissive;
+    const uint debugViewType = (pc.debugView >> 16) & 0xFFFFu;
+    const uint debugView = (pc.debugView & 0xFFFFu);
 
-    if (debugViewType == DEBUG_VIEW_TYPE_LIGHTING && debugView != DEFAULT_VIEW) {
+    if(debugViewType == DEBUG_VIEW_TYPE_GBUFFER && debugView != DEFAULT_VIEW) {
         vec3 debugColor = vec3(0.f);
         switch (debugView) {
-            case DEBUG_VIEW_DIRECT_SPECULAR:
-                debugColor = directSpecular;
-                break;
-
-            case DEBUG_VIEW_INDIRECT_SPECULAR:
-                debugColor = indirectSpecular;
-                break;
-
-            case DEBUG_VIEW_DIRECT_DIFFUSE:
-                debugColor = directDiffuse;
-                break;
-
-            case DEBUG_VIEW_INDIRECT_DIFFUSE:
-                debugColor = indirectDiffuse;
-                break;
-
-            default:
-                debugColor = vec3(0.0);
-                break;
+            case DEBUG_VIEW_ALBEDO:        debugColor = texelFetch(g_gbuffers[0], p, 0).rgb; break;
+            case DEBUG_VIEW_NORMAL:        debugColor = normalize(texelFetch(g_gbuffers[1], p, 0).rgb * 2.0 - 1.0); break;
+            case DEBUG_VIEW_ORM:           debugColor = texelFetch(g_gbuffers[2], p, 0).rgb; break;
+            case DEBUG_VIEW_EMISSIVE:      debugColor = texelFetch(g_gbuffers[3], p, 0).rgb; break;
+            case DEBUG_VIEW_BENT_NORMAL:   debugColor = normalize(texelFetch(g_gbuffers[4], p, 0).xyz * 2.0 - 1.0); break;
+            case DEBUG_VIEW_BENT_NORMAL_AO:debugColor = vec3(texelFetch(g_gbuffers[4], p, 0).a); break;
+            case DEBUG_VIEW_DEPTH:         debugColor = vec3(texelFetch(g_depth, p, 0).r); break;
         }
 
-        finalImage = vec4(vec3(debugColor), 1.0);
+        finalImage = vec4(debugColor, 1.f);
         return;
     }
 
-    finalImage = vec4(vec3(color), 1.0);
-    // finalImage = vec4(bentAO, bentAO, bentAO, 1.0);
-    finalImage = vec4(vec3(color), 1.0);
+    const float depth0 = texelFetch(g_depth, p, 0).r;
+    const float depth1 = texelFetch(g_depth, p, int(pc.sampleCount - 1)).r;
 
-    const float distanceToCamera = length(correctedCameraPos - position);
-    const float kBloomFadeStart = 5.f; // TODO: Promote to a variable
-    const float kBloomFadeEnd = 10.f; // TODO: Promote to a variable
+    const vec3 normal0 = normalize(texelFetch(g_gbuffers[1], p, 0).xyz * 2.0 - 1.0);
+    const vec3 normal1 = normalize(texelFetch(g_gbuffers[1], p, int(pc.sampleCount - 1)).xyz * 2.0 - 1.0);
 
-    const float bloomDistanceFactor = 1.f - smoothstep(kBloomFadeStart, kBloomFadeEnd, distanceToCamera);
+    const bool isEdge = (abs(depth0 - depth1) > .005f) || (dot(normal0, normal1) < .95f);
 
-    const vec3 luma = vec3(0.2126f, 0.7152f, 0.0722f);
-    const float kLuminanceThreshold = 1.f;
+    vec3 colorAccum = vec3(0.f);
+    vec3 dSpec, iSpec, dDiff, iDiff;
 
-    const float luminance = dot(color, luma);
-    if (luminance > kLuminanceThreshold) {
-        bloomThreshold = vec4(color * bloomDistanceFactor, 1.f);
+    // TODO: Calculate bloom
+    const vec3 baseSampleColor = CalculateSamplePBR(p, sampledUV, 0, dSpec, iSpec, dDiff, iDiff);
+    vec3 bloom = vec3(0.f);
+    bloomThreshold += vec4(bloom, 1.f);
+
+    if(isEdge) {
+        colorAccum = baseSampleColor;
+
+        for(uint s = 1; s < pc.sampleCount; ++s) {
+            colorAccum += CalculateSamplePBR(p, sampledUV, int(s), dSpec, iSpec, dDiff, iDiff);
+        }
+
+        colorAccum /= float(pc.sampleCount);
+    } else {
+        colorAccum += baseSampleColor;
+        if (debugViewType == DEBUG_VIEW_TYPE_LIGHTING && debugView != DEFAULT_VIEW) {
+            switch (debugView) {
+                case DEBUG_VIEW_DIRECT_SPECULAR:   colorAccum = dSpec; break;
+                case DEBUG_VIEW_INDIRECT_SPECULAR: colorAccum = iSpec; break;
+                case DEBUG_VIEW_DIRECT_DIFFUSE:    colorAccum = dDiff; break;
+                case DEBUG_VIEW_INDIRECT_DIFFUSE:  colorAccum = iDiff; break;
+            }
+            finalImage = vec4(colorAccum, 1.f);
+            return;
+        }
     }
+
+//    const float distanceToCamera = length(correctedCameraPos - position);
+//    const float kBloomFadeStart = 5.f; // TODO: Promote to a variable
+//    const float kBloomFadeEnd = 10.f; // TODO: Promote to a variable
+//
+//    const float bloomDistanceFactor = 1.f - smoothstep(kBloomFadeStart, kBloomFadeEnd, distanceToCamera);
+//
+//    const vec3 luma = vec3(0.2126f, 0.7152f, 0.0722f);
+//    const float kLuminanceThreshold = 1.f;
+
+//    const float luminance = dot(color, luma);
+//    if (luminance > kLuminanceThreshold) {
+//        bloomThreshold = vec4(color * bloomDistanceFactor, 1.f);
+//    }
+
+    finalImage = vec4(colorAccum, 1.f);
 }

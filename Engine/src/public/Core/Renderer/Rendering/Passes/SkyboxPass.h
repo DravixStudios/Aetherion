@@ -15,6 +15,10 @@ public:
 		glm::vec3 camPos;
 	};
 
+	struct SkyboxPushConstant {
+		uint32_t nSampleCount;
+	};
+
 	void Init(Ref<Device> device) override;
 	void Init(Ref<Device> device, uint32_t nFramesInFlight);
 	void SetupNode(RenderGraphBuilder& builder) override;
@@ -31,6 +35,9 @@ public:
 	);
 
 	Ref<PipelineLayout> GetPipelineLayout() const { return this->m_pipelineLayout; }
+
+	void SetSampleCount(ESampleCount sampleCount) { this->m_sampleCount = sampleCount; }
+	ESampleCount GetSampleCount() const { return this->m_sampleCount; }
 
 private:
 	Input m_input;
@@ -63,6 +70,8 @@ private:
 	glm::vec3 m_cameraPosition;
 
 	uint32_t m_nFramesInFlight;
+
+	ESampleCount m_sampleCount = ESampleCount::SAMPLE_1;
 
 public:
 	void UpdateCamera(const glm::mat4& view, const glm::mat4& proj, const glm::vec3& cameraPos) {

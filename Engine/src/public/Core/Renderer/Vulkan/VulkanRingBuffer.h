@@ -17,7 +17,7 @@ public:
 	explicit VulkanRingBuffer(Ref<VulkanDevice> device);
 	~VulkanRingBuffer() override;
 
-	void Create(const RingBufferCreateInfo& createInfo) override;
+	void Create(const RingBufferCreateInfo& createInfo, bool bPersistentlyMapped = true) override;
 	void* Allocate(uint32_t nDataSize, uint32_t& outOffset) override;
 	uint32_t Align(uint32_t nValue, uint32_t nAlignment) override;
 	void Reset(uint32_t nImageIndex) override;

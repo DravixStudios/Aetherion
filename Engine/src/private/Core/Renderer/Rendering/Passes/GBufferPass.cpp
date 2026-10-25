@@ -10,6 +10,7 @@
 void
 GBufferPass::Init(Ref<Device> device) {
 	this->m_device = device;
+	this->m_gbuffer.SetSamples(this->m_sampleCount);
 	this->m_gbuffer.Init(device, 1, 1); // Start with dummy size, will resize later
 }
 
@@ -191,6 +192,15 @@ GBufferPass::CreatePipeline() {
 		{ 2, 0, GPUFormat::RGB32_FLOAT, offsetof(Vertex, texCoord)}
 	};
 
+	/* Multisampling */
+	switch (this->m_sampleCount) {
+		case ESampleCount::SAMPLE_1: pipelineInfo.multisampleState.nSampleCount = 1; break;
+		case ESampleCount::SAMPLE_2: pipelineInfo.multisampleState.nSampleCount = 2; break;
+		case ESampleCount::SAMPLE_4: pipelineInfo.multisampleState.nSampleCount = 4; break;
+		case ESampleCount::SAMPLE_8: pipelineInfo.multisampleState.nSampleCount = 8; break;
+		default: pipelineInfo.multisampleState.nSampleCount = 1; break;
+	}
+
 	/* Rasterization */
 	pipelineInfo.rasterizationState.cullMode = ECullMode::BACK;
 	pipelineInfo.rasterizationState.frontFace = EFrontFace::CLOCKWISE;
@@ -222,7 +232,7 @@ GBufferPass::CreatePipeline() {
 	/* Attachment 0: Base color - RGBA16_FLOAT */
 	AttachmentDescription colorAttachment = { };
 	colorAttachment.format = GBufferLayout::ALBEDO;
-	colorAttachment.sampleCount = ESampleCount::SAMPLE_1;
+	colorAttachment.sampleCount = this->m_sampleCount;
 	colorAttachment.initialLayout = EImageLayout::UNDEFINED;
 	colorAttachment.finalLayout = EImageLayout::SHADER_READ_ONLY;
 	colorAttachment.loadOp = EAttachmentLoadOp::CLEAR;
@@ -233,7 +243,7 @@ GBufferPass::CreatePipeline() {
 	/* Attachment 1: Normal - RGBA16_FLOAT */
 	AttachmentDescription normalAttachment = { };
 	normalAttachment.format = GBufferLayout::NORMAL;
-	normalAttachment.sampleCount = ESampleCount::SAMPLE_1;
+	normalAttachment.sampleCount = this->m_sampleCount;
 	normalAttachment.initialLayout = EImageLayout::UNDEFINED;
 	normalAttachment.finalLayout = EImageLayout::SHADER_READ_ONLY;
 	normalAttachment.loadOp = EAttachmentLoadOp::CLEAR;
@@ -244,7 +254,7 @@ GBufferPass::CreatePipeline() {
 	/* Attachment 2: ORM - RGBA16_FLOAT */
 	AttachmentDescription ormAttachment = { };
 	ormAttachment.format = GBufferLayout::ORM;
-	ormAttachment.sampleCount = ESampleCount::SAMPLE_1;
+	ormAttachment.sampleCount = this->m_sampleCount;
 	ormAttachment.initialLayout = EImageLayout::UNDEFINED;
 	ormAttachment.finalLayout = EImageLayout::SHADER_READ_ONLY;
 	ormAttachment.loadOp = EAttachmentLoadOp::CLEAR;
@@ -255,7 +265,7 @@ GBufferPass::CreatePipeline() {
 	/* Attachment 3: Emissive - RGBA16_FLOAT */
 	AttachmentDescription emissiveAttachment = { };
 	emissiveAttachment.format = GBufferLayout::EMISSIVE;
-	emissiveAttachment.sampleCount = ESampleCount::SAMPLE_1;
+	emissiveAttachment.sampleCount = this->m_sampleCount;
 	emissiveAttachment.initialLayout = EImageLayout::UNDEFINED;
 	emissiveAttachment.finalLayout = EImageLayout::SHADER_READ_ONLY;
 	emissiveAttachment.loadOp = EAttachmentLoadOp::CLEAR;
@@ -266,7 +276,7 @@ GBufferPass::CreatePipeline() {
 	/* Attachment 4: Depth */
 	AttachmentDescription depthAttachment = { };
 	depthAttachment.format = GBufferLayout::DEPTH;
-	depthAttachment.sampleCount = ESampleCount::SAMPLE_1;
+	depthAttachment.sampleCount = this->m_sampleCount;
 	depthAttachment.initialLayout = EImageLayout::UNDEFINED;
 	depthAttachment.finalLayout = EImageLayout::SHADER_READ_ONLY;
 	depthAttachment.loadOp = EAttachmentLoadOp::CLEAR;
