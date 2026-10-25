@@ -97,7 +97,6 @@ TonemapPass::SetScreenQuad(Ref<GPUBuffer> vertexBuffer, Ref<GPUBuffer> indexBuff
 
 void 
 TonemapPass::CreateDescriptorSets() {
-	/* Layout: Binding 0 = Combined Image Sampler */
 	DescriptorSetLayoutBinding hdrBinding = { 0, EDescriptorType::COMBINED_IMAGE_SAMPLER, 1, EShaderStage::FRAGMENT };
 	DescriptorSetLayoutBinding emissiveBinding = { 1, EDescriptorType::COMBINED_IMAGE_SAMPLER, 1, EShaderStage::FRAGMENT };
 

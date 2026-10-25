@@ -263,7 +263,7 @@ DeferredRenderer::Render(
         drawData.view,
         drawData.proj,
         3.f,
-        200.f
+        1000.f
     );
 
     this->m_graph.AddNode("ShadowPass",

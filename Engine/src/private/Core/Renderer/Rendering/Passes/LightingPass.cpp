@@ -218,7 +218,7 @@ LightingPass::CreateDescriptorSet() {
 
 	this->m_lightSetLayout = this->m_device->CreateDescriptorSetLayout(layoutCreateInfo);
 
-	/* 
+	/*
 		Create descriptor pool
 
 		3 descriptors (irradiance, prefilter, brdf) per frame
