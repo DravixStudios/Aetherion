@@ -15,6 +15,7 @@ VulkanTexture::~VulkanTexture() {
 */
 void 
 VulkanTexture::Create(const TextureCreateInfo& createInfo, const String& debugName) {
+	this->m_samples = createInfo.samples;
 	const VkDevice vkDevice = this->m_device->GetVkDevice();
 
 	/* Create image */

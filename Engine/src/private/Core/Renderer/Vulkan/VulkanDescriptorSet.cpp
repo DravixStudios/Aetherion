@@ -235,7 +235,7 @@ VulkanDescriptorSet::WriteTextures(
 		VkDescriptorImageInfo imgInfo = { };
 		imgInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 		imgInfo.imageView = imageInfo.imageView.As<VulkanImageView>()->GetVkImageView();
-		imgInfo.sampler = imageInfo.sampler.As<VulkanSampler>()->GetVkSampler();
+		imgInfo.sampler = imageInfo.sampler != nullptr ? imageInfo.sampler.As<VulkanSampler>()->GetVkSampler() : nullptr;
 
 		imageVec.push_back(imgInfo);
 	}

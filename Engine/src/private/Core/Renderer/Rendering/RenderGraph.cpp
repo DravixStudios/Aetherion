@@ -90,9 +90,12 @@ RenderGraph::CreateRenderPasses() {
                 }
             }
 
+            Ref<GPUTexture> tex = view->GetImage();
+            ESampleCount sampleCount = tex ? tex->GetSamples() : ESampleCount::SAMPLE_1;
+
             AttachmentDescription attachment = { };
             attachment.format = view->GetFormat();
-            attachment.sampleCount = ESampleCount::SAMPLE_1;
+            attachment.sampleCount = sampleCount;
             attachment.initialLayout = initialLayout;
             attachment.finalLayout = node.colorFinalLayouts[i];
             attachment.loadOp = node.colorLoadOps[i];
@@ -117,9 +120,12 @@ RenderGraph::CreateRenderPasses() {
                 }
             }
 
+            Ref<GPUTexture> depthTex = depthView->GetImage();
+            ESampleCount depthSampleCount = depthTex ? depthTex->GetSamples() : ESampleCount::SAMPLE_1;
+
             AttachmentDescription depthAttachment = { };
             depthAttachment.format = depthView->GetFormat();
-            depthAttachment.sampleCount = ESampleCount::SAMPLE_1;
+            depthAttachment.sampleCount = depthSampleCount;
             depthAttachment.initialLayout = initialLayout;
             depthAttachment.finalLayout = node.depthFinalLayout;
             depthAttachment.loadOp = node.depthLoadOp;

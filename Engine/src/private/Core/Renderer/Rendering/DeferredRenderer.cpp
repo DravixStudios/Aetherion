@@ -39,20 +39,29 @@ DeferredRenderer::Init(Ref<Device> device, Ref<Swapchain> swapchain, uint32_t nF
     /* Initialize passes */
     this->m_cullingPass.Init(device, this->m_nFramesInFlight);
 
+    ESampleCount sampleCount = ESampleCount::SAMPLE_4; // TODO: Promote to config
+
+    this->m_gbuffPass.SetSampleCount(sampleCount);
     this->m_gbuffPass.Init(device);
     this->m_gbuffPass.Resize(ext.width, ext.height);
 
-    this->m_bentNormalPass.Init(device, this->m_nFramesInFlight);
+    this->m_bentNormalPass.SetSampleCount(sampleCount);
     this->m_bentNormalPass.SetDimensions(ext.width, ext.height);
     this->m_bentNormalPass.SetScreenQuad(this->m_sqVBO, this->m_sqIBO, 6);
+    this->m_bentNormalPass.Init(device, this->m_nFramesInFlight);
 
-    this->m_shadowPass.Init(device, this->m_nFramesInFlight);
     this->m_shadowPass.SetCullingPass(&this->m_cullingPass);
+    this->m_shadowPass.Init(device, this->m_nFramesInFlight);
 
-    this->m_lightingPass.Init(device, this->m_nFramesInFlight);
+    this->m_lightingPass.SetSampleCount(sampleCount);
     this->m_lightingPass.SetDimensions(ext.width, ext.height);
-    this->m_lightingPass.SetGBufferDescriptorSet(this->m_gbuffPass.GetReadDescriptorSet());
+    this->m_lightingPass.Init(device, this->m_nFramesInFlight);
 
+    Ref<DescriptorSet> gbuffSet = this->m_gbuffPass.GetReadDescriptorSet();
+
+    this->m_lightingPass.SetGBufferDescriptorSet(gbuffSet);
+
+    this->m_skyboxPass.SetSampleCount(sampleCount);
     this->m_skyboxPass.Init(device, this->m_nFramesInFlight);
     this->m_skyboxPass.SetDimensions(ext.width, ext.height);
 
@@ -109,6 +118,7 @@ DeferredRenderer::Resize(uint32_t nWidth, uint32_t nHeight, bool bImGuiCall) {
     if (!bImGuiCall) this->m_imguiPass.Resize(nWidth, nHeight);
 
     this->m_lightingPass.SetGBufferDescriptorSet(this->m_gbuffPass.GetReadDescriptorSet());
+
     this->UpdateSkyboxDescriptor();
 }
 

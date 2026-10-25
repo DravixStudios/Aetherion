@@ -17,8 +17,9 @@ public:
 		TextureHandle orm;
 		TextureHandle emissive;
 		TextureHandle position;
-		TextureHandle depth;
 		TextureHandle bentNormal;
+		TextureHandle depth;
+		TextureHandle coverage;
 	};
 
 	void Init(Ref<Device> device) override;
@@ -46,6 +47,11 @@ public:
 	Ref<DescriptorSet> GetReadDescriptorSet() const { return this->m_gbuffer.GetReadDescriptorSet(); }
 	Ref<ImageView> GetDepthView() const { return this->m_gbuffer.GetDepthView(); }
 	Output GetOutput() const { return this->m_output; }
+
+	bool IsMultiSampled() const { return this->m_gbuffer.IsMultiSampled(); }
+	ESampleCount GetSampleCount() const { return this->m_sampleCount; }
+	void SetSampleCount(ESampleCount sampleCount) { this->m_sampleCount = sampleCount; }
+
 private:
 	GBufferManager m_gbuffer;
 	Ref<RenderPass> m_compatRenderPass;
@@ -68,6 +74,8 @@ private:
 	uint32_t m_nMaxBatchesPerBlock = 0;
 	uint32_t m_nWvpAlignment = 0;
 	uint32_t m_nMaterialAlignment = 0;
+
+	ESampleCount m_sampleCount = ESampleCount::SAMPLE_1;
 
 	void CreatePipeline();
 };
