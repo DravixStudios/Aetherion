@@ -1,0 +1,85 @@
+#version 450
+
+layout(local_size_x = 16, local_size_y = 16) in;
+
+layout(set = 0, binding = 0) uniform sampler2DMS g_gbuffers[6];
+
+layout(set = 1, binding = 0, rgba16f) uniform writeonly image2D g_gbuffersResolve[5];
+layout(set = 1, binding = 5, r32f) uniform writeonly image2D g_depth;
+layout(set = 1, binding = 6, r32f) uniform writeonly image2D g_coverage;
+
+layout(push_constant) uniform PushConstants {
+    uint sampleCount;
+} pc;
+
+
+void main()
+{
+    ivec2 p = ivec2(gl_GlobalInvocationID.xy);
+
+    float closestDepth = 1.0;
+    int closestSample = -1;
+    uint geometrySamples = 0;
+
+    for (uint s = 0; s < pc.sampleCount; ++s) {
+        float depth = texelFetch(g_gbuffers[4], p, int(s)).r;
+
+        if (depth < 1.0) {
+            geometrySamples++;
+
+            if (depth < closestDepth)
+            {
+                closestDepth = depth;
+                closestSample = int(s);
+            }
+        }
+    }
+
+    float coverage = float(geometrySamples) / float(pc.sampleCount);
+
+    imageStore(
+            g_coverage,
+            p,
+            vec4(coverage, 0.0, 0.0, 0.0)
+    );
+
+    if (closestSample < 0) {
+        imageStore(
+                g_depth,
+                p,
+                vec4(1.0, 0.0, 0.0, 0.0)
+        );
+
+        return;
+    }
+
+    imageStore(
+            g_gbuffersResolve[0],
+            p,
+            texelFetch(g_gbuffers[0], p, closestSample)
+    );
+
+    imageStore(
+            g_gbuffersResolve[1],
+            p,
+            texelFetch(g_gbuffers[1], p, closestSample)
+    );
+
+    imageStore(
+            g_gbuffersResolve[2],
+            p,
+            texelFetch(g_gbuffers[2], p, closestSample)
+    );
+
+    imageStore(
+            g_gbuffersResolve[3],
+            p,
+            texelFetch(g_gbuffers[3], p, closestSample)
+    );
+
+    imageStore(
+            g_depth,
+            p,
+            vec4(closestDepth, 0.0, 0.0, 0.0)
+    );
+}
