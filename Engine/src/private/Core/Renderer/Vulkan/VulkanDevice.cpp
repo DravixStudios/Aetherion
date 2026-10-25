@@ -587,11 +587,11 @@ VulkanDevice::CreateBuffer(const BufferCreateInfo& createInfo) {
 * @returns Created Vulkan ring buffer
 */
 Ref<GPURingBuffer> 
-VulkanDevice::CreateRingBuffer(const RingBufferCreateInfo& createInfo) {
+VulkanDevice::CreateRingBuffer(const RingBufferCreateInfo& createInfo, bool persistentlyMapped) {
 	Ref<VulkanDevice> deviceRef = std::static_pointer_cast<VulkanDevice>(this->shared_from_this());
 
 	Ref<VulkanRingBuffer> ringBuffer = VulkanRingBuffer::CreateShared(deviceRef);
-	ringBuffer->Create(createInfo);
+	ringBuffer->Create(createInfo, persistentlyMapped);
 
 	return ringBuffer.As<GPURingBuffer>();
 }

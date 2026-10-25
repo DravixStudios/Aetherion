@@ -35,7 +35,7 @@ VulkanRingBuffer::~VulkanRingBuffer() {
 * @param createInfo Ring Buffer create info
 */
 void 
-VulkanRingBuffer::Create(const RingBufferCreateInfo& createInfo) {
+VulkanRingBuffer::Create(const RingBufferCreateInfo& createInfo, bool persistentlyMapped) {
 	this->m_usage = createInfo.usage;
 	this->m_nFramesInFlight = createInfo.nFramesInFlight;
 
@@ -77,7 +77,8 @@ VulkanRingBuffer::Create(const RingBufferCreateInfo& createInfo) {
 	this->m_buffer = this->m_device->CreateBuffer(bufferInfo);
 
 	/* Map the memory persistently */
-	this->pMap = this->m_buffer->Map();
+	if (persistentlyMapped)
+		this->pMap = this->m_buffer->Map();
 
 	String bufferTypeName = "UNKNOWN";
 	switch (this->m_usage) {

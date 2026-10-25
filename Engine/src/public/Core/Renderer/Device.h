@@ -209,7 +209,7 @@ public:
 	* 
 	* @returns Created ring buffer
 	*/
-	virtual Ref<GPURingBuffer> CreateRingBuffer(const RingBufferCreateInfo& createInfo) = 0;
+	virtual Ref<GPURingBuffer> CreateRingBuffer(const RingBufferCreateInfo& createInfo, bool persistentlyMapped = true) = 0;
 
 	/**
 	* Creates a texture

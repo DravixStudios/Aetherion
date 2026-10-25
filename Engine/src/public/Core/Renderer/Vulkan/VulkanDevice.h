@@ -80,7 +80,7 @@ public:
 
 	Ref<GPUBuffer> CreateBuffer(const BufferCreateInfo& createInfo) override;
 
-	Ref<GPURingBuffer> CreateRingBuffer(const RingBufferCreateInfo& createInfo) override;
+	Ref<GPURingBuffer> CreateRingBuffer(const RingBufferCreateInfo& createInfo, bool persistentlyMapped = true) override;
 
 	Ref<GPUTexture> CreateTexture(const TextureCreateInfo& createInfo) override;
 

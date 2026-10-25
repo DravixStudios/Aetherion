@@ -19,7 +19,7 @@ public:
 
 	virtual ~GPURingBuffer() = default;
 
-    virtual void Create(const RingBufferCreateInfo& createInfo) = 0;
+    virtual void Create(const RingBufferCreateInfo& createInfo, bool persistentlyMapped = true) = 0;
     virtual void* Allocate(uint32_t nDataSize, uint32_t& outOffset) = 0;
     virtual uint32_t Align(uint32_t nValue, uint32_t nAlignment) = 0;
     virtual void Reset(uint32_t nImageIndex) = 0;
