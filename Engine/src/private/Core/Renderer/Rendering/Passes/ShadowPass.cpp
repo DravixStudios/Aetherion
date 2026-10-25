@@ -88,12 +88,6 @@ ShadowPass::Execute(Ref<GraphicsContext> context, RenderGraphContext& graphCtx, 
 	void* pData = this->m_cascadeBuff->Allocate(sizeof(shaderData), nOffset);
 	memcpy(pData, &shaderData, sizeof(shaderData));
 
-	// Ensure cascade buffer updates are visible to lighting pass
-	context->BufferMemoryBarrier(
-		this->m_cascadeBuff->GetBuffer(),
-		EAccess::HOST_WRITE,
-		EAccess::UNIFORM_READ
-	);
 
 	struct ShadowPushConstants {
 		glm::mat4 lightViewProj;
