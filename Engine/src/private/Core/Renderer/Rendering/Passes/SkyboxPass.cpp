@@ -60,6 +60,11 @@ SkyboxPass::Execute(Ref<GraphicsContext> context, RenderGraphContext& graphCtx, 
 	void* pCamData = this->m_camBuff->Allocate(sizeof(SkyboxCamera), nCamDataSize);
 	memcpy(pCamData, &camData, sizeof(SkyboxCamera));
 
+	SkyboxPushConstant pushConstant = { };
+	pushConstant.nSampleCount = static_cast<uint32_t>(this->m_sampleCount);
+
+	context->PushConstants(this->m_pipelineLayout, EShaderStage::FRAGMENT, 0, sizeof(pushConstant), &pushConstant);
+
 	const Viewport vp { 0.f, 0.f, static_cast<float>(this->m_nWidth), static_cast<float>(this->m_nHeight), 0.f, 1.f };
 
 	context->SetViewport(vp);
@@ -143,8 +148,13 @@ SkyboxPass::CreateDescriptors() {
 */
 void
 SkyboxPass::CreatePipeline() {
+	PushConstantRange pushRange = { };
+	pushRange.nSize = sizeof(SkyboxPushConstant);
+	pushRange.stage = EShaderStage::FRAGMENT;
+
 	PipelineLayoutCreateInfo plInfo = { };
 	plInfo.setLayouts = { this->m_skyboxSetLayout, this->m_camSetLayout };
+	plInfo.pushConstantRanges = { pushRange };
 	
 	this->m_pipelineLayout = this->m_device->CreatePipelineLayout(plInfo);
 
@@ -168,6 +178,9 @@ SkyboxPass::CreatePipeline() {
 		{ 0, 0, GPUFormat::RGB32_FLOAT, offsetof(ScreenQuadVertex, position)},
 		{ 1, 0, GPUFormat::RG32_FLOAT, offsetof(ScreenQuadVertex, texCoord)}
 	};
+
+	/* Multisampling */
+	pipelineInfo.multisampleState.nSampleCount = 4;
 
 	/* Rasterization */
 	pipelineInfo.rasterizationState.cullMode = ECullMode::NONE;
@@ -194,7 +207,7 @@ SkyboxPass::CreatePipeline() {
 
 	AttachmentDescription colorAttachment = { };
 	colorAttachment.format = GPUFormat::RGBA16_FLOAT;
-	colorAttachment.sampleCount = ESampleCount::SAMPLE_1;
+	colorAttachment.sampleCount = ESampleCount::SAMPLE_4;
 	colorAttachment.initialLayout = EImageLayout::COLOR_ATTACHMENT;
 	colorAttachment.finalLayout = EImageLayout::COLOR_ATTACHMENT;
 	colorAttachment.loadOp = EAttachmentLoadOp::LOAD;
