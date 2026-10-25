@@ -175,7 +175,7 @@ BentNormalPass::CreatePipeline() {
 	attachment.stencilLoadOp = EAttachmentLoadOp::DONT_CARE;
 	attachment.stencilStoreOp = EAttachmentStoreOp::DONT_CARE;
 	attachment.format = GBufferLayout::BENT_NORMAL;
-	attachment.sampleCount = ESampleCount::SAMPLE_1;
+	attachment.sampleCount = this->m_sampleCount;
 
 	SubpassDescription subpass = { };
 	subpass.colorAttachments = { { 0, EImageLayout::COLOR_ATTACHMENT } };
@@ -189,7 +189,7 @@ BentNormalPass::CreatePipeline() {
 
 	/* Multisampling */
 	MultisampleState ms = { };
-	ms.nSampleCount = 1;
+	ms.nSampleCount = static_cast<uint32_t>(this->m_sampleCount);
 
 	/* Rasterization */
 	RasterizationState raster = { };
