@@ -88,6 +88,13 @@ ShadowPass::Execute(Ref<GraphicsContext> context, RenderGraphContext& graphCtx, 
 	void* pData = this->m_cascadeBuff->Allocate(sizeof(shaderData), nOffset);
 	memcpy(pData, &shaderData, sizeof(shaderData));
 
+	// Ensure cascade buffer updates are visible to lighting pass
+	context->BufferMemoryBarrier(
+		this->m_cascadeBuff->GetBuffer(),
+		EAccess::HOST_WRITE,
+		EAccess::UNIFORM_READ
+	);
+
 	struct ShadowPushConstants {
 		glm::mat4 lightViewProj;
 		uint32_t nWvpAlignment;
@@ -146,11 +153,14 @@ ShadowPass::Execute(Ref<GraphicsContext> context, RenderGraphContext& graphCtx, 
 			context->BindVertexBuffers({ VBO });
 			context->BindIndexBuffer(IBO, EIndexType::UINT32);
 
+			Ref<GPURingBuffer> countBuffer = this->m_shadowCountBuffers[i];
+			const uint32_t nCountOffset = nFrameIdx * j * sizeof(uint32_t);
+
 			context->DrawIndexedIndirect(
 				indirectBuff->GetBuffer(),
 				nCurrentOffset,
-				this->m_shadowCountBuffers[i],
-				j * sizeof(uint32_t),
+				this->m_shadowCountBuffers[i]->GetBuffer(),
+				nCountOffset,
 				this->m_pCullingPass->GetMaxBatchesPerBlock(),
 				sizeof(DrawIndexedIndirectCommand)
 			);
@@ -390,8 +400,8 @@ ShadowPass::CreateShadowResources() {
 	samplerInfo.addressModeV = EAddressMode::CLAMP_TO_BORDER;
 	samplerInfo.addressModeW = EAddressMode::CLAMP_TO_BORDER;
 	samplerInfo.borderColor = EBorderColor::FLOAT_OPAQUE_WHITE;
-	samplerInfo.bCompareEnable = true;
-	samplerInfo.compareOp = ECompareOp::LESS_OR_EQUAL;
+	samplerInfo.bCompareEnable = false;
+	samplerInfo.compareOp = ECompareOp::NEVER;
 	samplerInfo.bAnisotropyEnable = false;
 	samplerInfo.minLod = 0.f;
 	samplerInfo.maxLod = 1.f;
@@ -488,13 +498,13 @@ ShadowPass::CreateCullingResources() {
 		this->m_shadowIndirectBuffers[i] = this->m_device->CreateRingBuffer(indirectInfo);
 
 		/* Create count buffer */
-		BufferCreateInfo countInfo = { };
-		countInfo.nSize = sizeof(uint32_t) * 64;
-		countInfo.sharingMode = ESharingMode::EXCLUSIVE;
+		RingBufferCreateInfo countInfo = { };
+		countInfo.nBufferSize = this->m_nFramesInFlight * 64 * sizeof(uint32_t);
 		countInfo.usage = EBufferUsage::STORAGE_BUFFER | EBufferUsage::INDIRECT_BUFFER | EBufferUsage::TRANSFER_DST;
-		countInfo.type = EBufferType::STORAGE_BUFFER;
+		countInfo.nAlignment = 4;
+		countInfo.nFramesInFlight = this->m_nFramesInFlight;
 
-		this->m_shadowCountBuffers[i] = this->m_device->CreateBuffer(countInfo);
+		this->m_shadowCountBuffers[i] = this->m_device->CreateRingBuffer(countInfo, false);
 	}
 
 	/* Frustum ring buffer */
@@ -548,7 +558,7 @@ ShadowPass::CreateCullingResources() {
 			this->m_pCullingPass->GetMaterialBuffer()->GetPerFrameSize(), // 1
 			this->m_pCullingPass->GetBatchBuffer()->GetPerFrameSize(), // 2
 			this->m_shadowIndirectBuffers[i]->GetPerFrameSize(), // 3
-			0, // 4 (Is not per frame)
+			this->m_shadowCountBuffers[i]->GetPerFrameSize(), // 4
 			this->m_pCullingPass->GetWVPBuffer()->GetPerFrameSize(), // 5
 			this->m_shadowFrustumBuffer->GetPerFrameSize(), // 6
 		};
@@ -581,7 +591,7 @@ ShadowPass::CreateCullingResources() {
 
 			/* Binding 3: Draw count */
 			set->WriteBuffer(4, 0, {
-				this->m_shadowCountBuffers[i], frameSizes[4] * j, 64 * sizeof(uint32_t)
+				this->m_shadowCountBuffers[i]->GetBuffer(), frameSizes[4] * j, frameSizes[4]
 			});
 
 			/* Binding 4: WVP Data */
@@ -610,8 +620,10 @@ ShadowPass::CreateCullingResources() {
 void 
 ShadowPass::DispatchShadowCulling(Ref<GraphicsContext> context, uint32_t nCascadeIdx, uint32_t nFrameIdx) {
 	/* Reset count buffer to 0 */
-	Ref<GPUBuffer> countBuffer = this->m_shadowCountBuffers[nCascadeIdx];
-	context->FillBuffer(countBuffer, 0, sizeof(uint32_t) * 64, 0);
+	Ref<GPUBuffer> countBuffer = this->m_shadowCountBuffers[nCascadeIdx]->GetBuffer();
+	const uint32_t nCountStride = 64 * sizeof(uint32_t);
+	const uint32_t nCountOffset = nFrameIdx * nCountStride;
+	context->FillBuffer(countBuffer, nCountOffset, nCountStride, 0);
 	context->BufferMemoryBarrier(countBuffer, EAccess::TRANSFER_WRITE, EAccess::SHADER_WRITE);
 
 	if (this->m_pCullingPass->GetTotalBatches() == 0) {
@@ -672,7 +684,7 @@ ShadowPass::DispatchShadowCulling(Ref<GraphicsContext> context, uint32_t nCascad
 	);
 
 	context->BufferMemoryBarrier(
-		this->m_shadowCountBuffers[nCascadeIdx],
+		this->m_shadowCountBuffers[nCascadeIdx]->GetBuffer(),
 		EAccess::SHADER_WRITE,
 		EAccess::INDIRECT_COMMAND_READ
 	);
@@ -714,7 +726,7 @@ ShadowPass::CreatePipeline() {
 	pipelineInfo.vertexBindings = bindings;
 	pipelineInfo.vertexAttributes = attribs;
 
-	pipelineInfo.rasterizationState.cullMode = ECullMode::FRONT;
+	pipelineInfo.rasterizationState.cullMode = ECullMode::BACK;
 	pipelineInfo.rasterizationState.frontFace = EFrontFace::CLOCKWISE;
 	pipelineInfo.rasterizationState.bDepthBiasEnable = true;
 	pipelineInfo.rasterizationState.depthBiasConstantFactor = 2.f;

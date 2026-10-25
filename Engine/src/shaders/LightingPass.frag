@@ -99,6 +99,37 @@ float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness) {
 }
 
 /*
+    Interleaved Gradient Noise
+
+    Ref: Next generation Post processing in Call Of Duty: Advanced Warfare - Jorge Jimenez
+*/
+float InterleavedGradientNoise(vec2 pos) {
+    return fract(52.9829189 * fract(0.06711056 * pos.x + 0.00583715 * pos.y));
+}
+
+float SampleShadowVogel(vec3 shadowCoord, int cascadeIdx) {
+    const vec2 texelSize = 1.0 / vec2(textureSize(g_shadowMap, 0).xy);
+    const float noise = InterleavedGradientNoise(gl_FragCoord.xy) * TWO_PI;
+    const mat2 rot = mat2(cos(noise), -sin(noise), sin(noise), cos(noise));
+
+    float shadow = 0.0;
+    const int SAMPLES = 8;
+    const float GOLDEN_ANGLE = 2.399632;
+    const float VOGEL_RADIUS = 2.0;
+
+    for(int i = 0; i < SAMPLES; i++) {
+        float r = sqrt(float(i) + 0.5) / sqrt(float(SAMPLES));
+        float theta = float(i) * GOLDEN_ANGLE;
+        vec2 offset = rot * (vec2(cos(theta), sin(theta)) * r) * texelSize * VOGEL_RADIUS;
+
+        float depth = texture(g_shadowMap, vec3(shadowCoord.xy + offset, float(cascadeIdx))).r;
+        shadow += (shadowCoord.z <= depth) ? 1.0 : 0.0;
+    }
+
+    return shadow / float(SAMPLES);
+}
+
+/*
     Select the correct cascade depending
     on the fragment distance to the 
     camera
@@ -111,30 +142,6 @@ int SelectCascade(float viewDepth) {
     }
     
     return 3;
-}
-
-/*
-    PCF (Percentage Closer Filtering)
-    Samples a 3x3 kernel to smooth
-    shadow borders
-*/
-float SampleShadowPCF(vec3 shadowCoord, int cascadeIdx) {
-    float shadow = 0.0;
-    vec2 texelSize = 1.0 / vec2(textureSize(g_shadowMap, 0).xy);
-
-    for(int x = -1; x <= 1; x++) {
-        for(int y = -1; y <= 1; y++) {
-            vec2 offset = vec2(x, y) * texelSize;
-
-            shadow += texture(g_shadowMap, vec4(
-                shadowCoord.xy + offset, // UV
-                float(cascadeIdx), // Array layer
-                shadowCoord.z // Depth for comparison
-            ));
-        }
-    }
-
-    return shadow / 9.0;
 }
 
 vec3 WorldToShadowUV(vec3 worldPos, int cascade) {
@@ -151,7 +158,7 @@ vec3 WorldToShadowUV(vec3 worldPos, int cascade) {
     Returns 1.0 = illuminated, 0.0 = shaded
 */
 float CalculateShadow(vec3 worldPos, vec3 normal, float viewDepth) {
-    int cascade = SelectCascade(viewDepth);
+    int cascade = SelectCascade(abs(viewDepth));
 
     float blendFactor = 0.1;
 
@@ -163,7 +170,7 @@ float CalculateShadow(vec3 worldPos, vec3 normal, float viewDepth) {
     vec3 biasedPos = worldPos + normal * bias;
 
     /* Get the shadow of the cascade */
-    float shadow = SampleShadowPCF(WorldToShadowUV(biasedPos, cascade), cascade);
+    float shadow = SampleShadowVogel(WorldToShadowUV(biasedPos, cascade), cascade);
 
     /* 
         Cascade blending 
@@ -176,7 +183,7 @@ float CalculateShadow(vec3 worldPos, vec3 normal, float viewDepth) {
     float fade = clamp((viewDepth - (nextSplit - fadeRange)) / fadeRange, 0.0, 1.0);
 
     if(fade > 0.0 && cascade < 3) {
-        float nextShadow = SampleShadowPCF(WorldToShadowUV(biasedPos, cascade + 1), cascade + 1);
+        float nextShadow = SampleShadowVogel(WorldToShadowUV(biasedPos, cascade + 1), cascade + 1);
         shadow = mix(shadow, nextShadow, fade);
     }
 

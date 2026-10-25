@@ -93,7 +93,7 @@ private:
 
 	/* Per-cascade GPU Culling */
 	std::array<Ref<GPURingBuffer>, CSM_CASCADE_COUNT> m_shadowIndirectBuffers;
-	std::array<Ref<GPUBuffer>, CSM_CASCADE_COUNT> m_shadowCountBuffers;
+	std::array<Ref<GPURingBuffer>, CSM_CASCADE_COUNT> m_shadowCountBuffers;
 
 	/* Frustum ring buffer for the cascades */
 	Ref<GPURingBuffer> m_shadowFrustumBuffer;
