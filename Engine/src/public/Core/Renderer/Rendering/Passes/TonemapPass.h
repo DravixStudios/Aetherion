@@ -13,6 +13,10 @@ public:
 		TextureHandle emissiveInput;
 	};
 
+	struct TonemapPushConstants {
+		uint32_t nSampleCount;
+	};
+
 	void Init(Ref<Device> device) override;
 	void Init(Ref<Device> device, Ref<Swapchain> swapchain, uint32_t nFramesInFlight);
 
