@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 
 namespace Aether.Presets;
 
@@ -56,7 +56,7 @@ public static class PresetManager
         while(!string.IsNullOrEmpty(currentInherit) && map.TryGetValue(currentInherit, out var parent))
         {
             if (string.IsNullOrEmpty(resolved.Platform)) resolved.Platform = parent.Platform;
-            if (string.IsNullOrEmpty(resolved.Configuration)) resolved.Platform = parent.Configuration;
+            if (string.IsNullOrEmpty(resolved.Configuration)) resolved.Configuration = parent.Configuration;
             if (string.IsNullOrEmpty(resolved.Architecture)) resolved.Platform = parent.Architecture;
 
             foreach(var def in parent.Defines)
