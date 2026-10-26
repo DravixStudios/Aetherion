@@ -70,7 +70,7 @@ public static class NinjaGenerator
 
         var objectFiles = new List<string>();
 
-        foreach (var module in target.Modules)
+        foreach (var module in target.ResolvedModules)
         {
             string incPrefix = toolchain.Family == ToolchainFamily.MSVC ? "/I" : "-I";
             string includeFlags = string.Join(" ", module.IncludePaths.Select(p => $"{incPrefix}\"{p.Replace("\\", "/")}\""));
@@ -102,6 +102,16 @@ public static class NinjaGenerator
 
         string ninjaFilePath = Path.Combine(intermediateDir, "build.ninja");
         File.WriteAllText(ninjaFilePath, ninja.ToString());
+
+        /*
+         * And yes... 
+         * As you can see, we are generating a build.ninja 
+         * file based on the presets.
+         * 
+         * This is really VERBOSE. And as a tradition in this type
+         * of files, another gift for you: https://open.spotify.com/track/2aJDlirz6v2a4HREki98cP?si=1cb3ccd87aa44c9f
+         * 
+         */
 
         return ninjaFilePath;
     }
