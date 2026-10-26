@@ -1,7 +1,3 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
 namespace Aether.Toolchain;
 
 public enum ToolchainFamily { MSVC, ClangGcc }
