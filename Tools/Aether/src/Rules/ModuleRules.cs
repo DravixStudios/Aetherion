@@ -1,8 +1,12 @@
-﻿namespace Aether.Rules;
+namespace Aether.Rules;
 
 public abstract class ModuleRules
 {
     public string Name { get; set; } = string.Empty;
     public List<string> IncludePaths { get; } = new();
     public List<string> SourceFiles { get; } = new();
+    public List<string> Defines { get; } = new();
+    public List<string> Libraries { get; } = new();
+    public List<string> LibraryPaths { get; } = new();
+    public List<ExternalRules> Externals { get; } = new();
 }

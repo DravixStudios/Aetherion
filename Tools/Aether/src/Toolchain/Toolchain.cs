@@ -1,10 +1,10 @@
-namespace Aether.Toolchain;
+﻿namespace Aether.Toolchain;
 
 public enum ToolchainFamily { MSVC, ClangGcc }
 
 public class Toolchain
 {
-    public string Compiler {  get; }
+    public string Compiler { get; }
     public string Linker { get; }
     public ToolchainFamily Family { get; }
 
