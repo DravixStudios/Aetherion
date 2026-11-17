@@ -413,7 +413,8 @@ Core::SetupCallbacks() {
             */
             const Name& assetName = ProjectManagerHelpers::GetAssetName(handle);
             GameObject* pObj = new GameObject(String(assetName));
-            pObj->transform.scale = Vector3(.05f, .05f, .05f);
+            pObj->transform.Rotate(Vector3{ 90.f, 0.f, 0.f });
+            //pObj->transform.scale = Vector3(.05f, .05f, .05f);
             Mesh* pMesh = new Mesh("MeshComponent");
             pMesh->LoadAsset(handle);
 
