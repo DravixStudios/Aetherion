@@ -57,7 +57,7 @@ public static class PresetManager
         {
             if (string.IsNullOrEmpty(resolved.Platform)) resolved.Platform = parent.Platform;
             if (string.IsNullOrEmpty(resolved.Configuration)) resolved.Configuration = parent.Configuration;
-            if (string.IsNullOrEmpty(resolved.Architecture)) resolved.Platform = parent.Architecture;
+            if (string.IsNullOrEmpty(resolved.Architecture)) resolved.Architecture = parent.Architecture;
 
             foreach(var def in parent.Defines)
             {
