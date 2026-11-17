@@ -6,9 +6,11 @@ namespace Aether.Toolchain;
 
 public static class NinjaGenerator
 {
-    public static string Generate(string workspaceRoot, TargetRules target, Toolchain toolchain, Preset preset)
+    public static string Generate(string workspaceRoot, TargetRules target, Toolchain toolchain, Preset preset, string targetBin)
     {
-        string binDir = Path.Combine(workspaceRoot, "Bin", target.Name, preset.Configuration).Replace("\\", "/");
+        string binDir = !string.IsNullOrEmpty(targetBin)
+            ? targetBin.Replace("\\", "/")
+            : Path.Combine(workspaceRoot, "Bin", target.Name, preset.Configuration).Replace("\\", "/");
         Directory.CreateDirectory(binDir);
 
         string intermediateDir = Path.Combine(workspaceRoot, ".cache", target.Name, preset.Configuration).Replace("\\", "/");
@@ -32,29 +34,37 @@ public static class NinjaGenerator
 
         if (toolchain.Family == ToolchainFamily.MSVC)
         {
-            string opt = isDebug ? "/Od /RTC1 /Zi /MDd" : "/O2 /DNDEBUG /MD";
-            string cxx = $"/nologo /std:c++20 /EHsc /W3 {opt}";
+            string opt = isDebug ? "/Od /RTC1 /Z7 /MDd" : "/O2 /DNDEBUG /MD";
+            string cxx = $"/nologo /std:c++20 /EHsc /utf-8 /W3 {opt}";
+            string cc = $"/nologo /utf-8 /W3 {opt}";
             string lnk = isDebug ? "/nologo /DEBUG" : "/nologo";
 
             ninja.AppendLine("rule compile");
-            ninja.AppendLine($"  command = $compiler {cxx} /Fd$out.pdb /FS /showIncludes $defines $includes /c $in /Fo$out");
+            ninja.AppendLine($"  command = $compiler {cxx} /showIncludes $defines $includes /c $in /Fo$out");
             ninja.AppendLine("  deps = msvc");
             ninja.AppendLine("  description = [CXX] $in");
             ninja.AppendLine();
 
+            ninja.AppendLine("rule compile_c");
+            ninja.AppendLine($"  command = $compiler {cc} /showIncludes $defines $includes /c $in /Fo$out");
+            ninja.AppendLine("  deps = msvc");
+            ninja.AppendLine("  description = [CC] $in");
+            ninja.AppendLine();
+
             ninja.AppendLine("rule link_dll");
-            ninja.AppendLine($"  command = $linker {lnk} /DLL $in /OUT:$out /IMPLIB:$implib");
+            ninja.AppendLine($"  command = $linker {lnk} /DLL $in $libpaths $libs /OUT:$out /IMPLIB:$implib");
             ninja.AppendLine("  description = [DLL] $out");
             ninja.AppendLine();
 
             ninja.AppendLine("rule link_exe");
-            ninja.AppendLine($"  command = $linker {lnk} $in $libs /OUT:$out");
+            ninja.AppendLine($"  command = $linker {lnk} $in $libpaths $libs /OUT:$out");
             ninja.AppendLine("  description = [EXE] $out");
         }
         else
         {
             string opt = isDebug ? "-O0 -g" : "-O3 -DNDEBUG";
             string cxx = $"-std=c++20 -Wall -fPIC {opt}";
+            string cc = $"-Wall -fPIC {opt}";
             string lnk = isDebug ? "-g" : "";
             string sharedFlag = isMac ? "-dynamiclib" : "-shared";
             string rpath = isMac ? "-Wl,-rpath,@loader_path" : "-Wl,-rpath,'$$ORIGIN'";
@@ -66,13 +76,20 @@ public static class NinjaGenerator
             ninja.AppendLine("  description = [CXX] $in");
             ninja.AppendLine();
 
+            ninja.AppendLine("rule compile_c");
+            ninja.AppendLine($"  command = $compiler {cc} -MMD -MF $out.d $defines $includes -c $in -o $out");
+            ninja.AppendLine("  depfile = $out.d");
+            ninja.AppendLine("  deps = gcc");
+            ninja.AppendLine("  description = [CC] $in");
+            ninja.AppendLine();
+
             ninja.AppendLine("rule link_dll");
-            ninja.AppendLine($"  command = $linker {sharedFlag} {lnk} $in -o $out");
+            ninja.AppendLine($"  command = $linker {sharedFlag} {lnk} $in $libpaths $libs -o $out");
             ninja.AppendLine("  description = [SHARED] $out");
             ninja.AppendLine();
 
             ninja.AppendLine("rule link_exe");
-            ninja.AppendLine($"  command = $linker {lnk} {rpath} $in $libs -o $out");
+            ninja.AppendLine($"  command = $linker {lnk} {rpath} $in $libpaths $libs -o $out");
             ninja.AppendLine("  description = [EXE] $out");
         }
 
@@ -106,7 +123,10 @@ public static class NinjaGenerator
 
                 string objFile = ToNinjaPath($"{intermediateDir}/{objName}");
 
-                ninja.AppendLine($"build {objFile}: compile {normSrc}");
+                bool isC = absoluteSrc.EndsWith(".c", StringComparison.OrdinalIgnoreCase);
+                string ruleName = isC ? "compile_c" : "compile";
+
+                ninja.AppendLine($"build {objFile}: {ruleName} {normSrc}");
                 ninja.AppendLine($"  defines = {moduleDefines}");
                 ninja.AppendLine($"  includes = {moduleIncludes}");
                 moduleObjFiles.Add(objFile);
@@ -148,6 +168,10 @@ public static class NinjaGenerator
             if (!string.IsNullOrEmpty(modInc)) targetIncludes += " " + modInc;
         }
 
+        string targetDefines = globalDefines;
+        foreach (var def in target.Defines)
+            targetDefines += $" {definePrefix}{def}";
+
         foreach (var src in target.SourceFiles)
         {
             string absoluteSrc = Path.GetFullPath(src);
@@ -167,33 +191,48 @@ public static class NinjaGenerator
                 Path.Combine(intermediateDir, objName)
             );
 
-            ninja.AppendLine($"build {objFile}: compile {normSrc}");
-            ninja.AppendLine($"  defines = {globalDefines}");
+            bool isC = absoluteSrc.EndsWith(".c", StringComparison.OrdinalIgnoreCase);
+            string ruleName = isC ? "compile_c" : "compile";
+
+            ninja.AppendLine($"build {objFile}: {ruleName} {normSrc}");
+            ninja.AppendLine($"  defines = {targetDefines}");
             ninja.AppendLine($"  includes = {targetIncludes}");
 
             targetObjFiles.Add(objFile);
         }
 
-        string exeName = isWindows ? $"{target.Name}.exe" : target.Name;
+        string exeName = !string.IsNullOrEmpty(target.OutputExecutable)
+            ? target.OutputExecutable
+            : (isWindows ? $"{target.Name}.exe" : target.Name);
+        if (isWindows && !exeName.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+            exeName += ".exe";
+
         string exePath = ToNinjaPath(Path.Combine(binDir, exeName));
         string orderDeps = allDllOutputs.Count > 0 ? " | " + string.Join(" ", allDllOutputs) : "";
+
         ninja.AppendLine($"build {exePath}: link_exe {string.Join(" ", targetObjFiles)}{orderDeps}");
-        if (moduleImportLibs.Count > 0) ninja.AppendLine($"  libs = {string.Join(" ", moduleImportLibs)}");
+
+        var allLibs = new List<string>();
+        allLibs.AddRange(target.Libraries);
+        allLibs.AddRange(moduleImportLibs);
+
+        if (allLibs.Count > 0)
+        {
+            ninja.AppendLine($"  libs = {string.Join(" ", allLibs)}");
+        }
+
+        if (target.LibraryPaths.Count > 0)
+        {
+            string libPathPrefix = toolchain.Family == ToolchainFamily.MSVC ? "/LIBPATH:" : "-L";
+            string libPathsStr = string.Join(" ", target.LibraryPaths.Select(p => $"{libPathPrefix}\"{p.Replace("\\", "/")}\""));
+            ninja.AppendLine($"  libpaths = {libPathsStr}");
+        }
+
         ninja.AppendLine();
         ninja.AppendLine($"default {exePath}");
 
         string ninjaFilePath = Path.Combine(intermediateDir, "build.ninja");
         File.WriteAllText(ninjaFilePath, ninja.ToString());
-
-        /*
-         * And yes... 
-         * As you can see, we are generating a build.ninja 
-         * file based on the presets.
-         * 
-         * This is really VERBOSE. And as a tradition in this type
-         * of files, another gift for you: https://open.spotify.com/track/2aJDlirz6v2a4HREki98cP?si=1cb3ccd87aa44c9f
-         * 
-         */
 
         return ninjaFilePath;
     }
@@ -203,13 +242,5 @@ public static class NinjaGenerator
         return path.Replace("\\", "/")
                    .Replace(" ", "$ ")
                    .Replace(":", "$:");
-    }
-
-    private static string GetRelativeNinjaPath(
-        string workspaceRoot,
-        string path)
-    {
-        string relative = Path.GetRelativePath(workspaceRoot, path);
-        return ToNinjaPath(relative);
     }
 }
