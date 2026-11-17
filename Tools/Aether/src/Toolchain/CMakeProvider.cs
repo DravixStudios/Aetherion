@@ -15,18 +15,29 @@ public static class CMakeProvider
         string cmake = OperatingSystem.IsWindows() ? "cmake.exe" : "cmake";
 
         string? systemCMake = FindInPath(cmake);
-        if(systemCMake != null)
+        if (systemCMake != null)
         {
             return systemCMake;
         }
 
         // Check if CMake already cached
         string cacheDir = Path.Combine(workspaceRoot, ".cache");
-        string cmakeExe = Path.Combine(cacheDir, cmake);
+        string cmakeDir = Path.Combine(cacheDir, $"cmake-{CMakeVersion}");
+        string cmakeExe = Path.Combine(cmakeDir, "bin", cmake);
 
-        if(File.Exists(cmakeExe))
+        if (File.Exists(cmakeExe))
         {
             return cmakeExe;
+        }
+
+        // Check in Visual Studio
+        if (OperatingSystem.IsWindows())
+        {
+            string? vsCmake = VisualStudioLocator.FindCMake();
+            if (vsCmake != null)
+            {
+                return vsCmake;
+            }
         }
 
         // If doesn't exist, gather it from Github
@@ -34,6 +45,9 @@ public static class CMakeProvider
         Console.WriteLine($"[Aether] CMake not found. Automatically downloading {CMakeVersion}...");
 
         string url = GetDownloadUrl();
+
+        Console.WriteLine($"[Aether] Downloading CMake {CMakeVersion} from {url}");
+
         using var client = new HttpClient();
         byte[] byteData = await client.GetByteArrayAsync(url);
 
@@ -41,7 +55,7 @@ public static class CMakeProvider
         bool isTarGz = url.EndsWith(".tar.gz");
         using var mmStream = new MemoryStream(byteData);
 
-        string cmakePath = isTarGz ? ExtractTarGz(mmStream, cacheDir) : ExtractZip(mmStream, cacheDir);
+        string? cmakePath = isTarGz ? ExtractTarGz(mmStream, cacheDir) : ExtractZip(mmStream, cacheDir);
 
         if (cmakePath != null) return cmakePath;
 
@@ -50,75 +64,67 @@ public static class CMakeProvider
 
     private static string ExtractZip(MemoryStream mmStream, string cacheDir)
     {
+        string extractedDir = Path.Combine(cacheDir, $"cmake-{CMakeVersion}");
+
         using var archive = new ZipArchive(mmStream);
+        archive.ExtractToDirectory(extractedDir, overwriteFiles: true);
 
-
-        foreach (var entry in archive.Entries)
+        // Get the inner directory
+        string[] innerDirs = Directory.GetDirectories(extractedDir);
+        if (innerDirs.Length == 1)
         {
-            if (entry.Name.StartsWith("cmake", StringComparison.OrdinalIgnoreCase) && !entry.Name.StartsWith("cmake-gui", StringComparison.OrdinalIgnoreCase))
+            string innerDir = innerDirs[0];
+            foreach (string item in Directory.GetFileSystemEntries(innerDir))
             {
-                string dest = Path.Combine(cacheDir, entry.Name);
-                entry.ExtractToFile(dest, overwrite: true);
+                string dest = Path.Combine(extractedDir, Path.GetFileName(item));
 
-                // Give execution rights on macOS/Linux
-                if (!OperatingSystem.IsWindows())
-                {
-                    File.SetUnixFileMode(dest,
-                        UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
-                        UnixFileMode.GroupRead | UnixFileMode.GroupExecute |
-                        UnixFileMode.OtherRead | UnixFileMode.OtherExecute);
-                }
-
-                Console.WriteLine($"[Aether] CMake ready at: {dest}");
-                return dest;
+                if (Directory.Exists(item))
+                    Directory.Move(item, dest);
+                else
+                    File.Move(item, dest);
             }
+
+            Directory.Delete(innerDir);
         }
 
-        return null;
+        string cmakePath = Path.Combine(extractedDir, "bin", "cmake.exe");
+
+        if (!File.Exists(cmakePath))
+            throw new FileNotFoundException("CMake executable not found");
+
+        return cmakePath;
     }
 
-    private static string ExtractTarGz(MemoryStream mmStream, string cacheDir)
+    private static string? ExtractTarGz(MemoryStream mmStream, string cacheDir)
     {
+        if (OperatingSystem.IsWindows())
+            return null;
+
+        string extractedDir = Path.Combine(cacheDir, $"cmake-{CMakeVersion}");
+
         mmStream.Position = 0;
 
-        using var gzip = new GZipStream(mmStream, CompressionMode.Decompress, leaveOpen: true);
-        using var archive = new TarReader(gzip);
+        using var gzip = new GZipStream(mmStream, CompressionMode.Decompress);
+        TarFile.ExtractToDirectory(gzip, extractedDir, overwriteFiles: true);
 
-        TarEntry? entry;
-        while ((entry = archive.GetNextEntry()) != null)
-        {
-            if (entry.EntryType != TarEntryType.RegularFile)
-                continue;
+        string cmakePath = Path.Combine(extractedDir, "bin", "cmake");
 
-            string filename = Path.GetFileName(entry.Name);
-            if (!filename.StartsWith("cmake", StringComparison.OrdinalIgnoreCase))
-                continue;
+        if (!File.Exists(cmakePath))
+            throw new FileNotFoundException("Cmake executable not found");
 
-            string dest = Path.Combine(cacheDir, filename);
-
-            if (entry.DataStream == null)
-                continue;
-
-            if (!OperatingSystem.IsWindows())
-            {
-                File.SetUnixFileMode(dest,
+        File.SetUnixFileMode(cmakePath,
                        UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
                        UnixFileMode.GroupRead | UnixFileMode.GroupExecute |
                        UnixFileMode.OtherRead | UnixFileMode.OtherExecute);
-            }
 
-            Console.WriteLine($"[Aether] CMake ready at: {dest}");
-            return dest;
-        }
-
-        return null;
+        return cmakePath;
     }
 
     private static string GetDownloadUrl()
     {
         if (OperatingSystem.IsWindows())
             return $"https://github.com/Kitware/CMake/releases/download/v{CMakeVersion}/cmake-{CMakeVersion}-windows-x86_64.zip";
-        if(OperatingSystem.IsMacOS())                                       
+        if (OperatingSystem.IsMacOS())                                       
             return $"https://github.com/Kitware/CMake/releases/download/v{CMakeVersion}/cmake-{CMakeVersion}-macos-universal.tar.gz";
         if (OperatingSystem.IsLinux())                                      
             return $"https://github.com/Kitware/CMake/releases/download/v{CMakeVersion}/cmake-{CMakeVersion}-linux-x86_64.tar.gz";
@@ -137,7 +143,7 @@ public static class CMakeProvider
             try
             {
                 string fullpath = Path.Combine(dir, filename);
-                if(File.Exists(fullpath)) return fullpath;
+                if (File.Exists(fullpath)) return fullpath;
             }
             catch
             {
