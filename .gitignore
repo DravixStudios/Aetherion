@@ -470,4 +470,10 @@ FodyWeavers.xsd
 ### VisualStudio Patch ###
 # Additional files built by Visual Studio
 
+# Ninja & Aether
+.ninja_deps
+.ninja_log
+compile_commands.json
+*.slnx
+
 # End of https://www.toptal.com/developers/gitignore/api/vcpkg,visualstudio,cmake,c++
