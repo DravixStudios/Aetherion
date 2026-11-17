@@ -20,9 +20,17 @@ public class Toolchain
         string? env = Environment.GetEnvironmentVariable("AETHER_TOOLCHAIN");
         if (string.IsNullOrWhiteSpace(env))
         {
-            // Fallback method for Windows users
+            // Windows users: check if MSVC environment is active or locate via VS
             if (OperatingSystem.IsWindows())
+            {
+                bool isClInPath = FindInPath("cl.exe") != null;
+                if (!isClInPath)
+                {
+                    VisualStudioLocator.TrySetupMsvcEnvironment();
+                }
+
                 return new Toolchain("cl.exe", "link.exe", ToolchainFamily.MSVC);
+            }
 
             /* 
              * Sorry Linux/macOS users... It's really difficult to guess which compiler are you using.
@@ -36,5 +44,26 @@ public class Toolchain
         var family = parts[0].Contains("cl", StringComparison.OrdinalIgnoreCase) ? ToolchainFamily.MSVC : ToolchainFamily.ClangGcc;
 
         return new Toolchain(parts[0], parts[1], family);
+    }
+
+    private static string? FindInPath(string filename)
+    {
+        string? pathEnv = Environment.GetEnvironmentVariable("PATH");
+        if (string.IsNullOrEmpty(pathEnv)) return null;
+
+        string[] paths = pathEnv.Split(Path.PathSeparator);
+        foreach (string dir in paths)
+        {
+            try
+            {
+                string fullpath = Path.Combine(dir, filename);
+                if (File.Exists(fullpath)) return fullpath;
+            }
+            catch
+            {
+                // Ignore invalid routes in PATH
+            }
+        }
+        return null;
     }
 }
