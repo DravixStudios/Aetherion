@@ -14,7 +14,7 @@ public static class NinjaProvider
         string ninja = OperatingSystem.IsWindows() ? "ninja.exe" : "ninja";
 
         string? systemNinja = FindInPath(ninja);
-        if(systemNinja != null)
+        if (systemNinja != null)
         {
             return systemNinja;
         }
@@ -23,9 +23,19 @@ public static class NinjaProvider
         string cacheDir = Path.Combine(workspaceRoot, ".cache");
         string ninjaExe = Path.Combine(cacheDir, ninja);
 
-        if(File.Exists(ninjaExe))
+        if (File.Exists(ninjaExe))
         {
             return ninjaExe;
+        }
+
+        // Check Visual Studio installations
+        if (OperatingSystem.IsWindows())
+        {
+            string? vsNinja = VisualStudioLocator.FindNinja();
+            if (vsNinja != null)
+            {
+                return vsNinja;
+            }
         }
 
         // If doesn't exist, gather it from Github
@@ -50,7 +60,7 @@ public static class NinjaProvider
                 if (!OperatingSystem.IsWindows())
                 {
                     File.SetUnixFileMode(dest, 
-                        UnixFileMode.UserRead |UnixFileMode.UserWrite | UnixFileMode.UserExecute | 
+                        UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute | 
                         UnixFileMode.GroupRead | UnixFileMode.GroupExecute |
                         UnixFileMode.OtherRead | UnixFileMode.OtherExecute);
                 }
@@ -67,7 +77,7 @@ public static class NinjaProvider
     {
         if (OperatingSystem.IsWindows())
             return $"https://github.com/ninja-build/ninja/releases/download/{NinjaVersion}/ninja-win.zip";
-        if(OperatingSystem.IsMacOS())
+        if (OperatingSystem.IsMacOS())
             return $"https://github.com/ninja-build/ninja/releases/download/{NinjaVersion}/ninja-mac.zip";
         if (OperatingSystem.IsLinux())
             return $"https://github.com/ninja-build/ninja/releases/download/{NinjaVersion}/ninja-linux.zip";
@@ -86,7 +96,7 @@ public static class NinjaProvider
             try
             {
                 string fullpath = Path.Combine(dir, filename);
-                if(File.Exists(fullpath)) return fullpath;
+                if (File.Exists(fullpath)) return fullpath;
             }
             catch
             {
