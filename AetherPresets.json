@@ -1,0 +1,89 @@
+{
+  "version": 1,
+  "presets": [
+    {
+      "name": "windows-base",
+      "platform": "Windows",
+      "architecture": "x64",
+      "defines": [ "RENDERER_USE_VULKAN=1" ]
+    },
+    {
+      "name": "linux-base",
+      "platform": "Linux",
+      "architecture": "x64",
+      "defines": [ "RENDERER_USE_VULKAN=1" ]
+    },
+    {
+      "name": "macos-base",
+      "platform": "macOS",
+      "architecture": "arm64",
+      "defines": [ "RENDERER_USE_VULKAN=1" ]
+    },
+    {
+      "name": "x64-debug-spdlog",
+      "inherits": "windows-base",
+      "configuration": "Debug",
+      "defines": [ "LOGGING_USE_SPDLOG=1" ]
+    },
+    {
+      "name": "x64-release-spdlog",
+      "inherits": "x64-debug-spdlog",
+      "configuration": "Release"
+    },
+    {
+      "name": "x64-debug-no-spdlog",
+      "inherits": "windows-base",
+      "configuration": "Debug",
+      "defines": [ "LOGGING_USE_SPDLOG=0" ]
+    },
+    {
+      "name": "x64-release-no-spdlog",
+      "inherits": "x64-debug-no-spdlog",
+      "configuration": "Release"
+    },
+    {
+      "name": "linux-debug-spdlog",
+      "inherits": "linux-base",
+      "configuration": "Debug",
+      "defines": [ "LOGGING_USE_SPDLOG=1" ]
+    },
+    {
+      "name": "linux-release-spdlog",
+      "inherits": "linux-debug-spdlog",
+      "configuration": "Release"
+    },
+    {
+      "name": "linux-debug-no-spdlog",
+      "inherits": "linux-base",
+      "configuration": "Debug",
+      "defines": [ "LOGGING_USE_SPDLOG=0" ]
+    },
+    {
+      "name": "linux-release-no-spdlog",
+      "inherits": "linux-debug-no-spdlog",
+      "configuration": "Release"
+    },
+    {
+      "name": "macos-debug-spdlog",
+      "inherits": "macos-base",
+      "configuration": "Debug",
+      "defines": [ "LOGGING_USE_SPDLOG=1" ]
+    },
+    {
+      "name": "macos-release-spdlog",
+      "inherits": "macos-debug-spdlog",
+      "configuration": "Release"
+    },
+    {
+      "name": "macos-debug-no-spdlog",
+      "inherits": "macos-base",
+      "configuration": "Debug",
+      "defines": [ "LOGGING_USE_SPDLOG=0" ]
+    },
+    {
+      "name": "macos-release-no-spdlog",
+      "inherits": "macos-debug-no-spdlog",
+      "configuration": "Release"
+    }
+  ]
+}

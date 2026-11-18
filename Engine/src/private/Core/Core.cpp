@@ -6,6 +6,9 @@
 
 #include <nfd.h>
 
+extern "C" int NFD_SaveDialogN(wchar_t** outPath, const void* filterList, unsigned int filterCount, const wchar_t* defaultPath, const wchar_t* defaultName);
+extern "C" const char* NFD_GetError(void);
+
 #ifndef GIT_COMMIT
 #define GIT_COMMIT "Unknown commit"
 #endif
@@ -344,30 +347,30 @@ Core::SetupCallbacks() {
             TODO: Move this part to a separate class
             or system
         */
-        nfdu8char_t* outPath;
-        nfdu8filteritem_t filters[1] = { { "Aetherion Scene", "aeth" } };
+        wchar_t* outPath = nullptr;
 
         fs::path projectPath = projectDir.name;
         String sceneName = scene->GetName();
         String sceneFile = sceneName + ".aeth";
+        std::wstring sceneFileW = fs::path(sceneFile).wstring();
 
-        nfdresult_t result = NFD_SaveDialogU8(
+        int result = NFD_SaveDialogN(
             &outPath,
-            filters,
-            1,
-            reinterpret_cast<const nfdu8char_t*>(projectPath.u8string().c_str()),
-            reinterpret_cast<const nfdu8char_t*>(sceneFile.c_str())
+            nullptr,
+            0,
+            projectPath.wstring().c_str(),
+            sceneFileW.c_str()
         );
 
         /* Check NFD result */
         switch (result) {
-        case NFD_OKAY:
-            Logger::Debug("Core::SetupCallbacks:[OnSceneSaveCallback]: Saving scene. {}", outPath);
+        case 1:
+            Logger::Debug("Core::SetupCallbacks:[OnSceneSaveCallback]: Saving scene.");
             break;
-        case NFD_CANCEL:
+        case 2:
             Logger::Debug("Core::SetupCallbacks:[OnSceneSaveCallback]: User cancelled dialog");
             return;
-        case NFD_ERROR:
+        case 0:
         {
             const char* error = NFD_GetError();
             Logger::Error("Core::SetupCallbacks:[OnSceneSaveCallback]: {}", error);
@@ -375,7 +378,7 @@ Core::SetupCallbacks() {
         }
         }
 
-        String scenePath(outPath);
+        String scenePath = fs::path(outPath).string();
 
         /*
             Serialize scene and save it
@@ -413,7 +416,8 @@ Core::SetupCallbacks() {
             */
             const Name& assetName = ProjectManagerHelpers::GetAssetName(handle);
             GameObject* pObj = new GameObject(String(assetName));
-            pObj->transform.scale = Vector3(.05f, .05f, .05f);
+            pObj->transform.Rotate(Vector3{ 90.f, 0.f, 0.f });
+            //pObj->transform.scale = Vector3(.05f, .05f, .05f);
             Mesh* pMesh = new Mesh("MeshComponent");
             pMesh->LoadAsset(handle);
 

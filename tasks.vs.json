@@ -1,0 +1,23 @@
+{
+  "version": "0.2.1",
+  "tasks": [
+    {
+      "taskLabel": "Aether Build",
+      "appliesTo": "*",
+      "type": "launch",
+      "contextType": "build",
+      "command": "${workspaceRoot}\\Scripts\\Batch\\AetherBuild.bat",
+      "workingDirectory": "${workspaceRoot}",
+      "launchOption": "None"
+    },
+    {
+      "taskLabel": "Aether Clean",
+      "appliesTo": "*",
+      "type": "launch",
+      "contextType": "clean",
+      "command": "${workspaceRoot}\\bin\\Aether\\Aether.exe",
+      "args": [ "clearcache" ],
+      "workingDirectory": "${workspaceRoot}"
+    }
+  ]
+}
