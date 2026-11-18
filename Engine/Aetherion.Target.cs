@@ -8,34 +8,20 @@ public class ImguiExternal : ExternalRules
     {
         Name = "ImGui";
         Repo = "https://github.com/ocornut/imgui";
+        Branch = "docking";
         BuildWithCMake = false;
-
-        string imguiPath = Path.Combine(workspaceRoot, "Engine", "include", "imgui");
-        if (Directory.Exists(imguiPath))
+        IncludePaths.Add(".");
+        IncludePaths.Add("backends");
+        SourceFiles.AddRange(new[]
         {
-            IncludePaths.Add(imguiPath);
-            IncludePaths.Add(Path.Combine(imguiPath, "backends"));
-
-            string[] sources = new[]
-            {
-                "imgui.cpp",
-                "imgui_draw.cpp",
-                "imgui_tables.cpp",
-                "imgui_widgets.cpp",
-                "backends/imgui_impl_glfw.cpp",
-                "backends/imgui_impl_vulkan.cpp",
-                "backends/imgui_impl_win32.cpp"
-            };
-
-            foreach (var s in sources)
-            {
-                string full = Path.Combine(imguiPath, s);
-                if (File.Exists(full))
-                {
-                    SourceFiles.Add(full);
-                }
-            }
-        }
+            "imgui.cpp",
+            "imgui_draw.cpp",
+            "imgui_tables.cpp",
+            "imgui_widgets.cpp",
+            "backends/imgui_impl_glfw.cpp",
+            "backends/imgui_impl_vulkan.cpp",
+            "backends/imgui_impl_win32.cpp"
+        });
     }
 }
 
@@ -46,6 +32,128 @@ public class AssimpExternal : ExternalRules
         Name = "Assimp";
         Repo = "https://github.com/assimp/assimp";
         BuildWithCMake = true;
+    }
+}
+
+public class SpdlogExternal : ExternalRules
+{
+    public SpdlogExternal(string workspaceRoot)
+    {
+        Name = "spdlog";
+        Repo = "https://github.com/gabime/spdlog";
+        Branch = "v1.15.3";
+        BuildWithCMake = true;
+        Defines.Add("SPDLOG_FMT_EXTERNAL");
+        string fmtBuildDir = Path.Combine(workspaceRoot, ".cache", "fmt", "build").Replace("\\", "/");
+        CMakeArguments = $"-DSPDLOG_FMT_EXTERNAL=ON -DFMT_DIR=\"{fmtBuildDir}\" -DCMAKE_PREFIX_PATH=\"{fmtBuildDir}\"";
+    }
+}
+
+public class FmtExternal : ExternalRules
+{
+    public FmtExternal()
+    {
+        Name = "fmt";
+        Repo = "https://github.com/fmtlib/fmt";
+        Branch = "11.2.0";
+        BuildWithCMake = true;
+    }
+}
+
+public class GlfwExternal : ExternalRules
+{
+    public GlfwExternal()
+    {
+        Name = "glfw";
+        Repo = "https://github.com/glfw/glfw";
+        BuildWithCMake = true;
+    }
+}
+
+public class XxHashExternal : ExternalRules
+{
+    public XxHashExternal()
+    {
+        Name = "xxhash";
+        Repo = "https://github.com/Cyan4973/xxHash";
+        BuildWithCMake = false;
+        IncludePaths.Add(".");
+        SourceFiles.Add("xxhash.c");
+    }
+}
+
+public class NfdExternal : ExternalRules
+{
+    public NfdExternal()
+    {
+        Name = "NFD";
+        Repo = "https://github.com/btzy/nativefiledialog-extended";
+        BuildWithCMake = true;
+        IncludePaths.Add("src/include");
+    }
+}
+
+public class NanoSvgExternal : ExternalRules
+{
+    public NanoSvgExternal()
+    {
+        Name = "nanosvg";
+        Repo = "https://github.com/memononen/nanosvg";
+        BuildWithCMake = false;
+    }
+}
+
+public class StbExternal : ExternalRules
+{
+    public StbExternal()
+    {
+        Name = "stb";
+        Repo = "https://github.com/nothings/stb";
+        BuildWithCMake = false;
+    }
+}
+
+public class MinizExternal : ExternalRules
+{
+    public MinizExternal()
+    {
+        Name = "miniz";
+        Repo = "https://github.com/richgel999/miniz";
+        BuildWithCMake = false;
+        SourceFiles.Add("miniz.c");
+    }
+}
+
+public class TinyExrExternal : ExternalRules
+{
+    public TinyExrExternal()
+    {
+        Name = "tinyexr";
+        Repo = "https://github.com/syoyo/tinyexr";
+        BuildWithCMake = false;
+        SourceFiles.Add("deps/miniz/miniz.c");
+    }
+}
+
+public class NlohmannExternal : ExternalRules
+{
+    public NlohmannExternal()
+    {
+        Name = "nlohmann";
+        Repo = "https://github.com/nlohmann/json";
+        BuildWithCMake = false;
+        IncludePaths.Add("single_include");
+    }
+}
+
+public class GlmExternal : ExternalRules
+{
+    public GlmExternal()
+    {
+        Name = "glm";
+        Repo = "https://github.com/g-truc/glm";
+        BuildWithCMake = false;
+        IncludePaths.Add(".");
     }
 }
 
@@ -89,8 +197,8 @@ public class AetherionTarget : TargetRules
         }
 
         IncludePaths.Add(Path.Combine(engineDir, "src", "public"));
-        IncludePaths.Add(Path.Combine(engineDir, "include"));
         IncludePaths.Add(Path.Combine(sharedDir, "src", "public"));
+        IncludePaths.Add(Path.Combine(workspaceRoot, ".cache"));
 
         Defines.Add("NOMINMAX");
         Defines.Add("EXCEPTION_HANDLER_PATH=\\\"ExceptionHandler.exe\\\"");
@@ -126,43 +234,6 @@ public class AetherionTarget : TargetRules
             }
         }
 
-        // vcpkg dependencies
-        string vcpkgDir = Path.Combine(workspaceRoot, "out", "build", "x64-debug-spdlog", "vcpkg_installed", "x64-windows");
-        if (Directory.Exists(vcpkgDir))
-        {
-            IncludePaths.Add(Path.Combine(vcpkgDir, "include"));
-            string vcpkgLibDir = isDebug ? Path.Combine(vcpkgDir, "debug", "lib") : Path.Combine(vcpkgDir, "lib");
-            if (Directory.Exists(vcpkgLibDir))
-            {
-                LibraryPaths.Add(vcpkgLibDir);
-                Libraries.Add("glfw3dll.lib");
-                Libraries.Add(isDebug ? "spdlogd.lib" : "spdlog.lib");
-                Libraries.Add(isDebug ? "fmtd.lib" : "fmt.lib");
-                Libraries.Add("xxhash.lib");
-                Libraries.Add("nfd.lib");
-                if (isDebug && File.Exists(Path.Combine(vcpkgLibDir, "assimp-vc145-mtd.lib")))
-                {
-                    Libraries.Add("assimp-vc145-mtd.lib");
-                }
-            }
-
-            // Copy runtime DLLs to target bin
-            string vcpkgBinDir = isDebug ? Path.Combine(vcpkgDir, "debug", "bin") : Path.Combine(vcpkgDir, "bin");
-            string targetBinDir = Path.Combine(workspaceRoot, "Bin", Name, configuration);
-            if (Directory.Exists(vcpkgBinDir))
-            {
-                Directory.CreateDirectory(targetBinDir);
-                foreach (var dll in Directory.GetFiles(vcpkgBinDir, "*.dll"))
-                {
-                    string dest = Path.Combine(targetBinDir, Path.GetFileName(dll));
-                    if (!File.Exists(dest) || File.GetLastWriteTimeUtc(dest) < File.GetLastWriteTimeUtc(dll))
-                    {
-                        try { File.Copy(dll, dest, overwrite: true); } catch { }
-                    }
-                }
-            }
-        }
-
         // Standard Windows system libraries
         Libraries.Add("user32.lib");
         Libraries.Add("gdi32.lib");
@@ -172,13 +243,19 @@ public class AetherionTarget : TargetRules
 
         ImguiExternal imgui = new ImguiExternal(workspaceRoot);
         Externals.Add(imgui);
+        Externals.Add(new FmtExternal());
+        Externals.Add(new SpdlogExternal(workspaceRoot));
+        Externals.Add(new GlfwExternal());
+        Externals.Add(new XxHashExternal());
+        Externals.Add(new NfdExternal());
+        Externals.Add(new NanoSvgExternal());
+        Externals.Add(new StbExternal());
+        Externals.Add(new TinyExrExternal());
+        Externals.Add(new NlohmannExternal());
+        Externals.Add(new GlmExternal());
 
-        // Assimp in .cache (only if not already linking from vcpkg)
-        if (!isDebug)
-        {
-            AssimpExternal assimp = new AssimpExternal();
-            Externals.Add(assimp);
-        }
+        // Assimp in .cache
+        Externals.Add(new AssimpExternal());
 
         string srcDir = Path.Combine(engineDir, "src");
         if (Directory.Exists(srcDir))
@@ -186,10 +263,5 @@ public class AetherionTarget : TargetRules
             SourceFiles.AddRange(Directory.GetFiles(srcDir, "*.cpp", SearchOption.AllDirectories));
         }
 
-        string minizC = Path.Combine(engineDir, "include", "miniz", "miniz.c");
-        if (File.Exists(minizC))
-        {
-            SourceFiles.Add(minizC);
-        }
     }
 }

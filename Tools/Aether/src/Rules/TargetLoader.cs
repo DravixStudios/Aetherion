@@ -79,16 +79,25 @@ public static class TargetLoader
             string externalPath = Path.Combine(cachePath, externalRule.Name);
 
             // Pull repository with git if not cloned yet
-            if (!string.IsNullOrWhiteSpace(externalRule.Repo) && !Directory.Exists(externalPath))
+            bool externalIsEmpty = Directory.Exists(externalPath) &&
+                                   Directory.GetFileSystemEntries(externalPath).Length == 0;
+            if (!string.IsNullOrWhiteSpace(externalRule.Repo) &&
+                (!Directory.Exists(externalPath) || externalIsEmpty))
             {
+                if (externalIsEmpty)
+                    Directory.Delete(externalPath);
+
                 Console.ForegroundColor = ConsoleColor.Yellow;
                 Console.WriteLine($"[INFO] Cloning {externalRule.Name} from {externalRule.Repo} with git...");
                 Console.ResetColor();
 
+                string branchArgs = string.IsNullOrWhiteSpace(externalRule.Branch)
+                    ? string.Empty
+                    : $" --branch {externalRule.Branch} --single-branch";
                 var psi = new ProcessStartInfo
                 {
                     FileName = "git",
-                    Arguments = $"clone {externalRule.Repo} \"{externalPath}\"",
+                    Arguments = $"clone{branchArgs} {externalRule.Repo} \"{externalPath}\"",
                     UseShellExecute = false,
                     WorkingDirectory = cachePath
                 };
@@ -103,16 +112,44 @@ public static class TargetLoader
                 }
             }
 
+            if (!string.IsNullOrWhiteSpace(externalRule.Branch) && Directory.Exists(Path.Combine(externalPath, ".git")))
+            {
+                var checkout = new ProcessStartInfo
+                {
+                    FileName = "git",
+                    Arguments = $"-C \"{externalPath}\" checkout {externalRule.Branch}",
+                    UseShellExecute = false,
+                    WorkingDirectory = cachePath
+                };
+
+                using var checkoutProcess = Process.Start(checkout);
+                checkoutProcess?.WaitForExit();
+            }
+
+            EnsureCacheIncludeAlias(cachePath, externalRule.Name, externalPath);
+
             // Check if it's a cmake build or not and build it
             if (externalRule.BuildWithCMake && Directory.Exists(externalPath))
             {
                 string staticLibDir = Path.Combine(externalPath, "static-lib");
                 string libExt = OperatingSystem.IsWindows() ? "*.lib" : "*.a";
                 bool alreadyBuilt = Directory.Exists(staticLibDir) && Directory.GetFiles(staticLibDir, libExt).Length > 0;
+                string cmakeArgsMarker = Path.Combine(staticLibDir, ".aether-cmake-args");
+                string cmakeCacheKey = $"{target.Configuration}|{externalRule.Branch}|{externalRule.CMakeArguments}".Trim();
+                if (alreadyBuilt)
+                {
+                    alreadyBuilt = File.Exists(cmakeArgsMarker) &&
+                                   File.ReadAllText(cmakeArgsMarker).Trim() == cmakeCacheKey;
+                }
 
                 if (!alreadyBuilt)
                 {
-                    BuildWithCMake(cmakePath, ninjaPath, externalPath, binDir);
+                    if (Directory.Exists(staticLibDir))
+                        Directory.Delete(staticLibDir, recursive: true);
+
+                    BuildWithCMake(cmakePath, ninjaPath, externalPath, binDir, externalRule.CMakeArguments, target.Configuration);
+                    Directory.CreateDirectory(staticLibDir);
+                    File.WriteAllText(cmakeArgsMarker, cmakeCacheKey);
                 }
                 else
                 {
@@ -127,6 +164,22 @@ public static class TargetLoader
                     foreach (var lib in Directory.GetFiles(staticLibDir, libExt))
                     {
                         string libName = Path.GetFileName(lib);
+
+                        if (target.Configuration.Equals("Debug", StringComparison.OrdinalIgnoreCase))
+                        {
+                            string stem = Path.GetFileNameWithoutExtension(libName);
+                            string baseStem = stem.EndsWith("d", StringComparison.OrdinalIgnoreCase)
+                                ? stem.Substring(0, stem.Length - 1)
+                                : stem;
+                            string debugVariant = baseStem + "d" + libExt.Substring(1);
+
+                            if (!stem.EndsWith("d", StringComparison.OrdinalIgnoreCase) &&
+                                File.Exists(Path.Combine(staticLibDir, debugVariant)))
+                            {
+                                continue;
+                            }
+                        }
+
                         if (!target.Libraries.Contains(libName))
                             target.Libraries.Add(libName);
                     }
@@ -142,6 +195,13 @@ public static class TargetLoader
             }
             else
             {
+                foreach (var inc in externalRule.IncludePaths)
+                {
+                    string resolvedInc = Path.IsPathRooted(inc) ? inc : Path.Combine(externalPath, inc);
+                    if (Directory.Exists(resolvedInc) && !target.IncludePaths.Contains(resolvedInc))
+                        target.IncludePaths.Add(resolvedInc);
+                }
+
                 foreach (var src in externalRule.SourceFiles)
                 {
                     string resolvedSrc = Path.IsPathRooted(src) ? src : Path.Combine(externalPath, src);
@@ -217,15 +277,65 @@ public static class TargetLoader
         return Assembly.Load(ms.ToArray());
     }
 
-    private static void BuildWithCMake(string cmakePath, string ninjaPath, string modulePath, string binDir)
+    private static void EnsureCacheIncludeAlias(string cachePath, string externalName, string externalPath)
+    {
+        string[] aliasNames = { "nanosvg", "stb", "miniz", "tinyexr", "xxhash" };
+        if (!aliasNames.Contains(externalName, StringComparer.OrdinalIgnoreCase))
+            return;
+
+        string aliasDir = Path.Combine(cachePath, externalName);
+        Directory.CreateDirectory(aliasDir);
+
+        foreach (string header in Directory.EnumerateFiles(externalPath, "*.*", SearchOption.AllDirectories)
+                     .Where(p => p.EndsWith(".h", StringComparison.OrdinalIgnoreCase) ||
+                                 p.EndsWith(".hpp", StringComparison.OrdinalIgnoreCase)))
+        {
+            string relativeParts = Path.GetRelativePath(externalPath, header);
+            string fileName = Path.GetFileName(header);
+
+            if (relativeParts.StartsWith(".git", StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            string dest = Path.Combine(aliasDir, fileName);
+            if (!File.Exists(dest) ||
+                File.GetLastWriteTimeUtc(dest) < File.GetLastWriteTimeUtc(header))
+            {
+                File.Copy(header, dest, overwrite: true);
+            }
+
+            string cacheRootDest = Path.Combine(cachePath, fileName);
+            if (!File.Exists(cacheRootDest) ||
+                File.GetLastWriteTimeUtc(cacheRootDest) < File.GetLastWriteTimeUtc(header))
+            {
+                File.Copy(header, cacheRootDest, overwrite: true);
+            }
+        }
+
+        if (externalName.Equals("tinyexr", StringComparison.OrdinalIgnoreCase))
+        {
+            string bundledMiniz = Path.Combine(externalPath, "deps", "miniz", "miniz.h");
+            if (File.Exists(bundledMiniz))
+            {
+                Directory.CreateDirectory(aliasDir);
+                File.Copy(bundledMiniz, Path.Combine(aliasDir, "miniz.h"), overwrite: true);
+                File.Copy(bundledMiniz, Path.Combine(cachePath, "miniz.h"), overwrite: true);
+            }
+        }
+    }
+
+    private static void BuildWithCMake(string cmakePath, string ninjaPath, string modulePath, string binDir, string cmakeArguments, string configuration)
     {
         string ninjaArg = !string.IsNullOrEmpty(ninjaPath)
             ? $"-G Ninja -DCMAKE_MAKE_PROGRAM=\"{ninjaPath.Replace("\\", "/")}\""
             : "";
-        RunCMake(cmakePath, $"-S . -B build {ninjaArg} -DCMAKE_BUILD_TYPE=Release", modulePath);
-        RunCMake(cmakePath, "--build build --config Release", modulePath);
+        string extraArguments = string.IsNullOrWhiteSpace(cmakeArguments) ? string.Empty : $" {cmakeArguments}";
+        bool isDebug = configuration.Equals("Debug", StringComparison.OrdinalIgnoreCase);
+        string buildType = isDebug ? "Debug" : "Release";
+        string runtimeLibrary = isDebug ? "-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDebugDLL" : "-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDLL";
+        RunCMake(cmakePath, $"-S . -B build {ninjaArg} -DCMAKE_BUILD_TYPE={buildType} {runtimeLibrary}{extraArguments}", modulePath);
+        RunCMake(cmakePath, $"--build build --config {buildType}", modulePath);
 
-        ArtifactCollector.Collect(modulePath, binDir, "Release");
+        ArtifactCollector.Collect(modulePath, binDir, buildType);
     }
 
     private static void RunCMake(string cmakePath, string arguments, string workingDirectory)

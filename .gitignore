@@ -475,5 +475,9 @@ FodyWeavers.xsd
 .ninja_log
 compile_commands.json
 *.slnx
+*.sln
+*.vcxproj
+*.vcxproj.filters
+imgui.ini
 
 # End of https://www.toptal.com/developers/gitignore/api/vcpkg,visualstudio,cmake,c++

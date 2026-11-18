@@ -1,0 +1,14 @@
+{
+  "version": "0.2.1",
+  "configurations": [
+    {
+      "type": "default",
+      "name": "Aetherion (Aether/Ninja)",
+      "project": "${workspaceRoot}\\Aetherion.vcxproj",
+      "program": "${workspaceRoot}\\Bin\\Aetherion\\Debug\\Aetherion.exe",
+      "currentDir": "${workspaceRoot}\\Bin\\Aetherion\\Debug",
+      "cwd": "${workspaceRoot}\\Bin\\Aetherion\\Debug",
+      "args": []
+    }
+  ]
+}

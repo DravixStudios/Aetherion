@@ -12,6 +12,9 @@
 #include <cstring>
 #include <nfd.h>
 
+extern "C" int NFD_OpenDialogN(wchar_t** outPath, const void* filterList, unsigned int filterCount, const wchar_t* defaultPath);
+extern "C" const char* NFD_GetError(void);
+
 struct AssetBrowserState {
     Ref<ProjectTree::TreeNode> currentNode;
     Deque<Ref<ProjectTree::TreeNode>> history;
@@ -208,20 +211,15 @@ ImGuiPass::Execute(Ref<GraphicsContext> context, RenderGraphContext& graphCtx, u
 	    if (ImGui::BeginMenu("File")) {
             if (ImGui::MenuItem("Open project...")) {
                 /* Open a dialog for selecting the project */
-                nfdu8char_t* pOutPath;
-                const nfdu8filteritem_t filters[1] = { { "Aetherion Project", "aethproj" } };
-                nfdopendialogu8args_t args = {  };
-                args.filterList = filters;
-                args.filterCount = 1;
-
-                const nfdresult_t result = NFD_OpenDialogU8_With(&pOutPath, &args);
+                wchar_t* pOutPath = nullptr;
+                const int result = NFD_OpenDialogN(&pOutPath, nullptr, 0, nullptr);
                 
                 /* Get project manager instance */
                 ProjectManager* projMgr = ProjectManager::GetInstance();
 
                 switch (result) {
-                case NFD_OKAY:
-                    projMgr->OpenProject(pOutPath);
+                case 1:
+                    projMgr->OpenProject(std::filesystem::path(pOutPath).string());
 
                     s_browserState = { };
                     s_browserState.currentNode = projMgr->GetProjectTree().root;
@@ -858,9 +856,9 @@ ImGuiPass::SetupTheme() {
     colors[ImGuiCol_ResizeGripActive] = mauve;
     colors[ImGuiCol_Tab] = surface0;
     colors[ImGuiCol_TabHovered] = surface2;
-    colors[ImGuiCol_TabActive] = surface1;
-    colors[ImGuiCol_TabUnfocused] = surface0;
-    colors[ImGuiCol_TabUnfocusedActive] = surface1;
+    colors[ImGuiCol_TabSelected] = surface1;
+    colors[ImGuiCol_TabDimmed] = surface0;
+    colors[ImGuiCol_TabDimmedSelected] = surface1;
     colors[ImGuiCol_PlotLines] = blue;
     colors[ImGuiCol_PlotLinesHovered] = peach;
     colors[ImGuiCol_PlotHistogram] = teal;
