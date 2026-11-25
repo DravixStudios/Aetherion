@@ -16,7 +16,7 @@
 #endif
 
 #if defined(__linux__)
-#define PLAFTORM_LINUX 1
+#define PLATFORM_LINUX 1
 #else
 #define PLATFORM_LINUX 0
 #endif
@@ -43,7 +43,7 @@
     #elif defined(__APPLE__)
     #define DEBUG_BREAK() __builtin_debugtrap();
     #elif defined(__linux__)
-    #include <signal.g>
+    #include <signal.h>
     #define DEBUG_BREAK() raise(SIGTRAP)
 #endif
 
