@@ -106,9 +106,7 @@ public static class TargetLoader
                 process.WaitForExit();
                 if (process.ExitCode != 0)
                 {
-                    Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine($"[WARNING] git clone exited with code {process.ExitCode} for {externalRule.Name}");
-                    Console.ResetColor();
+                    throw new Exception($"git clone exited with code {process.ExitCode} for {externalRule.Name} ({externalRule.Repo})");
                 }
             }
 
@@ -132,10 +130,15 @@ public static class TargetLoader
             if (externalRule.BuildWithCMake && Directory.Exists(externalPath))
             {
                 string staticLibDir = Path.Combine(externalPath, "static-lib");
+                string buildDir = Path.Combine(externalPath, "build");
                 string libExt = OperatingSystem.IsWindows() ? "*.lib" : "*.a";
-                bool alreadyBuilt = Directory.Exists(staticLibDir) && Directory.GetFiles(staticLibDir, libExt).Length > 0;
+                string sharedLibExt = OperatingSystem.IsMacOS() ? "*.dylib" : "*.so";
+                bool hasStatic = Directory.Exists(staticLibDir) && Directory.GetFiles(staticLibDir, libExt).Length > 0;
+                bool hasShared = !OperatingSystem.IsWindows() && Directory.Exists(staticLibDir) && Directory.GetFiles(staticLibDir, sharedLibExt).Length > 0;
+                bool alreadyBuilt = hasStatic || hasShared;
+
                 string cmakeArgsMarker = Path.Combine(staticLibDir, ".aether-cmake-args");
-                string cmakeCacheKey = $"{target.Configuration}|{externalRule.Branch}|{externalRule.CMakeArguments}".Trim();
+                string cmakeCacheKey = $"{target.Platform}|{target.Architecture}|{target.Configuration}|{externalRule.Branch}|{externalRule.CMakeArguments}".Trim();
                 if (alreadyBuilt)
                 {
                     alreadyBuilt = File.Exists(cmakeArgsMarker) &&
@@ -146,6 +149,8 @@ public static class TargetLoader
                 {
                     if (Directory.Exists(staticLibDir))
                         Directory.Delete(staticLibDir, recursive: true);
+                    if (Directory.Exists(buildDir))
+                        Directory.Delete(buildDir, recursive: true);
 
                     BuildWithCMake(cmakePath, ninjaPath, externalPath, binDir, externalRule.CMakeArguments, target.Configuration);
                     Directory.CreateDirectory(staticLibDir);
@@ -161,7 +166,15 @@ public static class TargetLoader
                     if (!target.LibraryPaths.Contains(staticLibDir))
                         target.LibraryPaths.Add(staticLibDir);
 
-                    foreach (var lib in Directory.GetFiles(staticLibDir, libExt))
+                    var collectedFiles = Directory.GetFiles(staticLibDir, libExt);
+                    string activeExt = libExt;
+                    if (collectedFiles.Length == 0 && !OperatingSystem.IsWindows())
+                    {
+                        collectedFiles = Directory.GetFiles(staticLibDir, sharedLibExt);
+                        activeExt = sharedLibExt;
+                    }
+
+                    foreach (var lib in collectedFiles)
                     {
                         string libName = Path.GetFileName(lib);
 
@@ -171,7 +184,7 @@ public static class TargetLoader
                             string baseStem = stem.EndsWith("d", StringComparison.OrdinalIgnoreCase)
                                 ? stem.Substring(0, stem.Length - 1)
                                 : stem;
-                            string debugVariant = baseStem + "d" + libExt.Substring(1);
+                            string debugVariant = baseStem + "d" + activeExt.Substring(1);
 
                             if (!stem.EndsWith("d", StringComparison.OrdinalIgnoreCase) &&
                                 File.Exists(Path.Combine(staticLibDir, debugVariant)))
@@ -180,8 +193,9 @@ public static class TargetLoader
                             }
                         }
 
-                        if (!target.Libraries.Contains(libName))
-                            target.Libraries.Add(libName);
+                        string libEntry = OperatingSystem.IsWindows() ? libName : lib;
+                        if (!target.Libraries.Contains(libEntry))
+                            target.Libraries.Add(libEntry);
                     }
                 }
 
@@ -331,8 +345,10 @@ public static class TargetLoader
         string extraArguments = string.IsNullOrWhiteSpace(cmakeArguments) ? string.Empty : $" {cmakeArguments}";
         bool isDebug = configuration.Equals("Debug", StringComparison.OrdinalIgnoreCase);
         string buildType = isDebug ? "Debug" : "Release";
-        string runtimeLibrary = isDebug ? "-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDebugDLL" : "-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDLL";
-        RunCMake(cmakePath, $"-S . -B build {ninjaArg} -DCMAKE_BUILD_TYPE={buildType} {runtimeLibrary}{extraArguments}", modulePath);
+        string runtimeLibrary = OperatingSystem.IsWindows()
+            ? (isDebug ? " -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDebugDLL" : " -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDLL")
+            : string.Empty;
+        RunCMake(cmakePath, $"-S . -B build {ninjaArg} -DCMAKE_BUILD_TYPE={buildType}{runtimeLibrary}{extraArguments}", modulePath);
         RunCMake(cmakePath, $"--build build --config {buildType}", modulePath);
 
         ArtifactCollector.Collect(modulePath, binDir, buildType);
