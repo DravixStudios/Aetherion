@@ -1,13 +1,20 @@
 using System.Text;
+using System.Text.RegularExpressions;
 using Aether.Presets;
 using Aether.Rules;
 
 namespace Aether.Toolchain;
 
-public static class NinjaGenerator
+public static partial class NinjaGenerator
 {
     public static string Generate(string workspaceRoot, TargetRules target, Toolchain toolchain, Preset preset, string targetBin)
     {
+        string templatePath = Path.Combine(workspaceRoot, "Scripts", "Templates", "build.ninja.templ");
+        if (!File.Exists(templatePath))
+            throw new FileNotFoundException($"[Aether] Ninja template not found at '{templatePath}'");
+
+        string template = File.ReadAllText(templatePath).Replace("\r\n", "\n");
+
         string binDir = !string.IsNullOrEmpty(targetBin)
             ? targetBin.Replace("\\", "/")
             : Path.Combine(workspaceRoot, "Bin", target.Name, preset.Configuration).Replace("\\", "/");
@@ -21,13 +28,26 @@ public static class NinjaGenerator
         bool isMac = preset.Platform.Equals("macOS", StringComparison.OrdinalIgnoreCase)
                   || preset.Platform.Equals("Darwin", StringComparison.OrdinalIgnoreCase);
 
+        string headerSection = ExtractSection(template, "TOOLCHAIN_HEADER");
+        string msvcRulesSection = ExtractSection(template, "MSVC_RULES");
+        string unixRulesSection = ExtractSection(template, "UNIX_RULES");
+        string moduleObjSection = ExtractSection(template, "MODULE_OBJECT");
+        string moduleLinkWinSection = ExtractSection(template, "MODULE_LINK_WINDOWS");
+        string moduleLinkUnixSection = ExtractSection(template, "MODULE_LINK_UNIX");
+        string targetObjSection = ExtractSection(template, "TARGET_OBJECT");
+        string targetLinkSection = ExtractSection(template, "TARGET_LINK");
+        string defaultTargetSection = ExtractSection(template, "DEFAULT_TARGET");
+
         var ninja = new StringBuilder();
         ninja.AppendLine("ninja_required_version = 1.5");
         ninja.AppendLine();
 
-        ninja.AppendLine($"compiler = {toolchain.Compiler}");
-        ninja.AppendLine($"c_compiler = {toolchain.CCompiler}");
-        ninja.AppendLine($"linker = {toolchain.Linker}");
+        ninja.AppendLine(Render(headerSection, new Dictionary<string, string>
+        {
+            ["COMPILER"] = toolchain.Compiler,
+            ["C_COMPILER"] = toolchain.CCompiler,
+            ["LINKER"] = toolchain.Linker
+        }));
         ninja.AppendLine();
 
         string definePrefix = toolchain.Family == ToolchainFamily.MSVC ? "/D" : "-D";
@@ -36,38 +56,16 @@ public static class NinjaGenerator
         if (toolchain.Family == ToolchainFamily.MSVC)
         {
             string opt = isDebug ? "/Od /RTC1 /Z7 /MDd" : "/O2 /DNDEBUG /MD";
-            string cxx = $"/nologo /std:c++20 /EHsc /utf-8 /W3 {opt}";
-            string cc = $"/nologo /utf-8 /W3 {opt}";
-            string lnk = isDebug ? "/nologo /DEBUG" : "/nologo";
-
-            ninja.AppendLine("rule compile");
-            ninja.AppendLine($"  command = $compiler {cxx} /showIncludes $defines $includes /c $in /Fo$out");
-            ninja.AppendLine("  deps = msvc");
-            ninja.AppendLine("  description = [CXX] $in");
-            ninja.AppendLine();
-
-            ninja.AppendLine("rule compile_c");
-            ninja.AppendLine($"  command = $c_compiler {cc} /showIncludes $defines $includes /c $in /Fo$out");
-            ninja.AppendLine("  deps = msvc");
-            ninja.AppendLine("  description = [CC] $in");
-            ninja.AppendLine();
-
-            ninja.AppendLine("rule link_dll");
-            ninja.AppendLine($"  command = $linker {lnk} /DLL $in $libpaths $libs /OUT:$out /IMPLIB:$implib");
-            ninja.AppendLine("  description = [DLL] $out");
-            ninja.AppendLine();
-
-            ninja.AppendLine("rule link_exe");
-            ninja.AppendLine($"  command = $linker {lnk} $in $libpaths $libs /OUT:$out");
-            ninja.AppendLine("  description = [EXE] $out");
+            ninja.AppendLine(Render(msvcRulesSection, new Dictionary<string, string>
+            {
+                ["CXX_FLAGS"] = $"/nologo /std:c++20 /EHsc /utf-8 /W3 {opt}",
+                ["CC_FLAGS"] = $"/nologo /utf-8 /W3 {opt}",
+                ["LINK_FLAGS"] = isDebug ? "/nologo /DEBUG" : "/nologo"
+            }));
         }
         else
         {
             string opt = isDebug ? "-O0 -g" : "-O3 -DNDEBUG";
-            string cxx = $"-std=c++20 -Wall -fPIC {opt}";
-            string cc = $"-Wall -fPIC {opt}";
-            string lnk = isDebug ? "-g" : "";
-            string sharedFlag = isMac ? "-dynamiclib" : "-shared";
             var rpathFlags = new List<string>
             {
                 isMac ? "-Wl,-rpath,@loader_path" : "-Wl,-rpath,'$$ORIGIN'"
@@ -79,30 +77,15 @@ public static class NinjaGenerator
                     rpathFlags.Add($"-Wl,-rpath,\"{libPath.Replace("\\", "/")}\"");
                 }
             }
-            string rpath = string.Join(" ", rpathFlags);
 
-            ninja.AppendLine("rule compile");
-            ninja.AppendLine($"  command = $compiler {cxx} -MMD -MF $out.d $defines $includes -c $in -o $out");
-            ninja.AppendLine("  depfile = $out.d");
-            ninja.AppendLine("  deps = gcc");
-            ninja.AppendLine("  description = [CXX] $in");
-            ninja.AppendLine();
-
-            ninja.AppendLine("rule compile_c");
-            ninja.AppendLine($"  command = $c_compiler {cc} -MMD -MF $out.d $defines $includes -c $in -o $out");
-            ninja.AppendLine("  depfile = $out.d");
-            ninja.AppendLine("  deps = gcc");
-            ninja.AppendLine("  description = [CC] $in");
-            ninja.AppendLine();
-
-            ninja.AppendLine("rule link_dll");
-            ninja.AppendLine($"  command = $linker {sharedFlag} {lnk} $in $libpaths $libs -o $out");
-            ninja.AppendLine("  description = [SHARED] $out");
-            ninja.AppendLine();
-
-            ninja.AppendLine("rule link_exe");
-            ninja.AppendLine($"  command = $linker {lnk} {rpath} $in $libpaths $libs -o $out");
-            ninja.AppendLine("  description = [EXE] $out");
+            ninja.AppendLine(Render(unixRulesSection, new Dictionary<string, string>
+            {
+                ["CXX_FLAGS"] = $"-std=c++20 -Wall -fPIC {opt}",
+                ["CC_FLAGS"] = $"-Wall -fPIC {opt}",
+                ["LINK_FLAGS"] = isDebug ? "-g" : "",
+                ["SHARED_FLAG"] = isMac ? "-dynamiclib" : "-shared",
+                ["RPATH_FLAGS"] = string.Join(" ", rpathFlags)
+            }));
         }
 
         ninja.AppendLine();
@@ -124,23 +107,21 @@ public static class NinjaGenerator
             {
                 string absoluteSrc = Path.GetFullPath(src);
                 string normSrc = ToNinjaPath(absoluteSrc);
-
                 string relSrc = Path.GetRelativePath(workspaceRoot, absoluteSrc)
-                                    .Replace("\\", "_")
-                                    .Replace("/", "_");
-
-                string objName = Path.ChangeExtension(
-                    relSrc,
-                    isWindows ? ".obj" : ".o");
-
+                    .Replace("\\", "_")
+                    .Replace("/", "_");
+                string objName = Path.ChangeExtension(relSrc, isWindows ? ".obj" : ".o");
                 string objFile = ToNinjaPath($"{intermediateDir}/{objName}");
+                string ruleName = absoluteSrc.EndsWith(".c", StringComparison.OrdinalIgnoreCase) ? "compile_c" : "compile";
 
-                bool isC = absoluteSrc.EndsWith(".c", StringComparison.OrdinalIgnoreCase);
-                string ruleName = isC ? "compile_c" : "compile";
-
-                ninja.AppendLine($"build {objFile}: {ruleName} {normSrc}");
-                ninja.AppendLine($"  defines = {moduleDefines}");
-                ninja.AppendLine($"  includes = {moduleIncludes}");
+                ninja.AppendLine(Render(moduleObjSection, new Dictionary<string, string>
+                {
+                    ["OBJ_FILE"] = objFile,
+                    ["RULE_NAME"] = ruleName,
+                    ["SRC_FILE"] = normSrc,
+                    ["DEFINES"] = moduleDefines,
+                    ["INCLUDES"] = moduleIncludes
+                }));
                 moduleObjFiles.Add(objFile);
             }
 
@@ -149,22 +130,34 @@ public static class NinjaGenerator
             {
                 dllFile = ToNinjaPath(Path.Combine(binDir, $"{module.Name}.dll"));
                 string implibFile = ToNinjaPath(Path.Combine(binDir, $"{module.Name}.lib"));
-                ninja.AppendLine($"build {dllFile}: link_dll {string.Join(" ", moduleObjFiles)}");
-                ninja.AppendLine($"  implib = {implibFile}");
+                ninja.AppendLine(Render(moduleLinkWinSection, new Dictionary<string, string>
+                {
+                    ["DLL_FILE"] = dllFile,
+                    ["OBJ_FILES"] = string.Join(" ", moduleObjFiles),
+                    ["IMPLIB_FILE"] = implibFile
+                }));
                 moduleImportLibs.Add(implibFile);
             }
             else if (isMac)
             {
                 string rawDll = Path.Combine(binDir, $"lib{module.Name}.dylib");
                 dllFile = ToNinjaPath(rawDll);
-                ninja.AppendLine($"build {dllFile}: link_dll {string.Join(" ", moduleObjFiles)}");
+                ninja.AppendLine(Render(moduleLinkUnixSection, new Dictionary<string, string>
+                {
+                    ["DLL_FILE"] = dllFile,
+                    ["OBJ_FILES"] = string.Join(" ", moduleObjFiles)
+                }));
                 moduleImportLibs.Add($"\"{rawDll.Replace("\\", "/")}\"");
             }
             else
             {
                 string rawDll = Path.Combine(binDir, $"lib{module.Name}.so");
                 dllFile = ToNinjaPath(rawDll);
-                ninja.AppendLine($"build {dllFile}: link_dll {string.Join(" ", moduleObjFiles)}");
+                ninja.AppendLine(Render(moduleLinkUnixSection, new Dictionary<string, string>
+                {
+                    ["DLL_FILE"] = dllFile,
+                    ["OBJ_FILES"] = string.Join(" ", moduleObjFiles)
+                }));
                 moduleImportLibs.Add($"-L\"{binDir}\" -l{module.Name}");
             }
 
@@ -194,27 +187,21 @@ public static class NinjaGenerator
         {
             string absoluteSrc = Path.GetFullPath(src);
             string normSrc = ToNinjaPath(absoluteSrc);
+            string relSrc = Path.GetRelativePath(workspaceRoot, absoluteSrc)
+                .Replace("\\", "_")
+                .Replace("/", "_");
+            string objName = Path.ChangeExtension(relSrc, isWindows ? ".obj" : ".o");
+            string objFile = ToNinjaPath(Path.Combine(intermediateDir, objName));
+            string ruleName = absoluteSrc.EndsWith(".c", StringComparison.OrdinalIgnoreCase) ? "compile_c" : "compile";
 
-            string relSrc = Path.GetRelativePath(
-                workspaceRoot,
-                absoluteSrc
-            ).Replace("\\", "_").Replace("/", "_");
-
-            string objName = Path.ChangeExtension(
-                relSrc,
-                isWindows ? ".obj" : ".o"
-            );
-
-            string objFile = ToNinjaPath(
-                Path.Combine(intermediateDir, objName)
-            );
-
-            bool isC = absoluteSrc.EndsWith(".c", StringComparison.OrdinalIgnoreCase);
-            string ruleName = isC ? "compile_c" : "compile";
-
-            ninja.AppendLine($"build {objFile}: {ruleName} {normSrc}");
-            ninja.AppendLine($"  defines = {targetDefines}");
-            ninja.AppendLine($"  includes = {targetIncludes}");
+            ninja.AppendLine(Render(targetObjSection, new Dictionary<string, string>
+            {
+                ["OBJ_FILE"] = objFile,
+                ["RULE_NAME"] = ruleName,
+                ["SRC_FILE"] = normSrc,
+                ["DEFINES"] = targetDefines,
+                ["INCLUDES"] = targetIncludes
+            }));
 
             targetObjFiles.Add(objFile);
         }
@@ -227,8 +214,6 @@ public static class NinjaGenerator
 
         string exePath = ToNinjaPath(Path.Combine(binDir, exeName));
         string orderDeps = allDllOutputs.Count > 0 ? " | " + string.Join(" ", allDllOutputs) : "";
-
-        ninja.AppendLine($"build {exePath}: link_exe {string.Join(" ", targetObjFiles)}{orderDeps}");
 
         var allLibs = new List<string>();
         if (toolchain.Family == ToolchainFamily.MSVC)
@@ -255,26 +240,96 @@ public static class NinjaGenerator
             }
         }
 
-        if (allLibs.Count > 0)
-        {
-            ninja.AppendLine($"  libs = {string.Join(" ", allLibs)}");
-        }
+        string libsSubSection = ExtractSection(targetLinkSection, "TARGET_LIBS");
+        string libPathsSubSection = ExtractSection(targetLinkSection, "TARGET_LIBPATHS");
 
-        if (target.LibraryPaths.Count > 0)
+        string renderedLink = ReplaceSection(
+            targetLinkSection,
+            "TARGET_LIBS",
+            allLibs.Count > 0
+                ? Render(libsSubSection, new Dictionary<string, string> { ["LIBS"] = string.Join(" ", allLibs) })
+                : null);
+
+        string libPathPrefix = toolchain.Family == ToolchainFamily.MSVC ? "/LIBPATH:" : "-L";
+        string libPathsStr = string.Join(" ", target.LibraryPaths.Select(p => $"{libPathPrefix}\"{p.Replace("\\", "/")}\""));
+        renderedLink = ReplaceSection(
+            renderedLink,
+            "TARGET_LIBPATHS",
+            target.LibraryPaths.Count > 0
+                ? Render(libPathsSubSection, new Dictionary<string, string> { ["LIBPATHS"] = libPathsStr })
+                : null);
+
+        ninja.AppendLine(Render(renderedLink, new Dictionary<string, string>
         {
-            string libPathPrefix = toolchain.Family == ToolchainFamily.MSVC ? "/LIBPATH:" : "-L";
-            string libPathsStr = string.Join(" ", target.LibraryPaths.Select(p => $"{libPathPrefix}\"{p.Replace("\\", "/")}\""));
-            ninja.AppendLine($"  libpaths = {libPathsStr}");
-        }
+            ["EXE_PATH"] = exePath,
+            ["TARGET_OBJ_FILES"] = string.Join(" ", targetObjFiles),
+            ["ORDER_DEPS"] = orderDeps
+        }));
 
         ninja.AppendLine();
-        ninja.AppendLine($"default {exePath}");
+        ninja.AppendLine(Render(defaultTargetSection, new Dictionary<string, string>
+        {
+            ["EXE_PATH"] = exePath
+        }));
 
         string ninjaFilePath = Path.Combine(intermediateDir, "build.ninja");
         File.WriteAllText(ninjaFilePath, ninja.ToString());
 
         return ninjaFilePath;
     }
+
+    private static string ExtractSection(string content, string sectionName)
+    {
+        string openTag = $"# <${sectionName}>\n";
+        string closeTag = $"\n# </${sectionName}>";
+
+        int startIdx = content.IndexOf(openTag, StringComparison.Ordinal);
+        if (startIdx < 0)
+            throw new FormatException($"[Aether] Section '# <${sectionName}>' not found in build.ninja.templ");
+
+        int bodyStart = startIdx + openTag.Length;
+        int endIdx = content.IndexOf(closeTag, bodyStart, StringComparison.Ordinal);
+        if (endIdx < 0)
+            throw new FormatException($"[Aether] Closing tag '# </${sectionName}>' not found in build.ninja.templ");
+
+        return content.Substring(bodyStart, endIdx - bodyStart);
+    }
+
+    private static string ReplaceSection(string content, string sectionName, string? replacement)
+    {
+        string openTag = $"# <${sectionName}>";
+        string closeTag = $"# </${sectionName}>";
+
+        int startIdx = content.IndexOf(openTag, StringComparison.Ordinal);
+        if (startIdx < 0)
+            return content;
+
+        int endTagIdx = content.IndexOf(closeTag, startIdx, StringComparison.Ordinal);
+        if (endTagIdx < 0)
+            return content;
+
+        int afterEnd = endTagIdx + closeTag.Length;
+        if (replacement == null)
+        {
+            // Remove the whole block including the preceding newline if present
+            int removeStart = startIdx > 0 && content[startIdx - 1] == '\n' ? startIdx - 1 : startIdx;
+            return content.Remove(removeStart, afterEnd - removeStart);
+        }
+
+        return content.Substring(0, startIdx) + replacement + content.Substring(afterEnd);
+    }
+
+    private static string Render(string template, IReadOnlyDictionary<string, string> vars)
+    {
+        return TemplateVarRegex().Replace(template, match =>
+        {
+            string key = match.Groups[1].Value;
+            return vars.TryGetValue(key, out string? value) ? value : match.Value;
+        });
+    }
+
+    [GeneratedRegex(@"\$([A-Z0-9_]+)")]
+    private static partial Regex TemplateVarRegex();
 
     private static string FormatClangGccLibrary(string lib)
     {

@@ -1,0 +1,84 @@
+ninja_required_version = 1.5
+
+# <$TOOLCHAIN_HEADER>
+compiler = $COMPILER
+c_compiler = $C_COMPILER
+linker = $LINKER
+# </$TOOLCHAIN_HEADER>
+
+# <$MSVC_RULES>
+rule compile
+  command = $compiler $CXX_FLAGS /showIncludes $defines $includes /c $in /Fo$out
+  deps = msvc
+  description = [CXX] $in
+
+rule compile_c
+  command = $c_compiler $CC_FLAGS /showIncludes $defines $includes /c $in /Fo$out
+  deps = msvc
+  description = [CC] $in
+
+rule link_dll
+  command = $linker $LINK_FLAGS /DLL $in $libpaths $libs /OUT:$out /IMPLIB:$implib
+  description = [DLL] $out
+
+rule link_exe
+  command = $linker $LINK_FLAGS $in $libpaths $libs /OUT:$out
+  description = [EXE] $out
+# </$MSVC_RULES>
+
+# <$UNIX_RULES>
+rule compile
+  command = $compiler $CXX_FLAGS -MMD -MF $out.d $defines $includes -c $in -o $out
+  depfile = $out.d
+  deps = gcc
+  description = [CXX] $in
+
+rule compile_c
+  command = $c_compiler $CC_FLAGS -MMD -MF $out.d $defines $includes -c $in -o $out
+  depfile = $out.d
+  deps = gcc
+  description = [CC] $in
+
+rule link_dll
+  command = $linker $SHARED_FLAG $LINK_FLAGS $in $libpaths $libs -o $out
+  description = [SHARED] $out
+
+rule link_exe
+  command = $linker $LINK_FLAGS $RPATH_FLAGS $in $libpaths $libs -o $out
+  description = [EXE] $out
+# </$UNIX_RULES>
+
+# <$MODULE_OBJECT>
+build $OBJ_FILE: $RULE_NAME $SRC_FILE
+  defines = $DEFINES
+  includes = $INCLUDES
+# </$MODULE_OBJECT>
+
+# <$MODULE_LINK_WINDOWS>
+build $DLL_FILE: link_dll $OBJ_FILES
+  implib = $IMPLIB_FILE
+# </$MODULE_LINK_WINDOWS>
+
+# <$MODULE_LINK_UNIX>
+build $DLL_FILE: link_dll $OBJ_FILES
+# </$MODULE_LINK_UNIX>
+
+# <$TARGET_OBJECT>
+build $OBJ_FILE: $RULE_NAME $SRC_FILE
+  defines = $DEFINES
+  includes = $INCLUDES
+# </$TARGET_OBJECT>
+
+# <$TARGET_LINK>
+build $EXE_PATH: link_exe $TARGET_OBJ_FILES$ORDER_DEPS
+# <$TARGET_LIBS>
+  libs = $LIBS
+# </$TARGET_LIBS>
+# <$TARGET_LIBPATHS>
+  libpaths = $LIBPATHS
+# </$TARGET_LIBPATHS>
+# </$TARGET_LINK>
+
+# <$DEFAULT_TARGET>
+default $EXE_PATH
+# </$DEFAULT_TARGET>
