@@ -20,14 +20,26 @@ public static class CMakeProvider
             return systemCMake;
         }
 
+        if (OperatingSystem.IsMacOS())
+        {
+            string appCMake = "/Applications/CMake.app/Contents/bin/cmake";
+            if (File.Exists(appCMake))
+                return appCMake;
+        }
+
         // Check if CMake already cached
         string cacheDir = Path.Combine(workspaceRoot, ".cache");
         string cmakeDir = Path.Combine(cacheDir, $"cmake-{CMakeVersion}");
         string cmakeExe = Path.Combine(cmakeDir, "bin", cmake);
+        string cmakeAppExe = Path.Combine(cmakeDir, "CMake.app", "Contents", "bin", cmake);
 
         if (File.Exists(cmakeExe))
         {
             return cmakeExe;
+        }
+        if (OperatingSystem.IsMacOS() && File.Exists(cmakeAppExe))
+        {
+            return cmakeAppExe;
         }
 
         // Check in Visual Studio
@@ -101,16 +113,39 @@ public static class CMakeProvider
             return null;
 
         string extractedDir = Path.Combine(cacheDir, $"cmake-{CMakeVersion}");
+        if (Directory.Exists(extractedDir))
+            Directory.Delete(extractedDir, recursive: true);
+        Directory.CreateDirectory(extractedDir);
 
         mmStream.Position = 0;
 
         using var gzip = new GZipStream(mmStream, CompressionMode.Decompress);
         TarFile.ExtractToDirectory(gzip, extractedDir, overwriteFiles: true);
 
+        // Unwrap single top-level directory from Kitware tarballs
+        string[] innerDirs = Directory.GetDirectories(extractedDir);
+        if (innerDirs.Length == 1 && Directory.GetFiles(extractedDir).Length == 0)
+        {
+            string innerDir = innerDirs[0];
+            foreach (string item in Directory.GetFileSystemEntries(innerDir))
+            {
+                string dest = Path.Combine(extractedDir, Path.GetFileName(item));
+                if (Directory.Exists(item))
+                    Directory.Move(item, dest);
+                else
+                    File.Move(item, dest);
+            }
+            Directory.Delete(innerDir);
+        }
+
         string cmakePath = Path.Combine(extractedDir, "bin", "cmake");
+        if (!File.Exists(cmakePath) && OperatingSystem.IsMacOS())
+        {
+            cmakePath = Path.Combine(extractedDir, "CMake.app", "Contents", "bin", "cmake");
+        }
 
         if (!File.Exists(cmakePath))
-            throw new FileNotFoundException("Cmake executable not found");
+            throw new FileNotFoundException("CMake executable not found");
 
         File.SetUnixFileMode(cmakePath,
                        UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
@@ -126,8 +161,11 @@ public static class CMakeProvider
             return $"https://github.com/Kitware/CMake/releases/download/v{CMakeVersion}/cmake-{CMakeVersion}-windows-x86_64.zip";
         if (OperatingSystem.IsMacOS())                                       
             return $"https://github.com/Kitware/CMake/releases/download/v{CMakeVersion}/cmake-{CMakeVersion}-macos-universal.tar.gz";
-        if (OperatingSystem.IsLinux())                                      
-            return $"https://github.com/Kitware/CMake/releases/download/v{CMakeVersion}/cmake-{CMakeVersion}-linux-x86_64.tar.gz";
+        if (OperatingSystem.IsLinux())
+        {
+            string arch = RuntimeInformation.OSArchitecture == Architecture.Arm64 ? "aarch64" : "x86_64";
+            return $"https://github.com/Kitware/CMake/releases/download/v{CMakeVersion}/cmake-{CMakeVersion}-linux-{arch}.tar.gz";
+        }
 
         throw new PlatformNotSupportedException("Unsupported operating system");
     }

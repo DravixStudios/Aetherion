@@ -80,7 +80,12 @@ public static class NinjaProvider
         if (OperatingSystem.IsMacOS())
             return $"https://github.com/ninja-build/ninja/releases/download/{NinjaVersion}/ninja-mac.zip";
         if (OperatingSystem.IsLinux())
-            return $"https://github.com/ninja-build/ninja/releases/download/{NinjaVersion}/ninja-linux.zip";
+        {
+            string suffix = RuntimeInformation.OSArchitecture == Architecture.Arm64
+                ? "ninja-linux-aarch64.zip"
+                : "ninja-linux.zip";
+            return $"https://github.com/ninja-build/ninja/releases/download/{NinjaVersion}/{suffix}";
+        }
 
         throw new PlatformNotSupportedException("Unsupported operating system");
     }
