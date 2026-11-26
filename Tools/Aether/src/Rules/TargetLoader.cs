@@ -26,14 +26,17 @@ public static class TargetLoader
             typeof(TargetRules).IsAssignableFrom(t) && !t.IsAbstract)
             ?? throw new InvalidOperationException($"No TargetRules class found in {targetFiles[0]}");
 
+        var ctorTargetPlatform = targetType.GetConstructor(new[] { typeof(string), typeof(string), typeof(string) });
         var ctorTargetConfig = targetType.GetConstructor(new[] { typeof(string), typeof(string) });
         var ctorTarget = targetType.GetConstructor(new[] { typeof(string) });
 
-        var target = (TargetRules)(ctorTargetConfig != null
-            ? ctorTargetConfig.Invoke(new object[] { workspaceRoot, preset.Configuration })
-            : (ctorTarget != null
-                ? ctorTarget.Invoke(new object[] { workspaceRoot })
-                : Activator.CreateInstance(targetType)!));
+        var target = (TargetRules)(ctorTargetPlatform != null
+            ? ctorTargetPlatform.Invoke(new object[] { workspaceRoot, preset.Configuration, preset.Platform })
+            : (ctorTargetConfig != null
+                ? ctorTargetConfig.Invoke(new object[] { workspaceRoot, preset.Configuration })
+                : (ctorTarget != null
+                    ? ctorTarget.Invoke(new object[] { workspaceRoot })
+                    : Activator.CreateInstance(targetType)!)));
 
         target.Configuration = preset.Configuration;
         target.Platform = preset.Platform;
