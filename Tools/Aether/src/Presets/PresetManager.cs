@@ -6,9 +6,9 @@ public class Preset
 {
     public string Name { get; set; } = string.Empty;
     public string? Inherits { get; set; }
-    public string Platform { get; set; } = "Windows";
-    public string Architecture { get; set; } = "x64";
-    public string Configuration { get; set; } = "Debug";
+    public string Platform { get; set; } = string.Empty;
+    public string Architecture { get; set; } = string.Empty;
+    public string Configuration { get; set; } = string.Empty;
     public List<string> Defines { get; set; } = new();
 }
 
@@ -67,6 +67,14 @@ public static class PresetManager
 
             currentInherit = parent.Inherits;
         }
+
+        if (string.IsNullOrEmpty(resolved.Platform))
+        {
+            resolved.Platform = OperatingSystem.IsMacOS() ? "macOS"
+                : (OperatingSystem.IsLinux() ? "Linux" : "Windows");
+        }
+        if (string.IsNullOrEmpty(resolved.Architecture)) resolved.Architecture = "x64";
+        if (string.IsNullOrEmpty(resolved.Configuration)) resolved.Configuration = "Debug";
 
         return resolved;
     }
