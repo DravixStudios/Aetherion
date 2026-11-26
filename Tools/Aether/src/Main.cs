@@ -93,10 +93,17 @@ internal static class Program
         }
     }
 
+    private static string GetDefaultPresetName()
+    {
+        if (OperatingSystem.IsMacOS()) return "macos-debug-spdlog";
+        if (OperatingSystem.IsLinux()) return "linux-debug-spdlog";
+        return "x64-debug-spdlog";
+    }
+
     private static async Task<int> HandleGetDepsAsync(string repoRoot, string[] args)
     {
         string targetName = args.Length > 1 ? args[1] : "Aetherion";
-        string presetName = args.Length > 2 ? args[2] : "x64-debug-spdlog";
+        string presetName = args.Length > 2 ? args[2] : GetDefaultPresetName();
 
         try
         {
@@ -128,7 +135,7 @@ internal static class Program
     private static async Task<int> HandleBuildAsync(string repoRoot, string[] args)
     {
         string targetName = args.Length > 1 ? args[1] : "Aetherion";
-        string presetName = args.Length > 2 ? args[2] : "x64-debug-spdlog";
+        string presetName = args.Length > 2 ? args[2] : GetDefaultPresetName();
 
         try
         {
@@ -221,7 +228,7 @@ internal static class Program
     private static int HandleGenerateVs(string repoRoot, string[] args)
     {
         string targetName = args.Length > 1 ? args[1] : "Aetherion";
-        string presetName = args.Length > 2 ? args[2] : "x64-debug-spdlog";
+        string presetName = args.Length > 2 ? args[2] : GetDefaultPresetName();
         string presetConfig = PresetManager.LoadPreset(repoRoot, presetName).Configuration;
 
         try
