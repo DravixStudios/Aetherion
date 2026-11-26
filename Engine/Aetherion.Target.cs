@@ -269,6 +269,7 @@ public class AetherionTarget : TargetRules
         Name = "Aetherion";
         Configuration = configuration;
         Platform = platform;
+        ENABLE_JUMBO = true;
 
         bool isDebug = configuration.Equals("Debug", StringComparison.OrdinalIgnoreCase);
         bool isWindows = platform.Equals("Windows", StringComparison.OrdinalIgnoreCase);

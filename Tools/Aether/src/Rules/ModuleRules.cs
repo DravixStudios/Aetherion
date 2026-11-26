@@ -9,4 +9,13 @@ public abstract class ModuleRules
     public List<string> Libraries { get; } = new();
     public List<string> LibraryPaths { get; } = new();
     public List<ExternalRules> Externals { get; } = new();
+    public bool EnableJumbo { get; set; } = false;
+    public bool ENABLE_JUMBO
+    {
+        get => EnableJumbo;
+        set => EnableJumbo = value;
+    }
+    public int JumboBatchSize { get; set; } = 8;
+    public List<string> JumboExcludes { get; } = new();
+    internal HashSet<string> ExternalSourceFiles { get; } = new(StringComparer.OrdinalIgnoreCase);
 }

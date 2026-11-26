@@ -103,7 +103,17 @@ public static partial class NinjaGenerator
             foreach (var def in module.Defines)
                 moduleDefines += $" {definePrefix}{def}";
 
-            foreach (var src in module.SourceFiles)
+            bool moduleJumbo = IsJumboEnabled(module.EnableJumbo, module.Defines, preset.Defines);
+            var moduleSources = ResolveCompileSources(
+                module.SourceFiles,
+                moduleJumbo,
+                module.JumboBatchSize,
+                module.JumboExcludes,
+                module.ExternalSourceFiles,
+                Path.Combine(intermediateDir, "jumbo", module.Name),
+                module.Name);
+
+            foreach (var src in moduleSources)
             {
                 string absoluteSrc = Path.GetFullPath(src);
                 string normSrc = ToNinjaPath(absoluteSrc);
@@ -183,7 +193,17 @@ public static partial class NinjaGenerator
         foreach (var def in target.Defines)
             targetDefines += $" {definePrefix}{def}";
 
-        foreach (var src in target.SourceFiles)
+        bool targetJumbo = IsJumboEnabled(target.EnableJumbo, target.Defines, preset.Defines);
+        var targetSources = ResolveCompileSources(
+            target.SourceFiles,
+            targetJumbo,
+            target.JumboBatchSize,
+            target.JumboExcludes,
+            target.ExternalSourceFiles,
+            Path.Combine(intermediateDir, "jumbo", target.Name),
+            target.Name);
+
+        foreach (var src in targetSources)
         {
             string absoluteSrc = Path.GetFullPath(src);
             string normSrc = ToNinjaPath(absoluteSrc);
@@ -326,6 +346,158 @@ public static partial class NinjaGenerator
             string key = match.Groups[1].Value;
             return vars.TryGetValue(key, out string? value) ? value : match.Value;
         });
+    }
+
+    private static bool IsJumboEnabled(bool propertyFlag, IEnumerable<string> localDefines, IEnumerable<string> presetDefines)
+    {
+        if (propertyFlag)
+            return true;
+
+        string? env = Environment.GetEnvironmentVariable("ENABLE_JUMBO");
+        if (string.Equals(env, "1", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(env, "true", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        return HasEnableJumboDefine(localDefines) || HasEnableJumboDefine(presetDefines);
+    }
+
+    private static bool HasEnableJumboDefine(IEnumerable<string> defines)
+    {
+        foreach (string def in defines)
+        {
+            if (def.Equals("ENABLE_JUMBO", StringComparison.OrdinalIgnoreCase) ||
+                def.Equals("ENABLE_JUMBO=1", StringComparison.OrdinalIgnoreCase) ||
+                def.Equals("ENABLE_JUMBO=true", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static List<string> ResolveCompileSources(
+        IReadOnlyList<string> sourceFiles,
+        bool enableJumbo,
+        int batchSize,
+        IReadOnlyList<string> excludes,
+        HashSet<string> externalSources,
+        string jumboDir,
+        string scopeName)
+    {
+        if (!enableJumbo || sourceFiles.Count <= 1)
+            return sourceFiles.ToList();
+
+        int effectiveBatchSize = batchSize > 0 ? batchSize : 8;
+        Directory.CreateDirectory(jumboDir);
+
+        var standalone = new List<string>();
+        var cppBatchable = new List<string>();
+        var cBatchable = new List<string>();
+
+        foreach (string src in sourceFiles)
+        {
+            string fullPath = Path.GetFullPath(src);
+            if (externalSources.Contains(fullPath) || IsExcludedFromJumbo(fullPath, excludes))
+            {
+                standalone.Add(fullPath);
+                continue;
+            }
+
+            if (fullPath.EndsWith(".c", StringComparison.OrdinalIgnoreCase))
+                cBatchable.Add(fullPath);
+            else
+                cppBatchable.Add(fullPath);
+        }
+
+        cppBatchable.Sort(StringComparer.Ordinal);
+        cBatchable.Sort(StringComparer.Ordinal);
+
+        var result = new List<string>();
+        result.AddRange(CreateJumboUnits(cppBatchable, effectiveBatchSize, jumboDir, scopeName, ".cpp"));
+        result.AddRange(CreateJumboUnits(cBatchable, effectiveBatchSize, jumboDir, scopeName, ".c"));
+        result.AddRange(standalone);
+
+        Console.WriteLine($"[Aether] Jumbo ({scopeName}): {sourceFiles.Count} files -> {result.Count} translation units");
+        return result;
+    }
+
+    private static bool IsExcludedFromJumbo(string fullPath, IReadOnlyList<string> excludes)
+    {
+        foreach (string pattern in excludes)
+        {
+            if (!string.IsNullOrWhiteSpace(pattern) &&
+                fullPath.Contains(pattern, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        // Files with #pragma once or *_IMPLEMENTATION macros cannot safely share a unity TU
+        try
+        {
+            foreach (string line in File.ReadLines(fullPath).Take(20))
+            {
+                string trimmed = line.Trim();
+                if (trimmed.StartsWith("#pragma once", StringComparison.Ordinal) ||
+                    (trimmed.StartsWith("#define", StringComparison.Ordinal) &&
+                     trimmed.Contains("_IMPLEMENTATION", StringComparison.Ordinal)))
+                {
+                    return true;
+                }
+            }
+        }
+        catch
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    private static List<string> CreateJumboUnits(
+        List<string> files,
+        int batchSize,
+        string jumboDir,
+        string scopeName,
+        string extension)
+    {
+        var units = new List<string>();
+        if (files.Count == 0)
+            return units;
+
+        string safeScope = scopeName.Replace(" ", "_");
+        string kindTag = extension == ".c" ? "c" : "cxx";
+        int batchIndex = 0;
+
+        for (int i = 0; i < files.Count; i += batchSize)
+        {
+            var chunk = files.Skip(i).Take(batchSize).ToList();
+            if (chunk.Count == 1)
+            {
+                units.Add(chunk[0]);
+                continue;
+            }
+
+            string unitPath = Path.Combine(jumboDir, $"jumbo_{safeScope}_{kindTag}_{batchIndex++}{extension}");
+            var sb = new StringBuilder();
+            sb.AppendLine("// Auto-generated by Aether Jumbo Build");
+            foreach (string file in chunk)
+            {
+                sb.AppendLine($"#include \"{file.Replace("\\", "/")}\"");
+            }
+
+            string content = sb.ToString();
+            if (!File.Exists(unitPath) || File.ReadAllText(unitPath) != content)
+            {
+                File.WriteAllText(unitPath, content);
+            }
+
+            units.Add(unitPath);
+        }
+
+        return units;
     }
 
     [GeneratedRegex(@"\$([A-Z0-9_]+)")]

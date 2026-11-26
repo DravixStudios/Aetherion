@@ -223,7 +223,10 @@ public static class TargetLoader
                 {
                     string resolvedSrc = Path.IsPathRooted(src) ? src : Path.Combine(externalPath, src);
                     if (File.Exists(resolvedSrc) && !target.SourceFiles.Contains(resolvedSrc))
+                    {
                         target.SourceFiles.Add(resolvedSrc);
+                        target.ExternalSourceFiles.Add(Path.GetFullPath(resolvedSrc));
+                    }
                 }
             }
 
