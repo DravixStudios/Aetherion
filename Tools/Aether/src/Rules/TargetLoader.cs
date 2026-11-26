@@ -15,7 +15,7 @@ public static class TargetLoader
         Directory.CreateDirectory(cachePath);
 
         var targetFiles = Directory.GetFiles(workspaceRoot, $"{targetName}.Target.cs", SearchOption.AllDirectories)
-            .Where(f => !f.Contains(".cache") && !f.Contains("obj") && !f.Contains("bin") && !f.Contains("Bin"))
+            .Where(f => !IsBuildArtifactPath(workspaceRoot, f))
             .ToList();
 
         if (targetFiles.Count == 0)
@@ -48,7 +48,7 @@ public static class TargetLoader
         foreach (var moduleName in target.Modules)
         {
             var found = Directory.GetFiles(workspaceRoot, $"{moduleName}.Module.cs", SearchOption.AllDirectories)
-                .Where(f => !f.Contains(".cache") && !f.Contains("obj") && !f.Contains("bin") && !f.Contains("Bin"))
+                .Where(f => !IsBuildArtifactPath(workspaceRoot, f))
                 .ToList();
 
             if (found.Count == 0)
@@ -338,6 +338,25 @@ public static class TargetLoader
                 File.Copy(bundledMiniz, Path.Combine(cachePath, "miniz.h"), overwrite: true);
             }
         }
+    }
+
+    private static bool IsBuildArtifactPath(string workspaceRoot, string fullPath)
+    {
+        string relative = Path.GetRelativePath(workspaceRoot, fullPath);
+        string[] segments = relative.Split(new[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar }, StringSplitOptions.RemoveEmptyEntries);
+        foreach (string seg in segments)
+        {
+            if (seg.Equals(".cache", StringComparison.OrdinalIgnoreCase) ||
+                seg.Equals(".git", StringComparison.OrdinalIgnoreCase) ||
+                seg.Equals("obj", StringComparison.OrdinalIgnoreCase) ||
+                seg.Equals("bin", StringComparison.OrdinalIgnoreCase) ||
+                seg.Equals("out", StringComparison.OrdinalIgnoreCase) ||
+                seg.Equals("build", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static void BuildWithCMake(string cmakePath, string ninjaPath, string modulePath, string binDir, string cmakeArguments, string configuration)
