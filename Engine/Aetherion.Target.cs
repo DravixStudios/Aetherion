@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using Aether.Rules;
 
@@ -185,14 +187,94 @@ public class AetherionTarget : TargetRules
         }
     }
 
+    private void AddUniqueIncludePath(string path)
+    {
+        if (Directory.Exists(path) && !IncludePaths.Contains(path))
+            IncludePaths.Add(path);
+    }
+
+    private void AddUniqueLibraryPath(string path)
+    {
+        if (Directory.Exists(path) && !LibraryPaths.Contains(path))
+            LibraryPaths.Add(path);
+    }
+
+    private void AddPrefixIncludeAndLib(string prefix)
+    {
+        if (string.IsNullOrWhiteSpace(prefix) || !Directory.Exists(prefix))
+            return;
+
+        AddUniqueIncludePath(Path.Combine(prefix, "include"));
+        AddUniqueIncludePath(Path.Combine(prefix, "Include"));
+        AddUniqueLibraryPath(Path.Combine(prefix, "lib"));
+        AddUniqueLibraryPath(Path.Combine(prefix, "Lib"));
+    }
+
+    private bool HasLibraryFile(string fileName)
+    {
+        foreach (string dir in LibraryPaths)
+        {
+            if (File.Exists(Path.Combine(dir, fileName)))
+                return true;
+        }
+        return false;
+    }
+
+    private static List<string> QueryPkgConfigLibs(string packages)
+    {
+        var result = new List<string>();
+        try
+        {
+            var psi = new ProcessStartInfo
+            {
+                FileName = "pkg-config",
+                Arguments = $"--libs {packages}",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false
+            };
+
+            using var process = Process.Start(psi);
+            if (process != null)
+            {
+                string output = process.StandardOutput.ReadToEnd();
+                process.WaitForExit();
+                if (process.ExitCode == 0 && !string.IsNullOrWhiteSpace(output))
+                {
+                    foreach (string token in output.Split(new[] { ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries))
+                    {
+                        result.Add(token);
+                    }
+                }
+            }
+        }
+        catch
+        {
+            // Ignore pkg-config unavailability
+        }
+        return result;
+    }
+
     public AetherionTarget(string workspaceRoot) : this(workspaceRoot, "Debug")
     {
     }
 
     public AetherionTarget(string workspaceRoot, string configuration)
+        : this(workspaceRoot, configuration, OperatingSystem.IsMacOS() ? "macOS" : (OperatingSystem.IsLinux() ? "Linux" : "Windows"))
+    {
+    }
+
+    public AetherionTarget(string workspaceRoot, string configuration, string platform)
     {
         Name = "Aetherion";
         Configuration = configuration;
+        Platform = platform;
+
+        bool isDebug = configuration.Equals("Debug", StringComparison.OrdinalIgnoreCase);
+        bool isWindows = platform.Equals("Windows", StringComparison.OrdinalIgnoreCase);
+        bool isMac = platform.Equals("macOS", StringComparison.OrdinalIgnoreCase)
+                  || platform.Equals("Darwin", StringComparison.OrdinalIgnoreCase);
+        bool isLinux = !isWindows && !isMac;
 
         string engineDir = Path.Combine(workspaceRoot, "Engine");
         string sharedDir = Path.Combine(workspaceRoot, "Shared");
@@ -208,46 +290,123 @@ public class AetherionTarget : TargetRules
         IncludePaths.Add(Path.Combine(sharedDir, "src", "public"));
         IncludePaths.Add(Path.Combine(workspaceRoot, ".cache"));
 
-        Defines.Add("NOMINMAX");
-        Defines.Add("EXCEPTION_HANDLER_PATH=\\\"ExceptionHandler.exe\\\"");
         Defines.Add("GIT_COMMIT=\\\"dev\\\"");
 
-        bool isDebug = configuration.Equals("Debug", StringComparison.OrdinalIgnoreCase);
-
-        // Vulkan SDK
-        string? vulkanSdk = Environment.GetEnvironmentVariable("VULKAN_SDK");
-        if (!string.IsNullOrEmpty(vulkanSdk))
+        if (isWindows)
         {
-            IncludePaths.Add(Path.Combine(vulkanSdk, "Include"));
-            string vulkanLib = Path.Combine(vulkanSdk, "Lib");
-            LibraryPaths.Add(vulkanLib);
-            Libraries.Add("vulkan-1.lib");
-            if (isDebug)
+            Defines.Add("NOMINMAX");
+            Defines.Add("EXCEPTION_HANDLER_PATH=\\\"ExceptionHandler.exe\\\"");
+
+            string? vulkanSdk = Environment.GetEnvironmentVariable("VULKAN_SDK");
+            if (!string.IsNullOrEmpty(vulkanSdk))
             {
-                Libraries.Add("shaderc_combinedd.lib");
-                Libraries.Add("spirv-cross-cd.lib");
-                Libraries.Add("spirv-cross-cored.lib");
-                Libraries.Add("spirv-cross-glsld.lib");
-                Libraries.Add("spirv-cross-hlsld.lib");
-                Libraries.Add("spirv-cross-msld.lib");
+                AddUniqueIncludePath(Path.Combine(vulkanSdk, "Include"));
+                AddUniqueLibraryPath(Path.Combine(vulkanSdk, "Lib"));
+                Libraries.Add("vulkan-1.lib");
+                if (isDebug)
+                {
+                    Libraries.Add("shaderc_combinedd.lib");
+                    Libraries.Add("spirv-cross-cd.lib");
+                    Libraries.Add("spirv-cross-cored.lib");
+                    Libraries.Add("spirv-cross-glsld.lib");
+                    Libraries.Add("spirv-cross-hlsld.lib");
+                    Libraries.Add("spirv-cross-msld.lib");
+                }
+                else
+                {
+                    Libraries.Add("shaderc_combined.lib");
+                    Libraries.Add("spirv-cross-c.lib");
+                    Libraries.Add("spirv-cross-core.lib");
+                    Libraries.Add("spirv-cross-glsl.lib");
+                    Libraries.Add("spirv-cross-hlsl.lib");
+                    Libraries.Add("spirv-cross-msl.lib");
+                }
+            }
+
+            Libraries.Add("user32.lib");
+            Libraries.Add("gdi32.lib");
+            Libraries.Add("shell32.lib");
+            Libraries.Add("ole32.lib");
+            Libraries.Add("ws2_32.lib");
+        }
+        else if (isMac)
+        {
+            Defines.Add("EXCEPTION_HANDLER_PATH=\\\"ExceptionHandler\\\"");
+
+            AddPrefixIncludeAndLib("/opt/homebrew/opt/shaderc");
+            AddPrefixIncludeAndLib("/opt/homebrew/opt/spirv-cross");
+            AddPrefixIncludeAndLib("/opt/homebrew/opt/vulkan-headers");
+            AddPrefixIncludeAndLib("/opt/homebrew/opt/vulkan-loader");
+            AddPrefixIncludeAndLib("/opt/homebrew/opt/molten-vk");
+
+            string? vulkanSdk = Environment.GetEnvironmentVariable("VULKAN_SDK");
+            if (!string.IsNullOrEmpty(vulkanSdk))
+                AddPrefixIncludeAndLib(vulkanSdk);
+
+            AddPrefixIncludeAndLib("/usr/local");
+            AddPrefixIncludeAndLib("/opt/homebrew");
+
+            Libraries.Add("vulkan");
+            Libraries.Add(HasLibraryFile("libshaderc_combined.a")
+                ? "shaderc_combined"
+                : (HasLibraryFile("libshaderc_shared.dylib") ? "shaderc_shared" : "shaderc_combined"));
+            Libraries.Add("spirv-cross-c");
+            Libraries.Add("spirv-cross-glsl");
+            Libraries.Add("spirv-cross-hlsl");
+            Libraries.Add("spirv-cross-msl");
+            Libraries.Add("spirv-cross-core");
+            Libraries.Add("z");
+
+            Libraries.Add("-framework Cocoa");
+            Libraries.Add("-framework IOKit");
+            Libraries.Add("-framework CoreVideo");
+            Libraries.Add("-framework CoreFoundation");
+            Libraries.Add("-framework AppKit");
+            Libraries.Add("-framework UniformTypeIdentifiers");
+            Libraries.Add("-framework QuartzCore");
+        }
+        else if (isLinux)
+        {
+            Defines.Add("EXCEPTION_HANDLER_PATH=\\\"ExceptionHandler\\\"");
+
+            string? vulkanSdk = Environment.GetEnvironmentVariable("VULKAN_SDK");
+            if (!string.IsNullOrEmpty(vulkanSdk))
+                AddPrefixIncludeAndLib(vulkanSdk);
+
+            AddPrefixIncludeAndLib("/usr/local");
+            AddPrefixIncludeAndLib("/usr");
+            AddUniqueLibraryPath("/usr/lib/x86_64-linux-gnu");
+            AddUniqueLibraryPath("/usr/lib/aarch64-linux-gnu");
+
+            Libraries.Add("vulkan");
+            Libraries.Add(HasLibraryFile("libshaderc_combined.a")
+                ? "shaderc_combined"
+                : (HasLibraryFile("libshaderc_shared.so") ? "shaderc_shared" : "shaderc_combined"));
+            Libraries.Add("spirv-cross-c");
+            Libraries.Add("spirv-cross-glsl");
+            Libraries.Add("spirv-cross-hlsl");
+            Libraries.Add("spirv-cross-msl");
+            Libraries.Add("spirv-cross-core");
+
+            var nfdLibs = QueryPkgConfigLibs("gtk+-3.0 dbus-1");
+            if (nfdLibs.Count > 0)
+            {
+                Libraries.AddRange(nfdLibs);
             }
             else
             {
-                Libraries.Add("shaderc_combined.lib");
-                Libraries.Add("spirv-cross-c.lib");
-                Libraries.Add("spirv-cross-core.lib");
-                Libraries.Add("spirv-cross-glsl.lib");
-                Libraries.Add("spirv-cross-hlsl.lib");
-                Libraries.Add("spirv-cross-msl.lib");
+                Libraries.Add("gtk-3");
+                Libraries.Add("gdk-3");
+                Libraries.Add("gobject-2.0");
+                Libraries.Add("glib-2.0");
+                Libraries.Add("dbus-1");
             }
-        }
 
-        // Standard Windows system libraries
-        Libraries.Add("user32.lib");
-        Libraries.Add("gdi32.lib");
-        Libraries.Add("shell32.lib");
-        Libraries.Add("ole32.lib");
-        Libraries.Add("ws2_32.lib");
+            Libraries.Add("dl");
+            Libraries.Add("pthread");
+            Libraries.Add("m");
+            Libraries.Add("z");
+        }
 
         ImguiExternal imgui = new ImguiExternal(workspaceRoot);
         Externals.Add(imgui);
