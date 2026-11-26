@@ -36,6 +36,7 @@ public class AssimpExternal : ExternalRules
         Name = "Assimp";
         Repo = "https://github.com/assimp/assimp";
         BuildWithCMake = true;
+        CMakeArguments = "-DBUILD_SHARED_LIBS=OFF -DASSIMP_BUILD_TESTS=OFF -DASSIMP_BUILD_ASSIMP_TOOLS=OFF -DASSIMP_INSTALL=OFF -DASSIMP_WARNINGS_AS_ERRORS=OFF";
     }
 }
 
@@ -49,7 +50,7 @@ public class SpdlogExternal : ExternalRules
         BuildWithCMake = true;
         Defines.Add("SPDLOG_FMT_EXTERNAL");
         string fmtBuildDir = Path.Combine(workspaceRoot, ".cache", "fmt", "build").Replace("\\", "/");
-        CMakeArguments = $"-DSPDLOG_FMT_EXTERNAL=ON -DFMT_DIR=\"{fmtBuildDir}\" -DCMAKE_PREFIX_PATH=\"{fmtBuildDir}\"";
+        CMakeArguments = $"-DSPDLOG_FMT_EXTERNAL=ON -DSPDLOG_BUILD_EXAMPLE=OFF -DSPDLOG_BUILD_TESTS=OFF -DSPDLOG_INSTALL=OFF -DFMT_DIR=\"{fmtBuildDir}\" -DCMAKE_PREFIX_PATH=\"{fmtBuildDir}\"";
     }
 }
 
@@ -61,6 +62,7 @@ public class FmtExternal : ExternalRules
         Repo = "https://github.com/fmtlib/fmt";
         Branch = "11.2.0";
         BuildWithCMake = true;
+        CMakeArguments = "-DFMT_TEST=OFF -DFMT_DOC=OFF -DFMT_INSTALL=OFF";
     }
 }
 
@@ -71,6 +73,7 @@ public class GlfwExternal : ExternalRules
         Name = "glfw";
         Repo = "https://github.com/glfw/glfw";
         BuildWithCMake = true;
+        CMakeArguments = "-DGLFW_BUILD_EXAMPLES=OFF -DGLFW_BUILD_TESTS=OFF -DGLFW_BUILD_DOCS=OFF -DGLFW_INSTALL=OFF";
     }
 }
 
@@ -93,6 +96,7 @@ public class NfdExternal : ExternalRules
         Name = "NFD";
         Repo = "https://github.com/btzy/nativefiledialog-extended";
         BuildWithCMake = true;
+        CMakeArguments = "-DNFD_BUILD_TESTS=OFF";
         IncludePaths.Add("src/include");
     }
 }
