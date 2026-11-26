@@ -6,7 +6,7 @@ public class ImguiExternal : ExternalRules
 {
     public ImguiExternal(string workspaceRoot)
     {
-        Name = "ImGui";
+        Name = "imgui";
         Repo = "https://github.com/ocornut/imgui";
         Branch = "docking";
         BuildWithCMake = false;
@@ -19,9 +19,13 @@ public class ImguiExternal : ExternalRules
             "imgui_tables.cpp",
             "imgui_widgets.cpp",
             "backends/imgui_impl_glfw.cpp",
-            "backends/imgui_impl_vulkan.cpp",
-            "backends/imgui_impl_win32.cpp"
+            "backends/imgui_impl_vulkan.cpp"
         });
+
+        if (OperatingSystem.IsWindows())
+        {
+            SourceFiles.Add("backends/imgui_impl_win32.cpp");
+        }
     }
 }
 
