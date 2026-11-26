@@ -26,6 +26,7 @@ public static class NinjaGenerator
         ninja.AppendLine();
 
         ninja.AppendLine($"compiler = {toolchain.Compiler}");
+        ninja.AppendLine($"c_compiler = {toolchain.CCompiler}");
         ninja.AppendLine($"linker = {toolchain.Linker}");
         ninja.AppendLine();
 
@@ -46,7 +47,7 @@ public static class NinjaGenerator
             ninja.AppendLine();
 
             ninja.AppendLine("rule compile_c");
-            ninja.AppendLine($"  command = $compiler {cc} /showIncludes $defines $includes /c $in /Fo$out");
+            ninja.AppendLine($"  command = $c_compiler {cc} /showIncludes $defines $includes /c $in /Fo$out");
             ninja.AppendLine("  deps = msvc");
             ninja.AppendLine("  description = [CC] $in");
             ninja.AppendLine();
@@ -67,7 +68,18 @@ public static class NinjaGenerator
             string cc = $"-Wall -fPIC {opt}";
             string lnk = isDebug ? "-g" : "";
             string sharedFlag = isMac ? "-dynamiclib" : "-shared";
-            string rpath = isMac ? "-Wl,-rpath,@loader_path" : "-Wl,-rpath,'$$ORIGIN'";
+            var rpathFlags = new List<string>
+            {
+                isMac ? "-Wl,-rpath,@loader_path" : "-Wl,-rpath,'$$ORIGIN'"
+            };
+            if (isMac)
+            {
+                foreach (var libPath in target.LibraryPaths.Distinct(StringComparer.Ordinal))
+                {
+                    rpathFlags.Add($"-Wl,-rpath,\"{libPath.Replace("\\", "/")}\"");
+                }
+            }
+            string rpath = string.Join(" ", rpathFlags);
 
             ninja.AppendLine("rule compile");
             ninja.AppendLine($"  command = $compiler {cxx} -MMD -MF $out.d $defines $includes -c $in -o $out");
@@ -77,7 +89,7 @@ public static class NinjaGenerator
             ninja.AppendLine();
 
             ninja.AppendLine("rule compile_c");
-            ninja.AppendLine($"  command = $compiler {cc} -MMD -MF $out.d $defines $includes -c $in -o $out");
+            ninja.AppendLine($"  command = $c_compiler {cc} -MMD -MF $out.d $defines $includes -c $in -o $out");
             ninja.AppendLine("  depfile = $out.d");
             ninja.AppendLine("  deps = gcc");
             ninja.AppendLine("  description = [CC] $in");
@@ -143,15 +155,17 @@ public static class NinjaGenerator
             }
             else if (isMac)
             {
-                dllFile = $"{binDir}/lib{module.Name}.dylib";
+                string rawDll = Path.Combine(binDir, $"lib{module.Name}.dylib");
+                dllFile = ToNinjaPath(rawDll);
                 ninja.AppendLine($"build {dllFile}: link_dll {string.Join(" ", moduleObjFiles)}");
-                moduleImportLibs.Add(dllFile);
+                moduleImportLibs.Add($"\"{rawDll.Replace("\\", "/")}\"");
             }
             else
             {
-                dllFile = $"{binDir}/lib{module.Name}.so";
+                string rawDll = Path.Combine(binDir, $"lib{module.Name}.so");
+                dllFile = ToNinjaPath(rawDll);
                 ninja.AppendLine($"build {dllFile}: link_dll {string.Join(" ", moduleObjFiles)}");
-                moduleImportLibs.Add($"-L{binDir} -l{module.Name}");
+                moduleImportLibs.Add($"-L\"{binDir}\" -l{module.Name}");
             }
 
             allDllOutputs.Add(dllFile);
@@ -160,7 +174,11 @@ public static class NinjaGenerator
 
         var targetObjFiles = new List<string>();
         string tIncPrefix = toolchain.Family == ToolchainFamily.MSVC ? "/I" : "-I";
-        string targetIncludes = string.Join(" ", target.IncludePaths.Select(p => $"{tIncPrefix}\"{p.Replace("\\", "/")}\""));
+        string normRoot = Path.GetFullPath(workspaceRoot).Replace("\\", "/").TrimEnd('/') + "/";
+        var orderedIncludes = target.IncludePaths
+            .OrderBy(p => Path.GetFullPath(p).Replace("\\", "/").StartsWith(normRoot, StringComparison.OrdinalIgnoreCase) ? 0 : 1)
+            .ToList();
+        string targetIncludes = string.Join(" ", orderedIncludes.Select(p => $"{tIncPrefix}\"{p.Replace("\\", "/")}\""));
 
         foreach (var mod in target.ResolvedModules)
         {
@@ -213,8 +231,29 @@ public static class NinjaGenerator
         ninja.AppendLine($"build {exePath}: link_exe {string.Join(" ", targetObjFiles)}{orderDeps}");
 
         var allLibs = new List<string>();
-        allLibs.AddRange(target.Libraries);
-        allLibs.AddRange(moduleImportLibs);
+        if (toolchain.Family == ToolchainFamily.MSVC)
+        {
+            allLibs.AddRange(target.Libraries);
+            allLibs.AddRange(moduleImportLibs);
+        }
+        else
+        {
+            var formattedLibs = target.Libraries
+                .Select(FormatClangGccLibrary)
+                .Concat(moduleImportLibs)
+                .ToList();
+
+            if (!isMac && formattedLibs.Count > 0)
+            {
+                allLibs.Add("-Wl,--start-group");
+                allLibs.AddRange(formattedLibs);
+                allLibs.Add("-Wl,--end-group");
+            }
+            else
+            {
+                allLibs.AddRange(formattedLibs);
+            }
+        }
 
         if (allLibs.Count > 0)
         {
@@ -235,6 +274,25 @@ public static class NinjaGenerator
         File.WriteAllText(ninjaFilePath, ninja.ToString());
 
         return ninjaFilePath;
+    }
+
+    private static string FormatClangGccLibrary(string lib)
+    {
+        if (lib.StartsWith("-", StringComparison.Ordinal))
+            return lib;
+
+        if (Path.IsPathRooted(lib) || lib.Contains('/') || lib.Contains('\\'))
+            return $"\"{lib.Replace("\\", "/")}\"";
+
+        if (lib.StartsWith("lib", StringComparison.Ordinal) &&
+            (lib.EndsWith(".a", StringComparison.OrdinalIgnoreCase) ||
+             lib.EndsWith(".so", StringComparison.OrdinalIgnoreCase) ||
+             lib.EndsWith(".dylib", StringComparison.OrdinalIgnoreCase)))
+        {
+            return "-l" + Path.GetFileNameWithoutExtension(lib).Substring(3);
+        }
+
+        return "-l" + lib;
     }
 
     private static string ToNinjaPath(string path)
