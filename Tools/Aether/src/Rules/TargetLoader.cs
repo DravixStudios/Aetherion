@@ -129,6 +129,18 @@ public static class TargetLoader
 
             EnsureCacheIncludeAlias(cachePath, externalRule.Name, externalPath);
 
+            IExtendedBuild extendedBuild = null;
+
+            if (externalRule is IExtendedBuild extendedRule)
+            {
+                extendedBuild = extendedRule;
+            }
+
+            if (extendedBuild != null)
+            {
+                extendedBuild.PreBuild();
+            }
+
             // Check if it's a cmake build or not and build it
             if (externalRule.BuildWithCMake && Directory.Exists(externalPath))
             {
@@ -228,6 +240,11 @@ public static class TargetLoader
                         target.ExternalSourceFiles.Add(Path.GetFullPath(resolvedSrc));
                     }
                 }
+            }
+
+            if(extendedBuild != null)
+            {
+                extendedBuild.PostBuild();
             }
 
             foreach (var inc in externalRule.IncludePaths)
