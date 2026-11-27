@@ -31,6 +31,51 @@ public class ImguiExternal : ExternalRules
     }
 }
 
+public class ImGuizmoExternal :  ExternalRules, IExtendedBuild
+{
+       private string libDir = string.Empty;
+       public ImGuizmoExternal(string cacheDir)
+       {
+           Name = "ImGuizmo";
+           Repo = "https://github.com/CedricGuillemet/ImGuizmo";
+           BuildWithCMake = true;
+           IncludePaths.Add("src");
+
+           libDir = Path.Combine(cacheDir, Name);
+       }
+
+       public void PreBuild()
+       {
+            Console.WriteLine("ImGuizmoExternal.PreBuild: Nothing to do");
+       }
+
+       public void PostBuild()
+       {
+            string srcDir = Path.Combine(libDir, "src");
+            string destDir = Path.Combine(libDir, "include", "ImGuizmo");
+            if(!Directory.Exists(destDir))
+            {
+                Directory.CreateDirectory(destDir);
+            }
+
+           CopyHeadersToInclude(srcDir, destDir);
+       }
+
+       private static void CopyHeadersToInclude(string sourceDir, string destinationDir)
+       {
+           if (!Directory.Exists(sourceDir))
+               return;
+
+           Directory.CreateDirectory(destinationDir);
+
+           foreach (string headerPath in Directory.GetFiles(sourceDir, "*.h", SearchOption.TopDirectoryOnly))
+           {
+               string fileName = Path.GetFileName(headerPath);
+               File.Copy(headerPath, Path.Combine(destinationDir, fileName), overwrite: true);
+           }
+       }
+}
+
 public class AssimpExternal : ExternalRules
 {
     public AssimpExternal()
@@ -279,6 +324,7 @@ public class AetherionTarget : TargetRules
 
         string engineDir = Path.Combine(workspaceRoot, "Engine");
         string sharedDir = Path.Combine(workspaceRoot, "Shared");
+        string cacheDir = Path.Combine(workspaceRoot, ".cache");
         string shadersTargetBinDir = Path.Combine(workspaceRoot, "Bin", Name, configuration);
         string shadersDir = Path.Combine(engineDir, "src", "shaders");
 
@@ -411,6 +457,7 @@ public class AetherionTarget : TargetRules
 
         ImguiExternal imgui = new ImguiExternal(workspaceRoot);
         Externals.Add(imgui);
+        Externals.Add(new ImGuizmoExternal(cacheDir));
         Externals.Add(new FmtExternal());
         Externals.Add(new SpdlogExternal(workspaceRoot));
         Externals.Add(new GlfwExternal());
