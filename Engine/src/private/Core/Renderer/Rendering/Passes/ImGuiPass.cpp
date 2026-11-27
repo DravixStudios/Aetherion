@@ -12,6 +12,8 @@
 #include <cstring>
 #include <nfd.h>
 
+#include <ImGuizmo/ImGuizmo.h>
+
 extern "C" int NFD_OpenDialogN(wchar_t** outPath, const void* filterList, unsigned int filterCount, const wchar_t* defaultPath);
 extern "C" const char* NFD_GetError(void);
 
@@ -60,7 +62,7 @@ struct DragPayload {
 
 /**
 * ImGui pass initialization
-* 
+*
 * @param device Logical device
 */
 void
@@ -70,11 +72,11 @@ ImGuiPass::Init(Ref<Device> device) {
 
 /**
 * ImGui pass initialization
-* 
+*
 * @param device Logical device
 * @param nFramesInFlight Frames in flight count
 */
-void 
+void
 ImGuiPass::Init(Ref<Device> device, uint32_t nFramesInFlight) {
 	this->m_device = device;
 	this->m_nFramesInFlight = nFramesInFlight;
@@ -83,7 +85,7 @@ ImGuiPass::Init(Ref<Device> device, uint32_t nFramesInFlight) {
 
 /**
 * ImGui pass node setup
-* 
+*
 * @param builder Render graph builder
 */
 void
@@ -100,7 +102,7 @@ ImGuiPass::SetupNode(RenderGraphBuilder& builder) {
 
 /**
 * Executes the ImGui pass
-* 
+*
 * @param context Graphics context
 * @param graphCtx Render graph context
 * @param nFramesInFlight Frames in flight count
@@ -108,6 +110,7 @@ ImGuiPass::SetupNode(RenderGraphBuilder& builder) {
 void
 ImGuiPass::Execute(Ref<GraphicsContext> context, RenderGraphContext& graphCtx, uint32_t nImgIdx) {
 	this->m_imgui->NewFrame();
+    ImGuizmo::BeginFrame();
 
     const ImGuiViewport* pViewport = ImGui::GetMainViewport();
     ImGui::SetNextWindowPos(pViewport->WorkPos);
@@ -139,12 +142,15 @@ ImGuiPass::Execute(Ref<GraphicsContext> context, RenderGraphContext& graphCtx, u
 
     this->m_imgui->Image(this->m_sceneImGuiSets[nImgIdx], actualSize);
 
+    const ImVec2 viewportPos = ImGui::GetWindowPos();
+	ImGuizmo::SetRect(viewportPos.x, viewportPos.y, this->m_viewportSize.x, this->m_viewportSize.y);
+    
     if (ImGui::BeginDragDropTarget()) {
         const ImGuiPayload* pPayload = ImGui::AcceptDragDropPayload("ASSET");
 
         if (pPayload) {
             void* pData = pPayload->Data;
-            
+
             const DragPayload* pDragPayload = static_cast<DragPayload*>(pData);
 
             const EDragType dragType = pDragPayload->type;
@@ -213,7 +219,7 @@ ImGuiPass::Execute(Ref<GraphicsContext> context, RenderGraphContext& graphCtx, u
                 /* Open a dialog for selecting the project */
                 wchar_t* pOutPath = nullptr;
                 const int result = NFD_OpenDialogN(&pOutPath, nullptr, 0, nullptr);
-                
+
                 /* Get project manager instance */
                 ProjectManager* projMgr = ProjectManager::GetInstance();
 
@@ -235,7 +241,7 @@ ImGuiPass::Execute(Ref<GraphicsContext> context, RenderGraphContext& graphCtx, u
                     this->m_sceneSaveCallback();
                 }
             }
-            
+
             ImGui::EndMenu();
 	    }
 
@@ -328,16 +334,15 @@ ImGuiPass::Execute(Ref<GraphicsContext> context, RenderGraphContext& graphCtx, u
 	    ImGui::EndMainMenuBar();
     }
 
-	
 	this->m_imgui->Render(context);
 }
 
 /**
 * Show asset browser
-* 
+*
 * @param node Asset browser node
 */
-void 
+void
 ImGuiPass::ShowAssetBrowser() {
     ImGui::Begin("Project");
 
@@ -412,7 +417,7 @@ ImGuiPass::ShowAssetBrowser() {
         ImGui::PopID();
         ImGui::NextColumn();
     }
-    
+
     ImGui::PushID("asset_scope");
     for (uint32_t i = 0; i < node->assets.size(); ++i) {
         const AssetHandle& asset = node->assets[i];
@@ -534,10 +539,10 @@ ImGuiPass::ShowAssetBrowser() {
 
 /**
 * Draw a hierarchy node
-* 
+*
 * @param node Hierarchy node to draw
 */
-void 
+void
 ImGuiPass::DrawHierarchyNode(Hierarchy& hierarchy, const Ref<Hierarchy::HierarchyNode>& node) {
     ImGuiTreeNodeFlags flags = 0;
 
@@ -607,7 +612,7 @@ ImGuiPass::SetInput(TextureHandle input, TransientResourcePool& transientPool, u
 
 /**
 * Set imgui pass output
-* 
+*
 * @param output Output texture handle
 */
 void
@@ -617,10 +622,10 @@ ImGuiPass::SetOutput(TextureHandle output) {
 
 /**
 * Sets the imgui pass window
-* 
+*
 * @param pWindow Pointer to GLFW window
 */
-void 
+void
 ImGuiPass::SetWindow(GLFWwindow* pWindow) {
 	this->m_pWindow = pWindow;
 }
@@ -638,7 +643,7 @@ ImGuiPass::CreateResources() {
 	DescriptorPoolCreateInfo poolInfo = { };
 	poolInfo.nMaxSets = static_cast<uint32_t>(IMGUI_DESCRIPTOR_POOL_SIZE);
 	poolInfo.poolSizes = Vector{ poolSize };
-	
+
 	this->m_pool = this->m_device->CreateDescriptorPool(poolInfo);
 
     /* Create sampler */
@@ -652,8 +657,8 @@ ImGuiPass::CreateResources() {
 
     this->m_sampler = this->m_device->CreateSampler(samplerInfo);
 
-	/* 
-		Create compatible render pass 
+	/*
+		Create compatible render pass
 
 		TODO: Select format from the swapchain
 	*/
@@ -674,7 +679,7 @@ ImGuiPass::CreateResources() {
 	rpInfo.attachments = Vector{ attachment };
 	rpInfo.subpasses = Vector{ subpass };
     rpInfo.dependencies = GetDefaultSubpassDependencies(false);
-	
+
 	this->m_renderPass = this->m_device->CreateRenderPass(rpInfo);
 
     /* Create ImGui */
@@ -696,8 +701,8 @@ ImGuiPass::CreateResources() {
         the GPU and adds it to ImGuiImpl
     */
     std::function<void(
-        const char*, 
-        Ref<GPUTexture>&, 
+        const char*,
+        Ref<GPUTexture>&,
         Ref<ImageView>&,
         Ref<DescriptorSet>&
     )> loadIcon = [this](
@@ -766,9 +771,9 @@ ImGuiPass::CreateResources() {
     /* Folder Icon */
     loadIcon(FolderSVG, s_icons.folderImage, s_icons.folderView, s_icons.folderSet);
 
-    /* 
-        Mesh icon 
-        
+    /*
+        Mesh icon
+
         TODO: Generate a preview of
         the mesh when uploading the mesh
     */
@@ -786,7 +791,7 @@ ImGuiPass::CreateResources() {
 
 /**
 * ImGui theme setup
-* 
+*
 * Used theme: Catppuchin mocha theme
 * https://github.com/ocornut/imgui/issues/707#issuecomment-3592676777
 */
