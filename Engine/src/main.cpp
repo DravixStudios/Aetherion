@@ -14,7 +14,7 @@ Core* g_core = nullptr;
 #define VERSION_MINOR 2
 #define VERSION_PATCH 1
 
-#ifdef CURRENT_PLATFORM(PLATFORM_WINDOWS)
+#if CURRENT_PLATFORM(PLATFORM_WINDOWS)
 #if IS_DEBUG_BUILD
 #pragma comment(linker, "/SUBSYSTEM:console")
 #else
