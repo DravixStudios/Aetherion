@@ -6,8 +6,9 @@
 
 #include <nfd.h>
 
-extern "C" int NFD_SaveDialogN(wchar_t** outPath, const void* filterList, unsigned int filterCount, const wchar_t* defaultPath, const wchar_t* defaultName);
+extern "C" int NFD_SaveDialogU8(char** outPath, const void* filterList, unsigned int filterCount, const char* defaultPath, const char* defaultName);
 extern "C" const char* NFD_GetError(void);
+extern "C" void NFD_FreePathU8(char* path);
 
 #ifndef GIT_COMMIT
 #define GIT_COMMIT "Unknown commit"
@@ -347,20 +348,34 @@ Core::SetupCallbacks() {
             TODO: Move this part to a separate class
             or system
         */
-        wchar_t* outPath = nullptr;
+        char* outPath = nullptr;
 
         fs::path projectPath = projectDir.name;
         String sceneName = scene->GetName();
         String sceneFile = sceneName + ".aeth";
-        std::wstring sceneFileW = fs::path(sceneFile).wstring();
 
-        int result = NFD_SaveDialogN(
-            &outPath,
-            nullptr,
-            0,
-            projectPath.wstring().c_str(),
-            sceneFileW.c_str()
-        );
+        int result = 0;
+        try {
+            result = NFD_SaveDialogU8(
+                &outPath,
+                nullptr,
+                0,
+                projectPath.string().c_str(),
+                sceneFile.c_str()
+            );
+        }
+        catch (const std::runtime_error& e) {
+            Logger::Error("Core::SetupCallbacks:[OnSceneSaveCallback]: Runtime error in NFD_SaveDialogU8: {}", e.what());
+            return;
+        }
+        catch (const std::exception& e) {
+            Logger::Error("Core::SetupCallbacks:[OnSceneSaveCallback]: Exception in NFD_SaveDialogU8: {}", e.what());
+            return;
+        }
+        catch (...) {
+            Logger::Error("Core::SetupCallbacks:[OnSceneSaveCallback]: Unknown exception in NFD_SaveDialogU8");
+            return;
+        }
 
         /* Check NFD result */
         switch (result) {
@@ -378,7 +393,11 @@ Core::SetupCallbacks() {
         }
         }
 
-        String scenePath = fs::path(outPath).string();
+        String scenePath;
+        if (outPath) {
+            scenePath = outPath;
+            NFD_FreePathU8(outPath);
+        }
 
         /*
             Serialize scene and save it

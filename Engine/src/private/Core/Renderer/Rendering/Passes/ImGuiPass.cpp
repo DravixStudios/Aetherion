@@ -9,13 +9,13 @@
 #include "Icons/Material.h"
 
 #include <functional>
-#include <cstring>
 #include <nfd.h>
 
 #include <ImGuizmo/ImGuizmo.h>
 
-extern "C" int NFD_OpenDialogN(wchar_t** outPath, const void* filterList, unsigned int filterCount, const wchar_t* defaultPath);
+extern "C" int NFD_OpenDialogU8(char** outPath, const void* filterList, unsigned int filterCount, const char* defaultPath);
 extern "C" const char* NFD_GetError(void);
+extern "C" void NFD_FreePathU8(char* path);
 
 struct AssetBrowserState {
     Ref<ProjectTree::TreeNode> currentNode;
@@ -217,15 +217,44 @@ ImGuiPass::Execute(Ref<GraphicsContext> context, RenderGraphContext& graphCtx, u
 	    if (ImGui::BeginMenu("File")) {
             if (ImGui::MenuItem("Open project...")) {
                 /* Open a dialog for selecting the project */
-                wchar_t* pOutPath = nullptr;
-                const int result = NFD_OpenDialogN(&pOutPath, nullptr, 0, nullptr);
+                char* pOutPath = nullptr;
+                int result = 0;
+                try {
+                    result = NFD_OpenDialogU8(&pOutPath, nullptr, 0, nullptr);
+                }
+                catch (const std::runtime_error& e) {
+                    Logger::Error("ImGuiPass::Execute: Runtime error in NFD_OpenDialogU8: {}", e.what());
+                    result = 0;
+                }
+                catch (const std::exception& e) {
+                    Logger::Error("ImGuiPass::Execute: Exception in NFD_OpenDialogU8: {}", e.what());
+                    result = 0;
+                }
+                catch (...) {
+                    Logger::Error("ImGuiPass::Execute: Unknown exception in NFD_OpenDialogU8");
+                    result = 0;
+                }
 
                 /* Get project manager instance */
                 ProjectManager* projMgr = ProjectManager::GetInstance();
 
                 switch (result) {
                 case 1:
-                    projMgr->OpenProject(std::filesystem::path(pOutPath).string());
+                    try {
+                        std::string projectPathStr;
+                        if (pOutPath) {
+                            projectPathStr = pOutPath;
+                            NFD_FreePathU8(pOutPath);
+                        }
+                        Logger::Debug("ImGuiPass::Execute: Opening project at: {}", projectPathStr);
+                        projMgr->OpenProject(projectPathStr);
+                    }
+                    catch (const std::exception& e) {
+                        Logger::Error("ImGuiPass::Execute: Exception opening project: {}", e.what());
+                    }
+                    catch (...) {
+                        Logger::Error("ImGuiPass::Execute: Unknown exception opening project");
+                    }
 
                     s_browserState = { };
                     s_browserState.currentNode = projMgr->GetProjectTree().root;

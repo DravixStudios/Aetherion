@@ -316,6 +316,9 @@ public class AetherionTarget : TargetRules
         Platform = platform;
         ENABLE_JUMBO = true;
 
+        // Disable fmt locale support to avoid "locale not supported" errors
+        Defines.Add("FMT_USE_LOCALE=0");
+
         bool isDebug = configuration.Equals("Debug", StringComparison.OrdinalIgnoreCase);
         bool isWindows = platform.Equals("Windows", StringComparison.OrdinalIgnoreCase);
         bool isMac = platform.Equals("macOS", StringComparison.OrdinalIgnoreCase)
